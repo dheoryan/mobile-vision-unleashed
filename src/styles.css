@@ -2,6 +2,8 @@
 @source "../src";
 @import "tw-animate-css";
 
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -11,6 +13,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -37,79 +40,104 @@
   --color-tribe-owl: var(--tribe-owl);
   --color-tribe-bee: var(--tribe-bee);
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
 }
 
 :root {
-  --radius: 1.25rem;
+  --radius: 1rem;
 
-  /* Habitat dark palette inspired by deck */
-  --background: oklch(0.16 0.015 50);
-  --foreground: oklch(0.97 0.01 80);
+  /* Urban Habitat — dark, living, layered */
+  --background: oklch(0.16 0 0);                 /* #0F0F0F */
+  --foreground: oklch(0.95 0.01 80);             /* #F0EDE6 */
 
-  --card: oklch(0.21 0.018 50);
-  --card-foreground: oklch(0.97 0.01 80);
+  --card: oklch(0.21 0 0);                       /* #1A1A1A */
+  --card-foreground: oklch(0.95 0.01 80);
 
-  --popover: oklch(0.21 0.018 50);
-  --popover-foreground: oklch(0.97 0.01 80);
+  --popover: oklch(0.24 0 0);                    /* #222 */
+  --popover-foreground: oklch(0.95 0.01 80);
 
-  /* Signature MUTUALS orange */
-  --primary: oklch(0.75 0.18 55);
-  --primary-foreground: oklch(0.16 0.015 50);
+  --primary: oklch(0.78 0.12 80);                /* #D4A853 amber */
+  --primary-foreground: oklch(0.16 0 0);
 
-  --secondary: oklch(0.27 0.02 45);
-  --secondary-foreground: oklch(0.97 0.01 80);
+  --secondary: oklch(0.27 0 0);
+  --secondary-foreground: oklch(0.95 0.01 80);
 
-  --muted: oklch(0.24 0.015 45);
-  --muted-foreground: oklch(0.7 0.02 70);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.62 0.01 80);       /* #888880 */
 
-  --accent: oklch(0.45 0.12 25); /* berry/wine */
-  --accent-foreground: oklch(0.97 0.01 80);
+  --accent: oklch(0.55 0.07 150);                /* #4A7C59 forest */
+  --accent-foreground: oklch(0.95 0.01 80);
 
-  --destructive: oklch(0.6 0.2 25);
-  --destructive-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.6 0.16 35);             /* #C45C3A */
+  --destructive-foreground: oklch(0.95 0.01 80);
 
-  --border: oklch(0.28 0.02 50);
-  --input: oklch(0.28 0.02 50);
-  --ring: oklch(0.75 0.18 55);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.28 0 0);
+  --ring: oklch(0.78 0.12 80);
 
-  /* Tribe scene colors (from deck) */
-  --tribe-wolf: oklch(0.72 0.17 50);   /* orange */
-  --tribe-koi:  oklch(0.78 0.13 180);  /* teal */
-  --tribe-cat:  oklch(0.65 0.22 5);    /* magenta */
-  --tribe-owl:  oklch(0.65 0.18 285);  /* purple */
-  --tribe-bee:  oklch(0.83 0.14 90);   /* honey */
+  /* Tribe colors from brief */
+  --tribe-wolf: oklch(0.6 0.18 35);     /* #C84B31 fire red */
+  --tribe-koi:  oklch(0.6 0.1 235);     /* #3A7CA5 deep blue */
+  --tribe-cat:  oklch(0.62 0.22 295);   /* #8B5CF6 violet */
+  --tribe-owl:  oklch(0.78 0.12 80);    /* #D4A853 amber */
+  --tribe-bee:  oklch(0.55 0.07 150);   /* #4A7C59 forest */
 }
 
-.dark {
-  --background: oklch(0.16 0.015 50);
-  --foreground: oklch(0.97 0.01 80);
-}
+.dark { color-scheme: dark; }
 
 @layer base {
   * { border-color: var(--color-border); }
+  html { color-scheme: dark; }
   html, body, #root { height: 100%; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: var(--font-display);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
   }
+  h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+  .font-mono, .label-mono { font-family: var(--font-mono); }
 }
 
 @layer utilities {
   .bg-habitat {
     background:
-      radial-gradient(ellipse 80% 60% at 100% 0%, color-mix(in oklab, var(--color-primary) 18%, transparent) 0%, transparent 60%),
-      radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in oklab, var(--color-accent) 30%, transparent) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 60% at 100% 0%, color-mix(in oklab, var(--color-primary) 12%, transparent) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in oklab, var(--color-accent) 18%, transparent) 0%, transparent 55%),
       var(--color-background);
   }
   .glass {
-    background: color-mix(in oklab, var(--color-card) 75%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: color-mix(in oklab, var(--color-background) 70%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
   }
-  .ring-tribe { box-shadow: 0 0 0 2px color-mix(in oklab, var(--tribe-active, var(--color-primary)) 60%, transparent); }
   .text-balance { text-wrap: balance; }
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .animate-pulse-glow { animation: pulse-glow 1.8s ease-in-out infinite; }
+
+  @keyframes rise-fade {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-rise { animation: rise-fade 0.42s cubic-bezier(.2,.8,.2,1) both; }
+
+  @keyframes tab-bounce {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .animate-tab { animation: tab-bounce 0.32s ease-out; }
 }
