@@ -1,26 +1,63 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
+import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
+import { TribeScreen } from "@/components/mutuals/TribeScreen";
+import { TimelineScreen } from "@/components/mutuals/TimelineScreen";
+import { DiscoverScreen } from "@/components/mutuals/DiscoverScreen";
+import { VenturesScreen } from "@/components/mutuals/VenturesScreen";
+import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
+import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
+import type { DMThread, Person } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: App,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
+function App() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [tab, setTab] = useState<TabKey>("tribe");
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [extraThreads, setExtraThreads] = useState<DMThread[]>([]);
 
-function Index() {
-  return <PlaceholderIndex />;
+  const unread = useMemo(() => 1 + extraThreads.length, [extraThreads]);
+
+  if (!profile) return <Onboarding onDone={(p) => setProfile(p)} />;
+
+  const handleSendHello = (person: Person, message: string) => {
+    setExtraThreads((prev) => {
+      if (prev.some((t) => t.withUserId === person.id)) return prev;
+      return [
+        {
+          id: `new-${person.id}`,
+          withUserId: person.id,
+          preview: message,
+          time: "now",
+          unread: true,
+          messages: [{ id: `m-${Date.now()}`, from: "me", text: message, time: "now" }],
+        },
+        ...prev,
+      ];
+    });
+  };
+
+  return (
+    <>
+      {tab === "tribe"    && <TribeScreen    profile={profile} onOpenMessages={() => setMessagesOpen(true)} unread={unread} />}
+      {tab === "timeline" && <TimelineScreen onOpenMessages={() => setMessagesOpen(true)} unread={unread} />}
+      {tab === "discover" && <DiscoverScreen onOpenMessages={() => setMessagesOpen(true)} unread={unread} />}
+      {tab === "ventures" && (
+        <VenturesScreen
+          profile={profile}
+          onOpenMessages={() => setMessagesOpen(true)}
+          onSendHello={handleSendHello}
+          unread={unread}
+        />
+      )}
+      {tab === "profile"  && <ProfileScreen profile={profile} onOpenMessages={() => setMessagesOpen(true)} unread={unread} />}
+
+      <BottomNav active={tab} onChange={setTab} />
+      <MessagesPanel open={messagesOpen} onClose={() => setMessagesOpen(false)} extraThreads={extraThreads} />
+    </>
+  );
 }
