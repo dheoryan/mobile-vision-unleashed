@@ -3,10 +3,10 @@ import { Plus, Send, Smile, Image as ImageIcon } from "lucide-react";
 import { TRIBES, POSTS, CHAT_BY_TRIBE, type TribeId, tribeById, personById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { PostCard } from "./PostCard";
-import { SectionTitle } from "./Shared";
+import { AppHeader, SectionTitle } from "./Shared";
 import { cn } from "@/lib/utils";
 
-export function TribeScreen({ profile }: { profile: Profile }) {
+export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
   const [activeTribe, setActiveTribe] = useState<TribeId>(profile.tribeId);
   const [view, setView] = useState<"feed" | "chat">("feed");
   const tribe = tribeById(activeTribe);
@@ -14,6 +14,7 @@ export function TribeScreen({ profile }: { profile: Profile }) {
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
+      <AppHeader title={tribe.name} subtitle="Home base" accent={tribe.colorVar} onOpenMessages={onOpenMessages} unread={unread} />
       <main className="mx-auto max-w-md px-5 pt-3">
         <TribeStrip active={activeTribe} onChange={setActiveTribe} />
         <TribeBanner tribe={tribe} />
