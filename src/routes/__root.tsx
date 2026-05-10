@@ -71,15 +71,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0F0F0F" },
+      { title: "MUTUALS — Start with your Tribe" },
+      { name: "description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
+      { property: "og:title", content: "MUTUALS — Start with your Tribe" },
+      { property: "og:description", content: "A tribe-based social app for real-life meetups. For socially curious adults, 21+." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
