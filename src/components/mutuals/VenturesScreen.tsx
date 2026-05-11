@@ -70,7 +70,7 @@ export function VenturesScreen({
             setTribeFilter={setTribeFilter}
             window={window}
             setWindow={setWindow}
-            onLaunch={() => setStage("active")}
+            onLaunch={tryGoLive}
             onCancel={reset}
           />
         )}
