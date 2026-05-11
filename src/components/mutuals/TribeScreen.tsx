@@ -115,8 +115,16 @@ function TribeBanner({ tribe }: { tribe: ReturnType<typeof tribeById> }) {
           <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/40 px-2 py-1 text-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
           </span>
-          <h2 className="mt-2 font-display text-2xl font-bold leading-tight">{tribe.name}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-2xl font-bold leading-tight">{tribe.name}</h2>
+            {tribe.hosted && (
+              <span className="label-mono inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-primary" title={`Hosted by ${tribe.hostOrg}`}>
+                ✓ HOSTED
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
+          {tribe.hosted && <p className="text-[11px] text-primary/80">Run by {tribe.hostOrg}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
             <span className="text-foreground">{tribe.online}</span> online · {tribe.members.toLocaleString()} members
           </p>

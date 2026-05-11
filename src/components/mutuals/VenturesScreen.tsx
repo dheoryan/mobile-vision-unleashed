@@ -299,13 +299,16 @@ function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: 
   return (
     <article className="rounded-2xl border border-border bg-card p-4 animate-rise" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex items-start gap-3">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
-          {person.avatar}
+        <span className="relative">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
+            {person.avatar}
+          </span>
+          {person.plus && <PlusBadge />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold">{person.name}</p>
-            <TribeBadge name={tribe.name} color={tribe.colorVar} />
+            <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
           </div>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
             <MapPin className="h-3 w-3" /> {person.city} · {person.mutuals ?? 0} mutual follows
