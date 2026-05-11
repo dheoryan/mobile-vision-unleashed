@@ -8,6 +8,8 @@ export interface Tribe {
   colorVar: string;
   members: number;
   online: number;
+  hosted?: boolean;
+  hostOrg?: string;
 }
 
 export const TRIBES: Tribe[] = [
@@ -15,7 +17,7 @@ export const TRIBES: Tribe[] = [
   { id: "koi",  name: "Koi",        emoji: "🐟", scene: "Books & Thoughtful Hobbies",  colorVar: "var(--tribe-koi)",  members: 8210,  online: 184 },
   { id: "cat",  name: "Studio Cat", emoji: "🎵", scene: "Music & Arts",                colorVar: "var(--tribe-cat)",  members: 15640, online: 521 },
   { id: "owl",  name: "Night Owl",  emoji: "🦉", scene: "Nightlife & Late-Night Talks",colorVar: "var(--tribe-owl)",  members: 9970,  online: 402 },
-  { id: "bee",  name: "Honeybee",   emoji: "🐝", scene: "Professional Workers",        colorVar: "var(--tribe-bee)",  members: 11230, online: 276 },
+  { id: "bee",  name: "Honeybee",   emoji: "🐝", scene: "Professional Workers",        colorVar: "var(--tribe-bee)",  members: 11230, online: 276, hosted: true, hostOrg: "Sightglass × Mutuals" },
 ];
 
 export const tribeById = (id: TribeId) => TRIBES.find(t => t.id === id)!;
@@ -30,14 +32,15 @@ export interface Person {
   bio: string;
   following?: boolean;
   mutuals?: number;
+  plus?: boolean;
 }
 
 export const PEOPLE: Person[] = [
-  { id: "u1", name: "Maya Reyes",  handle: "@mayaruns",      avatar: "🏃‍♀️", tribeId: "wolf", city: "San Francisco", bio: "Sunrise miles. Slow coffee after.", mutuals: 4 },
+  { id: "u1", name: "Maya Reyes",  handle: "@mayaruns",      avatar: "🏃‍♀️", tribeId: "wolf", city: "San Francisco", bio: "Sunrise miles. Slow coffee after.", mutuals: 4, plus: true },
   { id: "u2", name: "Diego Park",  handle: "@diegolifts",    avatar: "🏋️", tribeId: "wolf", city: "Oakland",       bio: "Strength + mobility. Always down to spot.", mutuals: 2 },
-  { id: "u3", name: "Hana Ito",    handle: "@hana.reads",    avatar: "📚", tribeId: "koi",  city: "San Francisco", bio: "Slow reader. Cafe-hopper.", mutuals: 6 },
+  { id: "u3", name: "Hana Ito",    handle: "@hana.reads",    avatar: "📚", tribeId: "koi",  city: "San Francisco", bio: "Slow reader. Cafe-hopper.", mutuals: 6, plus: true },
   { id: "u4", name: "Leo Marín",   handle: "@leoplays",      avatar: "🎸", tribeId: "cat",  city: "Brooklyn",      bio: "Open mics, vinyl crates, bad puns.", mutuals: 1 },
-  { id: "u5", name: "Quinn Adair", handle: "@quinnafterdark",avatar: "🌙", tribeId: "owl",  city: "Lisbon",        bio: "Conversations after midnight.", mutuals: 3 },
+  { id: "u5", name: "Quinn Adair", handle: "@quinnafterdark",avatar: "🌙", tribeId: "owl",  city: "Lisbon",        bio: "Conversations after midnight.", mutuals: 3, plus: true },
   { id: "u6", name: "Priya Shah",  handle: "@priya.builds",  avatar: "💼", tribeId: "bee",  city: "Austin",        bio: "Indie founder. Will trade tactics for tacos.", mutuals: 2 },
   { id: "u7", name: "Noor Haddad", handle: "@noor.runs",     avatar: "🏔️", tribeId: "wolf", city: "Brooklyn",      bio: "Trail runs + bagel debriefs.", mutuals: 5 },
   { id: "u8", name: "Eli Chen",    handle: "@eli.studies",   avatar: "🍵", tribeId: "koi",  city: "Seattle",       bio: "Currently reading anything by Le Guin.", mutuals: 0 },

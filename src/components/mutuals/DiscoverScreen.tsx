@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search, UserPlus, Check } from "lucide-react";
 import { TRIBES, PEOPLE, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
+import { PlusBadge } from "./PlusBadge";
 import { cn } from "@/lib/utils";
 
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
@@ -81,16 +82,19 @@ function PersonRow({ person, following, onToggle }: { person: Person; following:
   const tribe = tribeById(person.tribeId);
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-      <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl"
-        style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
-      >
-        {person.avatar}
+      <span className="relative shrink-0">
+        <span
+          className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
+          style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+        >
+          {person.avatar}
+        </span>
+        {person.plus && <PlusBadge />}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-semibold">{person.name}</p>
-          <TribeBadge name={tribe.name} color={tribe.colorVar} />
+          <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
         </div>
         <p className="text-[11px] text-muted-foreground">{person.city}</p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{person.bio}</p>

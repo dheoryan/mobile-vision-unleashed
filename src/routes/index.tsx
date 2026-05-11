@@ -41,6 +41,10 @@ function App() {
     });
   };
 
+  const handleLaunchVenture = () => {
+    setProfile((p) => (p ? { ...p, ventureCount: p.ventureCount + 1 } : p));
+  };
+
   return (
     <>
       {tab === "tribe"    && <TribeScreen    profile={profile} onOpenMessages={() => setMessagesOpen(true)} unread={unread} />}
@@ -51,10 +55,11 @@ function App() {
           profile={profile}
           onOpenMessages={() => setMessagesOpen(true)}
           onSendHello={handleSendHello}
+          onLaunchVenture={handleLaunchVenture}
           unread={unread}
         />
       )}
-      {tab === "profile"  && <ProfileScreen profile={profile} onOpenMessages={() => setMessagesOpen(true)} unread={unread} />}
+      {tab === "profile"  && <ProfileScreen profile={profile} onOpenMessages={() => setMessagesOpen(true)} unread={unread} setProfile={setProfile} />}
 
       <BottomNav active={tab} onChange={setTab} />
       <MessagesPanel open={messagesOpen} onClose={() => setMessagesOpen(false)} extraThreads={extraThreads} />

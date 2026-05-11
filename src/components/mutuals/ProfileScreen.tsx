@@ -1,12 +1,24 @@
 import { Settings, Edit3, Grid, Bookmark, Zap } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { POSTS, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
+import { PlusBadge } from "./PlusBadge";
 
-export function ProfileScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
+export function ProfileScreen({
+  profile,
+  onOpenMessages,
+  unread,
+  setProfile,
+}: {
+  profile: Profile;
+  onOpenMessages: () => void;
+  unread?: number;
+  setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
+}) {
   const tribe = tribeById(profile.tribeId);
-  // sample post grid
   const myPosts = POSTS.slice(0, 6);
+  const isPlus = profile.plan === "plus";
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -20,13 +32,23 @@ export function ProfileScreen({ profile, onOpenMessages, unread }: { profile: Pr
             <Settings className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-4">
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl ring-2" style={{ ["--tw-ring-color" as string]: tribe.colorVar }}>
-              {profile.avatar}
+            <span className="relative">
+              <span className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl ring-2" style={{ ["--tw-ring-color" as string]: tribe.colorVar }}>
+                {profile.avatar}
+              </span>
+              {isPlus && <PlusBadge size="md" />}
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-2xl font-bold leading-tight">{profile.name || "You"}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-2xl font-bold leading-tight">{profile.name || "You"}</h2>
+                {isPlus && (
+                  <span className="label-mono inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-primary">
+                    <Zap className="h-3 w-3" fill="currentColor" /> PLUS
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
-              <div className="mt-2"><TribeBadge name={tribe.name} color={tribe.colorVar} /></div>
+              <div className="mt-2"><TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} /></div>
             </div>
           </div>
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
@@ -34,13 +56,55 @@ export function ProfileScreen({ profile, onOpenMessages, unread }: { profile: Pr
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <Stat label="Following" value="48" />
             <Stat label="Followers" value="62" />
-            <Stat label="Ventures" value="7" />
+            <Stat label="Ventures" value={String(profile.ventureCount)} />
           </div>
 
           <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold">
             <Edit3 className="h-3.5 w-3.5" /> Edit profile
           </button>
         </section>
+
+        {/* Plan / Upgrade card */}
+        <section className="mt-4 rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="label-mono text-muted-foreground">Plan</p>
+              <p className="font-display text-lg font-bold">
+                {isPlus ? (<><span className="text-primary">MUTUALS+</span></>) : "Free"}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {isPlus
+                  ? "Unlimited Ventures, unlimited Hellos, full match visibility."
+                  : `${Math.max(0, 3 - profile.ventureCount)} of 3 free Ventures left this month.`}
+              </p>
+            </div>
+            {!isPlus && (
+              <Link to="/upgrade" className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground">
+                <Zap className="h-3.5 w-3.5" fill="currentColor" /> Upgrade
+              </Link>
+            )}
+          </div>
+
+          {/* Demo toggle */}
+          {setProfile && (
+            <button
+              onClick={() => setProfile((p) => (p ? { ...p, plan: isPlus ? "free" : "plus" } : p))}
+              className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              Demo: toggle plan to {isPlus ? "Free" : "Plus"}
+            </button>
+          )}
+        </section>
+
+        {/* Quick links */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+            Compare tiers
+          </Link>
+          <Link to="/host" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+            Apply to host a Tribe
+          </Link>
+        </div>
 
         <SectionTitle
           title="Your posts"

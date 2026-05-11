@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
 import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
+import { PlusBadge } from "./PlusBadge";
+import { UpsellModal } from "./UpsellModal";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
@@ -11,11 +13,13 @@ export function VenturesScreen({
   profile,
   onOpenMessages,
   onSendHello,
+  onLaunchVenture,
   unread,
 }: {
   profile: Profile;
   onOpenMessages: () => void;
   onSendHello: (person: Person, message: string) => void;
+  onLaunchVenture: () => void;
   unread?: number;
 }) {
   const [stage, setStage] = useState<Stage>("landing");
@@ -25,8 +29,18 @@ export function VenturesScreen({
   const [window, setWindow] = useState("This week · evenings");
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [helloed, setHelloed] = useState<Set<string>>(new Set());
+  const [paywall, setPaywall] = useState(false);
 
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
+
+  const tryGoLive = () => {
+    if (profile.plan === "free" && profile.ventureCount >= 3) {
+      setPaywall(true);
+      return;
+    }
+    onLaunchVenture();
+    setStage("active");
+  };
 
   const matches = PEOPLE.filter((p) => p.id !== "me" && (tribeFilter === "all" || p.tribeId === profile.tribeId)).filter(
     (p) => !skipped.has(p.id) && !helloed.has(p.id)
@@ -56,7 +70,7 @@ export function VenturesScreen({
             setTribeFilter={setTribeFilter}
             window={window}
             setWindow={setWindow}
-            onLaunch={() => setStage("active")}
+            onLaunch={tryGoLive}
             onCancel={reset}
           />
         )}
@@ -75,6 +89,7 @@ export function VenturesScreen({
           />
         )}
       </main>
+      <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} />
     </div>
   );
 }
@@ -284,13 +299,16 @@ function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: 
   return (
     <article className="rounded-2xl border border-border bg-card p-4 animate-rise" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex items-start gap-3">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
-          {person.avatar}
+        <span className="relative">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
+            {person.avatar}
+          </span>
+          {person.plus && <PlusBadge />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold">{person.name}</p>
-            <TribeBadge name={tribe.name} color={tribe.colorVar} />
+            <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
           </div>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
             <MapPin className="h-3 w-3" /> {person.city} · {person.mutuals ?? 0} mutual follows

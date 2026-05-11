@@ -63,13 +63,14 @@ export function SectionTitle({ title, hint, action }: { title: string; hint?: st
   );
 }
 
-export function TribeBadge({ name, color, className = "" }: { name: string; color: string; className?: string }) {
+export function TribeBadge({ name, color, hosted, className = "" }: { name: string; color: string; hosted?: boolean; className?: string }) {
   return (
     <span
-      className={`label-mono rounded-full px-2 py-1 ${className}`}
+      className={`label-mono inline-flex items-center gap-1 rounded-full px-2 py-1 ${className}`}
       style={{ color, backgroundColor: `color-mix(in oklab, ${color} 16%, transparent)` }}
     >
       {name}
+      {hosted && <span className="rounded-sm bg-foreground/15 px-1 text-[9px]" title="Hosted Tribe">✓ HOSTED</span>}
     </span>
   );
 }
