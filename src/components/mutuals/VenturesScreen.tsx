@@ -89,6 +89,7 @@ export function VenturesScreen({
           />
         )}
       </main>
+      <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} />
     </div>
   );
 }
