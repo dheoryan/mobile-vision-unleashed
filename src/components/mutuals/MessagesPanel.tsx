@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, Send, X } from "lucide-react";
 import { DMS, personById, tribeById, type DMThread } from "@/lib/mutuals-data";
 import { TribeBadge } from "./Shared";
+import { PlusBadge } from "./PlusBadge";
 import { cn } from "@/lib/utils";
 
 export function MessagesPanel({
@@ -46,8 +47,11 @@ function Inbox({ threads, onOpen, onClose }: { threads: DMThread[]; onOpen: (t: 
               return (
                 <li key={t.id}>
                   <button onClick={() => onOpen(t)} className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
-                      {u.avatar}
+                    <span className="relative">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
+                        {u.avatar}
+                      </span>
+                      {u.plus && <PlusBadge />}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
