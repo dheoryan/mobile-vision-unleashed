@@ -41,15 +41,6 @@ export function VenturesScreen({
     onLaunchVenture();
     setStage("active");
   };
-  const [stage, setStage] = useState<Stage>("landing");
-  const [step, setStep] = useState(0);
-  const [intents, setIntents] = useState<string[]>([]);
-  const [tribeFilter, setTribeFilter] = useState<"mine" | "all">("all");
-  const [window, setWindow] = useState("This week · evenings");
-  const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  const [helloed, setHelloed] = useState<Set<string>>(new Set());
-
-  const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
   const matches = PEOPLE.filter((p) => p.id !== "me" && (tribeFilter === "all" || p.tribeId === profile.tribeId)).filter(
     (p) => !skipped.has(p.id) && !helloed.has(p.id)
