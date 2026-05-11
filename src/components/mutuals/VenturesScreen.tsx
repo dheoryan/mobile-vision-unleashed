@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
 import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
+import { PlusBadge } from "./PlusBadge";
+import { UpsellModal } from "./UpsellModal";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
@@ -11,13 +13,34 @@ export function VenturesScreen({
   profile,
   onOpenMessages,
   onSendHello,
+  onLaunchVenture,
   unread,
 }: {
   profile: Profile;
   onOpenMessages: () => void;
   onSendHello: (person: Person, message: string) => void;
+  onLaunchVenture: () => void;
   unread?: number;
 }) {
+  const [stage, setStage] = useState<Stage>("landing");
+  const [step, setStep] = useState(0);
+  const [intents, setIntents] = useState<string[]>([]);
+  const [tribeFilter, setTribeFilter] = useState<"mine" | "all">("all");
+  const [window, setWindow] = useState("This week · evenings");
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [helloed, setHelloed] = useState<Set<string>>(new Set());
+  const [paywall, setPaywall] = useState(false);
+
+  const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
+
+  const tryGoLive = () => {
+    if (profile.plan === "free" && profile.ventureCount >= 3) {
+      setPaywall(true);
+      return;
+    }
+    onLaunchVenture();
+    setStage("active");
+  };
   const [stage, setStage] = useState<Stage>("landing");
   const [step, setStep] = useState(0);
   const [intents, setIntents] = useState<string[]>([]);
