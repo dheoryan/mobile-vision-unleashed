@@ -10,6 +10,8 @@ export interface Profile {
   city: string;
   bio: string;
   avatar: string;
+  plan: "free" | "plus";
+  ventureCount: number;
 }
 
 export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
@@ -164,7 +166,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
             <div className="mt-auto pt-8">
               <button
                 disabled={!canFinish || !tribeId}
-                onClick={() => tribeId && onDone({ tribeId, name, age, city, bio, avatar })}
+                onClick={() => tribeId && onDone({ tribeId, name, age, city, bio, avatar, plan: "free", ventureCount: 0 })}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
               >
                 Enter Mutuals <ArrowRight className="h-4 w-4" />
