@@ -1,6 +1,7 @@
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import type { Post } from "@/lib/mutuals-data";
 import { tribeById, personById } from "@/lib/mutuals-data";
+import { PlusBadge } from "./PlusBadge";
 
 export function PostCard({ post, showTribe = false }: { post: Post; showTribe?: boolean }) {
   const tribe = tribeById(post.tribeId);
@@ -11,11 +12,14 @@ export function PostCard({ post, showTribe = false }: { post: Post; showTribe?: 
       style={{ ["--tribe-active" as string]: tribe.colorVar }}
     >
       <header className="flex items-center gap-3">
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
-          style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
-        >
-          {author.avatar}
+        <span className="relative">
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+          >
+            {author.avatar}
+          </span>
+          {author.plus && <PlusBadge />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
