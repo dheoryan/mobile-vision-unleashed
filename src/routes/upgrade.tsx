@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Check, Zap } from "lucide-react";
+import { LegalFooter } from "@/components/mutuals/LegalFooter";
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
@@ -87,6 +88,7 @@ function UpgradePage() {
         <div className="mt-8 text-center">
           <Link to="/tiers" className="text-xs text-primary hover:underline">Compare full subscription tiers →</Link>
         </div>
+        <LegalFooter className="mt-6" />
       </div>
     </div>
   );
