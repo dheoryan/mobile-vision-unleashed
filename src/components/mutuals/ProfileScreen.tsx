@@ -1,9 +1,12 @@
-import { Settings, Edit3, Grid, Bookmark, Zap } from "lucide-react";
+import { useState } from "react";
+import { Settings, Edit3, Grid, Bookmark, Zap, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { POSTS, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
+import { LegalFooter } from "./LegalFooter";
+import { DeleteAccountModal } from "./DeleteAccountModal";
 
 export function ProfileScreen({
   profile,
@@ -16,6 +19,7 @@ export function ProfileScreen({
   unread?: number;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
 }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const tribe = tribeById(profile.tribeId);
   const myPosts = POSTS.slice(0, 6);
   const isPlus = profile.plan === "plus";
@@ -132,7 +136,25 @@ export function ProfileScreen({
             );
           })}
         </div>
+
+        <div className="mt-8 rounded-2xl border border-border bg-card p-4">
+          <p className="label-mono text-muted-foreground">Account</p>
+          <button
+            onClick={() => setDeleteOpen(true)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete account
+          </button>
+        </div>
+
+        <LegalFooter className="mt-6" />
       </main>
+
+      <DeleteAccountModal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => setProfile?.(() => null)}
+      />
     </div>
   );
 }
