@@ -2,6 +2,7 @@ import { Heart, MessageCircle, Share2 } from "lucide-react";
 import type { Post } from "@/lib/mutuals-data";
 import { tribeById, personById } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
+import { SafetyMenu } from "./SafetyMenu";
 
 export function PostCard({ post, showTribe = false }: { post: Post; showTribe?: boolean }) {
   const tribe = tribeById(post.tribeId);
@@ -44,6 +45,7 @@ export function PostCard({ post, showTribe = false }: { post: Post; showTribe?: 
             {post.tag}
           </span>
         )}
+        <SafetyMenu targetName={author.name} kind="post" />
       </header>
 
       <p className="mt-3 font-sans text-[15px] leading-relaxed text-foreground">{post.content}</p>
