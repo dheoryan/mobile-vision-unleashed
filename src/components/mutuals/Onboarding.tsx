@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, ArrowLeft, Camera } from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
+import { LegalFooter } from "./LegalFooter";
 import { cn } from "@/lib/utils";
 
 export interface Profile {
@@ -78,6 +79,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
                 Get Started <ArrowRight className="h-4 w-4" />
               </button>
               <p className="mt-3 text-center text-[11px] text-muted-foreground">For socially curious adults, 21+</p>
+              <LegalFooter className="mt-4" />
             </div>
           </div>
         )}

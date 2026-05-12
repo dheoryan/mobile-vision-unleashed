@@ -1,4 +1,5 @@
-import { Bell, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
 
 export function AppHeader({
   title,
@@ -41,10 +42,7 @@ export function AppHeader({
               </span>
             ) : null}
           </button>
-          <button aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
-          </button>
+          <NotificationBell />
         </div>
       </div>
     </header>
