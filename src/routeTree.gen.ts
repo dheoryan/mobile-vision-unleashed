@@ -11,8 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TiersRouteImport } from './routes/tiers'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as HostDashboardRouteImport } from './routes/host-dashboard'
 import { Route as HostRouteImport } from './routes/host'
+import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
 import { Route as IndexRouteImport } from './routes/index'
 
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -25,6 +29,21 @@ const TiersRoute = TiersRouteImport.update({
   path: '/tiers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HostDashboardRoute = HostDashboardRouteImport.update({
   id: '/host-dashboard',
   path: '/host-dashboard',
@@ -35,6 +54,11 @@ const HostRoute = HostRouteImport.update({
   path: '/host',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
+  id: '/community-guidelines',
+  path: '/community-guidelines',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,38 +67,82 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/community-guidelines': typeof CommunityGuidelinesRoute
   '/host': typeof HostRoute
   '/host-dashboard': typeof HostDashboardRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/community-guidelines': typeof CommunityGuidelinesRoute
   '/host': typeof HostRoute
   '/host-dashboard': typeof HostDashboardRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/community-guidelines': typeof CommunityGuidelinesRoute
   '/host': typeof HostRoute
   '/host-dashboard': typeof HostDashboardRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/host' | '/host-dashboard' | '/tiers' | '/upgrade'
+  fullPaths:
+    | '/'
+    | '/community-guidelines'
+    | '/host'
+    | '/host-dashboard'
+    | '/notifications'
+    | '/privacy'
+    | '/terms'
+    | '/tiers'
+    | '/upgrade'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/host' | '/host-dashboard' | '/tiers' | '/upgrade'
-  id: '__root__' | '/' | '/host' | '/host-dashboard' | '/tiers' | '/upgrade'
+  to:
+    | '/'
+    | '/community-guidelines'
+    | '/host'
+    | '/host-dashboard'
+    | '/notifications'
+    | '/privacy'
+    | '/terms'
+    | '/tiers'
+    | '/upgrade'
+  id:
+    | '__root__'
+    | '/'
+    | '/community-guidelines'
+    | '/host'
+    | '/host-dashboard'
+    | '/notifications'
+    | '/privacy'
+    | '/terms'
+    | '/tiers'
+    | '/upgrade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
   HostRoute: typeof HostRoute
   HostDashboardRoute: typeof HostDashboardRoute
+  NotificationsRoute: typeof NotificationsRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
   UpgradeRoute: typeof UpgradeRoute
 }
@@ -95,6 +163,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TiersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/host-dashboard': {
       id: '/host-dashboard'
       path: '/host-dashboard'
@@ -109,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HostRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community-guidelines': {
+      id: '/community-guidelines'
+      path: '/community-guidelines'
+      fullPath: '/community-guidelines'
+      preLoaderRoute: typeof CommunityGuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -121,8 +217,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommunityGuidelinesRoute: CommunityGuidelinesRoute,
   HostRoute: HostRoute,
   HostDashboardRoute: HostDashboardRoute,
+  NotificationsRoute: NotificationsRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,
   UpgradeRoute: UpgradeRoute,
 }
