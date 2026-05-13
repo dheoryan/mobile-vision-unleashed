@@ -53,7 +53,7 @@ export function TimelineScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             <EmptyState
               icon={<Users className="mx-auto h-12 w-12 text-muted-foreground" />}
               headline="Your Following feed is quiet."
-              body="Follow people on Discover and their posts will show up here."
+              sub="Follow people on Discover and their posts will show up here."
               action={<Link to="/" className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">Find people</Link>}
             />
           ) : (
