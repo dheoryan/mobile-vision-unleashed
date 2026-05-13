@@ -1,16 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, Send, Smile, Image as ImageIcon } from "lucide-react";
-import { TRIBES, POSTS, CHAT_BY_TRIBE, type TribeId, tribeById, personById } from "@/lib/mutuals-data";
+import { TRIBES, CHAT_BY_TRIBE, type TribeId, tribeById, personById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { PostCard } from "./PostCard";
 import { AppHeader, SectionTitle } from "./Shared";
+import { ComposerModal } from "./ComposerModal";
+import { useSocial } from "@/lib/social-store";
 import { cn } from "@/lib/utils";
 
 export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
   const [activeTribe, setActiveTribe] = useState<TribeId>(profile.tribeId);
   const [view, setView] = useState<"feed" | "chat">("feed");
+  const [composerOpen, setComposerOpen] = useState(false);
   const tribe = tribeById(activeTribe);
-  const tribePosts = POSTS.filter((p) => p.tribeId === activeTribe);
+  const social = useSocial();
+  const tribePosts = social.posts.filter((p) => p.tribeId === activeTribe);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -49,6 +53,7 @@ export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Prof
 
       {view === "feed" && (
         <button
+          onClick={() => setComposerOpen(true)}
           className="fixed bottom-24 right-5 z-30 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/40 transition-transform active:scale-95"
           style={{ backgroundColor: tribe.colorVar }}
           aria-label="New post"
@@ -56,6 +61,8 @@ export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Prof
           <Plus className="h-4 w-4" /> Post
         </button>
       )}
+
+      <ComposerModal open={composerOpen} onClose={() => setComposerOpen(false)} tribeId={activeTribe} />
     </div>
   );
 }
