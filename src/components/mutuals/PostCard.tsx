@@ -1,12 +1,33 @@
+import { useState } from "react";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import type { Post } from "@/lib/mutuals-data";
 import { tribeById, personById } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
+import { CommentsModal } from "./CommentsModal";
+import { useSocial, socialStore } from "@/lib/social-store";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-export function PostCard({ post, showTribe = false }: { post: Post; showTribe?: boolean }) {
+export function PostCard({ post: seed, showTribe = false }: { post: Post; showTribe?: boolean }) {
+  const social = useSocial();
+  const post = social.posts.find((p) => p.id === seed.id) ?? seed;
   const tribe = tribeById(post.tribeId);
-  const author = personById(post.authorId);
+  const author = post.authorId === "me"
+    ? { name: "You", handle: "@you", avatar: "🙂", plus: false }
+    : personById(post.authorId);
+  const liked = social.liked.has(post.id);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+
+  const share = async () => {
+    try {
+      await navigator.clipboard?.writeText(`https://mutuals.app/p/${post.id}`);
+      toast.success("Link copied");
+    } catch {
+      toast.success("Shared");
+    }
+  };
+
   return (
     <article
       className="rounded-2xl border border-border bg-card p-4 animate-rise"
@@ -60,16 +81,32 @@ export function PostCard({ post, showTribe = false }: { post: Post; showTribe?: 
       )}
 
       <footer className="mt-3 flex items-center gap-5 text-muted-foreground">
-        <button className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground">
-          <Heart className="h-4 w-4" /> {post.likes}
+        <button
+          onClick={() => socialStore.toggleLike(post.id)}
+          className={cn(
+            "flex items-center gap-1.5 text-xs transition-colors",
+            liked ? "text-rose-400" : "hover:text-foreground"
+          )}
+          aria-pressed={liked}
+        >
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} /> {post.likes}
         </button>
-        <button className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground">
+        <button
+          onClick={() => setCommentsOpen(true)}
+          className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
+        >
           <MessageCircle className="h-4 w-4" /> {post.replies}
         </button>
-        <button className="ml-auto flex items-center gap-1.5 text-xs transition-colors hover:text-foreground">
+        <button
+          onClick={share}
+          className="ml-auto flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
+          aria-label="Share post"
+        >
           <Share2 className="h-4 w-4" />
         </button>
       </footer>
+
+      <CommentsModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />
     </article>
   );
 }

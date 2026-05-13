@@ -3,11 +3,12 @@ import { Search, UserPlus, Check } from "lucide-react";
 import { TRIBES, PEOPLE, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
+import { useSocial, socialStore } from "@/lib/social-store";
 import { cn } from "@/lib/utils";
 
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [query, setQuery] = useState("");
-  const [following, setFollowing] = useState<Set<string>>(new Set());
+  const social = useSocial();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -21,12 +22,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     );
   }, [query]);
 
-  const toggle = (id: string) =>
-    setFollowing((s) => {
-      const n = new Set(s);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
+  const toggle = (id: string) => socialStore.toggleFollow(id);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -65,7 +61,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         <SectionTitle title="People near you" hint={`${filtered.length} found`} />
         <div className="flex flex-col gap-3">
           {filtered.map((p) => (
-            <PersonRow key={p.id} person={p} following={following.has(p.id)} onToggle={() => toggle(p.id)} />
+            <PersonRow key={p.id} person={p} following={social.following.has(p.id)} onToggle={() => toggle(p.id)} />
           ))}
           {filtered.length === 0 && (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
