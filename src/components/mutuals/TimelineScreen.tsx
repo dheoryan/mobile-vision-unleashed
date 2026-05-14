@@ -10,7 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { Profile } from "./Onboarding";
 
-export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
+export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
   const [tab, setTab] = useState<"following" | "foryou">("following");
   const social = useSocial();
   const blocked = useBlocked();
@@ -22,17 +22,12 @@ export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: P
     .slice()
     .reverse();
 
-  // Free users belong to exactly one Tribe; Plus users can have up to three.
-  const allowedTribes = profile.plan === "plus" ? profile.tribeIds : profile.tribeIds.slice(0, 1);
-
-  // For You = posts from the user's joined tribes only
+  // For You = all Tribes (free + plus). Surfaces discovery beyond joined tribes.
   const forYou = visiblePosts
-    .filter((p) => allowedTribes.includes(p.tribeId))
     .slice()
     .sort((a, b) => (a.id > b.id ? -1 : 1));
 
   const list = tab === "following" ? followingPosts : forYou;
-  const tribeCount = allowedTribes.length;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -56,7 +51,7 @@ export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: P
         <p className="label-mono mt-4 text-muted-foreground">
           {tab === "following"
             ? "From people you follow across all Tribes."
-            : `From your ${tribeCount} ${tribeCount === 1 ? "Tribe" : "Tribes"}`}
+            : "Discover signals from every Tribe."}
         </p>
 
         <div className="mt-3 flex flex-col gap-3">
