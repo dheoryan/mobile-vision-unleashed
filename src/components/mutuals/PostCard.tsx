@@ -257,10 +257,15 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         </button>
         <button
           onClick={share}
-          className="ml-auto flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
+          className={cn(
+            "ml-auto flex items-center gap-1.5 text-xs transition-colors",
+            shared ? "text-primary" : "hover:text-foreground",
+          )}
           aria-label="Share post"
+          aria-pressed={shared}
         >
-          <Share2 className="h-4 w-4" />
+          <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} />{" "}
+          {post.shares_count}
         </button>
       </footer>
 
