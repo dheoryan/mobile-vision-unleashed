@@ -290,10 +290,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_blocked: {
-        Args: { _target: string; _viewer: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_plan: "free" | "plus"
