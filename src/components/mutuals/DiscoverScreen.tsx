@@ -1,26 +1,31 @@
 import { useMemo, useState } from "react";
-import { Search, UserPlus, Check } from "lucide-react";
-import { TRIBES, PEOPLE, tribeById, type Person } from "@/lib/mutuals-data";
+import { Search, UserPlus, Check, X } from "lucide-react";
+import { TRIBES, PEOPLE, POSTS, tribeById, personById, type Person, type Tribe } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { useSocial, socialStore } from "@/lib/social-store";
+import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [query, setQuery] = useState("");
+  const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
   const social = useSocial();
+  const blocked = useBlocked();
+
+  const visiblePeople = useMemo(() => PEOPLE.filter((p) => !blocked.has(p.id)), [blocked]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return PEOPLE;
-    return PEOPLE.filter(
+    if (!q) return visiblePeople;
+    return visiblePeople.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.handle.toLowerCase().includes(q) ||
         p.city.toLowerCase().includes(q) ||
         tribeById(p.tribeId).name.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, visiblePeople]);
 
   const toggle = (id: string) => socialStore.toggleFollow(id);
 
