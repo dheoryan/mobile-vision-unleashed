@@ -73,6 +73,8 @@ export function CommentsModal({
   };
 
   return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative mx-auto flex h-[80vh] w-full max-w-md flex-col rounded-t-3xl border border-border bg-card animate-rise">
