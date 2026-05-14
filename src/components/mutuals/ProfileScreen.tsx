@@ -8,6 +8,7 @@ import { PlusBadge } from "./PlusBadge";
 import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
 import { useMyPosts } from "@/lib/posts-store";
+import { useSocial } from "@/lib/social-store";
 import { blockedStore, useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
