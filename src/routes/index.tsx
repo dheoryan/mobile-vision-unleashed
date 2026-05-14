@@ -103,8 +103,8 @@ function App() {
 
   // Mount all tabs to preserve state — toggle visibility
   const screens: Record<TabKey, React.ReactNode> = {
-    tribe:    <TribeScreen    profile={profile} onOpenMessages={openMessages} unread={unread} />,
-    timeline: <TimelineScreen onOpenMessages={openMessages} unread={unread} />,
+    tribe:    <TribeScreen    profile={profile} setProfile={setProfile} onOpenMessages={openMessages} unread={unread} />,
+    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,
     discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
     ventures: (
       <VenturesScreen
