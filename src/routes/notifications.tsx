@@ -6,6 +6,7 @@ import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { timeAgo } from "@/lib/time";
+import { showPlusBadge } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
