@@ -95,7 +95,7 @@ function App() {
     else if (i.kind === "openTab") { setTab(i.tab); }
   }, [intent, profile]);
 
-  const unread = useMemo(() => unreadFromThreads(threadsQuery.data), [threadsQuery.data]);
+  const unread = useUnreadCount(threadsQuery.data);
 
   // Locally-applied profile setter that syncs to DB. Passing null = sign out.
   const setProfile = (updater: Profile | null | ((p: Profile | null) => Profile | null)) => {
