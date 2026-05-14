@@ -11,6 +11,7 @@ export function CommentsModal({
   open, onClose, postId,
 }: { open: boolean; onClose: () => void; postId: string | null }) {
   const social = useSocial();
+  const me = useMyProfile();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
