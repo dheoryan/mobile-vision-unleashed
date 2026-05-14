@@ -105,11 +105,11 @@ export function VenturesScreen({
     return rows
       .map(rowToPerson)
       .filter((p) => !blocked.has(p.id))
-      .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
+      .filter((p) => !skipped.has(p.id) && !helloed.has(p.id) && !persistedHelloed.has(p.id))
       .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
       .sort((a, b) => a.k - b.k)
       .map(({ p }) => p);
-  }, [matchesQuery.data, blocked, skipped, helloed, seed]);
+  }, [matchesQuery.data, blocked, skipped, helloed, persistedHelloed, seed]);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
