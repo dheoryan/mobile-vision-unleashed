@@ -76,7 +76,12 @@ export function RealtimeBridge() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "likes" },
-        () => {
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { post_id?: string } | undefined;
+          if (row?.post_id) {
+            const delta = payload.eventType === "INSERT" ? 1 : payload.eventType === "DELETE" ? -1 : 0;
+            if (delta !== 0) patchPostCount(qc, row.post_id, "likes_count", delta);
+          }
           qc.invalidateQueries({ queryKey: ["posts"] });
           qc.invalidateQueries({ queryKey: ["social", "likes"] });
           qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -86,7 +91,12 @@ export function RealtimeBridge() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shares" },
-        () => {
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { post_id?: string } | undefined;
+          if (row?.post_id) {
+            const delta = payload.eventType === "INSERT" ? 1 : payload.eventType === "DELETE" ? -1 : 0;
+            if (delta !== 0) patchPostCount(qc, row.post_id, "shares_count", delta);
+          }
           qc.invalidateQueries({ queryKey: ["posts"] });
           qc.invalidateQueries({ queryKey: ["social", "shares"] });
         },
@@ -98,6 +108,8 @@ export function RealtimeBridge() {
         (payload) => {
           const row = (payload.new ?? payload.old) as { post_id?: string } | undefined;
           if (row?.post_id) {
+            const delta = payload.eventType === "INSERT" ? 1 : payload.eventType === "DELETE" ? -1 : 0;
+            if (delta !== 0) patchPostCount(qc, row.post_id, "replies_count", delta);
             qc.invalidateQueries({ queryKey: ["comments", row.post_id] });
           }
           qc.invalidateQueries({ queryKey: ["posts"] });
