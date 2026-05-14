@@ -7,6 +7,7 @@ import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
+import { useMyPosts } from "@/lib/posts-store";
 import { useSocial } from "@/lib/social-store";
 import { blockedStore, useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
@@ -35,9 +36,12 @@ export function ProfileScreen({
   const isPlus = profile.plan === "plus";
   const social = useSocial();
 
-  const myPosts = social.posts.filter((p) => p.authorId === "me");
+  const myPostsQuery = useMyPosts();
+  const myPosts = myPostsQuery.data ?? [];
   const samplePosts = POSTS.filter((p) => profile.tribeIds.includes(p.tribeId)).slice(0, 6);
-  const postsToShow = myPosts.length ? myPosts : samplePosts;
+  const postsToShow = myPosts.length
+    ? myPosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribe_id as TribeId, image: undefined as string | undefined }))
+    : samplePosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribeId, image: p.image }));
 
   const savedPlaceholder = POSTS.slice(2, 5);
 

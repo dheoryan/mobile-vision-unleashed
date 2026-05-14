@@ -1,77 +1,38 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Send, AlertTriangle, MessageSquare } from "lucide-react";
-import { personById, tribeById } from "@/lib/mutuals-data";
-import { useSocial, socialStore, type Comment } from "@/lib/social-store";
+import { X, Send, AlertTriangle, MessageSquare, Trash2 } from "lucide-react";
+import { useComments, useAddComment, useDeleteComment } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
+import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import { timeAgo } from "@/lib/time";
 import { toast } from "sonner";
+
+const TRIBE_FALLBACK = "var(--color-primary)";
 
 export function CommentsModal({
   open, onClose, postId,
 }: { open: boolean; onClose: () => void; postId: string | null }) {
-  const social = useSocial();
   const me = useMyProfile();
+  const { user } = useAuth();
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<Comment[]>([]);
-  const [failed, setFailed] = useState<Comment[]>([]);
 
-  // Simulate fetching when modal opens
-  useEffect(() => {
-    if (!open || !postId) return;
-    setLoading(true);
-    setError(null);
-    setPending([]);
-    setFailed([]);
-    const fail = Math.random() < 0.12;
-    const t = setTimeout(() => {
-      if (fail) {
-        setError("Couldn't load comments. Check your connection and retry.");
-      }
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(t);
-  }, [open, postId]);
+  const commentsQuery = useComments(open ? postId : null);
+  const addComment = useAddComment(postId ?? "");
+  const deleteComment = useDeleteComment(postId ?? "");
 
   if (!open || !postId) return null;
 
-  const post = social.posts.find((p) => p.id === postId);
-  if (!post) return null;
-  const tribe = tribeById(post.tribeId);
-  const stored = social.comments[postId] ?? [];
-  const visible = [...stored, ...pending];
+  const tribeColor = TRIBE_FALLBACK;
+  const visible = commentsQuery.data ?? [];
 
-  const retry = () => {
-    setLoading(true);
-    setError(null);
-    setTimeout(() => setLoading(false), 500);
-  };
-
-  const send = async () => {
+  const send = () => {
     const t = text.trim();
     if (!t) return;
-    const optimistic: Comment = { id: `tmp-${Date.now()}`, authorId: "me", text: t, time: "sending…" };
-    setPending((p) => [...p, optimistic]);
     setText("");
-
-    // Simulate network — small chance of failure
-    await new Promise((r) => setTimeout(r, 500));
-    const fail = Math.random() < 0.08;
-
-    setPending((p) => p.filter((c) => c.id !== optimistic.id));
-    if (fail) {
-      setFailed((f) => [...f, optimistic]);
-      toast.error("Comment didn't send", { description: "Tap retry below." });
-    } else {
-      socialStore.addComment(postId, t);
-    }
-  };
-
-  const retryFailed = (c: Comment) => {
-    setFailed((f) => f.filter((x) => x.id !== c.id));
-    setText(c.text);
+    addComment.mutate(t, {
+      onError: (e) => toast.error("Comment didn't send", { description: (e as Error).message }),
+    });
   };
 
   if (typeof document === "undefined") return null;
@@ -86,18 +47,14 @@ export function CommentsModal({
           </button>
         </header>
 
-        <div className="border-b border-border px-5 py-3 text-sm text-muted-foreground">
-          {post.content}
-        </div>
-
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-          {loading ? (
-            <SkeletonList tribeColor={tribe.colorVar} />
-          ) : error ? (
+          {commentsQuery.isLoading ? (
+            <SkeletonList tribeColor={tribeColor} />
+          ) : commentsQuery.isError ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <AlertTriangle className="h-10 w-10 text-destructive" />
-              <p className="text-sm text-foreground">{error}</p>
-              <button onClick={retry} className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
+              <p className="text-sm text-foreground">Couldn't load comments.</p>
+              <button onClick={() => commentsQuery.refetch()} className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
                 Retry
               </button>
             </div>
@@ -109,45 +66,42 @@ export function CommentsModal({
             </div>
           ) : (
             visible.map((c) => {
-              const mine = c.authorId === "me";
-              const author = mine ? null : personById(c.authorId);
+              const mine = !!user && c.author_id === user.id;
               const isPending = c.id.startsWith("tmp-");
+              const avatar = mine
+                ? (me?.avatar ?? "🙂")
+                : (c.author?.avatar_url || c.author?.avatar_emoji || "🙂");
+              const name = mine
+                ? (me?.name?.trim() || "You")
+                : (c.author?.display_name || "Someone");
+              const isImg = avatar.startsWith("data:") || avatar.startsWith("http");
               return (
                 <div key={c.id} className={`flex items-start gap-3 ${isPending ? "opacity-60" : ""}`}>
                   <span
                     className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-base"
-                    style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+                    style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 28%, transparent)` }}
                   >
-                    {mine ? (
-                      me?.avatar?.startsWith("data:") || me?.avatar?.startsWith("http")
-                        ? <img src={me.avatar} alt="" className="h-full w-full object-cover" />
-                        : (me?.avatar ?? "🙂")
-                    ) : author?.avatar}
+                    {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold">{mine ? (me?.name?.trim() || "You") : author?.name}</p>
-                    <p className="text-sm text-foreground">{c.text}</p>
-                    <p className="text-[10px] text-muted-foreground">{c.time}</p>
+                    <p className="text-xs font-semibold">{name}</p>
+                    <p className="text-sm text-foreground">{c.content}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isPending ? "sending…" : `${timeAgo(c.created_at)} ago`}
+                    </p>
                   </div>
+                  {mine && !isPending && (
+                    <button
+                      onClick={() => deleteComment.mutate(c.id)}
+                      aria-label="Delete comment"
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })
-          )}
-
-          {failed.length > 0 && (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3">
-              <p className="text-xs font-semibold text-destructive">Failed to send</p>
-              <ul className="mt-1 space-y-1">
-                {failed.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate text-foreground">{c.text}</span>
-                    <button onClick={() => retryFailed(c)} className="shrink-0 rounded-full bg-destructive px-3 py-1 text-[11px] font-semibold text-destructive-foreground">
-                      Retry
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
           )}
         </div>
 
@@ -159,13 +113,12 @@ export function CommentsModal({
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Add a comment"
               className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-              disabled={loading}
             />
             <button
               onClick={send}
-              disabled={!text.trim() || loading}
+              disabled={!text.trim()}
               className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground disabled:opacity-40"
-              style={{ backgroundColor: tribe.colorVar }}
+              style={{ backgroundColor: tribeColor }}
               aria-label="Send comment"
             >
               <Send className="h-4 w-4" />

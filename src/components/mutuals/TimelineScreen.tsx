@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { POSTS, PEOPLE } from "@/lib/mutuals-data";
+import { PEOPLE } from "@/lib/mutuals-data";
 import { PostCard } from "./PostCard";
 import { AppHeader } from "./Shared";
 import { EmptyState } from "./EmptyState";
 import { useSocial } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
+import { useFeedPosts } from "@/lib/posts-store";
 import { Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
@@ -14,18 +15,13 @@ export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; o
   const [tab, setTab] = useState<"following" | "foryou">("following");
   const social = useSocial();
   const blocked = useBlocked();
+  const feedQuery = useFeedPosts();
 
-  const visiblePosts = social.posts.filter((p) => !blocked.has(p.authorId));
+  const allPosts = feedQuery.data ?? [];
+  const visiblePosts = allPosts.filter((p) => !blocked.has(p.author_id));
 
-  const followingPosts = visiblePosts
-    .filter((p) => social.following.has(p.authorId))
-    .slice()
-    .reverse();
-
-  // For You = all Tribes (free + plus). Surfaces discovery beyond joined tribes.
-  const forYou = visiblePosts
-    .slice()
-    .sort((a, b) => (a.id > b.id ? -1 : 1));
+  const followingPosts = visiblePosts.filter((p) => social.following.has(p.author_id));
+  const forYou = visiblePosts;
 
   const list = tab === "following" ? followingPosts : forYou;
 
@@ -55,13 +51,17 @@ export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; o
         </p>
 
         <div className="mt-3 flex flex-col gap-3">
-          {list.length === 0 && tab === "following" ? (
+          {feedQuery.isLoading ? (
+            <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
+          ) : list.length === 0 && tab === "following" ? (
             <EmptyState
               icon={<Users className="mx-auto h-12 w-12 text-muted-foreground" />}
               headline="Your Following feed is quiet."
               sub="Follow people on Discover and their posts will show up here."
               action={<Link to="/" className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">Find people</Link>}
             />
+          ) : list.length === 0 ? (
+            <p className="py-10 text-center text-xs text-muted-foreground">No posts yet.</p>
           ) : (
             list.map((p) => <PostCard key={p.id} post={p} showTribe />)
           )}
@@ -71,5 +71,4 @@ export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; o
   );
 }
 
-// keep imports referenced for tree-shaking sanity
-void POSTS; void PEOPLE;
+void PEOPLE;

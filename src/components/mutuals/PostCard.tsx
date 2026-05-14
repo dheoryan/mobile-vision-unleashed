@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X } from "lucide-react";
-import type { Post } from "@/lib/mutuals-data";
-import { tribeById, personById } from "@/lib/mutuals-data";
+import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { CommentsModal } from "./CommentsModal";
 import { useSocial, socialStore } from "@/lib/social-store";
-import { useMyProfile } from "@/lib/profile-store";
+import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
+import { useAuth } from "@/lib/auth-context";
+import { timeAgo } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -24,21 +25,27 @@ function Avatar({ value, tribeColor }: { value: string; tribeColor: string }) {
   );
 }
 
-export function PostCard({ post: seed, showTribe = false }: { post: Post; showTribe?: boolean }) {
+export function PostCard({ post, showTribe = false }: { post: FeedPost; showTribe?: boolean }) {
+  const { user } = useAuth();
   const social = useSocial();
-  const me = useMyProfile();
-  const post = social.posts.find((p) => p.id === seed.id) ?? seed;
-  const tribe = tribeById(post.tribeId);
-  const isMine = post.authorId === "me";
-  const author = isMine
-    ? { name: me?.name?.trim() || "You", handle: "@you", avatar: me?.avatar ?? "🙂", plus: me?.plan === "plus" }
-    : personById(post.authorId);
+  const tribe = tribeById(post.tribe_id as TribeId);
+  const isMine = !!user && post.author_id === user.id;
+  const author = {
+    name: post.author?.display_name?.trim() || (isMine ? "You" : "Someone"),
+    handle: post.author?.handle ? `@${post.author.handle}` : isMine ? "@you" : "",
+    avatar: post.author?.avatar_url || post.author?.avatar_emoji || "🙂",
+    plus: post.author?.plan === "plus",
+  };
   const liked = social.liked.has(post.id);
+
+  const editPost = useEditPost();
+  const deletePost = useDeletePost();
+
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
-  const [editImage, setEditImage] = useState<string | null>(post.imageUrl ?? null);
+  const [editImage, setEditImage] = useState<string | null>(post.image_url);
   const [confirmDel, setConfirmDel] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -54,7 +61,7 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
   const startEdit = () => {
     setMenuOpen(false);
     setEditText(post.content);
-    setEditImage(post.imageUrl ?? null);
+    setEditImage(post.image_url);
     setEditing(true);
   };
 
@@ -64,9 +71,15 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
       toast.error("Post can't be empty.");
       return;
     }
-    socialStore.editPost(post.id, t, editImage === post.imageUrl ? undefined : (editImage ?? null));
+    const imageChanged = editImage !== post.image_url;
+    editPost.mutate(
+      { id: post.id, content: t, ...(imageChanged ? { image_url: editImage } : {}) },
+      {
+        onSuccess: () => toast.success("Post updated"),
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
     setEditing(false);
-    toast.success("Post updated");
   };
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +106,7 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold">{author.name}</p>
-            <span className="text-xs text-muted-foreground">{author.handle}</span>
+            {author.handle && <span className="text-xs text-muted-foreground">{author.handle}</span>}
           </div>
           <p className="text-xs text-muted-foreground">
             {showTribe && (
@@ -102,7 +115,7 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
               </span>
             )}
             {showTribe && " · "}
-            {post.time} ago
+            {timeAgo(post.created_at)} ago
           </p>
         </div>
         {post.tag && (
@@ -140,7 +153,7 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
             )}
           </div>
         ) : (
-          <SafetyMenu targetName={author.name} targetUserId={post.authorId} kind="post" />
+          <SafetyMenu targetName={author.name} targetUserId={post.author_id} kind="post" />
         )}
       </header>
 
@@ -198,16 +211,9 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
             <p className="mt-3 font-sans text-[15px] leading-relaxed text-foreground">{post.content}</p>
           )}
 
-          {post.imageUrl ? (
+          {post.image_url && (
             <div className="mt-3 overflow-hidden rounded-xl border border-border">
-              <img src={post.imageUrl} alt="" className="block h-auto max-h-96 w-full object-cover" />
-            </div>
-          ) : post.image && (
-            <div
-              className="mt-3 flex h-40 items-center justify-center rounded-xl text-5xl"
-              style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 30%, var(--card)) 0%, var(--card) 100%)` }}
-            >
-              {post.image}
+              <img src={post.image_url} alt="" className="block h-auto max-h-96 w-full object-cover" />
             </div>
           )}
         </>
@@ -222,13 +228,14 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
           )}
           aria-pressed={liked}
         >
-          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} /> {post.likes}
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />{" "}
+          {post.likes_count + (liked ? 1 : 0)}
         </button>
         <button
           onClick={() => setCommentsOpen(true)}
           className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
         >
-          <MessageCircle className="h-4 w-4" /> {post.replies}
+          <MessageCircle className="h-4 w-4" /> {post.replies_count}
         </button>
         <button
           onClick={share}
@@ -255,7 +262,16 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
                 Cancel
               </button>
               <button
-                onClick={() => { socialStore.deletePost(post.id); setConfirmDel(false); toast.success("Post deleted"); }}
+                onClick={() => {
+                  setConfirmDel(false);
+                  deletePost.mutate(
+                    { id: post.id },
+                    {
+                      onSuccess: () => toast.success("Post deleted"),
+                      onError: (e) => toast.error((e as Error).message),
+                    },
+                  );
+                }}
                 className="rounded-full bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground"
               >
                 Delete
