@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
 import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
@@ -11,14 +11,21 @@ import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import type { DMThread, Person } from "@/lib/mutuals-data";
 import { intentStore, useIntent } from "@/lib/intent-store";
-import { profileStore } from "@/lib/profile-store";
+import {
+  rowToProfile,
+  useProfileRow,
+  useUpdateProfile,
+  profileToPatch,
+} from "@/lib/profile-store";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: App,
 });
 
 const TAB_KEY = "mutuals.tab";
-const PROFILE_KEY = "mutuals.profile";
+const LEGACY_PROFILE_KEY = "mutuals.profile";
 
 function loadTab(): TabKey {
   if (typeof window === "undefined") return "tribe";
@@ -26,28 +33,14 @@ function loadTab(): TabKey {
   return v && ["tribe", "timeline", "discover", "ventures", "profile"].includes(v) ? v : "tribe";
 }
 
-function loadProfile(): Profile | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(PROFILE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Profile & { tribeId?: string };
-    // Migrate legacy single-tribe profiles to tribeIds[]
-    if (!Array.isArray(parsed.tribeIds)) {
-      const legacy = parsed.tribeId as Profile["tribeIds"][number] | undefined;
-      parsed.tribeIds = legacy ? [legacy] : ["wolf"];
-      delete parsed.tribeId;
-    }
-    // Enforce plan invariant: free users belong to exactly one Tribe.
-    if (parsed.plan !== "plus" && parsed.tribeIds.length > 1) {
-      parsed.tribeIds = [parsed.tribeIds[0]];
-    }
-    return parsed as Profile;
-  } catch { return null; }
-}
-
 function App() {
-  const [profile, setProfile] = useState<Profile | null>(loadProfile);
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const profileQuery = useProfileRow();
+  const updateProfile = useUpdateProfile();
+
+  const profile = rowToProfile(profileQuery.data ?? null);
+
   const [tab, setTab] = useState<TabKey>(loadTab);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
@@ -55,34 +48,73 @@ function App() {
   const [openPostId, setOpenPostId] = useState<string | null>(null);
   const intent = useIntent();
 
-  // Persist tab + profile across reloads
-  useEffect(() => { try { window.localStorage.setItem(TAB_KEY, tab); } catch {} }, [tab]);
+  // Redirect unauthenticated users to login
   useEffect(() => {
-    profileStore.set(profile);
-    try {
-      if (profile) window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-      else window.localStorage.removeItem(PROFILE_KEY);
-    } catch {}
-  }, [profile]);
+    if (!authLoading && !user) navigate({ to: "/login" });
+  }, [user, authLoading, navigate]);
 
-  // Consume cross-screen navigation intents (e.g. from notifications)
+  // Persist tab
+  useEffect(() => { try { window.localStorage.setItem(TAB_KEY, tab); } catch {} }, [tab]);
+
+  // One-shot migration: push legacy localStorage profile into DB
+  useEffect(() => {
+    if (!user || profileQuery.isLoading) return;
+    if (profile) {
+      try { window.localStorage.removeItem(LEGACY_PROFILE_KEY); } catch {}
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(LEGACY_PROFILE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Profile & { tribeId?: string };
+      if (!Array.isArray(parsed.tribeIds)) {
+        parsed.tribeIds = parsed.tribeId ? [parsed.tribeId as Profile["tribeIds"][number]] : [];
+      }
+      if (!parsed.tribeIds.length || !parsed.name) return;
+      updateProfile.mutate(profileToPatch(parsed), {
+        onSuccess: () => {
+          try { window.localStorage.removeItem(LEGACY_PROFILE_KEY); } catch {}
+          toast.success("Welcome back — profile restored");
+        },
+      });
+    } catch {}
+  }, [user, profileQuery.isLoading, profile, updateProfile]);
+
+  // Consume cross-screen navigation intents
   useEffect(() => {
     if (!intent || !profile) return;
     const i = intentStore.consume();
     if (!i) return;
-    if (i.kind === "openThreadWith") {
-      setOpenThreadUser(i.userId);
-      setMessagesOpen(true);
-    } else if (i.kind === "openPost") {
-      setOpenPostId(i.postId);
-    } else if (i.kind === "openTab") {
-      setTab(i.tab);
-    }
+    if (i.kind === "openThreadWith") { setOpenThreadUser(i.userId); setMessagesOpen(true); }
+    else if (i.kind === "openPost") { setOpenPostId(i.postId); }
+    else if (i.kind === "openTab") { setTab(i.tab); }
   }, [intent, profile]);
 
   const unread = useMemo(() => 1 + extraThreads.length, [extraThreads]);
 
-  if (!profile) return <Onboarding onDone={(p) => setProfile(p)} />;
+  // Locally-applied profile setter that syncs to DB
+  const setProfile = (updater: Profile | ((p: Profile | null) => Profile | null)) => {
+    const next = typeof updater === "function" ? (updater as (p: Profile | null) => Profile | null)(profile) : updater;
+    if (!next) return;
+    updateProfile.mutate(profileToPatch(next));
+  };
+
+  if (authLoading || (user && profileQuery.isLoading)) {
+    return <div className="bg-habitat flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+  }
+  if (!user) return null; // redirecting
+
+  if (!profile) {
+    return (
+      <Onboarding
+        onDone={(p) =>
+          updateProfile.mutate(profileToPatch(p), {
+            onError: (err) => toast.error((err as Error).message),
+          })
+        }
+      />
+    );
+  }
 
   const handleSendHello = (person: Person, message: string) => {
     setExtraThreads((prev) => {
@@ -102,12 +134,14 @@ function App() {
   };
 
   const handleLaunchVenture = () => {
-    setProfile((p) => (p ? { ...p, ventureCount: p.ventureCount + 1 } : p));
+    if (!profile) return;
+    updateProfile.mutate({ /* venture_count handled below */ } as never);
+    // Increment via patch
+    updateProfile.mutate(profileToPatch({ ...profile, ventureCount: profile.ventureCount + 1 }));
   };
 
   const openMessages = () => { setOpenThreadUser(null); setMessagesOpen(true); };
 
-  // Mount all tabs to preserve state — toggle visibility
   const screens: Record<TabKey, React.ReactNode> = {
     tribe:    <TribeScreen    profile={profile} setProfile={setProfile} onOpenMessages={openMessages} unread={unread} />,
     timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,
