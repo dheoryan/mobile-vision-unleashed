@@ -124,6 +124,15 @@ export function ProfileScreen({
                   ? "Unlimited Ventures, unlimited Hellos, full match visibility."
                   : `${Math.max(0, 3 - profile.ventureCount)} of 3 free Ventures left this month.`}
               </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {isPlus ? (
+                  <>
+                    You're in <span className="text-foreground font-semibold">{profile.tribeIds.length}</span> of 3 Tribes.
+                  </>
+                ) : (
+                  <>You're in 1 Tribe. Upgrade to join up to 3.</>
+                )}
+              </p>
             </div>
             {!isPlus && (
               <Link to="/upgrade" className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground">
