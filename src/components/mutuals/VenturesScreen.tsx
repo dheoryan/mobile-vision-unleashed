@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
-import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
+import { PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { UpsellModal } from "./UpsellModal";
+import { useBlocked } from "@/lib/blocked-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
