@@ -93,11 +93,16 @@ function App() {
 
   const unread = useMemo(() => 1 + extraThreads.length, [extraThreads]);
 
-  // Locally-applied profile setter that syncs to DB
-  const setProfile = (updater: Profile | ((p: Profile | null) => Profile | null)) => {
+  // Locally-applied profile setter that syncs to DB. Passing null = sign out.
+  const setProfile = (updater: Profile | null | ((p: Profile | null) => Profile | null)) => {
     const next = typeof updater === "function" ? (updater as (p: Profile | null) => Profile | null)(profile) : updater;
-    if (!next) return;
-    updateProfile.mutate(profileToPatch(next));
+    if (next === null) {
+      supabase.auth.signOut();
+      return;
+    }
+    updateProfile.mutate(profileToPatch(next), {
+      onError: (err) => toast.error((err as Error).message),
+    });
   };
 
   if (authLoading || (user && profileQuery.isLoading)) {
