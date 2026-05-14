@@ -227,7 +227,7 @@ export function ProfileScreen({
               <p className="text-muted-foreground">You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person.</p>
             ) : (
               <p>
-                You've launched <span className="font-semibold text-foreground">{profile.ventureCount}</span> {profile.ventureCount === 1 ? "Venture" : "Ventures"}{profile.plan === "free" ? ` · ${Math.max(0, 3 - profile.ventureCount)} free left this month.` : "."}
+                You've launched <span className="font-semibold text-foreground">{profile.ventureCount}</span> {profile.ventureCount === 1 ? "Venture" : "Ventures"}{MONETIZATION_ENABLED && profile.plan === "free" ? ` · ${Math.max(0, 3 - profile.ventureCount)} free left this month.` : "."}
               </p>
             )}
           </div>
