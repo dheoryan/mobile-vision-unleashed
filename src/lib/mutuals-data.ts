@@ -59,7 +59,8 @@ export interface Post {
   liked?: boolean;
   replies: number;
   tag?: string;
-  image?: string; // emoji as placeholder
+  image?: string; // emoji placeholder
+  imageUrl?: string; // attached photo (data URL or remote URL)
 }
 
 export const POSTS: Post[] = [
