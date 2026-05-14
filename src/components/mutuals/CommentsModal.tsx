@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Send, AlertTriangle, MessageSquare } from "lucide-react";
 import { personById, tribeById } from "@/lib/mutuals-data";
 import { useSocial, socialStore, type Comment } from "@/lib/social-store";
