@@ -12,6 +12,7 @@ import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
 import { useThreads } from "@/lib/messages-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
+import { MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 
 type Stage = "landing" | "setup" | "active";
 
@@ -29,7 +30,7 @@ function rowToPerson(r: VentureMatch): RichPerson {
     tribeId,
     city: r.city || "",
     bio: r.bio || "",
-    plus: r.plan === "plus",
+    plus: showPlusBadge(r.plan),
     mutuals: 0,
     allTribeIds,
   };
@@ -72,7 +73,7 @@ export function VenturesScreen({
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
   const tryGoLive = () => {
-    if (profile.plan === "free" && profile.ventureCount >= 3) {
+    if (MONETIZATION_ENABLED && profile.plan === "free" && profile.ventureCount >= 3) {
       setPaywall(true);
       return;
     }

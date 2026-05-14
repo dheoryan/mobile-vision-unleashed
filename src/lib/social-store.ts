@@ -191,20 +191,40 @@ export function useToggleFollow() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const key = [...FOLLOWING_KEY, user?.id ?? null];
+  const countsKey = [...FOLLOW_COUNTS_KEY, user?.id ?? null];
   return useMutation({
     mutationFn: (userId: string) => fn({ data: { user_id: userId } }),
     onMutate: async (userId) => {
       await qc.cancelQueries({ queryKey: key });
+      await qc.cancelQueries({ queryKey: countsKey });
       const prev = qc.getQueryData<string[]>(key) ?? [];
+      const prevCounts =
+        qc.getQueryData<{ following: number; followers: number }>(countsKey);
       const wasFollowing = prev.includes(userId);
       qc.setQueryData(
         key,
         wasFollowing ? prev.filter((id) => id !== userId) : [...prev, userId],
       );
-      return { prev };
+      if (prevCounts) {
+        qc.setQueryData(countsKey, {
+          ...prevCounts,
+          following: Math.max(prevCounts.following + (wasFollowing ? -1 : 1), 0),
+        });
+      }
+      return { prev, prevCounts, wasFollowing, userId };
     },
     onError: (_e, _i, ctx) => {
-      if (ctx) qc.setQueryData(key, ctx.prev);
+      if (!ctx) return;
+      qc.setQueryData(key, ctx.prev);
+      if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<string[]>(key, (cur) => {
+        const rows = cur ?? [];
+        return result.following
+          ? Array.from(new Set([...rows, result.user_id]))
+          : rows.filter((id) => id !== result.user_id);
+      });
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: FOLLOWING_KEY });

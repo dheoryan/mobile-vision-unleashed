@@ -11,6 +11,7 @@ import { uploadPostImage } from "@/lib/uploads";
 import { timeAgo } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { showPlusBadge } from "@/lib/feature-flags";
 
 const MAX_IMG_BYTES = 5 * 1024 * 1024;
 
@@ -36,7 +37,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     name: post.author?.display_name?.trim() || (isMine ? "You" : "Someone"),
     handle: post.author?.handle ? `@${post.author.handle}` : isMine ? "@you" : "",
     avatar: post.author?.avatar_url || post.author?.avatar_emoji || "🙂",
-    plus: post.author?.plan === "plus",
+    plus: showPlusBadge(post.author?.plan),
   };
   const liked = social.liked.has(post.id);
   const sharesQuery = useMyShares();

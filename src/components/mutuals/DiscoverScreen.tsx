@@ -11,6 +11,7 @@ import { useSocial, useToggleFollow } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { showPlusBadge } from "@/lib/feature-flags";
 
 type DiscoverPerson = Person & { allTribeIds: TribeId[] };
 
@@ -32,7 +33,7 @@ function rowToPerson(row: DiscoverProfile): DiscoverPerson {
     tribeId,
     city: row.city || "",
     bio: row.bio || "",
-    plus: row.plan === "plus",
+    plus: showPlusBadge(row.plan),
     mutuals: 0,
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
   };

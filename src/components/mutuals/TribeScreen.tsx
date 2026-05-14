@@ -10,6 +10,7 @@ import { AddTribeSheet } from "./AddTribeSheet";
 import { useFeedPosts } from "@/lib/posts-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
+import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 
 export function TribeScreen({
   profile,
@@ -24,7 +25,8 @@ export function TribeScreen({
   unread?: number;
   initialTribe?: TribeId;
 }) {
-  const isPlus = profile.plan === "plus";
+  const isPlus = isPlusEffective(profile.plan);
+  const showUpgrade = MONETIZATION_ENABLED && profile.plan !== "plus";
   const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
   const initial = initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
@@ -89,7 +91,7 @@ export function TribeScreen({
             </div>
 
             {/* Free users: subtle multi-tribe upsell card */}
-            {!isPlus && (
+            {showUpgrade && (
               <Link
                 to="/upgrade"
                 className="mt-5 block rounded-2xl border border-dashed border-border bg-card p-4 transition-colors hover:bg-secondary"

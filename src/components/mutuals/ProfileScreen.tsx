@@ -14,6 +14,7 @@ import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -35,7 +36,8 @@ export function ProfileScreen({
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
   const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
-  const isPlus = profile.plan === "plus";
+  const isPlus = isPlusEffective(profile.plan);
+  const showPlanCard = MONETIZATION_ENABLED;
   const followCounts = useFollowCounts();
 
   const myPostsQuery = useMyPosts();
@@ -74,12 +76,12 @@ export function ProfileScreen({
                   profile.avatar
                 )}
               </span>
-              {isPlus && <PlusBadge size="md" />}
+              {showPlusBadge(profile.plan) && <PlusBadge size="md" />}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="font-display text-2xl font-bold leading-tight">{profile.name || "You"}</h2>
-                {isPlus && (
+                {showPlusBadge(profile.plan) && (
                   <span className="label-mono inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-primary">
                     <Zap className="h-3 w-3" fill="currentColor" /> PLUS
                   </span>
@@ -117,7 +119,7 @@ export function ProfileScreen({
           </button>
         </section>
 
-        {/* Plan / Upgrade card */}
+        {showPlanCard && (
         <section className="mt-4 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -156,6 +158,7 @@ export function ProfileScreen({
             </button>
           )}
         </section>
+        )}
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
@@ -224,7 +227,7 @@ export function ProfileScreen({
               <p className="text-muted-foreground">You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person.</p>
             ) : (
               <p>
-                You've launched <span className="font-semibold text-foreground">{profile.ventureCount}</span> {profile.ventureCount === 1 ? "Venture" : "Ventures"}{profile.plan === "free" ? ` · ${Math.max(0, 3 - profile.ventureCount)} free left this month.` : "."}
+                You've launched <span className="font-semibold text-foreground">{profile.ventureCount}</span> {profile.ventureCount === 1 ? "Venture" : "Ventures"}{MONETIZATION_ENABLED && profile.plan === "free" ? ` · ${Math.max(0, 3 - profile.ventureCount)} free left this month.` : "."}
               </p>
             )}
           </div>
