@@ -39,6 +39,9 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     plus: post.author?.plan === "plus",
   };
   const liked = social.liked.has(post.id);
+  const sharesQuery = useMyShares();
+  const shared = sharesQuery.data?.has(post.id) ?? false;
+  const toggleShare = useToggleShare();
 
   const editPost = useEditPost();
   const deletePost = useDeletePost();
