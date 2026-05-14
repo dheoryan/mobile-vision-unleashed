@@ -81,7 +81,7 @@ export function ProfileScreen({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="font-display text-2xl font-bold leading-tight">{profile.name || "You"}</h2>
-                {isPlus && (
+                {showPlusBadge(profile.plan) && (
                   <span className="label-mono inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-primary">
                     <Zap className="h-3 w-3" fill="currentColor" /> PLUS
                   </span>
