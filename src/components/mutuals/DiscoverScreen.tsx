@@ -11,6 +11,7 @@ import { useSocial, useToggleFollow } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { showPlusBadge } from "@/lib/feature-flags";
 
 type DiscoverPerson = Person & { allTribeIds: TribeId[] };
 
