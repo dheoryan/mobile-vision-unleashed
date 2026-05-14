@@ -14,6 +14,7 @@ import { TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { showPlusBadge } from "@/lib/feature-flags";
 
 export function MessagesPanel({
   open,
