@@ -22,7 +22,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   const [age, setAge] = useState("");
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
-  const [avatar] = useState("🌿");
+  const [avatar, setAvatar] = useState("🌿");
 
   const tribe = tribeId ? tribeById(tribeId) : null;
   const ageOk = Number(age) >= 21;
