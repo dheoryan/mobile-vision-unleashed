@@ -86,8 +86,8 @@ export function VenturesScreen({
             setIntents={setIntents}
             tribeFilter={tribeFilter}
             setTribeFilter={setTribeFilter}
-            window={window}
-            setWindow={setWindow}
+            timeWindow={timeWindow}
+            setTimeWindow={setTimeWindow}
             onLaunch={tryGoLive}
             onCancel={reset}
           />
