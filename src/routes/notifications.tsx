@@ -62,10 +62,10 @@ function NotificationsPage() {
               const unreadRow = !n.readAt;
               return (
                 <li key={n.id}>
-                  <Link
-                    to="/"
-                    onClick={() => notifStore.markRead(n.id)}
-                    className={`flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-secondary/50 ${
+                  <button
+                    type="button"
+                    onClick={() => handleClick(n)}
+                    className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-secondary/50 ${
                       unreadRow ? "border-l-2 border-primary bg-primary/5" : ""
                     }`}
                   >
@@ -90,7 +90,7 @@ function NotificationsPage() {
                         {post.image}
                       </span>
                     )}
-                  </Link>
+                  </button>
                 </li>
               );
             })}
