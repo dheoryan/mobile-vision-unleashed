@@ -71,7 +71,11 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
 
       <p className="mt-3 font-sans text-[15px] leading-relaxed text-foreground">{post.content}</p>
 
-      {post.image && (
+      {post.imageUrl ? (
+        <div className="mt-3 overflow-hidden rounded-xl border border-border">
+          <img src={post.imageUrl} alt="" className="block h-auto max-h-96 w-full object-cover" />
+        </div>
+      ) : post.image && (
         <div
           className="mt-3 flex h-40 items-center justify-center rounded-xl text-5xl"
           style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 30%, var(--card)) 0%, var(--card) 100%)` }}
