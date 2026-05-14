@@ -90,7 +90,7 @@ export const listMyPosts = createServerFn({ method: "GET" })
 const createSchema = z.object({
   tribe_id: z.string().min(1).max(40),
   content: z.string().max(280).default(""),
-  image_url: z.string().max(2_000_000).nullable().optional(),
+  image_url: z.string().url().max(2000).nullable().optional(),
   tag: z.string().max(40).nullable().optional(),
 });
 
@@ -121,7 +121,7 @@ export const createPost = createServerFn({ method: "POST" })
 const editSchema = z.object({
   id: z.string().uuid(),
   content: z.string().max(280),
-  image_url: z.string().nullable().optional(),
+  image_url: z.string().url().max(2000).nullable().optional(),
 });
 
 export const editPost = createServerFn({ method: "POST" })

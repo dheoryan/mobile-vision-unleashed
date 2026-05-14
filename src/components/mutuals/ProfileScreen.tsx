@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban } from "lucide-react";
+import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { POSTS, PEOPLE, tribeById, personById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
@@ -10,6 +10,8 @@ import { DeleteAccountModal } from "./DeleteAccountModal";
 import { useMyPosts } from "@/lib/posts-store";
 import { useFollowCounts } from "@/lib/social-store";
 import { useBlocked, useUnblockUser } from "@/lib/blocked-store";
+import { uploadAvatar } from "@/lib/uploads";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -290,25 +292,34 @@ function EditProfileModal({
   open: boolean; profile: Profile; onClose: () => void;
   onSave: (patch: Partial<Profile>) => void;
 }) {
+  const { user } = useAuth();
   const [name, setName] = useState(profile.name);
   const [city, setCity] = useState(profile.city);
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
+  const [uploading, setUploading] = useState(false);
 
   if (!open) return null;
 
-  const onPickFile = (file: File | undefined) => {
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image too large", { description: "Please pick an image under 2MB." });
+  const onPickFile = async (file: File | undefined) => {
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") setAvatar(result);
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image too large", { description: "Please pick an image under 5MB." });
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(user.id, file);
+      setAvatar(url);
+    } catch (err) {
+      toast.error("Upload failed", { description: (err as Error).message });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const isImage = avatar.startsWith("data:") || avatar.startsWith("http");
@@ -330,7 +341,7 @@ function EditProfileModal({
               <span>{avatar}</span>
             )}
             <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Camera className="h-4 w-4" />
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             </span>
             <input
               type="file"
