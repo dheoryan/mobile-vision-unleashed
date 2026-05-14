@@ -75,6 +75,27 @@ export const socialStore = {
     emit();
   },
 
+  editPost: (postId: string, content: string, imageUrl?: string | null) => {
+    const posts = state.posts.map((p) => {
+      if (p.id !== postId) return p;
+      const next: Post = { ...p, content };
+      if (imageUrl === null) delete next.imageUrl;
+      else if (typeof imageUrl === "string") next.imageUrl = imageUrl;
+      return next;
+    });
+    state = { ...state, posts };
+    emit();
+  },
+
+  deletePost: (postId: string) => {
+    const posts = state.posts.filter((p) => p.id !== postId);
+    const { [postId]: _drop, ...comments } = state.comments;
+    void _drop;
+    const liked = new Set(state.liked); liked.delete(postId);
+    state = { ...state, posts, comments, liked };
+    emit();
+  },
+
   toggleFollow: (userId: string) => {
     const following = new Set(state.following);
     following.has(userId) ? following.delete(userId) : following.add(userId);
