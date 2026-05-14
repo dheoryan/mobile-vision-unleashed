@@ -51,6 +51,7 @@ export function SafetyMenu({
                 <button
                   onClick={() => {
                     setOpen(false);
+                    if (targetUserId) blockedStore.block(targetUserId);
                     toast.success(`${targetName} has been blocked.`, {
                       description: "Their posts and messages are now hidden.",
                     });
