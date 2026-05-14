@@ -57,7 +57,46 @@ export const toggleLike = createServerFn({ method: "POST" })
     return { post_id: data.post_id, liked: true };
   });
 
-// --- Follows ---------------------------------------------------------------
+// --- Shares ----------------------------------------------------------------
+
+export const listMyShares = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("shares")
+      .select("post_id")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: { post_id: string }) => r.post_id);
+  });
+
+export const toggleShare = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => postIn.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: existing } = await supabase
+      .from("shares")
+      .select("post_id")
+      .eq("post_id", data.post_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase
+        .from("shares")
+        .delete()
+        .eq("post_id", data.post_id)
+        .eq("user_id", userId);
+      if (error) throw new Error(error.message);
+      return { post_id: data.post_id, shared: false };
+    }
+    const { error } = await supabase
+      .from("shares")
+      .insert({ post_id: data.post_id, user_id: userId });
+    if (error) throw new Error(error.message);
+    return { post_id: data.post_id, shared: true };
+  });
 
 export const listMyFollowing = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
