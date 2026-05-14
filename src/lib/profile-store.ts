@@ -72,14 +72,14 @@ export function useUpdateProfile() {
 
 /** Build the DB patch from a client-side Profile object. */
 export function profileToPatch(p: Profile) {
-  const isDataUrl = p.avatar?.startsWith("data:");
+  const isUrl = !!p.avatar && (p.avatar.startsWith("data:") || p.avatar.startsWith("http"));
   return {
     display_name: p.name,
     age: p.age ? Number(p.age) : null,
     city: p.city,
     bio: p.bio,
-    avatar_emoji: isDataUrl ? "🌿" : p.avatar,
-    avatar_url: isDataUrl ? p.avatar : null,
+    avatar_emoji: isUrl ? "🌿" : p.avatar,
+    avatar_url: isUrl ? p.avatar : null,
     tribe_ids: p.tribeIds,
     plan: p.plan,
   };
