@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ArrowLeft, Heart, MessageSquare, UserPlus, Sparkles, Bell } from "lucide-react";
-import { useNotifications, notifStore, actorAvatar, postById, type NotifType } from "@/lib/notifications-store";
+import { useNotifications, notifStore, actorAvatar, postById, type Notif, type NotifType } from "@/lib/notifications-store";
+import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 
@@ -25,12 +26,25 @@ const ICONS: Record<NotifType, React.ReactNode> = {
 
 function NotificationsPage() {
   const { items, unread } = useNotifications();
+  const navigate = useNavigate();
 
-  // Mark visible as read after 2s
+  // Auto-mark visible as read after 2s
   useEffect(() => {
     const t = setTimeout(() => notifStore.markAllRead(), 2000);
     return () => clearTimeout(t);
   }, []);
+
+  const handleClick = (n: Notif) => {
+    notifStore.markRead(n.id);
+    if (n.type === "hello" || n.type === "venture_match") {
+      intentStore.push({ kind: "openThreadWith", userId: n.actorId });
+    } else if ((n.type === "like" || n.type === "comment") && n.entityId) {
+      intentStore.push({ kind: "openPost", postId: n.entityId });
+    } else if (n.type === "follow") {
+      intentStore.push({ kind: "openTab", tab: "discover" });
+    }
+    navigate({ to: "/" });
+  };
 
   return (
     <div className="bg-habitat min-h-screen pb-16">
@@ -61,10 +75,10 @@ function NotificationsPage() {
               const unreadRow = !n.readAt;
               return (
                 <li key={n.id}>
-                  <Link
-                    to="/"
-                    onClick={() => notifStore.markRead(n.id)}
-                    className={`flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-secondary/50 ${
+                  <button
+                    type="button"
+                    onClick={() => handleClick(n)}
+                    className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-secondary/50 ${
                       unreadRow ? "border-l-2 border-primary bg-primary/5" : ""
                     }`}
                   >
@@ -89,7 +103,7 @@ function NotificationsPage() {
                         {post.image}
                       </span>
                     )}
-                  </Link>
+                  </button>
                 </li>
               );
             })}

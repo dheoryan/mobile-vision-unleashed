@@ -11,12 +11,14 @@ type Stage = "landing" | "setup" | "active";
 
 export function VenturesScreen({
   profile,
+  setProfile,
   onOpenMessages,
   onSendHello,
   onLaunchVenture,
   unread,
 }: {
   profile: Profile;
+  setProfile: (updater: (p: Profile | null) => Profile | null) => void;
   onOpenMessages: () => void;
   onSendHello: (person: Person, message: string) => void;
   onLaunchVenture: () => void;
@@ -38,6 +40,14 @@ export function VenturesScreen({
       setPaywall(true);
       return;
     }
+    onLaunchVenture();
+    setStage("active");
+  };
+
+  const handleUpgraded = () => {
+    setProfile((p) => (p ? { ...p, plan: "plus" } : p));
+    setPaywall(false);
+    // resume the venture launch automatically
     onLaunchVenture();
     setStage("active");
   };
@@ -89,7 +99,7 @@ export function VenturesScreen({
           />
         )}
       </main>
-      <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} />
+      <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} onUpgraded={handleUpgraded} />
     </div>
   );
 }
