@@ -9,6 +9,7 @@ import { UpsellModal } from "./UpsellModal";
 import { useBlocked } from "@/lib/blocked-store";
 import { useAuth } from "@/lib/auth-context";
 import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
+import { useThreads } from "@/lib/messages-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
