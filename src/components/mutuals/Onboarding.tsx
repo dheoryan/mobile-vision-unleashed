@@ -31,10 +31,16 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
 
   return (
     <div className="bg-habitat relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
+      {/* Ambient tribe-color blurred circles */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
+        <span className="ambient-orb ambient-orb-1" style={{ background: "#C84B31" }} />
+        <span className="ambient-orb ambient-orb-2" style={{ background: "#3A7CA5" }} />
+        <span className="ambient-orb ambient-orb-3" style={{ background: "#8B5CF6" }} />
+        <span className="ambient-orb ambient-orb-4" style={{ background: "#D4A853" }} />
+        <span className="ambient-orb ambient-orb-5" style={{ background: "#4A7C59" }} />
+      </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col px-6 pb-10 pt-12">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-md flex-col px-6 pb-10 pt-12">
         <div className="flex items-center justify-between">
           <button
             onClick={() => step > 0 && setStep(step - 1)}
@@ -67,14 +73,14 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
                 Venture when you're ready.
               </h1>
               <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-                A new social layer for real-life meetups. Begin where you feel at home — explore beyond when it feels right.
+                A new social layer for real-life meetups. Find your scene, meet your people — on your own terms.
               </p>
             </div>
 
             <div className="mt-auto pt-10">
               <button
                 onClick={() => setStep(1)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20"
               >
                 Get Started <ArrowRight className="h-4 w-4" />
               </button>
@@ -91,11 +97,12 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
                     ventureCount: 0,
                   })
                 }
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-4 text-sm font-semibold text-foreground hover:bg-secondary"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/60 bg-transparent py-3 text-sm font-semibold text-primary hover:bg-primary/10"
               >
                 View Demo
               </button>
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">For socially curious adults, 21+ · Demo skips sign-up</p>
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">No sign-up needed</p>
+              <p className="mt-3 text-center text-[11px] text-muted-foreground">For socially curious adults, 21+</p>
               <LegalFooter className="mt-4" />
             </div>
           </div>
