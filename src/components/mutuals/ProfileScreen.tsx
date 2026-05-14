@@ -80,7 +80,19 @@ export function ProfileScreen({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
-              <div className="mt-2"><TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} /></div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
+                {otherTribes.map((t) => (
+                  <span
+                    key={t.id}
+                    title={t.name}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-sm"
+                    style={{ backgroundColor: `color-mix(in oklab, ${t.colorVar} 28%, transparent)` }}
+                  >
+                    {t.emoji}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
