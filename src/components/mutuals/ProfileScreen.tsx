@@ -36,7 +36,8 @@ export function ProfileScreen({
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
   const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
-  const isPlus = profile.plan === "plus";
+  const isPlus = isPlusEffective(profile.plan);
+  const showPlanCard = MONETIZATION_ENABLED;
   const followCounts = useFollowCounts();
 
   const myPostsQuery = useMyPosts();
