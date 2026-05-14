@@ -20,6 +20,7 @@ export type FeedPost = {
   tag: string | null;
   likes_count: number;
   replies_count: number;
+  shares_count: number;
   created_at: string;
   author: AuthorLite | null;
 };
