@@ -78,7 +78,24 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
               >
                 Get Started <ArrowRight className="h-4 w-4" />
               </button>
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">For socially curious adults, 21+</p>
+              <button
+                onClick={() =>
+                  onDone({
+                    tribeId: "cat",
+                    name: "Demo Explorer",
+                    age: "28",
+                    city: "San Francisco",
+                    bio: "Just looking around — exploring Mutuals in demo mode.",
+                    avatar: "🌿",
+                    plan: "free",
+                    ventureCount: 0,
+                  })
+                }
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-4 text-sm font-semibold text-foreground hover:bg-secondary"
+              >
+                View Demo
+              </button>
+              <p className="mt-3 text-center text-[11px] text-muted-foreground">For socially curious adults, 21+ · Demo skips sign-up</p>
               <LegalFooter className="mt-4" />
             </div>
           </div>
