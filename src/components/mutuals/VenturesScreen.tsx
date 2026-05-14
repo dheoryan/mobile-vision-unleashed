@@ -12,7 +12,7 @@ import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
 import { useThreads } from "@/lib/messages-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
-import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
+import { MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 
 type Stage = "landing" | "setup" | "active";
 
