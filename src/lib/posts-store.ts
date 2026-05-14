@@ -157,7 +157,7 @@ export function useComments(postId: string | null) {
   return useQuery({
     queryKey: COMMENTS_KEY(postId ?? "none"),
     queryFn: () => fn({ data: { post_id: postId! } }),
-    enabled: !!postId,
+    enabled: !!postId && !postId.startsWith("tmp-"),
     staleTime: 10_000,
   });
 }
