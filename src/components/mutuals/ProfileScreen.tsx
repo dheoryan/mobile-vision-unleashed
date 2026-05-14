@@ -143,7 +143,7 @@ export function ProfileScreen({
 
           {setProfile && (
             <button
-              onClick={() => setProfile((p) => (p ? { ...p, plan: isPlus ? "free" : "plus" } : p))}
+              onClick={() => setProfile((p) => p ? { ...p, plan: isPlus ? "free" : "plus", tribeIds: isPlus ? [p.tribeIds[0]] : Array.from(new Set([...p.tribeIds, "owl" as const])).slice(0, 3) } : p)}
               className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground hover:text-foreground"
             >
               Demo: toggle plan to {isPlus ? "Free" : "Plus"}
