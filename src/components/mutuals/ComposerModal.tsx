@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { X, ImagePlus } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
-import { socialStore } from "@/lib/social-store";
+import { useCreatePost } from "@/lib/posts-store";
 import { toast } from "sonner";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -12,6 +12,7 @@ export function ComposerModal({
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const createPost = useCreatePost();
 
   if (!open) return null;
   const tribe = tribeById(tribeId);
@@ -21,10 +22,15 @@ export function ComposerModal({
   const submit = () => {
     const t = text.trim();
     if (!t && !imageUrl) return;
-    socialStore.addPost(tribeId, t || "", "me", imageUrl ?? undefined);
+    createPost.mutate(
+      { tribe_id: tribeId, content: t, image_url: imageUrl ?? null },
+      {
+        onSuccess: () => toast.success("Posted to " + tribe.name),
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
     reset();
     onClose();
-    toast.success("Posted to " + tribe.name);
   };
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
