@@ -154,7 +154,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             )}
           </div>
         ) : (
-          <SafetyMenu targetName={author.name} targetUserId={post.author_id} kind="post" />
+          <SafetyMenu targetName={author.name} targetUserId={post.author_id} targetPostId={post.id} kind="post" />
         )}
       </header>
 
