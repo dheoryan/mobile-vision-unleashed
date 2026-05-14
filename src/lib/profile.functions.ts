@@ -130,27 +130,59 @@ export const listVentureMatches = createServerFn({ method: "GET" })
     return ((rows ?? []) as VentureMatch[]).filter((p) => (p.tribe_ids ?? []).length > 0);
   });
 
+const discoverSchema = z.object({
+  search: z.string().max(80).optional(),
+  offset: z.number().int().min(0).max(10_000).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+
+export type DiscoverPage = {
+  rows: DiscoverProfile[];
+  nextOffset: number | null;
+};
+
 export const listDiscoverProfiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: unknown) => discoverSchema.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<DiscoverPage> => {
     const { supabase, userId } = context;
+    const limit = data.limit ?? 20;
+    const offset = data.offset ?? 0;
+
     const { data: blockedRows, error: blockedError } = await supabase
       .from("blocks")
       .select("blocked_id")
       .eq("blocker_id", userId);
     if (blockedError) throw new Error(blockedError.message);
-
     const blockedIds = new Set((blockedRows ?? []).map((r: { blocked_id: string }) => r.blocked_id));
-    const { data: rows, error } = await supabase
+
+    let q = supabase
       .from("profiles")
       .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
       .neq("id", userId)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .range(offset, offset + limit - 1);
+
+    const term = data.search?.trim();
+    if (term) {
+      // sanitize for PostgREST `or` filter
+      const safe = term.replace(/[,()*]/g, " ").slice(0, 60);
+      const like = `%${safe}%`;
+      q = q.or(
+        `display_name.ilike.${like},handle.ilike.${like},city.ilike.${like},bio.ilike.${like}`,
+      );
+    }
+
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
-    return ((rows ?? []) as DiscoverProfile[])
+    const filtered = ((rows ?? []) as DiscoverProfile[])
       .filter((p) => !blockedIds.has(p.id))
       .filter((p) => (p.tribe_ids ?? []).length > 0);
+
+    return {
+      rows: filtered,
+      nextOffset: (rows?.length ?? 0) === limit ? offset + limit : null,
+    };
   });
 
