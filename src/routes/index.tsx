@@ -11,6 +11,7 @@ import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import type { DMThread, Person } from "@/lib/mutuals-data";
 import { intentStore, useIntent } from "@/lib/intent-store";
+import { profileStore } from "@/lib/profile-store";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -57,6 +58,7 @@ function App() {
   // Persist tab + profile across reloads
   useEffect(() => { try { window.localStorage.setItem(TAB_KEY, tab); } catch {} }, [tab]);
   useEffect(() => {
+    profileStore.set(profile);
     try {
       if (profile) window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       else window.localStorage.removeItem(PROFILE_KEY);
