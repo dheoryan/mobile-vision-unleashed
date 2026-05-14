@@ -90,3 +90,41 @@ export const leaveTribe = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row.tribe_ids as string[];
   });
+
+export type VentureMatch = {
+  id: string;
+  display_name: string;
+  handle: string | null;
+  city: string;
+  bio: string;
+  avatar_emoji: string;
+  avatar_url: string | null;
+  tribe_ids: string[];
+  plan: "free" | "plus";
+};
+
+const venturesSchema = z.object({
+  scope: z.enum(["mine", "all"]),
+  tribe_ids: z.array(z.string().min(1).max(40)).max(10).optional(),
+});
+
+export const listVentureMatches = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => venturesSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("profiles")
+      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
+      .neq("id", userId)
+      .limit(120);
+    if (data.scope === "mine" && data.tribe_ids && data.tribe_ids.length) {
+      q = q.overlaps("tribe_ids", data.tribe_ids);
+    }
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    // RLS already hides blocked rows where I am blocker; double-check by trimming
+    // anyone without at least one tribe.
+    return ((rows ?? []) as VentureMatch[]).filter((p) => (p.tribe_ids ?? []).length > 0);
+  });
+
