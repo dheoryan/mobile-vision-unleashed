@@ -58,6 +58,7 @@ function App() {
   // Persist tab + profile across reloads
   useEffect(() => { try { window.localStorage.setItem(TAB_KEY, tab); } catch {} }, [tab]);
   useEffect(() => {
+    profileStore.set(profile);
     try {
       if (profile) window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       else window.localStorage.removeItem(PROFILE_KEY);
