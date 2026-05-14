@@ -223,7 +223,7 @@ function Setup({
           <p className="mt-1 text-sm text-muted-foreground">You can change this anytime.</p>
           <div className="mt-5 grid grid-cols-1 gap-3">
             {[
-              { key: "mine", title: "Just my Tribe", body: "Stay close to your home base." },
+              { key: "mine", title: mineTitle, body: mineBody },
               { key: "all", title: "All Tribes", body: "Open it up to the whole habitat." },
             ].map((o) => {
               const on = tribeFilter === o.key;
@@ -236,7 +236,14 @@ function Setup({
                     on ? "border-primary bg-primary/10" : "border-border bg-card"
                   )}
                 >
-                  <p className="font-semibold">{o.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">{o.title}</p>
+                    {o.key === "mine" && multi && (
+                      <span className="flex gap-0.5 text-base">
+                        {myTribes.map((t) => <span key={t.id}>{t.emoji}</span>)}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">{o.body}</p>
                 </button>
               );
