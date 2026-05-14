@@ -60,7 +60,7 @@ export const socialStore = {
     emit();
   },
 
-  addPost: (tribeId: TribeId, content: string, authorId = "me") => {
+  addPost: (tribeId: TribeId, content: string, authorId = "me", imageUrl?: string) => {
     const post: Post = {
       id: `p-${Date.now()}`,
       authorId,
@@ -69,6 +69,7 @@ export const socialStore = {
       content,
       likes: 0,
       replies: 0,
+      ...(imageUrl ? { imageUrl } : {}),
     };
     state = { ...state, posts: [post, ...state.posts] };
     emit();
