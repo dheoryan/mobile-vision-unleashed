@@ -26,12 +26,25 @@ const ICONS: Record<NotifType, React.ReactNode> = {
 
 function NotificationsPage() {
   const { items, unread } = useNotifications();
+  const navigate = useNavigate();
 
-  // Mark visible as read after 2s
+  // Auto-mark visible as read after 2s
   useEffect(() => {
     const t = setTimeout(() => notifStore.markAllRead(), 2000);
     return () => clearTimeout(t);
   }, []);
+
+  const handleClick = (n: Notif) => {
+    notifStore.markRead(n.id);
+    if (n.type === "hello" || n.type === "venture_match") {
+      intentStore.push({ kind: "openThreadWith", userId: n.actorId });
+    } else if ((n.type === "like" || n.type === "comment") && n.entityId) {
+      intentStore.push({ kind: "openPost", postId: n.entityId });
+    } else if (n.type === "follow") {
+      intentStore.push({ kind: "openTab", tab: "discover" });
+    }
+    navigate({ to: "/" });
+  };
 
   return (
     <div className="bg-habitat min-h-screen pb-16">
