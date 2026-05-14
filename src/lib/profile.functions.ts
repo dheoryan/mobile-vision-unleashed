@@ -103,6 +103,8 @@ export type VentureMatch = {
   plan: "free" | "plus";
 };
 
+export type DiscoverProfile = VentureMatch;
+
 const venturesSchema = z.object({
   scope: z.enum(["mine", "all"]),
   tribe_ids: z.array(z.string().min(1).max(40)).max(10).optional(),
@@ -126,5 +128,29 @@ export const listVentureMatches = createServerFn({ method: "GET" })
     // RLS already hides blocked rows where I am blocker; double-check by trimming
     // anyone without at least one tribe.
     return ((rows ?? []) as VentureMatch[]).filter((p) => (p.tribe_ids ?? []).length > 0);
+  });
+
+export const listDiscoverProfiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: blockedRows, error: blockedError } = await supabase
+      .from("blocks")
+      .select("blocked_id")
+      .eq("blocker_id", userId);
+    if (blockedError) throw new Error(blockedError.message);
+
+    const blockedIds = new Set((blockedRows ?? []).map((r: { blocked_id: string }) => r.blocked_id));
+    const { data: rows, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
+      .neq("id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    return ((rows ?? []) as DiscoverProfile[])
+      .filter((p) => !blockedIds.has(p.id))
+      .filter((p) => (p.tribe_ids ?? []).length > 0);
   });
 
