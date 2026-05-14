@@ -10,7 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { Profile } from "./Onboarding";
 
-export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
+export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
   const [tab, setTab] = useState<"following" | "foryou">("following");
   const social = useSocial();
   const blocked = useBlocked();
