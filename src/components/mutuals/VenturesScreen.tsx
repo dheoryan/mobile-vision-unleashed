@@ -158,12 +158,12 @@ function Landing({ onStart }: { onStart: () => void }) {
 }
 
 function Setup({
-  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, window, setWindow, onLaunch, onCancel,
+  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, timeWindow, setTimeWindow, onLaunch, onCancel,
 }: {
   step: number; setStep: (n: number) => void;
   intents: string[]; setIntents: (v: string[]) => void;
   tribeFilter: "mine" | "all"; setTribeFilter: (v: "mine" | "all") => void;
-  window: string; setWindow: (v: string) => void;
+  timeWindow: string; setTimeWindow: (v: string) => void;
   onLaunch: () => void; onCancel: () => void;
 }) {
   const canNext = step === 0 ? intents.length > 0 : true;
