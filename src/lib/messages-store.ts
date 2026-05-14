@@ -89,7 +89,10 @@ export function useSendMessage(otherId: string) {
 
 const READ_KEY = "mutuals.dm.read";
 
-function readMap(): Record<string, string> {
+const readListeners = new Set<() => void>();
+let readSnapshot: Record<string, string> = readMapFromStorage();
+
+function readMapFromStorage(): Record<string, string> {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(READ_KEY);
@@ -98,21 +101,50 @@ function readMap(): Record<string, string> {
     return {};
   }
 }
-function writeMap(m: Record<string, string>) {
+function persistRead(m: Record<string, string>) {
+  readSnapshot = m;
   try {
     window.localStorage.setItem(READ_KEY, JSON.stringify(m));
   } catch {
     /* no-op */
   }
+  readListeners.forEach((l) => l());
+}
+function subscribeRead(l: () => void) {
+  readListeners.add(l);
+  return () => readListeners.delete(l);
+}
+function getReadSnapshot() {
+  return readSnapshot;
+}
+function getReadServerSnapshot(): Record<string, string> {
+  return {};
 }
 
-/** Sums unread messages across threads, respecting per-thread read cursors in localStorage. */
-export function unreadFromThreads(threads: DMThreadSummary[] | undefined): number {
+function useReadMap(): Record<string, string> {
+  return useSyncExternalStore(subscribeRead, getReadSnapshot, getReadServerSnapshot);
+}
+
+/** Sums unread messages across threads, respecting per-thread read cursors (reactive). */
+export function useUnreadCount(threads: DMThreadSummary[] | undefined): number {
+  const map = useReadMap();
   if (!threads?.length) return 0;
-  const m = readMap();
   let total = 0;
   for (const t of threads) {
-    const cursor = m[t.other_id];
+    const cursor = map[t.other_id];
+    if (!cursor || t.last_message.created_at > cursor) {
+      total += t.unread_count;
+    }
+  }
+  return total;
+}
+
+/** Non-reactive fallback (kept for compatibility). Prefer useUnreadCount in components. */
+export function unreadFromThreads(threads: DMThreadSummary[] | undefined): number {
+  if (!threads?.length) return 0;
+  let total = 0;
+  for (const t of threads) {
+    const cursor = readSnapshot[t.other_id];
     if (!cursor || t.last_message.created_at > cursor) {
       total += t.unread_count;
     }
@@ -121,10 +153,8 @@ export function unreadFromThreads(threads: DMThreadSummary[] | undefined): numbe
 }
 
 export function markThreadRead(otherId: string, lastTs: string) {
-  const m = readMap();
-  if (m[otherId] === lastTs) return;
-  m[otherId] = lastTs;
-  writeMap(m);
+  if (readSnapshot[otherId] === lastTs) return;
+  persistRead({ ...readSnapshot, [otherId]: lastTs });
 }
 
 export type { DMMessage, DMThreadSummary };
