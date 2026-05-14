@@ -128,7 +128,7 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
       <button onClick={onOpen} className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card">
         <span className="relative">
           <Avatar value={avatarOf(t.other)} tribeColor={tribe.colorVar} />
-          {t.other?.plan === "plus" && <PlusBadge />}
+          {showPlusBadge(t.other?.plan) && <PlusBadge />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
