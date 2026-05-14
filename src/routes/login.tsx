@@ -5,6 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -41,7 +42,8 @@ function LoginPage() {
   return (
     <div className="bg-habitat flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <p className="label-mono text-muted-foreground text-center">Mutuals</p>
+        <img src={logo} alt="Mutuals" className="mx-auto h-16 w-16 rounded-2xl" />
+        <p className="label-mono text-muted-foreground mt-4 text-center">Mutuals</p>
         <h1 className="mt-2 text-center font-display text-3xl font-bold">Welcome back.</h1>
         <form onSubmit={submit} className="mt-8 space-y-3">
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
