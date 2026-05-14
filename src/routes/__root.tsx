@@ -84,8 +84,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "MUTUALS — Start with your Tribe" },
       { name: "twitter:description", content: "A new social layer for real-life meetups. 21+ only." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d845ab7d-88bb-4863-8479-b2b496b2f607" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d845ab7d-88bb-4863-8479-b2b496b2f607" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
