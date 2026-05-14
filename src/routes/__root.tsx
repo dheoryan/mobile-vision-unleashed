@@ -77,9 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "MUTUALS — Start with your Tribe" },
       { name: "description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
       { property: "og:title", content: "MUTUALS — Start with your Tribe" },
-      { property: "og:description", content: "A tribe-based social app for real-life meetups. For socially curious adults, 21+." },
+      { property: "og:description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "MUTUALS — Start with your Tribe" },
+      { name: "twitter:description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5d1d92a4-04e1-472c-b100-51eacc907975/id-preview-9b92c7fb--5e588783-4218-47ec-92d6-0d373760aeb8.lovable.app-1778642199045.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5d1d92a4-04e1-472c-b100-51eacc907975/id-preview-9b92c7fb--5e588783-4218-47ec-92d6-0d373760aeb8.lovable.app-1778642199045.png" },
     ],
     links: [
       {
