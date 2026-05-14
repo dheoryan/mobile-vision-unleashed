@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type WheelEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Check, Loader2, Search, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type DiscoverPerson = Person & { allTribeIds: TribeId[] };
 
 const VALID_TRIBES = new Set<TribeId>(TRIBES.map((t) => t.id));
+const PAGE_SIZE = 20;
 
 function toTribeIds(ids: string[] | null | undefined): TribeId[] {
   return (ids ?? []).filter((id): id is TribeId => VALID_TRIBES.has(id as TribeId));
@@ -39,21 +40,37 @@ function rowToPerson(row: DiscoverProfile): DiscoverPerson {
 
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
   const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
   const discoverFn = useServerFn(listDiscoverProfiles);
-  const profilesQuery = useQuery({
-    queryKey: ["discover", "profiles"],
-    queryFn: () => discoverFn(),
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const profilesQuery = useInfiniteQuery({
+    queryKey: ["discover", "profiles", debounced],
+    queryFn: ({ pageParam }) =>
+      discoverFn({
+        data: { search: debounced || undefined, offset: pageParam as number, limit: PAGE_SIZE },
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset ?? undefined,
     staleTime: 20_000,
   });
   const feedQuery = useFeedPosts();
   const toggleFollow = useToggleFollow();
 
   const people = useMemo(
-    () => (profilesQuery.data ?? []).map(rowToPerson).filter((p) => !blocked.has(p.id)),
+    () =>
+      (profilesQuery.data?.pages ?? [])
+        .flatMap((p) => p.rows)
+        .map(rowToPerson)
+        .filter((p) => !blocked.has(p.id)),
     [profilesQuery.data, blocked],
   );
 
@@ -65,9 +82,10 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     }
   };
 
+  // Server-side search already filters; keep a light client-side pass for tribe-name matches.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return people;
+    if (!q || q === debounced.toLowerCase()) return people;
     return people.filter((p) => {
       const tribes = p.allTribeIds.map((id) => tribeById(id).name.toLowerCase()).join(" ");
       return (
@@ -78,9 +96,10 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         tribes.includes(q)
       );
     });
-  }, [query, people]);
+  }, [query, debounced, people]);
 
   const toggle = (id: string) => toggleFollow.mutate(id);
+  const isSearching = query.trim() !== debounced;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -94,6 +113,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             placeholder="Search people, Tribes, cities"
             className="w-full bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
           />
+          {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         </div>
 
         <SectionTitle title="Explore Tribes" hint="Tap to preview registered members" />
@@ -123,7 +143,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
           </div>
         </div>
 
-        <SectionTitle title="People near you" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} found`} />
+        <SectionTitle title="People near you" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`} />
         <div className="flex flex-col gap-3">
           {profilesQuery.isLoading ? (
             <p className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
@@ -139,18 +159,30 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </div>
           ) : filtered.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No one matches "{query}". Try another search.
+              {debounced ? `No one matches "${debounced}". Try another search.` : "No registered users yet."}
             </p>
           ) : (
-            filtered.map((p) => (
-              <PersonRow
-                key={p.id}
-                person={p}
-                following={social.following.has(p.id)}
-                pending={toggleFollow.isPending && toggleFollow.variables === p.id}
-                onToggle={() => toggle(p.id)}
-              />
-            ))
+            <>
+              {filtered.map((p) => (
+                <PersonRow
+                  key={p.id}
+                  person={p}
+                  following={social.following.has(p.id)}
+                  pending={toggleFollow.isPending && toggleFollow.variables === p.id}
+                  onToggle={() => toggle(p.id)}
+                />
+              ))}
+              {profilesQuery.hasNextPage && (
+                <button
+                  onClick={() => profilesQuery.fetchNextPage()}
+                  disabled={profilesQuery.isFetchingNextPage}
+                  className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold disabled:opacity-60"
+                >
+                  {profilesQuery.isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Load more
+                </button>
+              )}
+            </>
           )}
         </div>
       </main>
