@@ -20,6 +20,7 @@ export type FeedPost = {
   tag: string | null;
   likes_count: number;
   replies_count: number;
+  shares_count: number;
   created_at: string;
   author: AuthorLite | null;
 };
@@ -53,7 +54,7 @@ async function attachAuthors<T extends { author_id: string }>(
 }
 
 const POST_COLS =
-  "id, author_id, tribe_id, content, image_url, tag, likes_count, replies_count, created_at";
+  "id, author_id, tribe_id, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
 
 export const listFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

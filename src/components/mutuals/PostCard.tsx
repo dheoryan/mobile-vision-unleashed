@@ -4,7 +4,7 @@ import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { CommentsModal } from "./CommentsModal";
-import { useSocial, useToggleLike } from "@/lib/social-store";
+import { useSocial, useToggleLike, useMyShares, useToggleShare } from "@/lib/social-store";
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { uploadPostImage } from "@/lib/uploads";
@@ -39,6 +39,9 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     plus: post.author?.plan === "plus",
   };
   const liked = social.liked.has(post.id);
+  const sharesQuery = useMyShares();
+  const shared = sharesQuery.data?.has(post.id) ?? false;
+  const toggleShare = useToggleShare();
 
   const editPost = useEditPost();
   const deletePost = useDeletePost();
@@ -53,11 +56,13 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const [uploading, setUploading] = useState(false);
 
   const share = async () => {
+    if (post.id.startsWith("tmp-")) return;
+    toggleShare.mutate(post.id);
     try {
       await navigator.clipboard?.writeText(`https://mutuals.app/p/${post.id}`);
-      toast.success("Link copied");
+      toast.success(shared ? "Unshared" : "Link copied");
     } catch {
-      toast.success("Shared");
+      toast.success(shared ? "Unshared" : "Shared");
     }
   };
 
@@ -252,10 +257,15 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         </button>
         <button
           onClick={share}
-          className="ml-auto flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
+          className={cn(
+            "ml-auto flex items-center gap-1.5 text-xs transition-colors",
+            shared ? "text-primary" : "hover:text-foreground",
+          )}
           aria-label="Share post"
+          aria-pressed={shared}
         >
-          <Share2 className="h-4 w-4" />
+          <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} />{" "}
+          {post.shares_count}
         </button>
       </footer>
 

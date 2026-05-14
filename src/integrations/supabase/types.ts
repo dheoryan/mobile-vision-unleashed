@@ -185,6 +185,7 @@ export type Database = {
           image_url: string | null
           likes_count: number
           replies_count: number
+          shares_count: number
           tag: string | null
           tribe_id: string
           updated_at: string
@@ -197,6 +198,7 @@ export type Database = {
           image_url?: string | null
           likes_count?: number
           replies_count?: number
+          shares_count?: number
           tag?: string | null
           tribe_id: string
           updated_at?: string
@@ -209,6 +211,7 @@ export type Database = {
           image_url?: string | null
           likes_count?: number
           replies_count?: number
+          shares_count?: number
           tag?: string | null
           tribe_id?: string
           updated_at?: string
@@ -308,6 +311,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shares: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
