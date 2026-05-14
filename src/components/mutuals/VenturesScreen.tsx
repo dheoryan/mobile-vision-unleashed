@@ -15,8 +15,11 @@ import { cn } from "@/lib/utils";
 
 type Stage = "landing" | "setup" | "active";
 
-function rowToPerson(r: VentureMatch): Person {
-  const tribeId = (r.tribe_ids?.[0] as TribeId | undefined) ?? "wolf";
+type RichPerson = Person & { allTribeIds: TribeId[] };
+
+function rowToPerson(r: VentureMatch): RichPerson {
+  const allTribeIds = (r.tribe_ids ?? []).filter(Boolean) as TribeId[];
+  const tribeId = (allTribeIds[0] as TribeId | undefined) ?? "wolf";
   const avatar = r.avatar_url || r.avatar_emoji || "🙂";
   return {
     id: r.id,
@@ -28,6 +31,7 @@ function rowToPerson(r: VentureMatch): Person {
     bio: r.bio || "",
     plus: r.plan === "plus",
     mutuals: 0,
+    allTribeIds,
   };
 }
 
