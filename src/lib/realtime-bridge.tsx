@@ -1,7 +1,45 @@
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import type { FeedPost } from "@/lib/posts.functions";
+
+/** Patch a single counter field on every cached posts list that contains the post. */
+function patchPostCount(
+  qc: QueryClient,
+  postId: string,
+  field: "likes_count" | "replies_count" | "shares_count",
+  delta: number,
+) {
+  qc.getQueriesData<unknown>({ queryKey: ["posts"] }).forEach(([key, data]) => {
+    if (Array.isArray(data)) {
+      const rows = data as FeedPost[];
+      if (!rows.some((p) => p && typeof p === "object" && "id" in p && p.id === postId)) return;
+      qc.setQueryData(
+        key,
+        rows.map((p) =>
+          p.id === postId ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) } : p,
+        ),
+      );
+      return;
+    }
+    // Support useInfiniteQuery shapes: { pages: FeedPost[][], pageParams }
+    if (data && typeof data === "object" && "pages" in (data as Record<string, unknown>)) {
+      const infinite = data as { pages: FeedPost[][]; pageParams: unknown[] };
+      if (!Array.isArray(infinite.pages)) return;
+      let touched = false;
+      const nextPages = infinite.pages.map((page) => {
+        if (!Array.isArray(page)) return page;
+        if (!page.some((p) => p?.id === postId)) return page;
+        touched = true;
+        return page.map((p) =>
+          p.id === postId ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) } : p,
+        );
+      });
+      if (touched) qc.setQueryData(key, { ...infinite, pages: nextPages });
+    }
+  });
+}
 
 /**
  * Subscribes to Postgres change events for the current user and invalidates
