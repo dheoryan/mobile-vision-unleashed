@@ -36,7 +36,8 @@ export type CommentRow = {
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 
 async function attachAuthors<T extends { author_id: string }>(
-  supabase: ReturnType<typeof requireSupabaseAuth.builder>["context"] extends never ? never : any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   rows: T[],
 ): Promise<(T & { author: AuthorLite | null })[]> {
   if (!rows.length) return [];
@@ -128,7 +129,7 @@ export const editPost = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => editSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const patch: Record<string, unknown> = { content: data.content };
+    const patch: { content: string; image_url?: string | null } = { content: data.content };
     if (data.image_url !== undefined) patch.image_url = data.image_url;
     const { data: row, error } = await supabase
       .from("posts")
