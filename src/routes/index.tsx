@@ -9,7 +9,10 @@ import { VenturesScreen } from "@/components/mutuals/VenturesScreen";
 import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
-import type { DMThread, Person } from "@/lib/mutuals-data";
+import type { Person } from "@/lib/mutuals-data";
+import { unreadFromThreads, useThreads } from "@/lib/messages-store";
+import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { intentStore, useIntent } from "@/lib/intent-store";
 import {
   rowToProfile,
@@ -45,9 +48,10 @@ function App() {
   const [tab, setTab] = useState<TabKey>(loadTab);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
-  const [extraThreads, setExtraThreads] = useState<DMThread[]>([]);
   const [openPostId, setOpenPostId] = useState<string | null>(null);
   const intent = useIntent();
+  const threadsQuery = useThreads();
+  const sendDM = useServerFn(sendMessageFn);
 
   // Redirect unauthenticated users to login
   useEffect(() => {
@@ -91,7 +95,7 @@ function App() {
     else if (i.kind === "openTab") { setTab(i.tab); }
   }, [intent, profile]);
 
-  const unread = useMemo(() => 1 + extraThreads.length, [extraThreads]);
+  const unread = useMemo(() => unreadFromThreads(threadsQuery.data), [threadsQuery.data]);
 
   // Locally-applied profile setter that syncs to DB. Passing null = sign out.
   const setProfile = (updater: Profile | null | ((p: Profile | null) => Profile | null)) => {
@@ -122,21 +126,21 @@ function App() {
     );
   }
 
-  const handleSendHello = (person: Person, message: string) => {
-    setExtraThreads((prev) => {
-      if (prev.some((t) => t.withUserId === person.id)) return prev;
-      return [
-        {
-          id: `new-${person.id}`,
-          withUserId: person.id,
-          preview: message,
-          time: "now",
-          unread: true,
-          messages: [{ id: `m-${Date.now()}`, from: "me", text: message, time: "now" }],
-        },
-        ...prev,
-      ];
-    });
+  const handleSendHello = async (person: Person, message: string) => {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(person.id);
+    if (!isUuid) {
+      toast.error("That person isn't on Mutuals yet.");
+      return;
+    }
+    try {
+      await sendDM({ data: { recipient_id: person.id, content: message } });
+      toast.success(`Hello sent to ${person.name}`);
+      setOpenThreadUser(person.id);
+      setMessagesOpen(true);
+      threadsQuery.refetch();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   const handleLaunchVenture = () => {
@@ -175,7 +179,6 @@ function App() {
       <MessagesPanel
         open={messagesOpen}
         onClose={() => { setMessagesOpen(false); setOpenThreadUser(null); }}
-        extraThreads={extraThreads}
         openWithUserId={openThreadUser}
       />
       <CommentsModal open={!!openPostId} onClose={() => setOpenPostId(null)} postId={openPostId} />

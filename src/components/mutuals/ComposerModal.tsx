@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus } from "lucide-react";
+import { X, ImagePlus, Loader2 } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
+import { uploadPostImage } from "@/lib/uploads";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -9,8 +11,10 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 export function ComposerModal({
   open, onClose, tribeId,
 }: { open: boolean; onClose: () => void; tribeId: TribeId }) {
+  const { user } = useAuth();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
@@ -22,6 +26,7 @@ export function ComposerModal({
   const submit = () => {
     const t = text.trim();
     if (!t && !imageUrl) return;
+    if (uploading) return;
     createPost.mutate(
       { tribe_id: tribeId, content: t, image_url: imageUrl ?? null },
       {
@@ -33,22 +38,21 @@ export function ComposerModal({
     onClose();
   };
 
-  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    e.target.value = ""; // allow re-selecting same file
-    if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      toast.error("Only image files are supported.");
-      return;
+    e.target.value = "";
+    if (!f || !user) return;
+    if (!f.type.startsWith("image/")) { toast.error("Only image files."); return; }
+    if (f.size > MAX_BYTES) { toast.error("Image too large", { description: "Max 5 MB." }); return; }
+    setUploading(true);
+    try {
+      const url = await uploadPostImage(user.id, f);
+      setImageUrl(url);
+    } catch (err) {
+      toast.error("Upload failed", { description: (err as Error).message });
+    } finally {
+      setUploading(false);
     }
-    if (f.size > MAX_BYTES) {
-      toast.error("Image too large", { description: "Max 5 MB." });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setImageUrl(typeof reader.result === "string" ? reader.result : null);
-    reader.onerror = () => toast.error("Couldn't read that image.");
-    reader.readAsDataURL(f);
   };
 
   const close = () => { reset(); onClose(); };
@@ -88,10 +92,11 @@ export function ComposerModal({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            disabled={uploading}
+            className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
           >
-            <ImagePlus className="h-4 w-4" />
-            {imageUrl ? "Replace photo" : "Add photo"}
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            {uploading ? "Uploading…" : imageUrl ? "Replace photo" : "Add photo"}
           </button>
           <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
           <input

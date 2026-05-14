@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { ArrowRight, ArrowLeft, Camera } from "lucide-react";
+import { ArrowRight, ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import { LegalFooter } from "./LegalFooter";
+import { uploadAvatar } from "@/lib/uploads";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export interface Profile {
@@ -20,6 +23,7 @@ export interface Profile {
 export const primaryTribe = (p: Profile): TribeId => p.tribeIds[0];
 
 export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [tribeId, setTribeId] = useState<TribeId | null>(null);
   const [name, setName] = useState("");
@@ -27,6 +31,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState("🌿");
+  const [uploading, setUploading] = useState(false);
 
   const tribe = tribeId ? tribeById(tribeId) : null;
   const ageOk = Number(age) >= 21;
@@ -159,25 +164,31 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
 
             <div className="mt-6 flex flex-col items-center">
               <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-card text-4xl">
-                {avatar.startsWith("data:") ? (
+                {avatar.startsWith("data:") || avatar.startsWith("http") ? (
                   <img src={avatar} alt="" className="h-full w-full object-cover" />
                 ) : (
                   avatar
                 )}
                 <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Camera className="h-4 w-4" />
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                 </span>
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 2 * 1024 * 1024) return;
-                    const r = new FileReader();
-                    r.onload = () => { if (typeof r.result === "string") setAvatar(r.result); };
-                    r.readAsDataURL(f);
+                    e.target.value = "";
+                    if (!f || !user) return;
+                    setUploading(true);
+                    try {
+                      const url = await uploadAvatar(user.id, f);
+                      setAvatar(url);
+                    } catch (err) {
+                      toast.error("Upload failed", { description: (err as Error).message });
+                    } finally {
+                      setUploading(false);
+                    }
                   }}
                 />
               </label>

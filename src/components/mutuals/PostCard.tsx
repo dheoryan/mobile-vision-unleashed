@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X, Loader2 } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
@@ -7,6 +7,7 @@ import { CommentsModal } from "./CommentsModal";
 import { useSocial, useToggleLike } from "@/lib/social-store";
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
+import { uploadPostImage } from "@/lib/uploads";
 import { timeAgo } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const [editImage, setEditImage] = useState<string | null>(post.image_url);
   const [confirmDel, setConfirmDel] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const share = async () => {
     try {
@@ -83,15 +85,21 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     setEditing(false);
   };
 
-  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
-    if (!f) return;
+    if (!f || !user) return;
     if (!f.type.startsWith("image/")) { toast.error("Only image files."); return; }
     if (f.size > MAX_IMG_BYTES) { toast.error("Image too large", { description: "Max 5 MB." }); return; }
-    const r = new FileReader();
-    r.onload = () => setEditImage(typeof r.result === "string" ? r.result : null);
-    r.readAsDataURL(f);
+    setUploading(true);
+    try {
+      const url = await uploadPostImage(user.id, f);
+      setEditImage(url);
+    } catch (err) {
+      toast.error("Upload failed", { description: (err as Error).message });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -183,10 +191,11 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+              disabled={uploading}
+              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
-              <ImagePlus className="h-3.5 w-3.5" />
-              {editImage ? "Replace" : "Add photo"}
+              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+              {uploading ? "Uploading…" : editImage ? "Replace" : "Add photo"}
             </button>
             <span className="text-[10px] text-muted-foreground">{editText.length}/280</span>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
