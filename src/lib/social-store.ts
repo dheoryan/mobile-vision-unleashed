@@ -4,14 +4,17 @@ import {
   getFollowCounts,
   listMyFollowing,
   listMyLikes,
+  listMyShares,
   reportContent,
   toggleFollow,
   toggleLike,
+  toggleShare,
 } from "@/lib/social.functions";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost } from "@/lib/posts.functions";
 
 const LIKES_KEY = ["social", "likes"] as const;
+const SHARES_KEY = ["social", "shares"] as const;
 const FOLLOWING_KEY = ["social", "following"] as const;
 const FOLLOW_COUNTS_KEY = ["social", "follow-counts"] as const;
 
