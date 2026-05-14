@@ -8,7 +8,7 @@ import { PlusBadge } from "./PlusBadge";
 import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
 import { useMyPosts } from "@/lib/posts-store";
-import { useSocial } from "@/lib/social-store";
+import { useFollowCounts } from "@/lib/social-store";
 import { useBlocked, useUnblockUser } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ export function ProfileScreen({
   const tribe = tribeById(primaryId);
   const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
   const isPlus = profile.plan === "plus";
-  const social = useSocial();
+  const followCounts = useFollowCounts();
 
   const myPostsQuery = useMyPosts();
   const myPosts = myPostsQuery.data ?? [];
@@ -102,8 +102,8 @@ export function ProfileScreen({
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
 
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <Stat label="Following" value={String(social.following.size)} />
-            <Stat label="Followers" value="62" />
+            <Stat label="Following" value={String(followCounts.data?.following ?? 0)} />
+            <Stat label="Followers" value={String(followCounts.data?.followers ?? 0)} />
             <Stat label="Ventures" value={String(profile.ventureCount)} />
           </div>
 
