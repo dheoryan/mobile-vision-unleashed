@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type WheelEvent } from "react";
 import { Search, UserPlus, Check, X } from "lucide-react";
 import { TRIBES, PEOPLE, POSTS, tribeById, personById, type Person, type Tribe } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
