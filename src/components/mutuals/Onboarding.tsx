@@ -90,7 +90,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
                     tribeId: "cat",
                     name: "Demo Explorer",
                     age: "28",
-                    city: "San Francisco",
+                    city: "Jakarta",
                     bio: "Just looking around — exploring Mutuals in demo mode.",
                     avatar: "🌿",
                     plan: "free",
