@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Send, AlertTriangle, MessageSquare } from "lucide-react";
 import { personById, tribeById } from "@/lib/mutuals-data";
 import { useSocial, socialStore, type Comment } from "@/lib/social-store";
@@ -71,7 +72,8 @@ export function CommentsModal({
     setText(c.text);
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative mx-auto flex h-[80vh] w-full max-w-md flex-col rounded-t-3xl border border-border bg-card animate-rise">
@@ -165,7 +167,8 @@ export function CommentsModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
