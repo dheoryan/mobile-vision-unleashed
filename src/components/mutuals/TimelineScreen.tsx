@@ -51,7 +51,7 @@ export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: P
         <p className="label-mono mt-4 text-muted-foreground">
           {tab === "following"
             ? "From people you follow across all Tribes."
-            : `From your ${tribeCount} ${tribeCount === 1 ? "Tribe" : "Tribes"}`}
+            : "Discover signals from every Tribe."}
         </p>
 
         <div className="mt-3 flex flex-col gap-3">
