@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type WheelEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Check, Loader2, Search, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type DiscoverPerson = Person & { allTribeIds: TribeId[] };
 
 const VALID_TRIBES = new Set<TribeId>(TRIBES.map((t) => t.id));
+const PAGE_SIZE = 20;
 
 function toTribeIds(ids: string[] | null | undefined): TribeId[] {
   return (ids ?? []).filter((id): id is TribeId => VALID_TRIBES.has(id as TribeId));
@@ -39,21 +40,37 @@ function rowToPerson(row: DiscoverProfile): DiscoverPerson {
 
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
   const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
   const discoverFn = useServerFn(listDiscoverProfiles);
-  const profilesQuery = useQuery({
-    queryKey: ["discover", "profiles"],
-    queryFn: () => discoverFn(),
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const profilesQuery = useInfiniteQuery({
+    queryKey: ["discover", "profiles", debounced],
+    queryFn: ({ pageParam }) =>
+      discoverFn({
+        data: { search: debounced || undefined, offset: pageParam as number, limit: PAGE_SIZE },
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset ?? undefined,
     staleTime: 20_000,
   });
   const feedQuery = useFeedPosts();
   const toggleFollow = useToggleFollow();
 
   const people = useMemo(
-    () => (profilesQuery.data ?? []).map(rowToPerson).filter((p) => !blocked.has(p.id)),
+    () =>
+      (profilesQuery.data?.pages ?? [])
+        .flatMap((p) => p.rows)
+        .map(rowToPerson)
+        .filter((p) => !blocked.has(p.id)),
     [profilesQuery.data, blocked],
   );
 
