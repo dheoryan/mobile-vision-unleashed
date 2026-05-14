@@ -6,11 +6,16 @@ export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
       { title: "Privacy Policy — MUTUALS" },
-      { name: "description", content: "What we collect, how we use it, and your rights." },
+      { name: "description", content: "What data MUTUALS collects, how we use it, and your rights." },
+      { property: "og:title", content: "Privacy Policy — MUTUALS" },
+      { property: "og:description", content: "What data MUTUALS collects, how we use it, and your rights." },
     ],
   }),
   component: PrivacyPage,
 });
+
+// TODO: legal review before launch
+// TODO: replace privacy@mutuals.app with a real address before launch
 
 function PrivacyPage() {
   return (
@@ -25,10 +30,6 @@ function PrivacyPage() {
           <p className="mt-2 text-xs text-muted-foreground">Last updated: May 12, 2026</p>
         </header>
 
-        <div className="mt-3 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 px-4 py-3 text-[11px] text-amber-500">
-          [UPDATE WITH LAWYER-REVIEWED COPY BEFORE LAUNCH]
-        </div>
-
         <article className="mt-8 space-y-6 text-sm leading-relaxed text-muted-foreground">
           <Section title="What we collect">
             <ul className="ml-5 mt-2 list-disc space-y-1.5">
@@ -42,13 +43,25 @@ function PrivacyPage() {
           </Section>
           <Section title="Third parties">
             <ul className="ml-5 mt-2 list-disc space-y-1.5">
-              <li><strong className="text-foreground">Lovable Cloud</strong> — hosting, database, authentication.</li>
+              <li><strong className="text-foreground">Supabase</strong> — database, authentication, and file storage.</li>
+              <li><strong className="text-foreground">Vercel / Netlify</strong> — web hosting.</li>
               <li><strong className="text-foreground">Stripe</strong> — payments for MUTUALS+ subscriptions.</li>
+              <li><strong className="text-foreground">PostHog</strong> — product analytics (usage patterns, feature adoption). No personally identifiable information is shared with PostHog.</li>
+              <li><strong className="text-foreground">Sentry</strong> — error monitoring and crash reporting. Error reports are anonymised before transmission.</li>
             </ul>
             We never sell your data.
           </Section>
           <Section title="Your rights">
-            You can request a copy of your data, correct it, or delete your account at any time from <span className="text-foreground">Settings → Delete Account</span>.
+            <ul className="ml-5 mt-2 list-disc space-y-1.5">
+              <li><strong className="text-foreground">Right to access</strong>: request a copy of all data we hold about you.</li>
+              <li><strong className="text-foreground">Right to correction</strong>: update inaccurate personal information via Settings.</li>
+              <li><strong className="text-foreground">Right to deletion</strong>: delete your account and all associated data via Settings → Delete Account.</li>
+              <li><strong className="text-foreground">Right to portability</strong>: request your data in a machine-readable format by emailing privacy@mutuals.app.</li>
+              <li><strong className="text-foreground">Right to object</strong>: opt out of analytics data collection by contacting us.</li>
+            </ul>
+            <p className="mt-3">
+              We comply with applicable data protection laws including Indonesia's Personal Data Protection Law (UU PDP) and, where applicable, GDPR and CCPA.
+            </p>
           </Section>
           <Section title="Contact">
             Privacy questions? Email <a className="text-primary hover:underline" href="mailto:privacy@mutuals.app">privacy@mutuals.app</a>.

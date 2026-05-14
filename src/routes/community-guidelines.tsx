@@ -6,17 +6,19 @@ export const Route = createFileRoute("/community-guidelines")({
   head: () => ({
     meta: [
       { title: "Community Guidelines — MUTUALS" },
-      { name: "description", content: "How we keep MUTUALS warm, safe, and real." },
+      { name: "description", content: "Five simple rules that keep MUTUALS warm, safe, and real." },
+      { property: "og:title", content: "Community Guidelines — MUTUALS" },
+      { property: "og:description", content: "Five simple rules that keep MUTUALS warm, safe, and real." },
     ],
   }),
   component: GuidelinesPage,
 });
 
 const RULES = [
-  { icon: Heart,       title: "Be real",   body: "No fake profiles. Use your real name, real photo, real city." },
-  { icon: ShieldCheck, title: "Be kind",   body: "No harassment, hate speech, or discrimination of any kind." },
-  { icon: Lock,        title: "Be safe",   body: "Don't share other people's personal info without their consent." },
-  { icon: Sparkles,    title: "21 and up", body: "MUTUALS is for adults. Underage accounts will be removed." },
+  { icon: Heart,       title: "Be authentic", body: "No impersonating others, no fake personas designed to deceive. Your profile should represent who you actually are." },
+  { icon: ShieldCheck, title: "Be kind",      body: "No harassment, hate speech, or discrimination of any kind." },
+  { icon: Lock,        title: "Be safe",      body: "Don't share other people's personal info without their consent." },
+  { icon: Sparkles,    title: "21 and up",    body: "MUTUALS is for adults. Underage accounts will be removed." },
   { icon: X,           title: "Keep it clean", body: "No explicit, violent, or unlawful content." },
 ];
 
@@ -49,6 +51,11 @@ function GuidelinesPage() {
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
           Violations may result in account termination. Report anyone breaking these from their profile menu.
+        </p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Think we got it wrong? Appeal a decision by emailing{" "}
+          <a className="text-primary hover:underline" href="mailto:appeals@mutuals.app">appeals@mutuals.app</a>{" "}
+          with your account details and reason. We review all appeals within 5 business days.
         </p>
 
         <LegalFooter className="mt-10" />

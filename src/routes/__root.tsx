@@ -13,19 +13,19 @@ import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="bg-habitat flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h1 className="font-display text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 font-display text-2xl font-bold text-foreground">Lost in the habitat.</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          This page doesn't exist — but your Tribe does.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-colors hover:bg-primary/90"
           >
-            Go home
+            Go Home
           </Link>
         </div>
       </div>
@@ -75,13 +75,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#0F0F0F" },
       { title: "MUTUALS — Start with your Tribe" },
-      { name: "description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
+      { name: "description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:title", content: "MUTUALS — Start with your Tribe" },
-      { property: "og:description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
+      { property: "og:description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "MUTUALS — Start with your Tribe" },
-      { name: "twitter:description", content: "A new social layer for real-life meetups. Start with your Tribe. Venture when you're ready." },
+      { name: "twitter:description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d845ab7d-88bb-4863-8479-b2b496b2f607" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d845ab7d-88bb-4863-8479-b2b496b2f607" },
     ],
