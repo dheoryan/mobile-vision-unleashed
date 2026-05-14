@@ -243,11 +243,11 @@ function Setup({
           <p className="mt-1 text-sm text-muted-foreground">A loose window works fine.</p>
           <div className="mt-5 grid grid-cols-1 gap-3">
             {["Tonight", "This week · evenings", "This weekend", "Next week"].map((opt) => {
-              const on = window === opt;
+              const on = timeWindow === opt;
               return (
                 <button
                   key={opt}
-                  onClick={() => setWindow(opt)}
+                  onClick={() => setTimeWindow(opt)}
                   className={cn(
                     "rounded-2xl border px-4 py-3 text-left text-sm transition-colors",
                     on ? "border-primary bg-primary/10" : "border-border bg-card"
