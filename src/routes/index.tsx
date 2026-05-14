@@ -29,7 +29,15 @@ function loadProfile(): Profile | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as Profile) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Profile & { tribeId?: string };
+    // Migrate legacy single-tribe profiles to tribeIds[]
+    if (!Array.isArray(parsed.tribeIds)) {
+      const legacy = parsed.tribeId as Profile["tribeIds"][number] | undefined;
+      parsed.tribeIds = legacy ? [legacy] : ["wolf"];
+      delete parsed.tribeId;
+    }
+    return parsed as Profile;
   } catch { return null; }
 }
 
