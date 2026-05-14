@@ -72,7 +72,6 @@ export function CommentsModal({
     setText(c.text);
   };
 
-  return (
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center">
