@@ -29,12 +29,14 @@ export function ProfileScreen({
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gridTab, setGridTab] = useState<GridTab>("posts");
-  const tribe = tribeById(profile.tribeId);
+  const primaryId = profile.tribeIds[0];
+  const tribe = tribeById(primaryId);
+  const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
   const isPlus = profile.plan === "plus";
   const social = useSocial();
 
   const myPosts = social.posts.filter((p) => p.authorId === "me");
-  const samplePosts = POSTS.filter((p) => p.tribeId === profile.tribeId).slice(0, 6);
+  const samplePosts = POSTS.filter((p) => profile.tribeIds.includes(p.tribeId)).slice(0, 6);
   const postsToShow = myPosts.length ? myPosts : samplePosts;
 
   const savedPlaceholder = POSTS.slice(2, 5);
