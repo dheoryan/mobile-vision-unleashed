@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MoreHorizontal, X, Flag, Ban } from "lucide-react";
 import { toast } from "sonner";
+import { blockedStore } from "@/lib/blocked-store";
 
 const REPORT_REASONS = [
   "Spam",
@@ -13,10 +14,13 @@ const REPORT_REASONS = [
 
 export function SafetyMenu({
   targetName,
+  targetUserId,
   kind = "user",
   className = "",
 }: {
   targetName: string;
+  /** Person id for "user" kind. Required to actually filter feeds when blocked. */
+  targetUserId?: string;
   kind?: "user" | "post";
   className?: string;
 }) {
