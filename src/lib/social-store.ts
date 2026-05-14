@@ -84,6 +84,22 @@ function patchFeedCount(
   });
 }
 
+function reconcileFeedCount(
+  qc: ReturnType<typeof useQueryClient>,
+  postId: string,
+  field: "likes_count" | "shares_count",
+  value: number,
+) {
+  qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
+    if (!data || !Array.isArray(data)) return;
+    if (!data.some((p) => p.id === postId)) return;
+    qc.setQueryData(
+      key,
+      data.map((p) => (p.id === postId ? { ...p, [field]: Math.max(value, 0) } : p)),
+    );
+  });
+}
+
 export function useToggleLike() {
   const fn = useServerFn(toggleLike);
   const qc = useQueryClient();
@@ -108,6 +124,15 @@ export function useToggleLike() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: LIKES_KEY });
       qc.invalidateQueries({ queryKey: ["posts"] });
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<string[]>(key, (cur) => {
+        const rows = cur ?? [];
+        return result.liked
+          ? Array.from(new Set([...rows, result.post_id]))
+          : rows.filter((id) => id !== result.post_id);
+      });
+      reconcileFeedCount(qc, result.post_id, "likes_count", result.likes_count);
     },
   });
 }
@@ -148,6 +173,15 @@ export function useToggleShare() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: SHARES_KEY });
       qc.invalidateQueries({ queryKey: ["posts"] });
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<string[]>(key, (cur) => {
+        const rows = cur ?? [];
+        return result.shared
+          ? Array.from(new Set([...rows, result.post_id]))
+          : rows.filter((id) => id !== result.post_id);
+      });
+      reconcileFeedCount(qc, result.post_id, "shares_count", result.shares_count);
     },
   });
 }
