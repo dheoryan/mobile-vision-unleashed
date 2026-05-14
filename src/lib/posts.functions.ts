@@ -34,6 +34,8 @@ export type CommentRow = {
   author: AuthorLite | null;
 };
 
+export type CommentMutationResult = CommentRow & { replies_count: number };
+
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 
 async function attachAuthors<T extends { author_id: string }>(
@@ -51,6 +53,19 @@ async function attachAuthors<T extends { author_id: string }>(
   const map = new Map<string, AuthorLite>();
   for (const a of (data ?? []) as AuthorLite[]) map.set(a.id, a);
   return rows.map((r) => ({ ...r, author: map.get(r.author_id) ?? null }));
+}
+
+async function getRepliesCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  postId: string,
+) {
+  const { count, error } = await supabase
+    .from("comments")
+    .select("post_id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
 }
 
 const POST_COLS =
