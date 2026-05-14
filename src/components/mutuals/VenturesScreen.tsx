@@ -393,27 +393,45 @@ function Active({
   );
 }
 
-function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: Person; sharedIntents: string[]; delay: number; onSkip: () => void; onHello: () => void }) {
+function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: RichPerson; sharedIntents: string[]; delay: number; onSkip: () => void; onHello: () => void }) {
   const tribe = tribeById(person.tribeId);
   const isImg = person.avatar.startsWith("http") || person.avatar.startsWith("data:");
+  const extraTribes = person.allTribeIds.slice(1).map(tribeById).filter(Boolean);
+  const initial = (person.name?.[0] ?? "🙂").toUpperCase();
   return (
     <article className="rounded-2xl border border-border bg-card p-4 animate-rise" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex items-start gap-3">
         <span className="relative">
-          <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
-            {isImg ? <img src={person.avatar} alt="" className="h-full w-full object-cover" /> : person.avatar}
+          <span
+            className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-xl font-semibold text-foreground"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+          >
+            {isImg ? (
+              <img
+                src={person.avatar}
+                alt={person.name}
+                className="h-full w-full object-cover"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : person.avatar?.length <= 4 ? person.avatar : initial}
           </span>
           {person.plus && <PlusBadge />}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="truncate text-sm font-semibold">{person.name}</p>
             <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
+            {extraTribes.map((t) => (
+              <TribeBadge key={t.id} name={t.name} color={t.colorVar} hosted={t.hosted} />
+            ))}
+            {person.plus && (
+              <span className="label-mono rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary">Plus</span>
+            )}
           </div>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
             <MapPin className="h-3 w-3" /> {person.city || "—"}
           </p>
-          {person.bio && <p className="mt-1 text-xs text-muted-foreground">{person.bio}</p>}
+          {person.bio && <p className="mt-1.5 line-clamp-3 text-xs text-muted-foreground">{person.bio}</p>}
         </div>
       </div>
 
