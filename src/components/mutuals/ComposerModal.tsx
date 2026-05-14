@@ -92,10 +92,11 @@ export function ComposerModal({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            disabled={uploading}
+            className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
           >
-            <ImagePlus className="h-4 w-4" />
-            {imageUrl ? "Replace photo" : "Add photo"}
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            {uploading ? "Uploading…" : imageUrl ? "Replace photo" : "Add photo"}
           </button>
           <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
           <input
