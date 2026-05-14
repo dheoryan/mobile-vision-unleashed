@@ -344,9 +344,9 @@ function Setup({
 function Active({
   intents, matches, isLoading, isError, onRetry, onSkip, onHello, onExit,
 }: {
-  intents: string[]; matches: Person[];
+  intents: string[]; matches: RichPerson[];
   isLoading: boolean; isError: boolean; onRetry: () => void;
-  onSkip: (id: string) => void; onHello: (p: Person) => void; onExit: () => void;
+  onSkip: (id: string) => void; onHello: (p: RichPerson) => void; onExit: () => void;
 }) {
   return (
     <>
