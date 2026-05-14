@@ -66,7 +66,7 @@ export function PostCard({ post: seed, showTribe = false }: { post: Post; showTr
             {post.tag}
           </span>
         )}
-        <SafetyMenu targetName={author.name} kind="post" />
+        <SafetyMenu targetName={author.name} targetUserId={post.authorId === "me" ? undefined : post.authorId} kind="post" />
       </header>
 
       <p className="mt-3 font-sans text-[15px] leading-relaxed text-foreground">{post.content}</p>
