@@ -46,11 +46,23 @@ export function useMyName() {
   return useMyProfile()?.name?.trim() || "You";
 }
 
+export type ProfilePatch = Partial<{
+  display_name: string;
+  handle: string | null;
+  age: number | null;
+  city: string;
+  bio: string;
+  avatar_emoji: string;
+  avatar_url: string | null;
+  tribe_ids: string[];
+  plan: "free" | "plus";
+}>;
+
 export function useUpdateProfile() {
   const update = useServerFn(updateMyProfile);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Parameters<typeof update>[0]["data"]) => update({ data: patch }),
+    mutationFn: (patch: ProfilePatch) => update({ data: patch }),
     onSuccess: (row) => {
       qc.setQueryData([...PROFILE_QUERY_KEY, row.id], row);
       qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
