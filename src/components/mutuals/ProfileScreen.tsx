@@ -409,6 +409,7 @@ function SettingsSheet({
   open, onClose, onLogout, onDelete,
 }: { open: boolean; onClose: () => void; onLogout: () => void; onDelete: () => void }) {
   const blocked = useBlocked();
+  const unblockUser = useUnblockUser();
   const blockedPeople = [...blocked].map((id) => PEOPLE.find((p) => p.id === id) ?? personById(id)).filter(Boolean);
 
   if (!open) return null;
@@ -437,7 +438,10 @@ function SettingsSheet({
                     <p className="truncate text-[11px] text-muted-foreground">{p.handle}</p>
                   </div>
                   <button
-                    onClick={() => { blockedStore.unblock(p.id); toast.success(`Unblocked ${p.name}.`); }}
+                    onClick={() => unblockUser.mutate(p.id, {
+                      onSuccess: () => toast.success(`Unblocked ${p.name}.`),
+                      onError: (e) => toast.error((e as Error).message),
+                    })}
                     className="flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
                   >
                     <Ban className="h-3 w-3" /> Unblock
