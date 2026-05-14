@@ -30,7 +30,7 @@ function rowToPerson(r: VentureMatch): RichPerson {
     tribeId,
     city: r.city || "",
     bio: r.bio || "",
-    plus: r.plan === "plus",
+    plus: showPlusBadge(r.plan),
     mutuals: 0,
     allTribeIds,
   };
