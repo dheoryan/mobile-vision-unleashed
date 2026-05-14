@@ -7,7 +7,7 @@ import { PostCard } from "./PostCard";
 import { AppHeader, SectionTitle } from "./Shared";
 import { ComposerModal } from "./ComposerModal";
 import { AddTribeSheet } from "./AddTribeSheet";
-import { useSocial } from "@/lib/social-store";
+import { useFeedPosts } from "@/lib/posts-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +43,9 @@ export function TribeScreen({
   }, [initialTribe, profile.tribeIds]);
 
   const tribe = tribeById(activeTribe);
-  const social = useSocial();
+  const feedQuery = useFeedPosts(activeTribe);
   const blocked = useBlocked();
-  const tribePosts = social.posts.filter((p) => p.tribeId === activeTribe && !blocked.has(p.authorId));
+  const tribePosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
   const isJoined = profile.tribeIds.includes(activeTribe);
 
   return (
