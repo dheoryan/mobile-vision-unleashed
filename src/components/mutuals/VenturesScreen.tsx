@@ -56,6 +56,14 @@ export function VenturesScreen({
   const [helloed, setHelloed] = useState<Set<string>>(new Set());
   const [paywall, setPaywall] = useState(false);
   const blocked = useBlocked();
+  const threadsQuery = useThreads();
+
+  // Cross-device "already said hello" — anyone I've already DMed shows up in threads.
+  const persistedHelloed = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of threadsQuery.data ?? []) s.add(t.other_id);
+    return s;
+  }, [threadsQuery.data]);
 
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
