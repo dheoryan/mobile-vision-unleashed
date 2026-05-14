@@ -56,11 +56,13 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const [uploading, setUploading] = useState(false);
 
   const share = async () => {
+    if (post.id.startsWith("tmp-")) return;
+    toggleShare.mutate(post.id);
     try {
       await navigator.clipboard?.writeText(`https://mutuals.app/p/${post.id}`);
-      toast.success("Link copied");
+      toast.success(shared ? "Unshared" : "Link copied");
     } catch {
-      toast.success("Shared");
+      toast.success(shared ? "Unshared" : "Shared");
     }
   };
 
