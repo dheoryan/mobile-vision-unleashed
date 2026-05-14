@@ -82,9 +82,10 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     }
   };
 
+  // Server-side search already filters; keep a light client-side pass for tribe-name matches.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return people;
+    if (!q || q === debounced.toLowerCase()) return people;
     return people.filter((p) => {
       const tribes = p.allTribeIds.map((id) => tribeById(id).name.toLowerCase()).join(" ");
       return (
@@ -95,9 +96,10 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         tribes.includes(q)
       );
     });
-  }, [query, people]);
+  }, [query, debounced, people]);
 
   const toggle = (id: string) => toggleFollow.mutate(id);
+  const isSearching = query.trim() !== debounced;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -111,6 +113,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             placeholder="Search people, Tribes, cities"
             className="w-full bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
           />
+          {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         </div>
 
         <SectionTitle title="Explore Tribes" hint="Tap to preview registered members" />
@@ -140,7 +143,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
           </div>
         </div>
 
-        <SectionTitle title="People near you" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} found`} />
+        <SectionTitle title="People near you" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`} />
         <div className="flex flex-col gap-3">
           {profilesQuery.isLoading ? (
             <p className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
@@ -156,18 +159,30 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </div>
           ) : filtered.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No one matches "{query}". Try another search.
+              {debounced ? `No one matches "${debounced}". Try another search.` : "No registered users yet."}
             </p>
           ) : (
-            filtered.map((p) => (
-              <PersonRow
-                key={p.id}
-                person={p}
-                following={social.following.has(p.id)}
-                pending={toggleFollow.isPending && toggleFollow.variables === p.id}
-                onToggle={() => toggle(p.id)}
-              />
-            ))
+            <>
+              {filtered.map((p) => (
+                <PersonRow
+                  key={p.id}
+                  person={p}
+                  following={social.following.has(p.id)}
+                  pending={toggleFollow.isPending && toggleFollow.variables === p.id}
+                  onToggle={() => toggle(p.id)}
+                />
+              ))}
+              {profilesQuery.hasNextPage && (
+                <button
+                  onClick={() => profilesQuery.fetchNextPage()}
+                  disabled={profilesQuery.isFetchingNextPage}
+                  className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold disabled:opacity-60"
+                >
+                  {profilesQuery.isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Load more
+                </button>
+              )}
+            </>
           )}
         </div>
       </main>
