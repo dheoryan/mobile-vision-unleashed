@@ -73,6 +73,7 @@ export function useCreatePost() {
         tag: null,
         likes_count: 0,
         replies_count: 0,
+        shares_count: 0,
         created_at: new Date().toISOString(),
         author: null,
       };
