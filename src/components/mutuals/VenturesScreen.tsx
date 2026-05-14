@@ -104,7 +104,7 @@ export function VenturesScreen({
   // Deterministic shuffle keyed by timeWindow so the matches list visibly
   // reshuffles when the user picks a different time window.
   const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
-  const matches = useMemo<Person[]>(() => {
+  const matches = useMemo<RichPerson[]>(() => {
     const rows = matchesQuery.data ?? [];
     return rows
       .map(rowToPerson)
