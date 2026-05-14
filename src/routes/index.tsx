@@ -11,6 +11,7 @@ import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import type { DMThread, Person } from "@/lib/mutuals-data";
 import { intentStore, useIntent } from "@/lib/intent-store";
+import { profileStore } from "@/lib/profile-store";
 
 export const Route = createFileRoute("/")({
   component: App,
