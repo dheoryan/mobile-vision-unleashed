@@ -49,7 +49,8 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             {TRIBES.map((t) => (
               <button
                 key={t.id}
-                className="relative h-32 w-44 shrink-0 overflow-hidden rounded-2xl border border-border p-4 text-left"
+                onClick={() => setPreviewTribe(t)}
+                className="relative h-32 w-44 shrink-0 overflow-hidden rounded-2xl border border-border p-4 text-left transition-transform hover:-translate-y-0.5"
                 style={{
                   background: `linear-gradient(155deg, color-mix(in oklab, ${t.colorVar} 50%, var(--card)) 0%, var(--card) 100%)`,
                 }}
