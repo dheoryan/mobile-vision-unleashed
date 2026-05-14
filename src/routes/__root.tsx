@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth-context";
 
 import appCss from "../styles.css?url";
 
@@ -117,8 +118,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster position="bottom-center" richColors />
+      <AuthProvider>
+        <Outlet />
+        <Toaster position="bottom-center" richColors />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
