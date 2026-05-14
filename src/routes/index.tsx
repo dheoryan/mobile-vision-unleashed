@@ -141,8 +141,6 @@ function App() {
 
   const handleLaunchVenture = () => {
     if (!profile) return;
-    updateProfile.mutate({ /* venture_count handled below */ } as never);
-    // Increment via patch
     updateProfile.mutate(profileToPatch({ ...profile, ventureCount: profile.ventureCount + 1 }));
   };
 
