@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ArrowLeft, Heart, MessageSquare, UserPlus, Sparkles, Bell } from "lucide-react";
-import { useNotifications, notifStore, actorAvatar, postById, type NotifType } from "@/lib/notifications-store";
+import { useNotifications, notifStore, actorAvatar, postById, type Notif, type NotifType } from "@/lib/notifications-store";
+import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 
