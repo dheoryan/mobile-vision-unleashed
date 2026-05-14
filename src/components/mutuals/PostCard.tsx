@@ -4,7 +4,7 @@ import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { CommentsModal } from "./CommentsModal";
-import { useSocial, socialStore } from "@/lib/social-store";
+import { useSocial, useToggleLike } from "@/lib/social-store";
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { timeAgo } from "@/lib/time";
@@ -28,6 +28,7 @@ function Avatar({ value, tribeColor }: { value: string; tribeColor: string }) {
 export function PostCard({ post, showTribe = false }: { post: FeedPost; showTribe?: boolean }) {
   const { user } = useAuth();
   const social = useSocial();
+  const toggleLike = useToggleLike();
   const tribe = tribeById(post.tribe_id as TribeId);
   const isMine = !!user && post.author_id === user.id;
   const author = {
@@ -221,7 +222,10 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
 
       <footer className="mt-3 flex items-center gap-5 text-muted-foreground">
         <button
-          onClick={() => socialStore.toggleLike(post.id)}
+          onClick={() => {
+            if (post.id.startsWith("tmp-")) return;
+            toggleLike.mutate(post.id);
+          }}
           className={cn(
             "flex items-center gap-1.5 text-xs transition-colors",
             liked ? "text-rose-400" : "hover:text-foreground"
@@ -229,7 +233,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           aria-pressed={liked}
         >
           <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />{" "}
-          {post.likes_count + (liked ? 1 : 0)}
+          {post.likes_count}
         </button>
         <button
           onClick={() => setCommentsOpen(true)}

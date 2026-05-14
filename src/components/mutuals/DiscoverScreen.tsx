@@ -3,7 +3,7 @@ import { Search, UserPlus, Check, X } from "lucide-react";
 import { TRIBES, PEOPLE, POSTS, tribeById, personById, type Person, type Tribe } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
-import { useSocial, socialStore } from "@/lib/social-store";
+import { useSocial, useToggleFollow } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,8 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     );
   }, [query, visiblePeople]);
 
-  const toggle = (id: string) => socialStore.toggleFollow(id);
+  const toggleFollow = useToggleFollow();
+  const toggle = (id: string) => toggleFollow.mutate(id);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
