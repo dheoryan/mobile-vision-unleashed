@@ -32,7 +32,7 @@ export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: P
     .sort((a, b) => (a.id > b.id ? -1 : 1));
 
   const list = tab === "following" ? followingPosts : forYou;
-  const tribeCount = profile.tribeIds.length;
+  const tribeCount = allowedTribes.length;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
