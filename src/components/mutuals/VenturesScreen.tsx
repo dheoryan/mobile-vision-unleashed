@@ -72,7 +72,7 @@ export function VenturesScreen({
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
   const tryGoLive = () => {
-    if (profile.plan === "free" && profile.ventureCount >= 3) {
+    if (MONETIZATION_ENABLED && profile.plan === "free" && profile.ventureCount >= 3) {
       setPaywall(true);
       return;
     }
