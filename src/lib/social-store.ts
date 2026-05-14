@@ -112,6 +112,46 @@ export function useToggleLike() {
   });
 }
 
+export function useMyShares() {
+  const fn = useServerFn(listMyShares);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...SHARES_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+    select: (rows) => new Set(rows),
+  });
+}
+
+export function useToggleShare() {
+  const fn = useServerFn(toggleShare);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const key = [...SHARES_KEY, user?.id ?? null];
+  return useMutation({
+    mutationFn: (postId: string) => fn({ data: { post_id: postId } }),
+    onMutate: async (postId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<string[]>(key) ?? [];
+      const wasShared = prev.includes(postId);
+      const next = wasShared ? prev.filter((id) => id !== postId) : [...prev, postId];
+      qc.setQueryData(key, next);
+      patchFeedCount(qc, postId, "shares_count", wasShared ? -1 : 1);
+      return { prev, wasShared, postId };
+    },
+    onError: (_e, _i, ctx) => {
+      if (!ctx) return;
+      qc.setQueryData(key, ctx.prev);
+      patchFeedCount(qc, ctx.postId, "shares_count", ctx.wasShared ? 1 : -1);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: SHARES_KEY });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
 export function useToggleFollow() {
   const fn = useServerFn(toggleFollow);
   const qc = useQueryClient();
