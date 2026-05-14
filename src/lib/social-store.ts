@@ -66,17 +66,19 @@ export function useSocial() {
   };
 }
 
-function patchFeedLikes(
+function patchFeedCount(
   qc: ReturnType<typeof useQueryClient>,
   postId: string,
+  field: "likes_count" | "shares_count",
   delta: number,
 ) {
   qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
-    if (!data) return;
+    if (!data || !Array.isArray(data)) return;
+    if (!data.some((p) => p && typeof p === "object" && "id" in p && p.id === postId)) return;
     qc.setQueryData(
       key,
       data.map((p) =>
-        p.id === postId ? { ...p, likes_count: Math.max(p.likes_count + delta, 0) } : p,
+        p.id === postId ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) } : p,
       ),
     );
   });
