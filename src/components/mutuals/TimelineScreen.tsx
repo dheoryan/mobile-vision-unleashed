@@ -8,26 +8,28 @@ import { useBlocked } from "@/lib/blocked-store";
 import { Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import type { Profile } from "./Onboarding";
 
-export function TimelineScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
+export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
   const [tab, setTab] = useState<"following" | "foryou">("following");
   const social = useSocial();
   const blocked = useBlocked();
 
   const visiblePosts = social.posts.filter((p) => !blocked.has(p.authorId));
 
-  // Following = posts authored by people you follow (across all tribes), newest first
   const followingPosts = visiblePosts
     .filter((p) => social.following.has(p.authorId))
     .slice()
     .reverse();
 
-  // For You = mock discovery feed = newest posts across all tribes
+  // For You = filtered to the user's joined tribes
   const forYou = visiblePosts
+    .filter((p) => profile.tribeIds.includes(p.tribeId))
     .slice()
     .sort((a, b) => (a.id > b.id ? -1 : 1));
 
   const list = tab === "following" ? followingPosts : forYou;
+  const tribeCount = profile.tribeIds.length;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -48,8 +50,10 @@ export function TimelineScreen({ onOpenMessages, unread }: { onOpenMessages: () 
           ))}
         </div>
 
-        <p className="mt-4 text-xs text-muted-foreground">
-          {tab === "following" ? "From people you follow across all Tribes." : "Lightweight discovery beyond your Tribe."}
+        <p className="label-mono mt-4 text-muted-foreground">
+          {tab === "following"
+            ? "From people you follow across all Tribes."
+            : `From your ${tribeCount} ${tribeCount === 1 ? "Tribe" : "Tribes"}`}
         </p>
 
         <div className="mt-3 flex flex-col gap-3">
