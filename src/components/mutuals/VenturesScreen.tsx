@@ -58,7 +58,7 @@ export function VenturesScreen({
   const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
   const matches = PEOPLE
     .filter((p) => p.id !== "me" && !blocked.has(p.id))
-    .filter((p) => tribeFilter === "all" || p.tribeId === profile.tribeId)
+    .filter((p) => tribeFilter === "all" || profile.tribeIds.includes(p.tribeId))
     .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
     .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
     .sort((a, b) => a.k - b.k)
