@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ArrowLeft, Heart, MessageSquare, UserPlus, Sparkles, Bell } from "lucide-react";
-import { useNotifications, notifStore, actorAvatar, postById, type Notif, type NotifType } from "@/lib/notifications-store";
+import { ArrowLeft, Heart, MessageSquare, UserPlus, Bell } from "lucide-react";
+import { useNotifications, type DerivedNotif } from "@/lib/notifications-store";
 import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
+import { timeAgo } from "@/lib/time";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
@@ -16,30 +17,30 @@ export const Route = createFileRoute("/notifications")({
   component: NotificationsPage,
 });
 
-const ICONS: Record<NotifType, React.ReactNode> = {
-  like:          <Heart className="h-3 w-3" fill="currentColor" />,
-  comment:       <MessageSquare className="h-3 w-3" />,
-  follow:        <UserPlus className="h-3 w-3" />,
-  hello:         <Sparkles className="h-3 w-3" />,
-  venture_match: <Sparkles className="h-3 w-3" />,
+const ICONS: Record<DerivedNotif["type"], React.ReactNode> = {
+  like:    <Heart className="h-3 w-3" fill="currentColor" />,
+  comment: <MessageSquare className="h-3 w-3" />,
+  follow:  <UserPlus className="h-3 w-3" />,
+};
+
+const TEXTS: Record<DerivedNotif["type"], string> = {
+  like:    "liked your post",
+  comment: "commented on your post",
+  follow:  "started following you",
 };
 
 function NotificationsPage() {
-  const { items, unread } = useNotifications();
+  const { items, unread, isLoading, markAllRead } = useNotifications();
   const navigate = useNavigate();
 
-  // Auto-mark visible as read after 2s
   useEffect(() => {
-    const t = setTimeout(() => notifStore.markAllRead(), 2000);
+    const t = setTimeout(() => markAllRead(), 2000);
     return () => clearTimeout(t);
-  }, []);
+  }, [markAllRead]);
 
-  const handleClick = (n: Notif) => {
-    notifStore.markRead(n.id);
-    if (n.type === "hello" || n.type === "venture_match") {
-      intentStore.push({ kind: "openThreadWith", userId: n.actorId });
-    } else if ((n.type === "like" || n.type === "comment") && n.entityId) {
-      intentStore.push({ kind: "openPost", postId: n.entityId });
+  const handleClick = (n: DerivedNotif) => {
+    if ((n.type === "like" || n.type === "comment") && n.post_id) {
+      intentStore.push({ kind: "openPost", postId: n.post_id });
     } else if (n.type === "follow") {
       intentStore.push({ kind: "openTab", tab: "discover" });
     }
@@ -55,7 +56,7 @@ function NotificationsPage() {
           </Link>
           <p className="font-display text-sm font-bold">Notifications</p>
           <button
-            onClick={() => notifStore.markAllRead()}
+            onClick={() => markAllRead()}
             disabled={unread === 0}
             className="text-[11px] font-semibold text-primary disabled:text-muted-foreground"
           >
@@ -65,44 +66,42 @@ function NotificationsPage() {
       </header>
 
       <main className="mx-auto max-w-md px-3 pt-2">
-        {items.length === 0 ? (
+        {isLoading ? (
+          <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
+        ) : items.length === 0 ? (
           <EmptyState icon={<Bell className="mx-auto h-12 w-12 text-muted-foreground" />} headline="Nothing yet. Get out there." />
         ) : (
           <ul className="divide-y divide-border/60">
             {items.map((n) => {
-              const actor = actorAvatar(n.actorId);
-              const post = postById(n.entityId);
-              const unreadRow = !n.readAt;
+              const actorName = n.actor?.display_name?.trim() || "Someone";
+              const actorAvatar = n.actor?.avatar_url || n.actor?.avatar_emoji || "👤";
+              const isImg = actorAvatar.startsWith("data:") || actorAvatar.startsWith("http");
               return (
                 <li key={n.id}>
                   <button
                     type="button"
                     onClick={() => handleClick(n)}
-                    className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-secondary/50 ${
-                      unreadRow ? "border-l-2 border-primary bg-primary/5" : ""
-                    }`}
+                    className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-secondary/50"
                   >
                     <span className="relative shrink-0">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-xl">
-                        {actor?.avatar ?? "👤"}
+                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-card text-xl">
+                        {isImg ? <img src={actorAvatar} alt="" className="h-full w-full object-cover" /> : actorAvatar}
                       </span>
-                      {actor?.plus && <PlusBadge />}
+                      {n.actor?.plan === "plus" && <PlusBadge />}
                       <span className="absolute -bottom-0.5 -left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
                         {ICONS[n.type]}
                       </span>
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm leading-snug">
-                        <span className="font-semibold">{actor?.name ?? "Someone"}</span>{" "}
-                        <span className="text-muted-foreground">{n.text}</span>
+                        <span className="font-semibold">{actorName}</span>{" "}
+                        <span className="text-muted-foreground">{TEXTS[n.type]}</span>
                       </p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{n.time} ago</p>
+                      {n.comment_excerpt && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">"{n.comment_excerpt}"</p>
+                      )}
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{timeAgo(n.created_at)} ago</p>
                     </div>
-                    {post?.image && (
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-card text-xl">
-                        {post.image}
-                      </span>
-                    )}
                   </button>
                 </li>
               );

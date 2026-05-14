@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { MoreHorizontal, X, Flag, Ban } from "lucide-react";
 import { toast } from "sonner";
-import { blockedStore } from "@/lib/blocked-store";
+import { useBlockUser } from "@/lib/blocked-store";
+import { useReportContent } from "@/lib/social-store";
 
 const REPORT_REASONS = [
   "Spam",
@@ -12,20 +13,26 @@ const REPORT_REASONS = [
   "Other",
 ];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function SafetyMenu({
   targetName,
   targetUserId,
+  targetPostId,
   kind = "user",
   className = "",
 }: {
   targetName: string;
   /** Person id for "user" kind. Required to actually filter feeds when blocked. */
   targetUserId?: string;
+  /** Post id when kind === "post". Required to file a post report. */
+  targetPostId?: string;
   kind?: "user" | "post";
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const blockUser = useBlockUser();
 
   return (
     <>
@@ -51,9 +58,16 @@ export function SafetyMenu({
                 <button
                   onClick={() => {
                     setOpen(false);
-                    if (targetUserId) blockedStore.block(targetUserId);
-                    toast.success(`${targetName} has been blocked.`, {
-                      description: "Their posts and messages are now hidden.",
+                    if (!targetUserId || !UUID_RE.test(targetUserId)) {
+                      toast.error("Can't block this account.");
+                      return;
+                    }
+                    blockUser.mutate(targetUserId, {
+                      onSuccess: () =>
+                        toast.success(`${targetName} has been blocked.`, {
+                          description: "Their posts and messages are now hidden.",
+                        }),
+                      onError: (e) => toast.error((e as Error).message),
                     });
                   }}
                   className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
@@ -71,17 +85,39 @@ export function SafetyMenu({
         onClose={() => setReportOpen(false)}
         targetName={targetName}
         kind={kind}
+        targetId={kind === "post" ? targetPostId : targetUserId}
       />
     </>
   );
 }
 
 function ReportModal({
-  open, onClose, targetName, kind,
-}: { open: boolean; onClose: () => void; targetName: string; kind: "user" | "post" }) {
+  open, onClose, targetName, kind, targetId,
+}: { open: boolean; onClose: () => void; targetName: string; kind: "user" | "post"; targetId?: string }) {
   const [reason, setReason] = useState(REPORT_REASONS[0]);
   const [details, setDetails] = useState("");
+  const reportContent = useReportContent();
   if (!open) return null;
+
+  const submit = () => {
+    if (!targetId) {
+      toast.error("Can't submit a report for this item.");
+      onClose();
+      return;
+    }
+    reportContent.mutate(
+      { target_kind: kind, target_id: targetId, reason, details: details || undefined },
+      {
+        onSuccess: () => {
+          onClose();
+          setDetails("");
+          toast.success("Report submitted.", { description: "We'll review it shortly." });
+        },
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
@@ -116,14 +152,11 @@ function ReportModal({
 
         <div className="mt-5 flex flex-col gap-2">
           <button
-            onClick={() => {
-              onClose();
-              setDetails("");
-              toast.success("Report submitted.", { description: "We'll review it shortly." });
-            }}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground"
+            onClick={submit}
+            disabled={reportContent.isPending}
+            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            Submit report
+            {reportContent.isPending ? "Submitting…" : "Submit report"}
           </button>
           <button onClick={onClose} className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
             Cancel
