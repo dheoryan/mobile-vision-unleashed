@@ -1,28 +1,68 @@
-import { useState, useRef, useEffect } from "react";
-import { Plus, Send, Smile, Image as ImageIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Send, Smile, Image as ImageIcon, Lock } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { TRIBES, CHAT_BY_TRIBE, type TribeId, tribeById, personById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { PostCard } from "./PostCard";
 import { AppHeader, SectionTitle } from "./Shared";
 import { ComposerModal } from "./ComposerModal";
+import { AddTribeSheet } from "./AddTribeSheet";
 import { useSocial } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 
-export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
-  const [activeTribe, setActiveTribe] = useState<TribeId>(profile.tribeId);
+export function TribeScreen({
+  profile,
+  setProfile,
+  onOpenMessages,
+  unread,
+  initialTribe,
+}: {
+  profile: Profile;
+  setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
+  onOpenMessages: () => void;
+  unread?: number;
+  initialTribe?: TribeId;
+}) {
+  const isPlus = profile.plan === "plus";
+  const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
+  const initial = initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
+  const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
   const [view, setView] = useState<"feed" | "chat">("feed");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [addTribeOpen, setAddTribeOpen] = useState(false);
+
+  // If profile.tribeIds changes (e.g. user joined a new tribe), keep activeTribe valid.
+  useEffect(() => {
+    if (!profile.tribeIds.includes(activeTribe)) setActiveTribe(profile.tribeIds[0]);
+  }, [profile.tribeIds, activeTribe]);
+
+  // Honor a freshly-requested initial tribe (e.g. tap from Discover).
+  useEffect(() => {
+    if (initialTribe && profile.tribeIds.includes(initialTribe)) setActiveTribe(initialTribe);
+  }, [initialTribe, profile.tribeIds]);
+
   const tribe = tribeById(activeTribe);
   const social = useSocial();
   const blocked = useBlocked();
   const tribePosts = social.posts.filter((p) => p.tribeId === activeTribe && !blocked.has(p.authorId));
+  const isJoined = profile.tribeIds.includes(activeTribe);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
       <AppHeader title={tribe.name} subtitle="Home base" accent={tribe.colorVar} onOpenMessages={onOpenMessages} unread={unread} />
       <main className="mx-auto max-w-md px-5 pt-3">
-        <TribeStrip active={activeTribe} onChange={setActiveTribe} />
+        {/* Tribe strip — only Plus users with multi-tribe see it. Free users hide it. */}
+        {isPlus && (
+          <TribeStrip
+            joined={joinedTribes}
+            active={activeTribe}
+            onChange={setActiveTribe}
+            canAdd={profile.tribeIds.length < 3}
+            onAdd={() => setAddTribeOpen(true)}
+          />
+        )}
+
         <TribeBanner tribe={tribe} />
 
         <div className="mt-5 flex gap-2 rounded-full bg-card p-1">
@@ -47,13 +87,36 @@ export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Prof
             <div className="flex flex-col gap-3">
               {tribePosts.map((p) => <PostCard key={p.id} post={p} />)}
             </div>
+
+            {/* Free users: subtle multi-tribe upsell card */}
+            {!isPlus && (
+              <Link
+                to="/upgrade"
+                className="mt-5 block rounded-2xl border border-dashed border-border bg-card p-4 transition-colors hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">Join more Tribes</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      MUTUALS+ lets you join up to 3 Tribes and expand your social world.
+                    </p>
+                  </div>
+                </div>
+                <span className="mt-3 block w-full rounded-xl bg-amber-400/15 py-2 text-center text-xs font-semibold text-amber-300">
+                  Upgrade to MUTUALS+
+                </span>
+              </Link>
+            )}
           </>
         ) : (
-          <GroupChat tribeId={activeTribe} />
+          <GroupChat tribeId={activeTribe} canChat={isJoined} />
         )}
       </main>
 
-      {view === "feed" && (
+      {view === "feed" && isJoined && (
         <button
           onClick={() => setComposerOpen(true)}
           className="fixed bottom-24 right-5 z-30 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/40 transition-transform active:scale-95"
@@ -65,15 +128,30 @@ export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Prof
       )}
 
       <ComposerModal open={composerOpen} onClose={() => setComposerOpen(false)} tribeId={activeTribe} />
+      <AddTribeSheet
+        open={addTribeOpen}
+        onClose={() => setAddTribeOpen(false)}
+        profile={profile}
+        setProfile={setProfile}
+        onJoined={(id) => setActiveTribe(id)}
+      />
     </div>
   );
 }
 
-function TribeStrip({ active, onChange }: { active: TribeId; onChange: (id: TribeId) => void }) {
+function TribeStrip({
+  joined, active, onChange, canAdd, onAdd,
+}: {
+  joined: ReturnType<typeof tribeById>[];
+  active: TribeId;
+  onChange: (id: TribeId) => void;
+  canAdd: boolean;
+  onAdd: () => void;
+}) {
   return (
     <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex gap-3">
-        {TRIBES.map((t) => {
+        {joined.map((t) => {
           const isActive = t.id === active;
           return (
             <button
@@ -99,6 +177,19 @@ function TribeStrip({ active, onChange }: { active: TribeId; onChange: (id: Trib
             </button>
           );
         })}
+
+        {canAdd && (
+          <button
+            onClick={onAdd}
+            className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
+            aria-label="Add tribe"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-amber-400/60 text-amber-300">
+              <Plus className="h-5 w-5" />
+            </span>
+            <span className="text-[11px] font-medium text-muted-foreground">Add Tribe</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -143,7 +234,7 @@ function TribeBanner({ tribe }: { tribe: ReturnType<typeof tribeById> }) {
   );
 }
 
-function GroupChat({ tribeId }: { tribeId: TribeId }) {
+function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean }) {
   const tribe = tribeById(tribeId);
   const seed = CHAT_BY_TRIBE[tribeId];
   const [messages, setMessages] = useState(seed);
@@ -154,6 +245,7 @@ function GroupChat({ tribeId }: { tribeId: TribeId }) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const send = () => {
+    if (!canChat) return;
     const t = text.trim();
     if (!t) return;
     setMessages((m) => [...m, { id: `me-${Date.now()}`, userId: "me", text: t, time: "now" }]);
@@ -197,18 +289,19 @@ function GroupChat({ tribeId }: { tribeId: TribeId }) {
         </div>
 
         <div className="mt-2 flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2">
-          <button className="text-muted-foreground"><Smile className="h-4 w-4" /></button>
-          <button className="text-muted-foreground"><ImageIcon className="h-4 w-4" /></button>
+          <button className="text-muted-foreground" disabled={!canChat}><Smile className="h-4 w-4" /></button>
+          <button className="text-muted-foreground" disabled={!canChat}><ImageIcon className="h-4 w-4" /></button>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={`Message ${tribe.name}`}
-            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
+            placeholder={canChat ? `Message ${tribe.name}` : "Join this Tribe to chat"}
+            disabled={!canChat}
+            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-60"
           />
           <button
             onClick={send}
-            disabled={!text.trim()}
+            disabled={!canChat || !text.trim()}
             className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground disabled:opacity-40"
             style={{ backgroundColor: tribe.colorVar }}
             aria-label="Send"
