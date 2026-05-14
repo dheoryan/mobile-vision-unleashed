@@ -4,7 +4,7 @@ import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { CommentsModal } from "./CommentsModal";
-import { useSocial, useToggleLike } from "@/lib/social-store";
+import { useSocial, useToggleLike, useMyShares, useToggleShare } from "@/lib/social-store";
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { uploadPostImage } from "@/lib/uploads";
