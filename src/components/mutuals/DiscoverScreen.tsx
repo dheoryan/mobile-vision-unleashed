@@ -33,7 +33,7 @@ function rowToPerson(row: DiscoverProfile): DiscoverPerson {
     tribeId,
     city: row.city || "",
     bio: row.bio || "",
-    plus: row.plan === "plus",
+    plus: showPlusBadge(row.plan),
     mutuals: 0,
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
   };
