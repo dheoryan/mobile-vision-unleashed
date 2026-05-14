@@ -6,6 +6,7 @@ import { PostCard } from "./PostCard";
 import { AppHeader, SectionTitle } from "./Shared";
 import { ComposerModal } from "./ComposerModal";
 import { useSocial } from "@/lib/social-store";
+import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 
 export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
@@ -14,7 +15,8 @@ export function TribeScreen({ profile, onOpenMessages, unread }: { profile: Prof
   const [composerOpen, setComposerOpen] = useState(false);
   const tribe = tribeById(activeTribe);
   const social = useSocial();
-  const tribePosts = social.posts.filter((p) => p.tribeId === activeTribe);
+  const blocked = useBlocked();
+  const tribePosts = social.posts.filter((p) => p.tribeId === activeTribe && !blocked.has(p.authorId));
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
