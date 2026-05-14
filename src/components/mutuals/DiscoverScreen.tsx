@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type WheelEvent } from "react";
 import { Search, UserPlus, Check, X } from "lucide-react";
 import { TRIBES, PEOPLE, POSTS, tribeById, personById, type Person, type Tribe } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
@@ -10,8 +10,17 @@ import { cn } from "@/lib/utils";
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [query, setQuery] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
+  const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
+
+  const onTribeWheel = (e: WheelEvent<HTMLDivElement>) => {
+    const el = tribeScrollRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY;
+    }
+  };
 
   const visiblePeople = useMemo(() => PEOPLE.filter((p) => !blocked.has(p.id)), [blocked]);
 
@@ -44,8 +53,12 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         </div>
 
         <SectionTitle title="Explore Tribes" hint="Tap to preview a scene" />
-        <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex gap-3 pb-1">
+        <div
+          ref={tribeScrollRef}
+          onWheel={onTribeWheel}
+          className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex w-max gap-3 pb-1">
             {TRIBES.map((t) => (
               <button
                 key={t.id}
