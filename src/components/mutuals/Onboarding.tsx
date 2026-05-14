@@ -5,7 +5,8 @@ import { LegalFooter } from "./LegalFooter";
 import { cn } from "@/lib/utils";
 
 export interface Profile {
-  tribeId: TribeId;
+  /** Tribes the user has joined. Free = 1, Plus = up to 3. First entry is the primary tribe. */
+  tribeIds: TribeId[];
   name: string;
   age: string;
   city: string;
@@ -14,6 +15,9 @@ export interface Profile {
   plan: "free" | "plus";
   ventureCount: number;
 }
+
+/** Convenience helper: the user's primary (first joined) tribe. */
+export const primaryTribe = (p: Profile): TribeId => p.tribeIds[0];
 
 export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   const [step, setStep] = useState(0);
