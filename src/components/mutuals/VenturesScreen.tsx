@@ -29,10 +29,11 @@ export function VenturesScreen({
   const [step, setStep] = useState(0);
   const [intents, setIntents] = useState<string[]>([]);
   const [tribeFilter, setTribeFilter] = useState<"mine" | "all">("all");
-  const [window, setWindow] = useState("This week · evenings");
+  const [timeWindow, setTimeWindow] = useState("This week · evenings");
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [helloed, setHelloed] = useState<Set<string>>(new Set());
   const [paywall, setPaywall] = useState(false);
+  const blocked = useBlocked();
 
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
@@ -48,14 +49,20 @@ export function VenturesScreen({
   const handleUpgraded = () => {
     setProfile((p) => (p ? { ...p, plan: "plus" } : p));
     setPaywall(false);
-    // resume the venture launch automatically
     onLaunchVenture();
     setStage("active");
   };
 
-  const matches = PEOPLE.filter((p) => p.id !== "me" && (tribeFilter === "all" || p.tribeId === profile.tribeId)).filter(
-    (p) => !skipped.has(p.id) && !helloed.has(p.id)
-  );
+  // Tiny deterministic shuffle keyed by timeWindow so the matches list visibly
+  // reshuffles when the user picks a different time window.
+  const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
+  const matches = PEOPLE
+    .filter((p) => p.id !== "me" && !blocked.has(p.id))
+    .filter((p) => tribeFilter === "all" || p.tribeId === profile.tribeId)
+    .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
+    .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
+    .sort((a, b) => a.k - b.k)
+    .map(({ p }) => p);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
