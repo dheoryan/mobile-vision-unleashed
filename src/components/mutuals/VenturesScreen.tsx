@@ -9,13 +9,17 @@ import { UpsellModal } from "./UpsellModal";
 import { useBlocked } from "@/lib/blocked-store";
 import { useAuth } from "@/lib/auth-context";
 import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
+import { useThreads } from "@/lib/messages-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
 type Stage = "landing" | "setup" | "active";
 
-function rowToPerson(r: VentureMatch): Person {
-  const tribeId = (r.tribe_ids?.[0] as TribeId | undefined) ?? "wolf";
+type RichPerson = Person & { allTribeIds: TribeId[] };
+
+function rowToPerson(r: VentureMatch): RichPerson {
+  const allTribeIds = (r.tribe_ids ?? []).filter(Boolean) as TribeId[];
+  const tribeId = (allTribeIds[0] as TribeId | undefined) ?? "wolf";
   const avatar = r.avatar_url || r.avatar_emoji || "🙂";
   return {
     id: r.id,
@@ -27,6 +31,7 @@ function rowToPerson(r: VentureMatch): Person {
     bio: r.bio || "",
     plus: r.plan === "plus",
     mutuals: 0,
+    allTribeIds,
   };
 }
 
@@ -55,6 +60,14 @@ export function VenturesScreen({
   const [helloed, setHelloed] = useState<Set<string>>(new Set());
   const [paywall, setPaywall] = useState(false);
   const blocked = useBlocked();
+  const threadsQuery = useThreads();
+
+  // Cross-device "already said hello" — anyone I've already DMed shows up in threads.
+  const persistedHelloed = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of threadsQuery.data ?? []) s.add(t.other_id);
+    return s;
+  }, [threadsQuery.data]);
 
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
@@ -91,16 +104,16 @@ export function VenturesScreen({
   // Deterministic shuffle keyed by timeWindow so the matches list visibly
   // reshuffles when the user picks a different time window.
   const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
-  const matches = useMemo<Person[]>(() => {
+  const matches = useMemo<RichPerson[]>(() => {
     const rows = matchesQuery.data ?? [];
     return rows
       .map(rowToPerson)
       .filter((p) => !blocked.has(p.id))
-      .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
+      .filter((p) => !skipped.has(p.id) && !helloed.has(p.id) && !persistedHelloed.has(p.id))
       .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
       .sort((a, b) => a.k - b.k)
       .map(({ p }) => p);
-  }, [matchesQuery.data, blocked, skipped, helloed, seed]);
+  }, [matchesQuery.data, blocked, skipped, helloed, persistedHelloed, seed]);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -331,9 +344,9 @@ function Setup({
 function Active({
   intents, matches, isLoading, isError, onRetry, onSkip, onHello, onExit,
 }: {
-  intents: string[]; matches: Person[];
+  intents: string[]; matches: RichPerson[];
   isLoading: boolean; isError: boolean; onRetry: () => void;
-  onSkip: (id: string) => void; onHello: (p: Person) => void; onExit: () => void;
+  onSkip: (id: string) => void; onHello: (p: RichPerson) => void; onExit: () => void;
 }) {
   return (
     <>
@@ -380,27 +393,45 @@ function Active({
   );
 }
 
-function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: Person; sharedIntents: string[]; delay: number; onSkip: () => void; onHello: () => void }) {
+function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: RichPerson; sharedIntents: string[]; delay: number; onSkip: () => void; onHello: () => void }) {
   const tribe = tribeById(person.tribeId);
   const isImg = person.avatar.startsWith("http") || person.avatar.startsWith("data:");
+  const extraTribes = person.allTribeIds.slice(1).map(tribeById).filter(Boolean);
+  const initial = (person.name?.[0] ?? "🙂").toUpperCase();
   return (
     <article className="rounded-2xl border border-border bg-card p-4 animate-rise" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex items-start gap-3">
         <span className="relative">
-          <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
-            {isImg ? <img src={person.avatar} alt="" className="h-full w-full object-cover" /> : person.avatar}
+          <span
+            className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-xl font-semibold text-foreground"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+          >
+            {isImg ? (
+              <img
+                src={person.avatar}
+                alt={person.name}
+                className="h-full w-full object-cover"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : person.avatar?.length <= 4 ? person.avatar : initial}
           </span>
           {person.plus && <PlusBadge />}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="truncate text-sm font-semibold">{person.name}</p>
             <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
+            {extraTribes.map((t) => (
+              <TribeBadge key={t.id} name={t.name} color={t.colorVar} hosted={t.hosted} />
+            ))}
+            {person.plus && (
+              <span className="label-mono rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary">Plus</span>
+            )}
           </div>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
             <MapPin className="h-3 w-3" /> {person.city || "—"}
           </p>
-          {person.bio && <p className="mt-1 text-xs text-muted-foreground">{person.bio}</p>}
+          {person.bio && <p className="mt-1.5 line-clamp-3 text-xs text-muted-foreground">{person.bio}</p>}
         </div>
       </div>
 
