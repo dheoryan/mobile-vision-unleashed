@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
 import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
 import { TribeScreen } from "@/components/mutuals/TribeScreen";
