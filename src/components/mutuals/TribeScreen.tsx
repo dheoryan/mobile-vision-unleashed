@@ -25,7 +25,8 @@ export function TribeScreen({
   unread?: number;
   initialTribe?: TribeId;
 }) {
-  const isPlus = profile.plan === "plus";
+  const isPlus = isPlusEffective(profile.plan);
+  const showUpgrade = MONETIZATION_ENABLED && profile.plan !== "plus";
   const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
   const initial = initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
