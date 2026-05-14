@@ -97,13 +97,13 @@ export function useToggleLike() {
       const wasLiked = prev.includes(postId);
       const next = wasLiked ? prev.filter((id) => id !== postId) : [...prev, postId];
       qc.setQueryData(key, next);
-      patchFeedLikes(qc, postId, wasLiked ? -1 : 1);
+      patchFeedCount(qc, postId, "likes_count", wasLiked ? -1 : 1);
       return { prev, wasLiked, postId };
     },
     onError: (_e, _i, ctx) => {
       if (!ctx) return;
       qc.setQueryData(key, ctx.prev);
-      patchFeedLikes(qc, ctx.postId, ctx.wasLiked ? 1 : -1);
+      patchFeedCount(qc, ctx.postId, "likes_count", ctx.wasLiked ? 1 : -1);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: LIKES_KEY });
