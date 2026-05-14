@@ -37,6 +37,10 @@ function loadProfile(): Profile | null {
       parsed.tribeIds = legacy ? [legacy] : ["wolf"];
       delete parsed.tribeId;
     }
+    // Enforce plan invariant: free users belong to exactly one Tribe.
+    if (parsed.plan !== "plus" && parsed.tribeIds.length > 1) {
+      parsed.tribeIds = [parsed.tribeIds[0]];
+    }
     return parsed as Profile;
   } catch { return null; }
 }
