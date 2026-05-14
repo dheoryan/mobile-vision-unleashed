@@ -120,6 +120,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <RealtimeBridge />
         <Outlet />
         <Toaster position="bottom-center" richColors />
       </AuthProvider>
