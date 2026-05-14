@@ -22,7 +22,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   const [age, setAge] = useState("");
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
-  const [avatar] = useState("🌿");
+  const [avatar, setAvatar] = useState("🌿");
 
   const tribe = tribeId ? tribeById(tribeId) : null;
   const ageOk = Number(age) >= 21;
@@ -90,7 +90,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
                     tribeId: "cat",
                     name: "Demo Explorer",
                     age: "28",
-                    city: "San Francisco",
+                    city: "Jakarta",
                     bio: "Just looking around — exploring Mutuals in demo mode.",
                     avatar: "🌿",
                     plan: "free",
@@ -172,14 +172,30 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
             </div>
 
             <div className="mt-6 flex flex-col items-center">
-              <button
-                className="relative flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-border bg-card text-4xl"
-              >
-                {avatar}
+              <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-card text-4xl">
+                {avatar.startsWith("data:") ? (
+                  <img src={avatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  avatar
+                )}
                 <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Camera className="h-4 w-4" />
                 </span>
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 2 * 1024 * 1024) return;
+                    const r = new FileReader();
+                    r.onload = () => { if (typeof r.result === "string") setAvatar(r.result); };
+                    r.readAsDataURL(f);
+                  }}
+                />
+              </label>
+              <p className="mt-2 text-[11px] text-muted-foreground">Tap to upload — or keep the leaf 🌿</p>
             </div>
 
             <div className="mt-6 space-y-3">

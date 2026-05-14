@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
-import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
+import { PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { UpsellModal } from "./UpsellModal";
+import { useBlocked } from "@/lib/blocked-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
@@ -28,10 +29,11 @@ export function VenturesScreen({
   const [step, setStep] = useState(0);
   const [intents, setIntents] = useState<string[]>([]);
   const [tribeFilter, setTribeFilter] = useState<"mine" | "all">("all");
-  const [window, setWindow] = useState("This week · evenings");
+  const [timeWindow, setTimeWindow] = useState("This week · evenings");
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [helloed, setHelloed] = useState<Set<string>>(new Set());
   const [paywall, setPaywall] = useState(false);
+  const blocked = useBlocked();
 
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
@@ -47,14 +49,20 @@ export function VenturesScreen({
   const handleUpgraded = () => {
     setProfile((p) => (p ? { ...p, plan: "plus" } : p));
     setPaywall(false);
-    // resume the venture launch automatically
     onLaunchVenture();
     setStage("active");
   };
 
-  const matches = PEOPLE.filter((p) => p.id !== "me" && (tribeFilter === "all" || p.tribeId === profile.tribeId)).filter(
-    (p) => !skipped.has(p.id) && !helloed.has(p.id)
-  );
+  // Tiny deterministic shuffle keyed by timeWindow so the matches list visibly
+  // reshuffles when the user picks a different time window.
+  const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
+  const matches = PEOPLE
+    .filter((p) => p.id !== "me" && !blocked.has(p.id))
+    .filter((p) => tribeFilter === "all" || p.tribeId === profile.tribeId)
+    .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
+    .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
+    .sort((a, b) => a.k - b.k)
+    .map(({ p }) => p);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -78,8 +86,8 @@ export function VenturesScreen({
             setIntents={setIntents}
             tribeFilter={tribeFilter}
             setTribeFilter={setTribeFilter}
-            window={window}
-            setWindow={setWindow}
+            timeWindow={timeWindow}
+            setTimeWindow={setTimeWindow}
             onLaunch={tryGoLive}
             onCancel={reset}
           />
@@ -150,12 +158,12 @@ function Landing({ onStart }: { onStart: () => void }) {
 }
 
 function Setup({
-  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, window, setWindow, onLaunch, onCancel,
+  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, timeWindow, setTimeWindow, onLaunch, onCancel,
 }: {
   step: number; setStep: (n: number) => void;
   intents: string[]; setIntents: (v: string[]) => void;
   tribeFilter: "mine" | "all"; setTribeFilter: (v: "mine" | "all") => void;
-  window: string; setWindow: (v: string) => void;
+  timeWindow: string; setTimeWindow: (v: string) => void;
   onLaunch: () => void; onCancel: () => void;
 }) {
   const canNext = step === 0 ? intents.length > 0 : true;
@@ -235,11 +243,11 @@ function Setup({
           <p className="mt-1 text-sm text-muted-foreground">A loose window works fine.</p>
           <div className="mt-5 grid grid-cols-1 gap-3">
             {["Tonight", "This week · evenings", "This weekend", "Next week"].map((opt) => {
-              const on = window === opt;
+              const on = timeWindow === opt;
               return (
                 <button
                   key={opt}
-                  onClick={() => setWindow(opt)}
+                  onClick={() => setTimeWindow(opt)}
                   className={cn(
                     "rounded-2xl border px-4 py-3 text-left text-sm transition-colors",
                     on ? "border-primary bg-primary/10" : "border-border bg-card"

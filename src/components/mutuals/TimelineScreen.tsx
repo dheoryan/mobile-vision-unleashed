@@ -4,6 +4,7 @@ import { PostCard } from "./PostCard";
 import { AppHeader } from "./Shared";
 import { EmptyState } from "./EmptyState";
 import { useSocial } from "@/lib/social-store";
+import { useBlocked } from "@/lib/blocked-store";
 import { Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
@@ -11,15 +12,18 @@ import { cn } from "@/lib/utils";
 export function TimelineScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [tab, setTab] = useState<"following" | "foryou">("following");
   const social = useSocial();
+  const blocked = useBlocked();
+
+  const visiblePosts = social.posts.filter((p) => !blocked.has(p.authorId));
 
   // Following = posts authored by people you follow (across all tribes), newest first
-  const followingPosts = social.posts
+  const followingPosts = visiblePosts
     .filter((p) => social.following.has(p.authorId))
     .slice()
     .reverse();
 
   // For You = mock discovery feed = newest posts across all tribes
-  const forYou = social.posts
+  const forYou = visiblePosts
     .slice()
     .sort((a, b) => (a.id > b.id ? -1 : 1));
 
