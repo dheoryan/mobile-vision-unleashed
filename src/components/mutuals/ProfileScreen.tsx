@@ -14,6 +14,7 @@ import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 
 type GridTab = "posts" | "saved" | "ventures";
 
