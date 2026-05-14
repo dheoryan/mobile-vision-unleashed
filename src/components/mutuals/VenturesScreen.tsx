@@ -159,14 +159,21 @@ function Landing({ onStart }: { onStart: () => void }) {
 }
 
 function Setup({
-  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, timeWindow, setTimeWindow, onLaunch, onCancel,
+  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, timeWindow, setTimeWindow, onLaunch, onCancel, profile,
 }: {
   step: number; setStep: (n: number) => void;
   intents: string[]; setIntents: (v: string[]) => void;
   tribeFilter: "mine" | "all"; setTribeFilter: (v: "mine" | "all") => void;
   timeWindow: string; setTimeWindow: (v: string) => void;
   onLaunch: () => void; onCancel: () => void;
+  profile: Profile;
 }) {
+  const myTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
+  const multi = myTribes.length > 1;
+  const mineTitle = multi ? "My Tribes" : "Just my Tribe";
+  const mineBody = multi
+    ? `Stay within your ${myTribes.length} home bases.`
+    : "Stay close to your home base.";
   const canNext = step === 0 ? intents.length > 0 : true;
   const next = () => (step < 2 ? setStep(step + 1) : onLaunch());
 
