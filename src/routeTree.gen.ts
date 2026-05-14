@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TiersRouteImport } from './routes/tiers'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HostDashboardRouteImport } from './routes/host-dashboard'
 import { Route as HostRouteImport } from './routes/host'
 import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
@@ -34,6 +37,16 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -42,6 +55,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HostDashboardRoute = HostDashboardRouteImport.update({
@@ -70,8 +88,11 @@ export interface FileRoutesByFullPath {
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/host': typeof HostRoute
   '/host-dashboard': typeof HostDashboardRoute
+  '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
@@ -81,8 +102,11 @@ export interface FileRoutesByTo {
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/host': typeof HostRoute
   '/host-dashboard': typeof HostDashboardRoute
+  '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
@@ -93,8 +117,11 @@ export interface FileRoutesById {
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/host': typeof HostRoute
   '/host-dashboard': typeof HostDashboardRoute
+  '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
@@ -106,8 +133,11 @@ export interface FileRouteTypes {
     | '/community-guidelines'
     | '/host'
     | '/host-dashboard'
+    | '/login'
     | '/notifications'
     | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/terms'
     | '/tiers'
     | '/upgrade'
@@ -117,8 +147,11 @@ export interface FileRouteTypes {
     | '/community-guidelines'
     | '/host'
     | '/host-dashboard'
+    | '/login'
     | '/notifications'
     | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/terms'
     | '/tiers'
     | '/upgrade'
@@ -128,8 +161,11 @@ export interface FileRouteTypes {
     | '/community-guidelines'
     | '/host'
     | '/host-dashboard'
+    | '/login'
     | '/notifications'
     | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/terms'
     | '/tiers'
     | '/upgrade'
@@ -140,8 +176,11 @@ export interface RootRouteChildren {
   CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
   HostRoute: typeof HostRoute
   HostDashboardRoute: typeof HostDashboardRoute
+  LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
   UpgradeRoute: typeof UpgradeRoute
@@ -170,6 +209,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -182,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/host-dashboard': {
@@ -220,8 +280,11 @@ const rootRouteChildren: RootRouteChildren = {
   CommunityGuidelinesRoute: CommunityGuidelinesRoute,
   HostRoute: HostRoute,
   HostDashboardRoute: HostDashboardRoute,
+  LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,
   UpgradeRoute: UpgradeRoute,
