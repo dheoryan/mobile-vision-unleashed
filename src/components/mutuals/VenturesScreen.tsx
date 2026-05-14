@@ -90,6 +90,7 @@ export function VenturesScreen({
             setTimeWindow={setTimeWindow}
             onLaunch={tryGoLive}
             onCancel={reset}
+            profile={profile}
           />
         )}
 
