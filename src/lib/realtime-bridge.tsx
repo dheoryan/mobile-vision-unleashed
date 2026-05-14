@@ -40,7 +40,17 @@ export function RealtimeBridge() {
         { event: "*", schema: "public", table: "likes" },
         () => {
           qc.invalidateQueries({ queryKey: ["posts"] });
+          qc.invalidateQueries({ queryKey: ["social", "likes"] });
           qc.invalidateQueries({ queryKey: ["notifications"] });
+        },
+      )
+      // Shares — keep shares_count and my-shares in sync across devices
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "shares" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["posts"] });
+          qc.invalidateQueries({ queryKey: ["social", "shares"] });
         },
       )
       // Comments on any post — refresh comment lists + reply counts
