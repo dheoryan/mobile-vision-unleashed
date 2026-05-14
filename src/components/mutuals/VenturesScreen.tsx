@@ -1,14 +1,34 @@
-import { useState } from "react";
-import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
-import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
+import { useMemo, useState } from "react";
+import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { TRIBES, INTENTS, tribeById, type Person, type TribeId } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { UpsellModal } from "./UpsellModal";
 import { useBlocked } from "@/lib/blocked-store";
+import { useAuth } from "@/lib/auth-context";
+import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 
 type Stage = "landing" | "setup" | "active";
+
+function rowToPerson(r: VentureMatch): Person {
+  const tribeId = (r.tribe_ids?.[0] as TribeId | undefined) ?? "wolf";
+  const avatar = r.avatar_url || r.avatar_emoji || "🙂";
+  return {
+    id: r.id,
+    name: r.display_name?.trim() || "Someone",
+    handle: r.handle ? `@${r.handle}` : "",
+    avatar,
+    tribeId,
+    city: r.city || "",
+    bio: r.bio || "",
+    plus: r.plan === "plus",
+    mutuals: 0,
+  };
+}
 
 export function VenturesScreen({
   profile,
@@ -25,6 +45,7 @@ export function VenturesScreen({
   onLaunchVenture: () => void;
   unread?: number;
 }) {
+  const { user } = useAuth();
   const [stage, setStage] = useState<Stage>("landing");
   const [step, setStep] = useState(0);
   const [intents, setIntents] = useState<string[]>([]);
@@ -53,16 +74,33 @@ export function VenturesScreen({
     setStage("active");
   };
 
-  // Tiny deterministic shuffle keyed by timeWindow so the matches list visibly
+  const matchesFn = useServerFn(listVentureMatches);
+  const matchesQuery = useQuery({
+    queryKey: ["ventures", "matches", tribeFilter, profile.tribeIds.join(","), user?.id ?? null],
+    queryFn: () =>
+      matchesFn({
+        data: {
+          scope: tribeFilter,
+          tribe_ids: tribeFilter === "mine" ? profile.tribeIds : undefined,
+        },
+      }),
+    enabled: stage === "active" && !!user,
+    staleTime: 30_000,
+  });
+
+  // Deterministic shuffle keyed by timeWindow so the matches list visibly
   // reshuffles when the user picks a different time window.
   const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
-  const matches = PEOPLE
-    .filter((p) => p.id !== "me" && !blocked.has(p.id))
-    .filter((p) => tribeFilter === "all" || profile.tribeIds.includes(p.tribeId))
-    .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
-    .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
-    .sort((a, b) => a.k - b.k)
-    .map(({ p }) => p);
+  const matches = useMemo<Person[]>(() => {
+    const rows = matchesQuery.data ?? [];
+    return rows
+      .map(rowToPerson)
+      .filter((p) => !blocked.has(p.id))
+      .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
+      .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
+      .sort((a, b) => a.k - b.k)
+      .map(({ p }) => p);
+  }, [matchesQuery.data, blocked, skipped, helloed, seed]);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -98,6 +136,9 @@ export function VenturesScreen({
           <Active
             intents={intents}
             matches={matches}
+            isLoading={matchesQuery.isLoading}
+            isError={matchesQuery.isError}
+            onRetry={() => matchesQuery.refetch()}
             onSkip={(id) => setSkipped((s) => new Set(s).add(id))}
             onHello={(p) => {
               const msg = `Hey ${p.name.split(" ")[0]} — saw we're both up for ${intents[0] ?? "something this week"}. Want to make a plan?`;
@@ -288,9 +329,10 @@ function Setup({
 }
 
 function Active({
-  intents, matches, onSkip, onHello, onExit,
+  intents, matches, isLoading, isError, onRetry, onSkip, onHello, onExit,
 }: {
   intents: string[]; matches: Person[];
+  isLoading: boolean; isError: boolean; onRetry: () => void;
   onSkip: (id: string) => void; onHello: (p: Person) => void; onExit: () => void;
 }) {
   return (
@@ -311,30 +353,42 @@ function Active({
         </button>
       </section>
 
-      <SectionTitle title="People open to the same things" hint={`${matches.length} this window`} />
+      <SectionTitle title="People open to the same things" hint={isLoading ? "loading…" : `${matches.length} this window`} />
 
-      <div className="flex flex-col gap-3">
-        {matches.map((p, i) => (
-          <MatchCard key={p.id} person={p} sharedIntents={intents.slice(0, 2)} delay={i * 60} onSkip={() => onSkip(p.id)} onHello={() => onHello(p)} />
-        ))}
-        {matches.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            That's everyone for this window. Open it up or check back soon.
-          </p>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-10 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      ) : isError ? (
+        <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          Couldn't load matches.{" "}
+          <button onClick={onRetry} className="font-semibold text-foreground underline">Retry</button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {matches.map((p, i) => (
+            <MatchCard key={p.id} person={p} sharedIntents={intents.slice(0, 2)} delay={i * 60} onSkip={() => onSkip(p.id)} onHello={() => onHello(p)} />
+          ))}
+          {matches.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              That's everyone for this window. Open it up or check back soon.
+            </p>
+          )}
+        </div>
+      )}
     </>
   );
 }
 
 function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: Person; sharedIntents: string[]; delay: number; onSkip: () => void; onHello: () => void }) {
   const tribe = tribeById(person.tribeId);
+  const isImg = person.avatar.startsWith("http") || person.avatar.startsWith("data:");
   return (
     <article className="rounded-2xl border border-border bg-card p-4 animate-rise" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex items-start gap-3">
         <span className="relative">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
-            {person.avatar}
+          <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}>
+            {isImg ? <img src={person.avatar} alt="" className="h-full w-full object-cover" /> : person.avatar}
           </span>
           {person.plus && <PlusBadge />}
         </span>
@@ -344,9 +398,9 @@ function MatchCard({ person, sharedIntents, delay, onSkip, onHello }: { person: 
             <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
           </div>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <MapPin className="h-3 w-3" /> {person.city} · {person.mutuals ?? 0} mutual follows
+            <MapPin className="h-3 w-3" /> {person.city || "—"}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">{person.bio}</p>
+          {person.bio && <p className="mt-1 text-xs text-muted-foreground">{person.bio}</p>}
         </div>
       </div>
 
