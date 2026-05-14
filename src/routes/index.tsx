@@ -10,7 +10,7 @@ import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import type { Person } from "@/lib/mutuals-data";
-import { unreadFromThreads, useThreads } from "@/lib/messages-store";
+import { useUnreadCount, useThreads } from "@/lib/messages-store";
 import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { intentStore, useIntent } from "@/lib/intent-store";
