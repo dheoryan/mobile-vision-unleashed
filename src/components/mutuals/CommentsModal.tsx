@@ -168,7 +168,8 @@ export function CommentsModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
