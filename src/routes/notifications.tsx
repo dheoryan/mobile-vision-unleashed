@@ -88,7 +88,7 @@ function NotificationsPage() {
                       <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-card text-xl">
                         {isImg ? <img src={actorAvatar} alt="" className="h-full w-full object-cover" /> : actorAvatar}
                       </span>
-                      {n.actor?.plan === "plus" && <PlusBadge />}
+                      {showPlusBadge(n.actor?.plan) && <PlusBadge />}
                       <span className="absolute -bottom-0.5 -left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
                         {ICONS[n.type]}
                       </span>
