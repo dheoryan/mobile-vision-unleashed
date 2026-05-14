@@ -115,13 +115,17 @@ export function CommentsModal({
               return (
                 <div key={c.id} className={`flex items-start gap-3 ${isPending ? "opacity-60" : ""}`}>
                   <span
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-base"
+                    className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-base"
                     style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
                   >
-                    {mine ? "🙂" : author?.avatar}
+                    {mine ? (
+                      me?.avatar?.startsWith("data:") || me?.avatar?.startsWith("http")
+                        ? <img src={me.avatar} alt="" className="h-full w-full object-cover" />
+                        : (me?.avatar ?? "🙂")
+                    ) : author?.avatar}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold">{mine ? "You" : author?.name}</p>
+                    <p className="text-xs font-semibold">{mine ? (me?.name?.trim() || "You") : author?.name}</p>
                     <p className="text-sm text-foreground">{c.text}</p>
                     <p className="text-[10px] text-muted-foreground">{c.time}</p>
                   </div>
