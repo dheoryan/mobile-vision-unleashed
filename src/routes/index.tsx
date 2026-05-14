@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
 import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
 import { TribeScreen } from "@/components/mutuals/TribeScreen";
@@ -10,7 +10,7 @@ import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import type { Person } from "@/lib/mutuals-data";
-import { unreadFromThreads, useThreads } from "@/lib/messages-store";
+import { useUnreadCount, useThreads } from "@/lib/messages-store";
 import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { intentStore, useIntent } from "@/lib/intent-store";
@@ -95,7 +95,7 @@ function App() {
     else if (i.kind === "openTab") { setTab(i.tab); }
   }, [intent, profile]);
 
-  const unread = useMemo(() => unreadFromThreads(threadsQuery.data), [threadsQuery.data]);
+  const unread = useUnreadCount(threadsQuery.data);
 
   // Locally-applied profile setter that syncs to DB. Passing null = sign out.
   const setProfile = (updater: Profile | null | ((p: Profile | null) => Profile | null)) => {
