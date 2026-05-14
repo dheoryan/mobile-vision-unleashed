@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { X, Send, AlertTriangle, MessageSquare } from "lucide-react";
 import { personById, tribeById } from "@/lib/mutuals-data";
 import { useSocial, socialStore, type Comment } from "@/lib/social-store";
+import { useMyProfile } from "@/lib/profile-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
