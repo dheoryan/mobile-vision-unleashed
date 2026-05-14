@@ -91,7 +91,7 @@ export function TribeScreen({
             </div>
 
             {/* Free users: subtle multi-tribe upsell card */}
-            {!isPlus && (
+            {showUpgrade && (
               <Link
                 to="/upgrade"
                 className="mt-5 block rounded-2xl border border-dashed border-border bg-card p-4 transition-colors hover:bg-secondary"
