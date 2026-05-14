@@ -155,4 +155,28 @@
     background-size: 200% 100%;
     animation: shimmer-pass 1.6s ease-in-out infinite;
   }
+
+  .ambient-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    pointer-events: none;
+    will-change: transform;
+    animation: ambient-float 8s ease-in-out infinite alternate;
+  }
+  .ambient-orb-1 { top: -60px;  left: -60px;  width: 300px; height: 300px; opacity: 0.15; animation-delay: 0s; }
+  .ambient-orb-2 { top: -40px;  right: -60px; width: 250px; height: 250px; opacity: 0.12; animation-delay: 1.5s; }
+  .ambient-orb-3 { top: 35%;    left: 50%;    width: 350px; height: 350px; opacity: 0.10; transform: translateX(-50%); animation-name: ambient-float-center; animation-delay: 3s; }
+  .ambient-orb-4 { bottom: -40px; left: -40px; width: 280px; height: 280px; opacity: 0.13; animation-delay: 4.5s; }
+  .ambient-orb-5 { bottom: -60px; right: -40px; width: 200px; height: 200px; opacity: 0.12; animation-delay: 6s; }
+
+  @keyframes ambient-float {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-20px); }
+  }
+  @keyframes ambient-float-center {
+    from { transform: translate(-50%, 0); }
+    to   { transform: translate(-50%, -20px); }
+  }
 }
+

@@ -7,10 +7,15 @@ export const Route = createFileRoute("/terms")({
     meta: [
       { title: "Terms of Service — MUTUALS" },
       { name: "description", content: "The rules of the road for using MUTUALS." },
+      { property: "og:title", content: "Terms of Service — MUTUALS" },
+      { property: "og:description", content: "The rules of the road for using MUTUALS. Last updated May 2026." },
     ],
   }),
   component: TermsPage,
 });
+
+// TODO: legal review before launch
+// TODO: replace contact email with mutuals.app address before launch
 
 function TermsPage() {
   return (
@@ -24,10 +29,6 @@ function TermsPage() {
           <h1 className="mt-2 font-display text-4xl font-bold leading-tight">Terms of Service</h1>
           <p className="mt-2 text-xs text-muted-foreground">Last updated: May 12, 2026</p>
         </header>
-
-        <div className="mt-3 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 px-4 py-3 text-[11px] text-amber-500">
-          [UPDATE WITH LAWYER-REVIEWED COPY BEFORE LAUNCH]
-        </div>
 
         <article className="prose prose-invert mt-8 max-w-none space-y-6 text-sm leading-relaxed text-muted-foreground">
           <Section title="1. Eligibility">
@@ -45,16 +46,25 @@ function TermsPage() {
               <li>No sharing of others' personal information without consent.</li>
             </ul>
           </Section>
-          <Section title="4. Termination">
+          <Section title="4. User content">
+            You retain ownership of content you post on MUTUALS. By posting, you grant MUTUALS a non-exclusive, royalty-free, worldwide license to display and distribute your content within the platform. You may delete your content at any time.
+          </Section>
+          <Section title="5. Intellectual property">
+            MUTUALS and its logos, design, and original content are owned by MUTUALS. You may not reproduce or redistribute any part of MUTUALS without written permission.
+          </Section>
+          <Section title="6. Limitation of liability">
+            To the maximum extent permitted by law, MUTUALS shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.
+          </Section>
+          <Section title="7. Termination">
             We may suspend or terminate accounts that violate these Terms or our Community Guidelines, at our sole discretion.
           </Section>
-          <Section title="5. No warranty">
+          <Section title="8. No warranty">
             MUTUALS is provided "as is" without warranties of any kind, express or implied.
           </Section>
-          <Section title="6. Governing law">
-            These Terms are governed by the laws of the State of California, USA.
+          <Section title="9. Governing law">
+            These Terms are governed by the laws of the Republic of Indonesia. Any disputes shall be resolved in the courts of Jakarta, Indonesia.
           </Section>
-          <Section title="7. Contact">
+          <Section title="10. Contact">
             Questions? Reach us at <a className="text-primary hover:underline" href="mailto:hello@mutuals.app">hello@mutuals.app</a>.
           </Section>
         </article>
