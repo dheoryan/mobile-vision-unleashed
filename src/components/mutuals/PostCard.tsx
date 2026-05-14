@@ -11,6 +11,7 @@ import { uploadPostImage } from "@/lib/uploads";
 import { timeAgo } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { showPlusBadge } from "@/lib/feature-flags";
 
 const MAX_IMG_BYTES = 5 * 1024 * 1024;
 
