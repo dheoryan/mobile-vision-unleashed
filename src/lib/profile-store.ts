@@ -1,28 +1,74 @@
-import { useSyncExternalStore } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import type { Profile } from "@/components/mutuals/Onboarding";
+import type { TribeId } from "@/lib/mutuals-data";
+import { getMyProfile, updateMyProfile, type ProfileRow } from "@/lib/profile.functions";
+import { useAuth } from "@/lib/auth-context";
 
-let profile: Profile | null = null;
-const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
+const PROFILE_QUERY_KEY = ["my-profile"] as const;
 
-export const profileStore = {
-  get: () => profile,
-  set: (p: Profile | null) => { profile = p; emit(); },
-  subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
-};
-
-export function useMyProfile() {
-  return useSyncExternalStore(profileStore.subscribe, profileStore.get, profileStore.get);
+export function rowToProfile(row: ProfileRow | null): Profile | null {
+  if (!row) return null;
+  if (!row.display_name || !row.tribe_ids?.length) return null; // not yet onboarded
+  return {
+    tribeIds: row.tribe_ids as TribeId[],
+    name: row.display_name,
+    age: row.age?.toString() ?? "",
+    city: row.city ?? "",
+    bio: row.bio ?? "",
+    avatar: row.avatar_url || row.avatar_emoji || "🌿",
+    plan: row.plan,
+    ventureCount: row.venture_count ?? 0,
+  };
 }
 
-/** Convenience: avatar string (emoji or data URL) for current user, with safe fallback. */
+export function useProfileRow() {
+  const { user, loading } = useAuth();
+  const fetchProfile = useServerFn(getMyProfile);
+  return useQuery({
+    queryKey: [...PROFILE_QUERY_KEY, user?.id ?? null],
+    queryFn: () => fetchProfile(),
+    enabled: !!user && !loading,
+    staleTime: 30_000,
+  });
+}
+
+export function useMyProfile(): Profile | null {
+  const { data } = useProfileRow();
+  return rowToProfile(data ?? null);
+}
+
 export function useMyAvatar() {
-  const p = useMyProfile();
-  return p?.avatar ?? "🙂";
+  return useMyProfile()?.avatar ?? "🙂";
 }
 
-/** Convenience: display name for current user. */
 export function useMyName() {
-  const p = useMyProfile();
-  return p?.name?.trim() || "You";
+  return useMyProfile()?.name?.trim() || "You";
+}
+
+export function useUpdateProfile() {
+  const update = useServerFn(updateMyProfile);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Parameters<typeof update>[0]["data"]) => update({ data: patch }),
+    onSuccess: (row) => {
+      qc.setQueryData([...PROFILE_QUERY_KEY, row.id], row);
+      qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    },
+  });
+}
+
+/** Build the DB patch from a client-side Profile object. */
+export function profileToPatch(p: Profile) {
+  const isDataUrl = p.avatar?.startsWith("data:");
+  return {
+    display_name: p.name,
+    age: p.age ? Number(p.age) : null,
+    city: p.city,
+    bio: p.bio,
+    avatar_emoji: isDataUrl ? "🌿" : p.avatar,
+    avatar_url: isDataUrl ? p.avatar : null,
+    tribe_ids: p.tribeIds,
+    plan: p.plan,
+  };
 }
