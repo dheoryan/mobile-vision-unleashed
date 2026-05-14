@@ -119,7 +119,7 @@ export function ProfileScreen({
           </button>
         </section>
 
-        {/* Plan / Upgrade card */}
+        {showPlanCard && (
         <section className="mt-4 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -158,6 +158,7 @@ export function ProfileScreen({
             </button>
           )}
         </section>
+        )}
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
