@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Send, X } from "lucide-react";
 import { DMS, personById, tribeById, type DMThread } from "@/lib/mutuals-data";
 import { TribeBadge } from "./Shared";
@@ -6,12 +6,21 @@ import { PlusBadge } from "./PlusBadge";
 import { cn } from "@/lib/utils";
 
 export function MessagesPanel({
-  open, onClose, extraThreads = [],
+  open, onClose, extraThreads = [], openWithUserId,
 }: {
-  open: boolean; onClose: () => void; extraThreads?: DMThread[];
+  open: boolean; onClose: () => void; extraThreads?: DMThread[]; openWithUserId?: string | null;
 }) {
   const [openThread, setOpenThread] = useState<DMThread | null>(null);
   const threads = [...extraThreads, ...DMS];
+
+  useEffect(() => {
+    if (!open || !openWithUserId) return;
+    const t = threads.find((th) => th.withUserId === openWithUserId);
+    if (t) setOpenThread(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, openWithUserId]);
+
+  useEffect(() => { if (!open) setOpenThread(null); }, [open]);
 
   if (!open) return null;
 
