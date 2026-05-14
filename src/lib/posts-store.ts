@@ -193,6 +193,9 @@ export function useAddComment(postId: string) {
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
         (cur ?? []).map((c) => (c.id === ctx?.tempId ? saved : c)),
       );
+      patchListsWith(qc, (rows) =>
+        rows.map((p) => (p.id === postId ? { ...p, replies_count: saved.replies_count } : p)),
+      );
     },
     onError: (_e, _i, ctx) => {
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
@@ -237,6 +240,13 @@ export function useDeleteComment(postId: string) {
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [...(cur ?? []), r]);
       patchListsWith(qc, (rows) =>
         rows.map((p) => (p.id === postId ? { ...p, replies_count: p.replies_count + 1 } : p)),
+      );
+    },
+    onSuccess: (result) => {
+      patchListsWith(qc, (rows) =>
+        rows.map((p) =>
+          p.id === result.post_id ? { ...p, replies_count: result.replies_count } : p,
+        ),
       );
     },
     onSettled: () => {
