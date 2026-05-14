@@ -53,8 +53,12 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         </div>
 
         <SectionTitle title="Explore Tribes" hint="Tap to preview a scene" />
-        <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex gap-3 pb-1">
+        <div
+          ref={tribeScrollRef}
+          onWheel={onTribeWheel}
+          className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex w-max gap-3 pb-1">
             {TRIBES.map((t) => (
               <button
                 key={t.id}
