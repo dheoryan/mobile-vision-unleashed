@@ -22,9 +22,12 @@ export function TimelineScreen({ profile, onOpenMessages, unread }: { profile: P
     .slice()
     .reverse();
 
-  // For You = filtered to the user's joined tribes
+  // Free users belong to exactly one Tribe; Plus users can have up to three.
+  const allowedTribes = profile.plan === "plus" ? profile.tribeIds : profile.tribeIds.slice(0, 1);
+
+  // For You = posts from the user's joined tribes only
   const forYou = visiblePosts
-    .filter((p) => profile.tribeIds.includes(p.tribeId))
+    .filter((p) => allowedTribes.includes(p.tribeId))
     .slice()
     .sort((a, b) => (a.id > b.id ? -1 : 1));
 
