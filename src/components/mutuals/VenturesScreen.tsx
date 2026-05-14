@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
-import { PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
+import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { UpsellModal } from "./UpsellModal";
