@@ -29,12 +29,14 @@ export function ProfileScreen({
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gridTab, setGridTab] = useState<GridTab>("posts");
-  const tribe = tribeById(profile.tribeId);
+  const primaryId = profile.tribeIds[0];
+  const tribe = tribeById(primaryId);
+  const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
   const isPlus = profile.plan === "plus";
   const social = useSocial();
 
   const myPosts = social.posts.filter((p) => p.authorId === "me");
-  const samplePosts = POSTS.filter((p) => p.tribeId === profile.tribeId).slice(0, 6);
+  const samplePosts = POSTS.filter((p) => profile.tribeIds.includes(p.tribeId)).slice(0, 6);
   const postsToShow = myPosts.length ? myPosts : samplePosts;
 
   const savedPlaceholder = POSTS.slice(2, 5);
@@ -78,7 +80,19 @@ export function ProfileScreen({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
-              <div className="mt-2"><TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} /></div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
+                {otherTribes.map((t) => (
+                  <span
+                    key={t.id}
+                    title={t.name}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-sm"
+                    style={{ backgroundColor: `color-mix(in oklab, ${t.colorVar} 28%, transparent)` }}
+                  >
+                    {t.emoji}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
@@ -110,6 +124,15 @@ export function ProfileScreen({
                   ? "Unlimited Ventures, unlimited Hellos, full match visibility."
                   : `${Math.max(0, 3 - profile.ventureCount)} of 3 free Ventures left this month.`}
               </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {isPlus ? (
+                  <>
+                    You're in <span className="text-foreground font-semibold">{profile.tribeIds.length}</span> of 3 Tribes.
+                  </>
+                ) : (
+                  <>You're in 1 Tribe. Upgrade to join up to 3.</>
+                )}
+              </p>
             </div>
             {!isPlus && (
               <Link to="/upgrade" className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground">
@@ -120,7 +143,7 @@ export function ProfileScreen({
 
           {setProfile && (
             <button
-              onClick={() => setProfile((p) => (p ? { ...p, plan: isPlus ? "free" : "plus" } : p))}
+              onClick={() => setProfile((p) => p ? { ...p, plan: isPlus ? "free" : "plus", tribeIds: isPlus ? [p.tribeIds[0]] : Array.from(new Set([...p.tribeIds, "owl" as const])).slice(0, 3) } : p)}
               className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground hover:text-foreground"
             >
               Demo: toggle plan to {isPlus ? "Free" : "Plus"}

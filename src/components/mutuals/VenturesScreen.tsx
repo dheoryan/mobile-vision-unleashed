@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Zap, ArrowRight, ArrowLeft, X, Send, MapPin } from "lucide-react";
-import { PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
+import { TRIBES, PEOPLE, INTENTS, tribeById, type Person } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { UpsellModal } from "./UpsellModal";
@@ -58,7 +58,7 @@ export function VenturesScreen({
   const seed = [...timeWindow].reduce((s, c) => (s * 31 + c.charCodeAt(0)) | 0, 7);
   const matches = PEOPLE
     .filter((p) => p.id !== "me" && !blocked.has(p.id))
-    .filter((p) => tribeFilter === "all" || p.tribeId === profile.tribeId)
+    .filter((p) => tribeFilter === "all" || profile.tribeIds.includes(p.tribeId))
     .filter((p) => !skipped.has(p.id) && !helloed.has(p.id))
     .map((p, i) => ({ p, k: ((i + 1) * 2654435761) ^ seed }))
     .sort((a, b) => a.k - b.k)
@@ -90,6 +90,7 @@ export function VenturesScreen({
             setTimeWindow={setTimeWindow}
             onLaunch={tryGoLive}
             onCancel={reset}
+            profile={profile}
           />
         )}
 
@@ -158,14 +159,21 @@ function Landing({ onStart }: { onStart: () => void }) {
 }
 
 function Setup({
-  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, timeWindow, setTimeWindow, onLaunch, onCancel,
+  step, setStep, intents, setIntents, tribeFilter, setTribeFilter, timeWindow, setTimeWindow, onLaunch, onCancel, profile,
 }: {
   step: number; setStep: (n: number) => void;
   intents: string[]; setIntents: (v: string[]) => void;
   tribeFilter: "mine" | "all"; setTribeFilter: (v: "mine" | "all") => void;
   timeWindow: string; setTimeWindow: (v: string) => void;
   onLaunch: () => void; onCancel: () => void;
+  profile: Profile;
 }) {
+  const myTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
+  const multi = myTribes.length > 1;
+  const mineTitle = multi ? "My Tribes" : "Just my Tribe";
+  const mineBody = multi
+    ? `Stay within your ${myTribes.length} home bases.`
+    : "Stay close to your home base.";
   const canNext = step === 0 ? intents.length > 0 : true;
   const next = () => (step < 2 ? setStep(step + 1) : onLaunch());
 
@@ -215,7 +223,7 @@ function Setup({
           <p className="mt-1 text-sm text-muted-foreground">You can change this anytime.</p>
           <div className="mt-5 grid grid-cols-1 gap-3">
             {[
-              { key: "mine", title: "Just my Tribe", body: "Stay close to your home base." },
+              { key: "mine", title: mineTitle, body: mineBody },
               { key: "all", title: "All Tribes", body: "Open it up to the whole habitat." },
             ].map((o) => {
               const on = tribeFilter === o.key;
@@ -228,7 +236,14 @@ function Setup({
                     on ? "border-primary bg-primary/10" : "border-border bg-card"
                   )}
                 >
-                  <p className="font-semibold">{o.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">{o.title}</p>
+                    {o.key === "mine" && multi && (
+                      <span className="flex gap-0.5 text-base">
+                        {myTribes.map((t) => <span key={t.id}>{t.emoji}</span>)}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">{o.body}</p>
                 </button>
               );

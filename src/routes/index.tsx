@@ -29,7 +29,15 @@ function loadProfile(): Profile | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as Profile) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Profile & { tribeId?: string };
+    // Migrate legacy single-tribe profiles to tribeIds[]
+    if (!Array.isArray(parsed.tribeIds)) {
+      const legacy = parsed.tribeId as Profile["tribeIds"][number] | undefined;
+      parsed.tribeIds = legacy ? [legacy] : ["wolf"];
+      delete parsed.tribeId;
+    }
+    return parsed as Profile;
   } catch { return null; }
 }
 
@@ -95,8 +103,8 @@ function App() {
 
   // Mount all tabs to preserve state — toggle visibility
   const screens: Record<TabKey, React.ReactNode> = {
-    tribe:    <TribeScreen    profile={profile} onOpenMessages={openMessages} unread={unread} />,
-    timeline: <TimelineScreen onOpenMessages={openMessages} unread={unread} />,
+    tribe:    <TribeScreen    profile={profile} setProfile={setProfile} onOpenMessages={openMessages} unread={unread} />,
+    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,
     discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
     ventures: (
       <VenturesScreen
