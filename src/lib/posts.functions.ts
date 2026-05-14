@@ -34,6 +34,8 @@ export type CommentRow = {
   author: AuthorLite | null;
 };
 
+export type CommentMutationResult = CommentRow & { replies_count: number };
+
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 
 async function attachAuthors<T extends { author_id: string }>(
@@ -51,6 +53,19 @@ async function attachAuthors<T extends { author_id: string }>(
   const map = new Map<string, AuthorLite>();
   for (const a of (data ?? []) as AuthorLite[]) map.set(a.id, a);
   return rows.map((r) => ({ ...r, author: map.get(r.author_id) ?? null }));
+}
+
+async function getRepliesCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  postId: string,
+) {
+  const { count, error } = await supabase
+    .from("comments")
+    .select("post_id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
 }
 
 const POST_COLS =
@@ -185,7 +200,7 @@ export const addComment = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     const [withAuthor] = await attachAuthors(supabase, [row as any]);
-    return withAuthor as CommentRow;
+    return { ...(withAuthor as CommentRow), replies_count: await getRepliesCount(supabase, data.post_id) };
   });
 
 export const deleteComment = createServerFn({ method: "POST" })
@@ -193,7 +208,14 @@ export const deleteComment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { data: existing, error: lookupError } = await supabase
+      .from("comments")
+      .select("post_id")
+      .eq("id", data.id)
+      .single();
+    if (lookupError) throw new Error(lookupError.message);
+    const postId = existing.post_id as string;
     const { error } = await supabase.from("comments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { id: data.id };
+    return { id: data.id, post_id: postId, replies_count: await getRepliesCount(supabase, postId) };
   });

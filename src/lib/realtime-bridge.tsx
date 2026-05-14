@@ -83,6 +83,23 @@ export function RealtimeBridge() {
           qc.invalidateQueries({ queryKey: ["social", "follow-counts"] });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${uid}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["social", "following"] });
+          qc.invalidateQueries({ queryKey: ["social", "follow-counts"] });
+          qc.invalidateQueries({ queryKey: ["posts"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["discover", "profiles"] });
+          qc.invalidateQueries({ queryKey: ["ventures", "matches"] });
+        },
+      )
       .subscribe();
 
     return () => {
