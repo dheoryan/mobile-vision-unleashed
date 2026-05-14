@@ -10,8 +10,17 @@ import { cn } from "@/lib/utils";
 export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
   const [query, setQuery] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
+  const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
+
+  const onTribeWheel = (e: WheelEvent<HTMLDivElement>) => {
+    const el = tribeScrollRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY;
+    }
+  };
 
   const visiblePeople = useMemo(() => PEOPLE.filter((p) => !blocked.has(p.id)), [blocked]);
 
