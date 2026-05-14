@@ -16,6 +16,20 @@ const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 const uuidIn = z.object({ user_id: z.string().uuid() });
 const postIn = z.object({ post_id: z.string().uuid() });
 
+async function getPostCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  table: "likes" | "shares",
+  postId: string,
+) {
+  const { count, error } = await supabase
+    .from(table)
+    .select("post_id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 // --- Likes -----------------------------------------------------------------
 
 export const listMyLikes = createServerFn({ method: "GET" })
@@ -48,13 +62,13 @@ export const toggleLike = createServerFn({ method: "POST" })
         .eq("post_id", data.post_id)
         .eq("user_id", userId);
       if (error) throw new Error(error.message);
-      return { post_id: data.post_id, liked: false };
+      return { post_id: data.post_id, liked: false, likes_count: await getPostCount(supabase, "likes", data.post_id) };
     }
     const { error } = await supabase
       .from("likes")
       .insert({ post_id: data.post_id, user_id: userId });
     if (error) throw new Error(error.message);
-    return { post_id: data.post_id, liked: true };
+    return { post_id: data.post_id, liked: true, likes_count: await getPostCount(supabase, "likes", data.post_id) };
   });
 
 // --- Shares ----------------------------------------------------------------
@@ -89,13 +103,13 @@ export const toggleShare = createServerFn({ method: "POST" })
         .eq("post_id", data.post_id)
         .eq("user_id", userId);
       if (error) throw new Error(error.message);
-      return { post_id: data.post_id, shared: false };
+      return { post_id: data.post_id, shared: false, shares_count: await getPostCount(supabase, "shares", data.post_id) };
     }
     const { error } = await supabase
       .from("shares")
       .insert({ post_id: data.post_id, user_id: userId });
     if (error) throw new Error(error.message);
-    return { post_id: data.post_id, shared: true };
+    return { post_id: data.post_id, shared: true, shares_count: await getPostCount(supabase, "shares", data.post_id) };
   });
 
 export const listMyFollowing = createServerFn({ method: "GET" })
