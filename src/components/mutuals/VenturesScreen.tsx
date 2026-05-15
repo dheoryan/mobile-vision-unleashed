@@ -10,6 +10,7 @@ import { useBlocked } from "@/lib/blocked-store";
 import { useAuth } from "@/lib/auth-context";
 import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
 import { useThreads } from "@/lib/messages-store";
+import { useLaunchVenture } from "@/lib/posts-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 import { MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
