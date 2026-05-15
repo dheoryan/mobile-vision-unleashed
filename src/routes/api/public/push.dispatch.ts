@@ -118,10 +118,14 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
                 vapid,
               );
 
+              const bodyBuf = built.body.buffer.slice(
+                built.body.byteOffset,
+                built.body.byteOffset + built.body.byteLength,
+              ) as ArrayBuffer;
               const res = await fetch(s.endpoint, {
                 method: built.method,
                 headers: built.headers,
-                body: built.body,
+                body: bodyBuf,
               });
 
               if (res.status === 404 || res.status === 410) {
