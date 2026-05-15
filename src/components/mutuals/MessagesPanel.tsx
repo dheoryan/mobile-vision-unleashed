@@ -15,6 +15,7 @@ import { PlusBadge } from "./PlusBadge";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
+import { requestPushPrompt } from "@/lib/push-prompt-events";
 
 export function MessagesPanel({
   open,
@@ -180,7 +181,9 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
     const t = text.trim();
     if (!t) return;
     setText("");
-    send.mutate(t);
+    send.mutate(t, {
+      onSuccess: () => requestPushPrompt("dm"),
+    });
   };
 
   return (

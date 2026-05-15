@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
 import { RealtimeBridge } from "@/lib/realtime-bridge";
+import { PushPromptModal } from "@/components/mutuals/PushPromptModal";
 
 import appCss from "../styles.css?url";
 
@@ -154,6 +155,7 @@ function RootComponent() {
         <RealtimeBridge />
         <ServiceWorkerRegistrar />
         <Outlet />
+        <PushPromptModal />
         <Toaster position="bottom-center" richColors />
       </AuthProvider>
     </QueryClientProvider>
