@@ -231,7 +231,7 @@ function TribeBanner({ tribe, liveMembers }: { tribe: ReturnType<typeof tribeByI
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           {tribe.hosted && <p className="text-[11px] text-primary/80">Run by {tribe.hostOrg}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
-            <span className="text-foreground">{tribe.online}</span> online · {tribe.members.toLocaleString()} members
+            <span className="text-foreground">{tribe.online}</span> online · {memberLabel} members
           </p>
         </div>
       </div>
