@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Bell, Loader2, Smartphone, X } from "lucide-react";
+import { Bell, ChevronDown, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
   getCurrentSubscription,
   getPushPermission,
+  isAndroid,
   isIosSafari,
   isPushSupported,
   isStandalonePwa,
