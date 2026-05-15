@@ -273,9 +273,17 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
         </button>
         <button
+          onClick={() => { if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id); }}
+          className={cn("ml-auto flex items-center gap-1.5 text-xs transition-colors", saved ? "text-amber-400" : "hover:text-foreground")}
+          aria-label={saved ? "Unsave post" : "Save post"}
+          aria-pressed={saved}
+        >
+          <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
+        </button>
+        <button
           onClick={share}
           className={cn(
-            "ml-auto flex items-center gap-1.5 text-xs transition-colors",
+            "flex items-center gap-1.5 text-xs transition-colors",
             shared ? "text-primary" : "hover:text-foreground",
           )}
           aria-label="Share post"
