@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
+import { Bell, ChevronDown, Download, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -12,6 +12,11 @@ import {
   isStandalonePwa,
   subscribeToPush,
 } from "@/lib/push-subscribe";
+import {
+  canInstallNow,
+  onInstallAvailabilityChange,
+  triggerInstallPrompt,
+} from "@/lib/install-prompt";
 import { saveSubscription } from "@/lib/push.functions";
 import {
   markEnabled,
