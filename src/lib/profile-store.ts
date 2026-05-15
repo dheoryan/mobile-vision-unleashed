@@ -76,6 +76,7 @@ export function profileToPatch(p: Profile) {
   const isUrl = !!p.avatar && (p.avatar.startsWith("data:") || p.avatar.startsWith("http"));
   return {
     display_name: p.name,
+    ...(p.handle !== undefined ? { handle: p.handle } : {}),
     age: p.age ? Number(p.age) : null,
     city: p.city,
     bio: p.bio,
