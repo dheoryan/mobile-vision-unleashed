@@ -152,6 +152,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RealtimeBridge />
+        <ServiceWorkerRegistrar />
         <Outlet />
         <Toaster position="bottom-center" richColors />
       </AuthProvider>

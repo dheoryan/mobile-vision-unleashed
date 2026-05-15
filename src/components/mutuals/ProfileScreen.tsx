@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
+import { PushSettingsRow } from "./EnablePushBanner";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -469,6 +470,13 @@ function SettingsSheet({
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">Settings</h2>
+
+        <div className="mt-5">
+          <p className="label-mono text-muted-foreground">Notifications</p>
+          <div className="mt-2">
+            <PushSettingsRow />
+          </div>
+        </div>
 
         <div className="mt-5">
           <p className="label-mono text-muted-foreground">Blocked accounts</p>
