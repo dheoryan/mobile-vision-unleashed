@@ -5,7 +5,7 @@ import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Loader2 } from "lucide-r
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { listPostsByAuthor } from "@/lib/posts.functions";
 import { getFollowCounts } from "@/lib/social.functions";
-import { useFollowing, useToggleFollow } from "@/lib/social-store";
+import { useMyFollowing as useFollowing, useToggleFollow } from "@/lib/social-store";
 import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PostCard } from "@/components/mutuals/PostCard";
