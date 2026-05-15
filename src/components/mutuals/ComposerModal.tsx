@@ -17,6 +17,7 @@ export function ComposerModal({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   if (!open) return null;
