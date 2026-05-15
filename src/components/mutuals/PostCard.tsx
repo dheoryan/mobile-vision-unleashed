@@ -45,6 +45,9 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const sharesQuery = useMyShares();
   const shared = sharesQuery.data?.has(post.id) ?? false;
   const toggleShare = useToggleShare();
+  const savedIdsQuery = useMySavedIds();
+  const saved = savedIdsQuery.data?.has(post.id) ?? false;
+  const toggleSave = useToggleSave();
 
   const editPost = useEditPost();
   const deletePost = useDeletePost();
