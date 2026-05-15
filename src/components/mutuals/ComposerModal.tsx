@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Loader2 } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
+import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
 export function ComposerModal({
   open, onClose, tribeId,
@@ -16,6 +17,7 @@ export function ComposerModal({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   if (!open) return null;
@@ -43,10 +45,11 @@ export function ComposerModal({
     e.target.value = "";
     if (!f || !user) return;
     if (!f.type.startsWith("image/")) { toast.error("Only image files."); return; }
-    if (f.size > MAX_BYTES) { toast.error("Image too large", { description: "Max 5 MB." }); return; }
+    if (f.size > MAX_BYTES) { toast.error("Image too large", { description: "Max 15 MB." }); return; }
     setUploading(true);
     try {
-      const url = await uploadPostImage(user.id, f);
+      const compressed = await compressImage(f, { maxDimension: 2048, quality: 0.85 });
+      const url = await uploadPostImage(user.id, compressed);
       setImageUrl(url);
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
@@ -88,21 +91,41 @@ export function ComposerModal({
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-            {uploading ? "Uploading…" : imageUrl ? "Replace photo" : "Add photo"}
-          </button>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+              {uploading ? "Uploading…" : imageUrl ? "Replace" : "Gallery"}
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={uploading}
+              aria-label="Take photo"
+              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+            >
+              <Camera className="h-4 w-4" />
+              Camera
+            </button>
+          </div>
           <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
+            className="hidden"
+            onChange={onPickFile}
+          />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={onPickFile}
           />
