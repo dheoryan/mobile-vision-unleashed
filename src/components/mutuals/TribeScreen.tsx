@@ -199,7 +199,8 @@ function TribeStrip({
   );
 }
 
-function TribeBanner({ tribe }: { tribe: ReturnType<typeof tribeById> }) {
+function TribeBanner({ tribe, liveMembers }: { tribe: ReturnType<typeof tribeById>; liveMembers?: number }) {
+  const memberLabel = (liveMembers ?? tribe.members).toLocaleString();
   return (
     <section
       className="relative mt-5 overflow-hidden rounded-2xl border border-border p-5"
