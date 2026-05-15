@@ -30,17 +30,52 @@ export type ProfileRow = {
   venture_count: number;
 };
 
+const PROFILE_COLS =
+  "id, display_name, handle, age, city, bio, avatar_emoji, avatar_url, tribe_ids, plan, venture_count";
+
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, display_name, handle, age, city, bio, avatar_emoji, avatar_url, tribe_ids, plan, venture_count")
+      .select(PROFILE_COLS)
       .eq("id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data as ProfileRow | null;
+  });
+
+export const getProfileById = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("profiles")
+      .select(PROFILE_COLS)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row as ProfileRow | null;
+  });
+
+export const getProfileByHandle = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ handle: z.string().min(1).max(60) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    // handle may be a uuid (from /u/$id usage) or an actual @handle
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.handle);
+    let q = supabase.from("profiles").select(PROFILE_COLS);
+    q = isUuid ? q.eq("id", data.handle) : q.eq("handle", data.handle.replace(/^@/, ""));
+    const { data: row, error } = await q.maybeSingle();
+    if (error) throw new Error(error.message);
+    return row as ProfileRow | null;
   });
 
 export const updateMyProfile = createServerFn({ method: "POST" })
@@ -52,7 +87,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
       .from("profiles")
       .update(data)
       .eq("id", userId)
-      .select("id, display_name, handle, age, city, bio, avatar_emoji, avatar_url, tribe_ids, plan, venture_count")
+      .select(PROFILE_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as ProfileRow;
@@ -125,8 +160,6 @@ export const listVentureMatches = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    // RLS already hides blocked rows where I am blocker; double-check by trimming
-    // anyone without at least one tribe.
     return ((rows ?? []) as VentureMatch[]).filter((p) => (p.tribe_ids ?? []).length > 0);
   });
 
@@ -165,7 +198,6 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
 
     const term = data.search?.trim();
     if (term) {
-      // sanitize for PostgREST `or` filter
       const safe = term.replace(/[,()*]/g, " ").slice(0, 60);
       const like = `%${safe}%`;
       q = q.or(
@@ -186,3 +218,28 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
     };
   });
 
+/** Search profiles by partial @handle / display_name for the @mention picker. */
+export const searchMentionProfiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ q: z.string().min(1).max(40) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const safe = data.q.replace(/[,()*%]/g, " ").slice(0, 40);
+    const like = `%${safe}%`;
+    const { data: rows, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, handle, avatar_emoji, avatar_url")
+      .neq("id", userId)
+      .or(`display_name.ilike.${like},handle.ilike.${like}`)
+      .limit(8);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{
+      id: string;
+      display_name: string;
+      handle: string | null;
+      avatar_emoji: string;
+      avatar_url: string | null;
+    }>;
+  });

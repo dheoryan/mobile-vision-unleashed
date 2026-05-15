@@ -11,8 +11,6 @@ export type AuthorLite = {
   plan: "free" | "plus";
 };
 
-const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
-
 const uuidIn = z.object({ user_id: z.string().uuid() });
 const postIn = z.object({ post_id: z.string().uuid() });
 
@@ -126,17 +124,21 @@ export const listMyFollowing = createServerFn({ method: "GET" })
 
 export const getFollowCounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid().optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const target = data.user_id ?? userId;
     const [{ count: following }, { count: followers }] = await Promise.all([
       supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("follower_id", userId),
+        .eq("follower_id", target),
       supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("followee_id", userId),
+        .eq("followee_id", target),
     ]);
     return { following: following ?? 0, followers: followers ?? 0 };
   });
@@ -238,107 +240,6 @@ export const reportContent = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// --- Notifications (derived from real follows/likes/comments) -------------
-
-export type DerivedNotif = {
-  id: string;
-  type: "like" | "comment" | "follow";
-  actor: AuthorLite | null;
-  post_id: string | null;
-  comment_excerpt: string | null;
-  created_at: string;
-};
-
-export const listMyNotifications = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-
-    // 1. Get my post ids (for like/comment targeting)
-    const { data: myPosts } = await supabase
-      .from("posts")
-      .select("id")
-      .eq("author_id", userId);
-    const myPostIds = (myPosts ?? []).map((p: { id: string }) => p.id);
-
-    // 2. Likes on my posts (excluding self-likes)
-    const likesP = myPostIds.length
-      ? supabase
-          .from("likes")
-          .select("post_id, user_id, created_at")
-          .in("post_id", myPostIds)
-          .neq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(40)
-      : Promise.resolve({ data: [] as Array<{ post_id: string; user_id: string; created_at: string }> });
-
-    // 3. Comments on my posts (excluding mine)
-    const commentsP = myPostIds.length
-      ? supabase
-          .from("comments")
-          .select("id, post_id, author_id, content, created_at")
-          .in("post_id", myPostIds)
-          .neq("author_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(40)
-      : Promise.resolve({ data: [] as Array<{ id: string; post_id: string; author_id: string; content: string; created_at: string }> });
-
-    // 4. New followers
-    const followsP = supabase
-      .from("follows")
-      .select("follower_id, created_at")
-      .eq("followee_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(40);
-
-    const [likesR, commentsR, followsR] = await Promise.all([likesP, commentsP, followsP]);
-
-    const actorIds = new Set<string>();
-    (likesR.data ?? []).forEach((r) => actorIds.add(r.user_id));
-    (commentsR.data ?? []).forEach((r) => actorIds.add(r.author_id));
-    (followsR.data ?? []).forEach((r) => actorIds.add(r.follower_id));
-
-    const actorMap = new Map<string, AuthorLite>();
-    if (actorIds.size) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select(AUTHOR_COLS)
-        .in("id", [...actorIds]);
-      for (const a of (profiles ?? []) as AuthorLite[]) actorMap.set(a.id, a);
-    }
-
-    const items: DerivedNotif[] = [];
-    for (const r of likesR.data ?? []) {
-      items.push({
-        id: `like:${r.post_id}:${r.user_id}:${r.created_at}`,
-        type: "like",
-        actor: actorMap.get(r.user_id) ?? null,
-        post_id: r.post_id,
-        comment_excerpt: null,
-        created_at: r.created_at,
-      });
-    }
-    for (const r of commentsR.data ?? []) {
-      items.push({
-        id: `comment:${r.id}`,
-        type: "comment",
-        actor: actorMap.get(r.author_id) ?? null,
-        post_id: r.post_id,
-        comment_excerpt: r.content.slice(0, 80),
-        created_at: r.created_at,
-      });
-    }
-    for (const r of followsR.data ?? []) {
-      items.push({
-        id: `follow:${r.follower_id}:${r.created_at}`,
-        type: "follow",
-        actor: actorMap.get(r.follower_id) ?? null,
-        post_id: null,
-        comment_excerpt: null,
-        created_at: r.created_at,
-      });
-    }
-
-    items.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    return items.slice(0, 60);
-  });
+// Re-export notification types for backwards compatibility
+export type { NotificationRow as DerivedNotif } from "@/lib/notifications.functions";
+export { listMyNotifications } from "@/lib/notifications.functions";
