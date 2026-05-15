@@ -233,6 +233,168 @@ export const addComment = createServerFn({ method: "POST" })
     return { ...(withAuthor as CommentRow), replies_count: await getRepliesCount(supabase, data.post_id) };
   });
 
+// ---------- Saved posts (bookmarks) ----------
+
+export const listMySavedIds = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("saved_posts")
+      .select("post_id")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as { post_id: string }[]).map((r) => r.post_id);
+  });
+
+export const listMySavedPosts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: saves, error: e1 } = await supabase
+      .from("saved_posts")
+      .select("post_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (e1) throw new Error(e1.message);
+    const ids = ((saves ?? []) as { post_id: string }[]).map((r) => r.post_id);
+    if (!ids.length) return [] as FeedPost[];
+    const { data: rows, error: e2 } = await supabase
+      .from("posts")
+      .select(POST_COLS)
+      .in("id", ids);
+    if (e2) throw new Error(e2.message);
+    const orderedRows = ids
+      .map((id) => (rows ?? []).find((r: { id: string }) => r.id === id))
+      .filter(Boolean) as { author_id: string }[];
+    return (await attachAuthors(supabase, orderedRows as any)) as FeedPost[];
+  });
+
+export const toggleSavePost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ post_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: existing } = await supabase
+      .from("saved_posts")
+      .select("post_id")
+      .eq("user_id", userId)
+      .eq("post_id", data.post_id)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase
+        .from("saved_posts")
+        .delete()
+        .eq("user_id", userId)
+        .eq("post_id", data.post_id);
+      if (error) throw new Error(error.message);
+      return { saved: false, post_id: data.post_id };
+    }
+    const { error } = await supabase
+      .from("saved_posts")
+      .insert({ user_id: userId, post_id: data.post_id });
+    if (error) throw new Error(error.message);
+    return { saved: true, post_id: data.post_id };
+  });
+
+// ---------- Ventures history ----------
+
+export type VentureRow = {
+  id: string;
+  user_id: string;
+  intents: string[];
+  scope: string;
+  time_window: string;
+  created_at: string;
+  ended_at: string | null;
+};
+
+export const listMyVentures = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("ventures")
+      .select("id, user_id, intents, scope, time_window, created_at, ended_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as VentureRow[];
+  });
+
+export const launchVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      intents: z.array(z.string().min(1).max(40)).max(10),
+      scope: z.enum(["mine", "all"]),
+      time_window: z.string().max(60),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("ventures")
+      .insert({
+        user_id: userId,
+        intents: data.intents,
+        scope: data.scope,
+        time_window: data.time_window,
+      })
+      .select("id, user_id, intents, scope, time_window, created_at, ended_at")
+      .single();
+    if (error) throw new Error(error.message);
+    // Also bump profile.venture_count
+    await supabase.rpc("noop").then(() => null).catch(() => null);
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("venture_count")
+      .eq("id", userId)
+      .maybeSingle();
+    const next = (profileRow?.venture_count ?? 0) + 1;
+    await supabase.from("profiles").update({ venture_count: next }).eq("id", userId);
+    return row as VentureRow;
+  });
+
+export const endVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("ventures")
+      .update({ ended_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { id: data.id };
+  });
+
+// ---------- Tribe member counts ----------
+
+export const getTribeMemberCounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ tribe_ids: z.array(z.string().min(1).max(40)).min(1).max(20) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const out: Record<string, number> = {};
+    await Promise.all(
+      data.tribe_ids.map(async (tid) => {
+        const { count, error } = await supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .contains("tribe_ids", [tid]);
+        if (error) throw new Error(error.message);
+        out[tid] = count ?? 0;
+      }),
+    );
+    return out;
+  });
+
 export const deleteComment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
