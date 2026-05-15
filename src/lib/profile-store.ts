@@ -13,6 +13,7 @@ export function rowToProfile(row: ProfileRow | null): Profile | null {
   return {
     tribeIds: row.tribe_ids as TribeId[],
     name: row.display_name,
+    handle: row.handle ?? null,
     age: row.age?.toString() ?? "",
     city: row.city ?? "",
     bio: row.bio ?? "",
