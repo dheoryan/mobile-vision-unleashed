@@ -42,6 +42,11 @@ export function isIosSafari(): boolean {
   return isIos;
 }
 
+export function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
 export type PushPermission = "default" | "granted" | "denied" | "unsupported";
 
 export function getPushPermission(): PushPermission {
