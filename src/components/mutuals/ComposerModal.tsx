@@ -91,21 +91,41 @@ export function ComposerModal({
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-            {uploading ? "Uploading…" : imageUrl ? "Replace photo" : "Add photo"}
-          </button>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+              {uploading ? "Uploading…" : imageUrl ? "Replace" : "Gallery"}
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={uploading}
+              aria-label="Take photo"
+              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+            >
+              <Camera className="h-4 w-4" />
+              Camera
+            </button>
+          </div>
           <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
+            className="hidden"
+            onChange={onPickFile}
+          />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={onPickFile}
           />
