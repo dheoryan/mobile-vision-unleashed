@@ -320,10 +320,15 @@ function EditProfileModal({
 }) {
   const { user } = useAuth();
   const [name, setName] = useState(profile.name);
+  const [handle, setHandle] = useState((profile.handle ?? "").replace(/^@/, ""));
   const [city, setCity] = useState(profile.city);
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
   const [uploading, setUploading] = useState(false);
+
+  const sanitizeHandle = (v: string) =>
+    v.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_]/g, "").slice(0, 30);
+  const handleValid = handle.length >= 3 && handle.length <= 30;
 
   if (!open) return null;
 
@@ -394,14 +399,20 @@ function EditProfileModal({
 
         <div className="mt-5 space-y-3">
           <Input label="Display name" value={name} onChange={setName} />
+          <Input
+            label="@handle"
+            value={handle}
+            onChange={(v) => setHandle(sanitizeHandle(v))}
+            hint={handleValid ? `@${handle}` : "3–30 chars · a–z, 0–9, _"}
+          />
           <Input label="City" value={city} onChange={setCity} />
           <Input label="Bio" value={bio} onChange={(v) => setBio(v.slice(0, 140))} multiline hint={`${bio.length}/140`} />
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
           <button
-            disabled={!name.trim() || !city.trim()}
-            onClick={() => onSave({ name: name.trim(), city: city.trim(), bio, avatar })}
+            disabled={!name.trim() || !city.trim() || !handleValid}
+            onClick={() => onSave({ name: name.trim(), handle, city: city.trim(), bio, avatar })}
             className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             Save changes

@@ -11,6 +11,7 @@ export interface Profile {
   /** Tribes the user has joined. Free = 1, Plus = up to 3. First entry is the primary tribe. */
   tribeIds: TribeId[];
   name: string;
+  handle?: string | null;
   age: string;
   city: string;
   bio: string;

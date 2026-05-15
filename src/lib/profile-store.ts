@@ -13,6 +13,7 @@ export function rowToProfile(row: ProfileRow | null): Profile | null {
   return {
     tribeIds: row.tribe_ids as TribeId[],
     name: row.display_name,
+    handle: row.handle ?? null,
     age: row.age?.toString() ?? "",
     city: row.city ?? "",
     bio: row.bio ?? "",
@@ -75,6 +76,7 @@ export function profileToPatch(p: Profile) {
   const isUrl = !!p.avatar && (p.avatar.startsWith("data:") || p.avatar.startsWith("http"));
   return {
     display_name: p.name,
+    ...(p.handle !== undefined ? { handle: p.handle } : {}),
     age: p.age ? Number(p.age) : null,
     city: p.city,
     bio: p.bio,
