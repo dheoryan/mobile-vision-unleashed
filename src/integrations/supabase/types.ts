@@ -53,6 +53,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          mentions: string[]
+          parent_id: string | null
           post_id: string
         }
         Insert: {
@@ -60,6 +62,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          mentions?: string[]
+          parent_id?: string | null
           post_id: string
         }
         Update: {
@@ -67,6 +71,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          mentions?: string[]
+          parent_id?: string | null
           post_id?: string
         }
         Relationships: [
@@ -75,6 +81,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -173,6 +186,45 @@ export type Database = {
           id?: string
           recipient_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          comment_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          message_id: string | null
+          post_id: string | null
+          preview: string | null
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          message_id?: string | null
+          post_id?: string | null
+          preview?: string | null
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          message_id?: string | null
+          post_id?: string | null
+          preview?: string | null
+          read_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
