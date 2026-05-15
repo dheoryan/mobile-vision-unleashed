@@ -59,9 +59,12 @@ export function CommentsModal({
     setText("");
     setCaret(0);
     const parent = replyTo;
+    // Flatten nested replies: a reply to a reply attaches to the root comment
+    // so the whole conversation stays in one thread (Instagram-style).
+    const rootParentId = parent ? (parent.parent_id ?? parent.id) : null;
     setReplyTo(null);
     addComment.mutate(
-      { content: t, parent_id: parent?.id ?? null, mentions },
+      { content: t, parent_id: rootParentId, mentions },
       { onError: (e) => toast.error("Comment didn't send", { description: (e as Error).message }) },
     );
   };
