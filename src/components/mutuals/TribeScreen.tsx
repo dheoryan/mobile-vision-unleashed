@@ -49,6 +49,8 @@ export function TribeScreen({
   const blocked = useBlocked();
   const tribePosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
   const isJoined = profile.tribeIds.includes(activeTribe);
+  const countsQuery = useTribeMemberCounts(profile.tribeIds);
+  const liveMembers = countsQuery.data?.[activeTribe];
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
