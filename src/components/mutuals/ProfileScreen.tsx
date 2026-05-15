@@ -399,14 +399,20 @@ function EditProfileModal({
 
         <div className="mt-5 space-y-3">
           <Input label="Display name" value={name} onChange={setName} />
+          <Input
+            label="@handle"
+            value={handle}
+            onChange={(v) => setHandle(sanitizeHandle(v))}
+            hint={handleValid ? `@${handle}` : "3–30 chars · a–z, 0–9, _"}
+          />
           <Input label="City" value={city} onChange={setCity} />
           <Input label="Bio" value={bio} onChange={(v) => setBio(v.slice(0, 140))} multiline hint={`${bio.length}/140`} />
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
           <button
-            disabled={!name.trim() || !city.trim()}
-            onClick={() => onSave({ name: name.trim(), city: city.trim(), bio, avatar })}
+            disabled={!name.trim() || !city.trim() || !handleValid}
+            onClick={() => onSave({ name: name.trim(), handle, city: city.trim(), bio, avatar })}
             className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             Save changes
