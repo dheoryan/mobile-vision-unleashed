@@ -67,7 +67,7 @@ export function TribeScreen({
           />
         )}
 
-        <TribeBanner tribe={tribe} />
+        <TribeBanner tribe={tribe} liveMembers={liveMembers} />
 
         <div className="mt-5 flex gap-2 rounded-full bg-card p-1">
           {(["feed", "chat"] as const).map((v) => (
