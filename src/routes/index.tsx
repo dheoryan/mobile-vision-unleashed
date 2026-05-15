@@ -144,8 +144,8 @@ function App() {
   };
 
   const handleLaunchVenture = () => {
-    if (!profile) return;
-    updateProfile.mutate(profileToPatch({ ...profile, ventureCount: profile.ventureCount + 1 }));
+    // Persistence + venture_count bump is handled server-side by useLaunchVenture.
+    // Profile query is invalidated automatically; nothing else to do here.
   };
 
   const openMessages = () => { setOpenThreadUser(null); setMessagesOpen(true); };
