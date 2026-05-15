@@ -14,7 +14,7 @@ import {
 } from "@/lib/push-subscribe";
 import { saveSubscription, deleteSubscription } from "@/lib/push.functions";
 
-const DISMISS_KEY = "mutuals.push-banner.dismissed";
+const DISMISS_KEY = "mutuals.push-banner.dismissed-session";
 
 export function EnablePushBanner() {
   const [permission, setPermission] = useState<PushPermission>("unsupported");
@@ -25,7 +25,7 @@ export function EnablePushBanner() {
 
   useEffect(() => {
     setPermission(getPushPermission());
-    setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
+    try { setDismissed(sessionStorage.getItem(DISMISS_KEY) === "1"); } catch { /* ignore */ }
     getCurrentSubscription().then((s) => setSubscribed(!!s));
   }, []);
 
@@ -53,7 +53,7 @@ export function EnablePushBanner() {
   };
 
   const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, "1");
+    try { sessionStorage.setItem(DISMISS_KEY, "1"); } catch { /* ignore */ }
     setDismissed(true);
   };
 

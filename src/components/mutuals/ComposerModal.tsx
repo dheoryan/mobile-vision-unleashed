@@ -6,6 +6,7 @@ import { uploadPostImage } from "@/lib/uploads";
 import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { requestPushPrompt } from "@/lib/push-prompt-events";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
@@ -32,7 +33,10 @@ export function ComposerModal({
     createPost.mutate(
       { tribe_id: tribeId, content: t, image_url: imageUrl ?? null },
       {
-        onSuccess: () => toast.success("Posted to " + tribe.name),
+        onSuccess: () => {
+          toast.success("Posted to " + tribe.name);
+          requestPushPrompt("post");
+        },
         onError: (e) => toast.error((e as Error).message),
       },
     );
