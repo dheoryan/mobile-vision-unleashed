@@ -50,7 +50,10 @@ export function PushPromptModal() {
   const [open, setOpen] = useState(false);
   const [trigger, setTrigger] = useState<PushPromptTrigger>("session");
   const [busy, setBusy] = useState(false);
+  const [installable, setInstallable] = useState(canInstallNow());
   const save = useServerFn(saveSubscription);
+
+  useEffect(() => onInstallAvailabilityChange(setInstallable), []);
 
   // Subscribe to high-intent trigger requests.
   useEffect(() => {
