@@ -45,10 +45,11 @@ export function ComposerModal({
     e.target.value = "";
     if (!f || !user) return;
     if (!f.type.startsWith("image/")) { toast.error("Only image files."); return; }
-    if (f.size > MAX_BYTES) { toast.error("Image too large", { description: "Max 5 MB." }); return; }
+    if (f.size > MAX_BYTES) { toast.error("Image too large", { description: "Max 15 MB." }); return; }
     setUploading(true);
     try {
-      const url = await uploadPostImage(user.id, f);
+      const compressed = await compressImage(f, { maxDimension: 2048, quality: 0.85 });
+      const url = await uploadPostImage(user.id, compressed);
       setImageUrl(url);
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
