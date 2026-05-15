@@ -72,7 +72,7 @@ export function CommentsModal({
     const effective = { ...p, handle: p.handle || fallback };
     register(effective);
     if (picker.start < 0) return;
-    const next = applyMention(text, caret, picker.start, p.handle);
+    const next = applyMention(text, caret, picker.start, effective.handle);
     setText(next.text);
     requestAnimationFrame(() => {
       const el = inputRef.current;
