@@ -9,6 +9,8 @@ import { ComposerModal } from "./ComposerModal";
 import { AddTribeSheet } from "./AddTribeSheet";
 import { useFeedPosts, useTribeMemberCounts } from "@/lib/posts-store";
 import { useBlocked } from "@/lib/blocked-store";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 
@@ -51,6 +53,7 @@ export function TribeScreen({
   const isJoined = profile.tribeIds.includes(activeTribe);
   const countsQuery = useTribeMemberCounts(profile.tribeIds);
   const liveMembers = countsQuery.data?.[activeTribe];
+  const liveOnline = useTribeOnlineCount(activeTribe, isJoined);
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -67,7 +70,7 @@ export function TribeScreen({
           />
         )}
 
-        <TribeBanner tribe={tribe} liveMembers={liveMembers} />
+        <TribeBanner tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
 
         <div className="mt-5 flex gap-2 rounded-full bg-card p-1">
           {(["feed", "chat"] as const).map((v) => (
@@ -199,8 +202,53 @@ function TribeStrip({
   );
 }
 
-function TribeBanner({ tribe, liveMembers }: { tribe: ReturnType<typeof tribeById>; liveMembers?: number }) {
+function useTribeOnlineCount(tribeId: TribeId, enabled: boolean) {
+  const { user } = useAuth();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!enabled || !user?.id) {
+      setCount(0);
+      return;
+    }
+
+    const channel = supabase.channel(`tribe-online:${tribeId}`, {
+      config: { presence: { key: user.id } },
+    });
+
+    const syncCount = () => {
+      const state = channel.presenceState<{ user_id?: string }>();
+      const users = new Set<string>();
+      Object.values(state).forEach((entries) => {
+        entries.forEach((entry) => {
+          if (entry.user_id) users.add(entry.user_id);
+        });
+      });
+      setCount(users.size);
+    };
+
+    channel
+      .on("presence", { event: "sync" }, syncCount)
+      .on("presence", { event: "join" }, syncCount)
+      .on("presence", { event: "leave" }, syncCount)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          void channel.track({ user_id: user.id, tribe_id: tribeId, online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      void channel.untrack();
+      void supabase.removeChannel(channel);
+    };
+  }, [enabled, tribeId, user?.id]);
+
+  return count;
+}
+
+function TribeBanner({ tribe, liveMembers, liveOnline }: { tribe: ReturnType<typeof tribeById>; liveMembers?: number; liveOnline: number }) {
   const memberLabel = (liveMembers ?? tribe.members).toLocaleString();
+  const onlineLabel = liveOnline.toLocaleString();
   return (
     <section
       className="relative mt-5 overflow-hidden rounded-2xl border border-border p-5"
@@ -231,7 +279,7 @@ function TribeBanner({ tribe, liveMembers }: { tribe: ReturnType<typeof tribeByI
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           {tribe.hosted && <p className="text-[11px] text-primary/80">Run by {tribe.hostOrg}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
-            <span className="text-foreground">{tribe.online}</span> online · {memberLabel} members
+            <span className="text-foreground">{onlineLabel}</span> online · {memberLabel} members
           </p>
         </div>
       </div>
