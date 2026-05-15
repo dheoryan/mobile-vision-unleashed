@@ -163,21 +163,40 @@ export function useComments(postId: string | null) {
   });
 }
 
+export type AddCommentInput = {
+  content: string;
+  parent_id?: string | null;
+  mentions?: string[];
+};
+
 export function useAddComment(postId: string) {
   const fn = useServerFn(addComment);
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: (content: string) => fn({ data: { post_id: postId, content } }),
-    onMutate: async (content) => {
+    mutationFn: (input: string | AddCommentInput) => {
+      const obj: AddCommentInput = typeof input === "string" ? { content: input } : input;
+      return fn({
+        data: {
+          post_id: postId,
+          content: obj.content,
+          parent_id: obj.parent_id ?? null,
+          mentions: obj.mentions ?? [],
+        },
+      });
+    },
+    onMutate: async (input) => {
+      const obj: AddCommentInput = typeof input === "string" ? { content: input } : input;
       await qc.cancelQueries({ queryKey: COMMENTS_KEY(postId) });
       const tempId = `tmp-${Date.now()}`;
       const optimistic: CommentRow = {
         id: tempId,
         post_id: postId,
         author_id: user?.id ?? "me",
-        content,
+        content: obj.content,
         created_at: new Date().toISOString(),
+        parent_id: obj.parent_id ?? null,
+        mentions: obj.mentions ?? [],
         author: null,
       };
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [
