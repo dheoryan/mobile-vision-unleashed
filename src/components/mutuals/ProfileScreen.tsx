@@ -49,7 +49,10 @@ export function ProfileScreen({
     ? myPosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribe_id as TribeId, image: undefined as string | undefined }))
     : samplePosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribeId, image: p.image }));
 
-  const savedPlaceholder = POSTS.slice(2, 5);
+  const savedQuery = useMySavedPosts();
+  const savedPosts = savedQuery.data ?? [];
+  const venturesQuery = useMyVentures();
+  const ventures = venturesQuery.data ?? [];
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
