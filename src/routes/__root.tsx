@@ -7,11 +7,42 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
 import { RealtimeBridge } from "@/lib/realtime-bridge";
 
 import appCss from "../styles.css?url";
+
+function ServiceWorkerRegistrar() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+
+    // Don't register inside iframes (Lovable editor preview) or on preview hosts.
+    const inIframe = (() => {
+      try { return window.self !== window.top; } catch { return true; }
+    })();
+    const host = window.location.hostname;
+    const isPreviewHost =
+      host.includes("id-preview--") ||
+      host.includes("lovableproject.com") ||
+      host.includes("-dev.lovable.app");
+
+    if (inIframe || isPreviewHost) {
+      // Clean up any stale SW left from earlier sessions in preview contexts.
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister().catch(() => undefined));
+      }).catch(() => undefined);
+      return;
+    }
+
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((err) => {
+      console.warn("[sw] registration failed", err);
+    });
+  }, []);
+  return null;
+}
 
 function NotFoundComponent() {
   return (
@@ -90,7 +121,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
