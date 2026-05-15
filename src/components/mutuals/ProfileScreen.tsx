@@ -320,10 +320,15 @@ function EditProfileModal({
 }) {
   const { user } = useAuth();
   const [name, setName] = useState(profile.name);
+  const [handle, setHandle] = useState((profile.handle ?? "").replace(/^@/, ""));
   const [city, setCity] = useState(profile.city);
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
   const [uploading, setUploading] = useState(false);
+
+  const sanitizeHandle = (v: string) =>
+    v.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_]/g, "").slice(0, 30);
+  const handleValid = handle.length >= 3 && handle.length <= 30;
 
   if (!open) return null;
 
