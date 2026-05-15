@@ -9,12 +9,101 @@ import {
   listComments,
   listFeed,
   listMyPosts,
+  listMySavedIds,
+  listMySavedPosts,
+  listMyVentures,
+  launchVenture,
+  toggleSavePost,
   type CommentRow,
   type FeedPost,
+  type VentureRow,
 } from "@/lib/posts.functions";
 import { useAuth } from "@/lib/auth-context";
 
-export type { FeedPost, CommentRow } from "@/lib/posts.functions";
+export type { FeedPost, CommentRow, VentureRow } from "@/lib/posts.functions";
+
+const SAVED_IDS_KEY = ["posts", "saved-ids"] as const;
+const SAVED_POSTS_KEY = ["posts", "saved"] as const;
+const VENTURES_KEY = ["ventures", "mine"] as const;
+
+export function useMySavedIds() {
+  const fn = useServerFn(listMySavedIds);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...SAVED_IDS_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+    select: (rows) => new Set(rows),
+  });
+}
+
+export function useMySavedPosts() {
+  const fn = useServerFn(listMySavedPosts);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...SAVED_POSTS_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+}
+
+export function useToggleSave() {
+  const fn = useServerFn(toggleSavePost);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const idsKey = [...SAVED_IDS_KEY, user?.id ?? null];
+  return useMutation({
+    mutationFn: (postId: string) => fn({ data: { post_id: postId } }),
+    onMutate: async (postId) => {
+      await qc.cancelQueries({ queryKey: idsKey });
+      const prev = qc.getQueryData<string[]>(idsKey) ?? [];
+      const wasSaved = prev.includes(postId);
+      qc.setQueryData(idsKey, wasSaved ? prev.filter((i) => i !== postId) : [...prev, postId]);
+      return { prev, wasSaved };
+    },
+    onError: (_e, _i, ctx) => {
+      if (ctx) qc.setQueryData(idsKey, ctx.prev);
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<string[]>(idsKey, (cur) => {
+        const rows = cur ?? [];
+        return result.saved
+          ? Array.from(new Set([...rows, result.post_id]))
+          : rows.filter((id) => id !== result.post_id);
+      });
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: SAVED_IDS_KEY });
+      qc.invalidateQueries({ queryKey: SAVED_POSTS_KEY });
+    },
+  });
+}
+
+export function useMyVentures() {
+  const fn = useServerFn(listMyVentures);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...VENTURES_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+}
+
+export function useLaunchVenture() {
+  const fn = useServerFn(launchVenture);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { intents: string[]; scope: "mine" | "all"; time_window: string }) =>
+      fn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: VENTURES_KEY });
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
+    },
+  });
+}
 
 const FEED_KEY = ["posts", "feed"] as const;
 const MINE_KEY = ["posts", "mine"] as const;
