@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
         const { data: actor } = notif.actor_id
           ? await supabaseAdmin
               .from("profiles")
-              .select("display_name, handle, avatar_url")
+              .select("display_name, handle")
               .eq("id", notif.actor_id)
               .maybeSingle()
           : { data: null };
@@ -79,7 +79,7 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
         const payload = {
           title: `${actorName} ${verb}`,
           body: notif.preview ?? "",
-          icon: actor?.avatar_url || "/icons/icon-192.png",
+          icon: "/icons/icon-192.png",
           badge: "/icons/icon-192.png",
           url,
           tag: `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
