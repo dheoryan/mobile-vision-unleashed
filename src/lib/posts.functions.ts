@@ -346,8 +346,7 @@ export const launchVenture = createServerFn({ method: "POST" })
       .select("id, user_id, intents, scope, time_window, created_at, ended_at")
       .single();
     if (error) throw new Error(error.message);
-    // Also bump profile.venture_count
-    await supabase.rpc("noop").then(() => null).catch(() => null);
+    // Bump profile.venture_count
     const { data: profileRow } = await supabase
       .from("profiles")
       .select("venture_count")
