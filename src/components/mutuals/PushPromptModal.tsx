@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
+import { Bell, ChevronDown, Download, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -12,6 +12,11 @@ import {
   isStandalonePwa,
   subscribeToPush,
 } from "@/lib/push-subscribe";
+import {
+  canInstallNow,
+  onInstallAvailabilityChange,
+  triggerInstallPrompt,
+} from "@/lib/install-prompt";
 import { saveSubscription } from "@/lib/push.functions";
 import {
   markEnabled,
@@ -45,7 +50,10 @@ export function PushPromptModal() {
   const [open, setOpen] = useState(false);
   const [trigger, setTrigger] = useState<PushPromptTrigger>("session");
   const [busy, setBusy] = useState(false);
+  const [installable, setInstallable] = useState(canInstallNow());
   const save = useServerFn(saveSubscription);
+
+  useEffect(() => onInstallAvailabilityChange(setInstallable), []);
 
   // Subscribe to high-intent trigger requests.
   useEffect(() => {
@@ -213,7 +221,27 @@ export function PushPromptModal() {
               </button>
             </div>
 
-            {androidCanInstall && (
+            {androidCanInstall && installable && (
+              <button
+                onClick={async () => {
+                  const outcome = await triggerInstallPrompt();
+                  if (outcome === "accepted") {
+                    toast.success("MUTUALS is installing — open it from your home screen.");
+                    setOpen(false);
+                  } else if (outcome === "unavailable") {
+                    toast.message("Install not available", {
+                      description: "Use Chrome's menu → Install app instead.",
+                    });
+                  }
+                }}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15"
+              >
+                <Download className="h-4 w-4" />
+                Install MUTUALS on home screen
+              </button>
+            )}
+
+            {androidCanInstall && !installable && (
               <details className="group mt-3 rounded-2xl border border-border/60 bg-secondary/30 p-3">
                 <summary className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-foreground">
                   <span className="inline-flex items-center gap-2">
