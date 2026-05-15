@@ -67,11 +67,10 @@ export function CommentsModal({
   };
 
   const onPickMention = (p: { id: string; display_name: string; handle: string | null; avatar_emoji: string; avatar_url: string | null }) => {
-    if (!p.handle) {
-      toast.message("That user has no @handle yet");
-      return;
-    }
-    register(p);
+    // Fallback: synthesize a handle from display name + id suffix when missing
+    const fallback = `${(p.display_name || "user").toLowerCase().replace(/[^a-z0-9]/g, "")}_${p.id.slice(0, 6)}`;
+    const effective = { ...p, handle: p.handle || fallback };
+    register(effective);
     if (picker.start < 0) return;
     const next = applyMention(text, caret, picker.start, p.handle);
     setText(next.text);
