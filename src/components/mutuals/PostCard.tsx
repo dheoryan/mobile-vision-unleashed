@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X, Loader2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
@@ -114,13 +115,24 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
       style={{ ["--tribe-active" as string]: tribe.colorVar }}
     >
       <header className="flex items-center gap-3">
-        <span className="relative">
-          <Avatar value={author.avatar} tribeColor={tribe.colorVar} />
-          {author.plus && <PlusBadge />}
-        </span>
+        {isMine ? (
+          <span className="relative">
+            <Avatar value={author.avatar} tribeColor={tribe.colorVar} />
+            {author.plus && <PlusBadge />}
+          </span>
+        ) : (
+          <Link to="/u/$handle" params={{ handle: post.author?.handle || post.author_id }} className="relative shrink-0">
+            <Avatar value={author.avatar} tribeColor={tribe.colorVar} />
+            {author.plus && <PlusBadge />}
+          </Link>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-semibold">{author.name}</p>
+            {isMine ? (
+              <p className="truncate text-sm font-semibold">{author.name}</p>
+            ) : (
+              <Link to="/u/$handle" params={{ handle: post.author?.handle || post.author_id }} className="truncate text-sm font-semibold hover:underline">{author.name}</Link>
+            )}
             {author.handle && <span className="text-xs text-muted-foreground">{author.handle}</span>}
           </div>
           <p className="text-xs text-muted-foreground">

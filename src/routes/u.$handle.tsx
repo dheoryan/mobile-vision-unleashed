@@ -5,7 +5,7 @@ import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Loader2 } from "lucide-r
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { listPostsByAuthor } from "@/lib/posts.functions";
 import { getFollowCounts } from "@/lib/social.functions";
-import { useFollowing, useToggleFollow } from "@/lib/social-store";
+import { useMyFollowing as useFollowing, useToggleFollow } from "@/lib/social-store";
 import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PostCard } from "@/components/mutuals/PostCard";
@@ -146,7 +146,7 @@ function PublicProfilePage() {
               </button>
               <button
                 onClick={() => {
-                  intentStore.push({ kind: "openDM", userId: profile.id });
+                  intentStore.push({ kind: "openThreadWith", userId: profile.id });
                   navigate({ to: "/" });
                 }}
                 className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold hover:bg-background/60"
