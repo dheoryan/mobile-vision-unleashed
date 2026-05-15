@@ -49,9 +49,8 @@ export function PushPromptModal() {
   // Subscribe to high-intent trigger requests.
   useEffect(() => {
     if (!user) return;
-    return onPushPromptRequest((t) => {
-      tryOpen(t);
-    });
+    const off = onPushPromptRequest((t) => { tryOpen(t); });
+    return () => { off(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
