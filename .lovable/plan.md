@@ -1,69 +1,77 @@
-# Phased Migration Plan
+## Goal
+Add 5 capabilities to Mutuals: push notifications, adjustable profile pics, threaded replies with @mentions, interactive post history on profile, and viewable user profiles.
 
-Backend (DB schema, RLS, storage buckets, auth routes, AuthProvider) is already in place. Remaining work is split into 4 approve-one-at-a-time phases. After each phase you can stop, test, and decide whether to continue — keeping spend under control.
+## Scope & Approach
 
----
+### 1. Push Notifications (in-app realtime, not browser push)
+Browser Push API requires PWA + service workers, which Lovable preview iframes block (per platform guidelines). Instead I'll deliver **realtime in-app notifications**:
+- Notification bell already exists; extend `notifications-store` to subscribe to realtime inserts on `likes`, `comments`, `follows`, `messages` targeting the current user.
+- Show toast (sonner) on new notification while app is open.
+- (Optional later: native browser Notification API for desktop tab alerts when permission granted — non-PWA, no service worker.)
 
-## Phase 1 — Auth gating + Profiles persistence
+### 2. Adjustable Profile Pics
+- Profile already has `avatar_url` + Supabase `avatars` bucket. Add an "Upload photo" button in `ProfileScreen` edit flow that uploads to `avatars/{userId}/{timestamp}.jpg`, then calls `updateMyProfile({ avatar_url })`.
+- Show image circle with fallback to emoji.
+- Allow re-upload / revert to emoji.
 
-**Goal:** Users actually sign up / log in, and the onboarding profile (display name, handle, age, city, bio, avatar emoji, tribe selection) is saved to the `profiles` table instead of localStorage.
+### 3. Threaded Replies + @mentions
+- Schema: add `parent_id uuid null` and `mentions uuid[]` to `comments`. Index on `parent_id`.
+- `CommentsModal`: render comments as a tree (1 level of nesting visible, deeper collapsed under "View more replies"). Add "Reply" button per comment that prefills `@handle`.
+- Mention picker: when user types `@`, show dropdown of profiles (debounced search via existing `listDiscoverProfiles`). Insert `@handle` and track mentioned `user_id`s.
+- On submit, parse mentions, store `mentions` array, create notification rows / realtime ping for each mentioned user.
 
-- Add `_authenticated` pathless layout route that redirects to `/login` when no session.
-- Move `/`, `/notifications`, `/profile`, etc. under `_authenticated`.
-- Server fns: `getMyProfile`, `updateMyProfile`, `joinTribe`, `leaveTribe` (tribe limit already enforced by DB trigger).
-- Refactor `Onboarding` and profile screens to read/write via these server fns.
-- One-shot migration: on first authenticated load, push existing `localStorage["mutuals.profile"]` through `updateMyProfile`, then clear the key.
+### 4. Interactive Post History on Profile (Threads-style)
+- Add a "Posts" tab on `ProfileScreen` that lists the user's posts in a vertical thread layout (compact `PostCard` variant: avatar gutter line, stacked).
+- Each post is tappable → expands inline to show comments (reuses `CommentsModal` content inline) or opens detail view.
+- Uses existing `listMyPosts` / new `listPostsByAuthor` server fn.
 
-**Stop point:** You can sign up, complete onboarding, log out, log back in from another browser, and see the same profile. Posts/comments still localStorage.
+### 5. View Another User's Profile
+- New route `src/routes/u.$handle.tsx` (or `$userId`) that fetches a profile by handle/id via new `getProfileByHandle` server fn.
+- Shows avatar, bio, tribes, follower/following counts, Follow button, and the same Threads-style post history from #4.
+- Make every avatar/handle in the app (PostCard, CommentsModal, DiscoverScreen, VenturesScreen, MessagesPanel) link to `/u/$handle`.
 
----
+## Technical Plan
 
-## Phase 2 — Posts + Comments persistence
+### DB Migration
+```sql
+alter table public.comments
+  add column parent_id uuid references public.comments(id) on delete cascade,
+  add column mentions uuid[] not null default '{}';
+create index idx_comments_parent on public.comments(parent_id);
+create index idx_comments_mentions on public.comments using gin(mentions);
 
-**Goal:** Posts and comments live in the DB.
+-- ensure realtime on follows/messages/comments (likes already on)
+alter publication supabase_realtime add table public.follows;
+alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.comments;
+```
 
-- Server fns: `listFeed`, `getPost`, `createPost`, `editPost`, `deletePost`, `listComments`, `addComment`, `deleteComment`.
-- Refactor `PostCard`, `ComposerModal`, `CommentsModal`, feed (`routes/index.tsx`) to use `useQuery` / `useMutation` against new fns. Keep optimistic UI.
-- Drop mock posts; seed a few via SQL so the feed isn't empty for new users.
+### Server Functions (new / updated)
+- `posts.functions.ts`: extend `addComment` to accept `parent_id` and `mentions`. Add `listPostsByAuthor({ author_id })`.
+- `profile.functions.ts`: add `getProfileByHandle({ handle })` and `getProfileById({ id })` (public-safe projections).
+- `uploads.ts`: helper `uploadAvatar(file)` → returns public URL.
 
-**Stop point:** Posts and comments survive logout/login and are visible across browsers.
+### Files to Create
+- `src/routes/u.$handle.tsx` — public profile view
+- `src/components/mutuals/MentionInput.tsx` — textarea with @mention picker
+- `src/components/mutuals/ThreadList.tsx` — Threads-style post timeline
 
----
+### Files to Edit
+- `src/components/mutuals/ProfileScreen.tsx` — avatar uploader, Posts tab
+- `src/components/mutuals/CommentsModal.tsx` — nested replies + mentions
+- `src/components/mutuals/PostCard.tsx` — link author to `/u/$handle`
+- `src/components/mutuals/DiscoverScreen.tsx`, `VenturesScreen.tsx`, `MessagesPanel.tsx` — clickable avatars
+- `src/lib/notifications-store.ts` + `realtime-bridge.tsx` — realtime notif inserts + toast
+- `src/lib/posts.functions.ts`, `src/lib/profile.functions.ts`, `src/lib/posts-store.ts`
 
-## Phase 3 — Social actions (likes, follows, blocks, reports)
+### Out of Scope (call out, don't build)
+- True browser/OS push notifications (requires PWA + service worker; preview-incompatible). Can be added later behind a flag for the published-only build.
+- Multi-level deep nesting (cap at 1 visible level for sanity; collapse deeper).
 
-**Goal:** All social interactions persisted.
-
-- Server fns: `toggleLike`, `toggleFollow`, `blockUser`, `unblockUser`, `reportContent`.
-- Wire like/follow/block/report buttons to mutations; counts come from `posts.likes_count` / `replies_count` (already maintained by DB triggers).
-- Notifications screen reads from real follows/likes/comments instead of mocks.
-
-**Stop point:** Like/follow/block survive across sessions; blocked users disappear from feed (RLS already enforces this).
-
----
-
-## Phase 4 — Image uploads (avatars + post images)
-
-**Goal:** Real image upload to storage buckets.
-
-- Avatar upload → `avatars` bucket, write returned public URL into `profiles.avatar_url`. Display avatar everywhere (feed, comments, profile, notifications).
-- Post image upload → `post-images` bucket, write URL into `posts.image_url`.
-- RLS on buckets scoped to `auth.uid()` folder prefix.
-
-**Stop point:** Full feature parity with the localStorage version, fully persisted, multi-device.
-
----
-
-## Technical notes
-
-- Server fns live in `src/lib/*.functions.ts` and use `requireSupabaseAuth` middleware (already wired via `attachSupabaseAuth` in `src/start.ts`).
-- All DB tables, RLS policies, triggers, and storage buckets are already created — no further migrations needed unless something surfaces during implementation.
-- After each phase: run `security--run_security_scan` and verify in two browsers.
-
-## Out of scope
-
-Realtime subscriptions, Stripe billing for Plus plan, persisted DMs.
-
----
-
-**Reply with which phase to start (e.g. "Phase 1") and I'll implement just that one.**
+## Rollout Order
+1. DB migration (comments parent_id + mentions, realtime publications)
+2. Public profile route + author links
+3. Avatar upload
+4. Threaded replies + mention picker
+5. Profile post history (Threads view)
+6. Realtime in-app notifications + toasts

@@ -31,6 +31,8 @@ export type CommentRow = {
   author_id: string;
   content: string;
   created_at: string;
+  parent_id: string | null;
+  mentions: string[];
   author: AuthorLite | null;
 };
 
@@ -71,6 +73,9 @@ async function getRepliesCount(
 const POST_COLS =
   "id, author_id, tribe_id, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
 
+const COMMENT_COLS =
+  "id, post_id, author_id, content, created_at, parent_id, mentions";
+
 export const listFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -97,6 +102,23 @@ export const listMyPosts = createServerFn({ method: "GET" })
       .from("posts")
       .select(POST_COLS)
       .eq("author_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return (await attachAuthors(supabase, (rows ?? []) as any)) as FeedPost[];
+  });
+
+export const listPostsByAuthor = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ author_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("posts")
+      .select(POST_COLS)
+      .eq("author_id", data.author_id)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -175,7 +197,7 @@ export const listComments = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: rows, error } = await supabase
       .from("comments")
-      .select("id, post_id, author_id, content, created_at")
+      .select(COMMENT_COLS)
       .eq("post_id", data.post_id)
       .order("created_at", { ascending: true })
       .limit(500);
@@ -189,14 +211,22 @@ export const addComment = createServerFn({ method: "POST" })
     z.object({
       post_id: z.string().uuid(),
       content: z.string().min(1).max(500),
+      parent_id: z.string().uuid().nullable().optional(),
+      mentions: z.array(z.string().uuid()).max(20).optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("comments")
-      .insert({ post_id: data.post_id, author_id: userId, content: data.content })
-      .select("id, post_id, author_id, content, created_at")
+      .insert({
+        post_id: data.post_id,
+        author_id: userId,
+        content: data.content,
+        parent_id: data.parent_id ?? null,
+        mentions: data.mentions ?? [],
+      })
+      .select(COMMENT_COLS)
       .single();
     if (error) throw new Error(error.message);
     const [withAuthor] = await attachAuthors(supabase, [row as any]);
