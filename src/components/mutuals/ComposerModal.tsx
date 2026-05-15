@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Loader2 } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
+import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
 export function ComposerModal({
   open, onClose, tribeId,
