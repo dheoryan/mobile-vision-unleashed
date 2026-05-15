@@ -106,6 +106,17 @@ export function useLaunchVenture() {
   });
 }
 
+export function useTribeMemberCounts(tribeIds: string[]) {
+  const fn = useServerFn(getTribeMemberCounts);
+  const key = tribeIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["tribes", "member-counts", key],
+    queryFn: () => fn({ data: { tribe_ids: tribeIds } }),
+    enabled: tribeIds.length > 0,
+    staleTime: 60_000,
+  });
+}
+
 const FEED_KEY = ["posts", "feed"] as const;
 const MINE_KEY = ["posts", "mine"] as const;
 const COMMENTS_KEY = (postId: string) => ["comments", postId] as const;
