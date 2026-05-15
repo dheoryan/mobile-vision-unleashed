@@ -4,6 +4,7 @@ import { ArrowLeft, Heart, MessageSquare, UserPlus, Bell, AtSign, Reply, Mail } 
 import { useNotifications, type NotificationRow, type NotificationKind } from "@/lib/notifications-store";
 import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
+import { EnablePushBanner } from "@/components/mutuals/EnablePushBanner";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { timeAgo } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
@@ -81,6 +82,7 @@ function NotificationsPage() {
       </header>
 
       <main className="mx-auto max-w-md px-3 pt-2">
+        <EnablePushBanner />
         {isLoading ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
         ) : items.length === 0 ? (
