@@ -1,77 +1,107 @@
-## Goal
-Add 5 capabilities to Mutuals: push notifications, adjustable profile pics, threaded replies with @mentions, interactive post history on profile, and viewable user profiles.
+# Web Push Notifications Plan
 
-## Scope & Approach
+Deliver real OS-level push notifications (Android, desktop, iOS 16.4+) that fire even when Mutuals is closed. Reuses the existing `notifications` table and DB triggers — we just add a fan-out step that posts each new notification to subscribed devices.
 
-### 1. Push Notifications (in-app realtime, not browser push)
-Browser Push API requires PWA + service workers, which Lovable preview iframes block (per platform guidelines). Instead I'll deliver **realtime in-app notifications**:
-- Notification bell already exists; extend `notifications-store` to subscribe to realtime inserts on `likes`, `comments`, `follows`, `messages` targeting the current user.
-- Show toast (sonner) on new notification while app is open.
-- (Optional later: native browser Notification API for desktop tab alerts when permission granted — non-PWA, no service worker.)
+## Important caveats (please read)
 
-### 2. Adjustable Profile Pics
-- Profile already has `avatar_url` + Supabase `avatars` bucket. Add an "Upload photo" button in `ProfileScreen` edit flow that uploads to `avatars/{userId}/{timestamp}.jpg`, then calls `updateMyProfile({ avatar_url })`.
-- Show image circle with fallback to emoji.
-- Allow re-upload / revert to emoji.
+- **Only works on the published site** (`moots.lovable.app` or your custom domain). Will NOT work inside the Lovable editor preview iframe — service workers are blocked there.
+- **iOS requires "Add to Home Screen"** first. iOS Safari refuses Web Push from a regular browser tab; the user must install the PWA. We'll add a manifest + an in-app prompt explaining this on iOS.
+- **Permission is per-device**. Each phone/laptop must opt in once.
+- **No App Store needed.**
 
-### 3. Threaded Replies + @mentions
-- Schema: add `parent_id uuid null` and `mentions uuid[]` to `comments`. Index on `parent_id`.
-- `CommentsModal`: render comments as a tree (1 level of nesting visible, deeper collapsed under "View more replies"). Add "Reply" button per comment that prefills `@handle`.
-- Mention picker: when user types `@`, show dropdown of profiles (debounced search via existing `listDiscoverProfiles`). Insert `@handle` and track mentioned `user_id`s.
-- On submit, parse mentions, store `mentions` array, create notification rows / realtime ping for each mentioned user.
+## What gets built
 
-### 4. Interactive Post History on Profile (Threads-style)
-- Add a "Posts" tab on `ProfileScreen` that lists the user's posts in a vertical thread layout (compact `PostCard` variant: avatar gutter line, stacked).
-- Each post is tappable → expands inline to show comments (reuses `CommentsModal` content inline) or opens detail view.
-- Uses existing `listMyPosts` / new `listPostsByAuthor` server fn.
+### 1. Service worker + manifest (frontend)
 
-### 5. View Another User's Profile
-- New route `src/routes/u.$handle.tsx` (or `$userId`) that fetches a profile by handle/id via new `getProfileByHandle` server fn.
-- Shows avatar, bio, tribes, follower/following counts, Follow button, and the same Threads-style post history from #4.
-- Make every avatar/handle in the app (PostCard, CommentsModal, DiscoverScreen, VenturesScreen, MessagesPanel) link to `/u/$handle`.
+- `public/sw.js` — handles `push` events (shows notification with title/body/icon/url) and `notificationclick` (focuses or opens the right URL).
+- `public/manifest.webmanifest` — name, icons, `display: standalone`, `start_url: /`. Required for iOS install + nicer Android UX.
+- `index.html` head: link manifest, theme-color, apple-touch-icon.
+- Guard `navigator.serviceWorker.register('/sw.js')` so it **only runs when**:
+  - not in an iframe, AND
+  - hostname is not `id-preview--…` / `lovableproject.com`.
+  This prevents the SW from poisoning the editor preview.
 
-## Technical Plan
+### 2. Permission UX (frontend)
 
-### DB Migration
+- New `src/lib/push-subscribe.ts` helper: `enablePush()` requests permission, calls `registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: VAPID_PUBLIC })`, posts the subscription JSON to the server, and stores a local flag.
+- New `src/components/mutuals/EnablePushBanner.tsx` — dismissible banner shown on `/notifications` and once on first login when permission is `default`. On iOS Safari (not installed), shows the "Add to Home Screen" instructions instead of the prompt button.
+- Settings entry in `ProfileScreen` → "Push notifications" toggle (enable / disable / re-subscribe). Disable calls `subscription.unsubscribe()` and deletes the row server-side.
+
+### 3. Database (Supabase migration)
+
 ```sql
-alter table public.comments
-  add column parent_id uuid references public.comments(id) on delete cascade,
-  add column mentions uuid[] not null default '{}';
-create index idx_comments_parent on public.comments(parent_id);
-create index idx_comments_mentions on public.comments using gin(mentions);
-
--- ensure realtime on follows/messages/comments (likes already on)
-alter publication supabase_realtime add table public.follows;
-alter publication supabase_realtime add table public.messages;
-alter publication supabase_realtime add table public.comments;
+create table public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz
+);
+alter table public.push_subscriptions enable row level security;
+create policy "own subs read"   on public.push_subscriptions for select using (auth.uid() = user_id);
+create policy "own subs delete" on public.push_subscriptions for delete using (auth.uid() = user_id);
+-- Inserts go through a server fn using the admin client; no insert policy needed.
+create index on public.push_subscriptions(user_id);
 ```
 
-### Server Functions (new / updated)
-- `posts.functions.ts`: extend `addComment` to accept `parent_id` and `mentions`. Add `listPostsByAuthor({ author_id })`.
-- `profile.functions.ts`: add `getProfileByHandle({ handle })` and `getProfileById({ id })` (public-safe projections).
-- `uploads.ts`: helper `uploadAvatar(file)` → returns public URL.
+Plus a Postgres trigger on `public.notifications` that uses `pg_net` to POST the new notification id + recipient to a public server route (`/api/public/push/dispatch`) with a shared HMAC header. (`pg_net` is enabled by default in Supabase.)
 
-### Files to Create
-- `src/routes/u.$handle.tsx` — public profile view
-- `src/components/mutuals/MentionInput.tsx` — textarea with @mention picker
-- `src/components/mutuals/ThreadList.tsx` — Threads-style post timeline
+### 4. Server functions / routes (TanStack)
 
-### Files to Edit
-- `src/components/mutuals/ProfileScreen.tsx` — avatar uploader, Posts tab
-- `src/components/mutuals/CommentsModal.tsx` — nested replies + mentions
-- `src/components/mutuals/PostCard.tsx` — link author to `/u/$handle`
-- `src/components/mutuals/DiscoverScreen.tsx`, `VenturesScreen.tsx`, `MessagesPanel.tsx` — clickable avatars
-- `src/lib/notifications-store.ts` + `realtime-bridge.tsx` — realtime notif inserts + toast
-- `src/lib/posts.functions.ts`, `src/lib/profile.functions.ts`, `src/lib/posts-store.ts`
+- `src/lib/push.functions.ts`
+  - `saveSubscription({ endpoint, keys, userAgent })` — `requireSupabaseAuth`, upserts row by endpoint.
+  - `deleteSubscription({ endpoint })` — auth, deletes row.
+- `src/routes/api/public/push.dispatch.ts` — verifies HMAC header (`x-push-secret`) against `PUSH_DISPATCH_SECRET`, loads the notification + actor, fetches the recipient's `push_subscriptions`, signs and sends a Web Push message to each endpoint via the VAPID protocol. On `404`/`410` responses, deletes the dead subscription.
 
-### Out of Scope (call out, don't build)
-- True browser/OS push notifications (requires PWA + service worker; preview-incompatible). Can be added later behind a flag for the published-only build.
-- Multi-level deep nesting (cap at 1 visible level for sanity; collapse deeper).
+### 5. VAPID + signing
 
-## Rollout Order
-1. DB migration (comments parent_id + mentions, realtime publications)
-2. Public profile route + author links
-3. Avatar upload
-4. Threaded replies + mention picker
-5. Profile post history (Threads view)
-6. Realtime in-app notifications + toasts
+VAPID keys are required for Web Push. We'll:
+
+- Generate a P-256 keypair once (script run in `code--exec`); commit the **public** key as `VITE_VAPID_PUBLIC_KEY` in `.env`-style code constant (it's safe to ship), and store the **private** key as a runtime secret `VAPID_PRIVATE_KEY`. Also store `VAPID_SUBJECT` (a `mailto:` you control) and `PUSH_DISPATCH_SECRET` (HMAC for the pg_net→worker call).
+- Use a Cloudflare Worker–compatible Web Push library (`@block65/webcrypto-web-push`) — the popular `web-push` package depends on Node crypto and won't run in our Workers runtime.
+
+Secrets to add: `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_DISPATCH_SECRET`. I'll request them via `add_secret` after you approve.
+
+### 6. Wiring into existing notifications
+
+No changes to `notify_on_like` / `notify_on_comment` / `notify_on_follow` / `notify_on_message` triggers. The new dispatch trigger fires on every insert into `public.notifications`, so likes, comments, replies, mentions, follows, and DMs all get pushed automatically with the same `kind` → text mapping you already use in `/notifications`.
+
+Click behavior in the SW mirrors the in-app handler: like/comment/reply/mention → open `/?openPost=<post_id>`, follow → open `/u/<handle>`, message → open `/`.
+
+## Files
+
+**Create**
+- `public/sw.js`
+- `public/manifest.webmanifest`
+- `public/icons/icon-192.png`, `icon-512.png` (generated)
+- `src/lib/push-subscribe.ts`
+- `src/lib/push.functions.ts`
+- `src/components/mutuals/EnablePushBanner.tsx`
+- `src/routes/api/public/push.dispatch.ts`
+- migration: `push_subscriptions` table + `pg_net` trigger
+
+**Edit**
+- `index.html` (manifest, icons, theme-color)
+- `src/routes/__root.tsx` (register SW with iframe/preview guard)
+- `src/components/mutuals/ProfileScreen.tsx` (push toggle)
+- `src/routes/notifications.tsx` (banner)
+- `src/start.ts` (no change unless we add middleware — likely none)
+- `package.json` (add `@block65/webcrypto-web-push`)
+
+## Out of scope
+
+- Quiet hours / per-kind opt-out (can add later — schema supports it).
+- Rich notifications with images and action buttons (basic title+body+icon first).
+- Native iOS/Android app via Capacitor.
+
+## Rollout order
+
+1. Add secrets + generate VAPID keypair.
+2. DB migration (table + trigger).
+3. Server fns + dispatch route.
+4. SW + manifest + icons + registration guard.
+5. Subscribe UX (banner + profile toggle).
+6. Test on `moots.lovable.app` from an Android phone and a desktop, then iOS after Add-to-Home-Screen.
