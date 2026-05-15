@@ -49,7 +49,10 @@ export function ProfileScreen({
     ? myPosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribe_id as TribeId, image: undefined as string | undefined }))
     : samplePosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribeId, image: p.image }));
 
-  const savedPlaceholder = POSTS.slice(2, 5);
+  const savedQuery = useMySavedPosts();
+  const savedPosts = savedQuery.data ?? [];
+  const venturesQuery = useMyVentures();
+  const ventures = venturesQuery.data ?? [];
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -206,31 +209,49 @@ export function ProfileScreen({
         )}
 
         {gridTab === "saved" && (
-          <div className="grid grid-cols-3 gap-1">
-            {savedPlaceholder.map((p) => {
-              const t = tribeById(p.tribeId as TribeId);
-              return (
-                <div
-                  key={p.id}
-                  className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
-                  style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
-                >
-                  <span className="text-base">🔖</span>
-                  <p className="mt-1 line-clamp-3">{p.content}</p>
-                </div>
-              );
-            })}
-          </div>
+          savedPosts.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              {savedQuery.isLoading ? "Loading…" : "No saved posts yet. Tap the bookmark on any post to save it."}
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {savedPosts.map((p) => {
+                const t = tribeById((p.tribe_id as TribeId) || (profile.tribeIds[0] as TribeId));
+                return (
+                  <div
+                    key={p.id}
+                    className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
+                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
+                  >
+                    <span className="text-base">🔖</span>
+                    <p className="mt-1 line-clamp-3">{p.content}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
 
         {gridTab === "ventures" && (
-          <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-            {profile.ventureCount === 0 ? (
-              <p className="text-muted-foreground">You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person.</p>
+          <div className="space-y-2">
+            {ventures.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                {venturesQuery.isLoading ? "Loading…" : "You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person."}
+              </div>
             ) : (
-              <p>
-                You've launched <span className="font-semibold text-foreground">{profile.ventureCount}</span> {profile.ventureCount === 1 ? "Venture" : "Ventures"}{MONETIZATION_ENABLED && profile.plan === "free" ? ` · ${Math.max(0, 3 - profile.ventureCount)} free left this month.` : "."}
-              </p>
+              ventures.map((v) => (
+                <div key={v.id} className="rounded-2xl border border-border bg-card p-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold">{v.intents.slice(0, 3).join(" · ") || "Open to anything"}</p>
+                    <span className="label-mono text-muted-foreground">
+                      {v.ended_at ? "ended" : "live"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} · {v.time_window || "Any time"} · {timeAgo(v.created_at)}
+                  </p>
+                </div>
+              ))
             )}
           </div>
         )}

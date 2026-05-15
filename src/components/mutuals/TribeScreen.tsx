@@ -7,7 +7,7 @@ import { PostCard } from "./PostCard";
 import { AppHeader, SectionTitle } from "./Shared";
 import { ComposerModal } from "./ComposerModal";
 import { AddTribeSheet } from "./AddTribeSheet";
-import { useFeedPosts } from "@/lib/posts-store";
+import { useFeedPosts, useTribeMemberCounts } from "@/lib/posts-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
@@ -49,6 +49,8 @@ export function TribeScreen({
   const blocked = useBlocked();
   const tribePosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
   const isJoined = profile.tribeIds.includes(activeTribe);
+  const countsQuery = useTribeMemberCounts(profile.tribeIds);
+  const liveMembers = countsQuery.data?.[activeTribe];
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -65,7 +67,7 @@ export function TribeScreen({
           />
         )}
 
-        <TribeBanner tribe={tribe} />
+        <TribeBanner tribe={tribe} liveMembers={liveMembers} />
 
         <div className="mt-5 flex gap-2 rounded-full bg-card p-1">
           {(["feed", "chat"] as const).map((v) => (
@@ -197,7 +199,8 @@ function TribeStrip({
   );
 }
 
-function TribeBanner({ tribe }: { tribe: ReturnType<typeof tribeById> }) {
+function TribeBanner({ tribe, liveMembers }: { tribe: ReturnType<typeof tribeById>; liveMembers?: number }) {
+  const memberLabel = (liveMembers ?? tribe.members).toLocaleString();
   return (
     <section
       className="relative mt-5 overflow-hidden rounded-2xl border border-border p-5"
@@ -228,7 +231,7 @@ function TribeBanner({ tribe }: { tribe: ReturnType<typeof tribeById> }) {
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           {tribe.hosted && <p className="text-[11px] text-primary/80">Run by {tribe.hostOrg}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
-            <span className="text-foreground">{tribe.online}</span> online · {tribe.members.toLocaleString()} members
+            <span className="text-foreground">{tribe.online}</span> online · {memberLabel} members
           </p>
         </div>
       </div>

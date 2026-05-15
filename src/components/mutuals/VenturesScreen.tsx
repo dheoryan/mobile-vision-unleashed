@@ -10,6 +10,7 @@ import { useBlocked } from "@/lib/blocked-store";
 import { useAuth } from "@/lib/auth-context";
 import { listVentureMatches, type VentureMatch } from "@/lib/profile.functions";
 import { useThreads } from "@/lib/messages-store";
+import { useLaunchVenture } from "@/lib/posts-store";
 import type { Profile } from "./Onboarding";
 import { cn } from "@/lib/utils";
 import { MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
@@ -62,6 +63,7 @@ export function VenturesScreen({
   const [paywall, setPaywall] = useState(false);
   const blocked = useBlocked();
   const threadsQuery = useThreads();
+  const launchVentureMut = useLaunchVenture();
 
   // Cross-device "already said hello" — anyone I've already DMed shows up in threads.
   const persistedHelloed = useMemo(() => {
@@ -72,20 +74,30 @@ export function VenturesScreen({
 
   const reset = () => { setStage("landing"); setStep(0); setIntents([]); setSkipped(new Set()); setHelloed(new Set()); };
 
+  const persistAndGoLive = () => {
+    launchVentureMut.mutate(
+      { intents, scope: tribeFilter, time_window: timeWindow },
+      {
+        onSuccess: () => {
+          onLaunchVenture();
+          setStage("active");
+        },
+      },
+    );
+  };
+
   const tryGoLive = () => {
     if (MONETIZATION_ENABLED && profile.plan === "free" && profile.ventureCount >= 3) {
       setPaywall(true);
       return;
     }
-    onLaunchVenture();
-    setStage("active");
+    persistAndGoLive();
   };
 
   const handleUpgraded = () => {
     setProfile((p) => (p ? { ...p, plan: "plus" } : p));
     setPaywall(false);
-    onLaunchVenture();
-    setStage("active");
+    persistAndGoLive();
   };
 
   const matchesFn = useServerFn(listVentureMatches);

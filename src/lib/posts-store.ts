@@ -13,6 +13,7 @@ import {
   listMySavedPosts,
   listMyVentures,
   launchVenture,
+  getTribeMemberCounts,
   toggleSavePost,
   type CommentRow,
   type FeedPost,
@@ -102,6 +103,17 @@ export function useLaunchVenture() {
       qc.invalidateQueries({ queryKey: VENTURES_KEY });
       qc.invalidateQueries({ queryKey: ["my-profile"] });
     },
+  });
+}
+
+export function useTribeMemberCounts(tribeIds: string[]) {
+  const fn = useServerFn(getTribeMemberCounts);
+  const key = tribeIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["tribes", "member-counts", key],
+    queryFn: () => fn({ data: { tribe_ids: tribeIds } }),
+    enabled: tribeIds.length > 0,
+    staleTime: 60_000,
   });
 }
 
