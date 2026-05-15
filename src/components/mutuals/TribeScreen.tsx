@@ -7,7 +7,7 @@ import { PostCard } from "./PostCard";
 import { AppHeader, SectionTitle } from "./Shared";
 import { ComposerModal } from "./ComposerModal";
 import { AddTribeSheet } from "./AddTribeSheet";
-import { useFeedPosts } from "@/lib/posts-store";
+import { useFeedPosts, useTribeMemberCounts } from "@/lib/posts-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
