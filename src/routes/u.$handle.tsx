@@ -146,7 +146,7 @@ function PublicProfilePage() {
               </button>
               <button
                 onClick={() => {
-                  intentStore.push({ kind: "openDM", userId: profile.id });
+                  intentStore.push({ kind: "openThreadWith", userId: profile.id });
                   navigate({ to: "/" });
                 }}
                 className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold hover:bg-background/60"
