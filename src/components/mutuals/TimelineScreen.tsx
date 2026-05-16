@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { PEOPLE } from "@/lib/mutuals-data";
 import { PostCard } from "./PostCard";
-import { AppHeader } from "./Shared";
+import { AppHeader, SectionTitle } from "./Shared";
 import { EmptyState } from "./EmptyState";
 import { useSocial } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
@@ -10,26 +9,109 @@ import { Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { Profile } from "./Onboarding";
+import { tribeById, TRIBES, type TribeId } from "@/lib/mutuals-data";
+import { ComposerModal } from "./ComposerModal";
+import { Plus } from "lucide-react";
 
-export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; onOpenMessages: () => void; unread?: number }) {
+export function TimelineScreen({
+  profile,
+  onOpenMessages,
+  unread,
+}: {
+  profile: Profile;
+  onOpenMessages: () => void;
+  unread?: number;
+}) {
   const [tab, setTab] = useState<"following" | "foryou">("following");
   const social = useSocial();
   const blocked = useBlocked();
-  const feedQuery = useFeedPosts();
 
+  // Tribe feed state
+  const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
+  const [activeTribe, setActiveTribe] = useState<TribeId>(profile.tribeIds[0]);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const tribe = tribeById(activeTribe);
+
+  // Tribe posts
+  const tribeFeedQuery = useFeedPosts(activeTribe);
+  const tribePosts = (tribeFeedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
+
+  // Timeline posts
+  const feedQuery = useFeedPosts();
   const allPosts = feedQuery.data ?? [];
   const visiblePosts = allPosts.filter((p) => !blocked.has(p.author_id));
-
   const followingPosts = visiblePosts.filter((p) => social.following.has(p.author_id));
   const forYou = visiblePosts;
-
   const list = tab === "following" ? followingPosts : forYou;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
       <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" onOpenMessages={onOpenMessages} unread={unread} />
       <main className="mx-auto max-w-md px-5">
-        <div className="mt-4 flex gap-2 rounded-full bg-card p-1">
+
+        {/* ── Tribe Feed Section ── */}
+        <div className="mt-4">
+          {/* Tribe selector strip if multiple tribes */}
+          {joinedTribes.length > 1 && (
+            <div className="-mx-5 mb-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-2">
+                {joinedTribes.map((t) => {
+                  const isActive = t.id === activeTribe;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setActiveTribe(t.id)}
+                      className={cn(
+                        "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                        isActive ? "text-primary-foreground" : "bg-card text-muted-foreground"
+                      )}
+                      style={isActive ? { backgroundColor: t.colorVar } : undefined}
+                    >
+                      <span>{t.emoji}</span>
+                      {t.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <SectionTitle
+              title={`${tribe.emoji} ${tribe.name}`}
+              hint="Posts from your scene · chronological"
+            />
+            <button
+              onClick={() => setComposerOpen(true)}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+              style={{ backgroundColor: tribe.colorVar }}
+            >
+              <Plus className="h-3.5 w-3.5" /> Signal
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-3">
+            {tribeFeedQuery.isLoading ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">Loading…</p>
+            ) : tribePosts.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
+                No posts in {tribe.name} yet. Be the first to signal!
+              </p>
+            ) : (
+              tribePosts.slice(0, 5).map((p) => <PostCard key={p.id} post={p} />)
+            )}
+          </div>
+        </div>
+
+        {/* ── Divider ── */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="label-mono text-muted-foreground">Your Timeline</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        {/* ── Timeline feed ── */}
+        <div className="flex gap-2 rounded-full bg-card p-1">
           {(["following", "foryou"] as const).map((t) => (
             <button
               key={t}
@@ -67,8 +149,8 @@ export function TimelineScreen({ onOpenMessages, unread }: { profile: Profile; o
           )}
         </div>
       </main>
+
+      <ComposerModal open={composerOpen} onClose={() => setComposerOpen(false)} tribeId={activeTribe} />
     </div>
   );
 }
-
-void PEOPLE;
