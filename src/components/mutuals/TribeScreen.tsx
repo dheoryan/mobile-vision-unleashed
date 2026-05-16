@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Send, Smile, Image as ImageIcon, Lock } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { TRIBES, CHAT_BY_TRIBE, type TribeId, tribeById, personById } from "@/lib/mutuals-data";
+import { Send, Smile, Image as ImageIcon } from "lucide-react";
+import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
-import { PostCard } from "./PostCard";
-import { AppHeader, SectionTitle } from "./Shared";
-import { ComposerModal } from "./ComposerModal";
+import { AppHeader } from "./Shared";
 import { AddTribeSheet } from "./AddTribeSheet";
-import { useFeedPosts, useTribeMemberCounts } from "@/lib/posts-store";
-import { useBlocked } from "@/lib/blocked-store";
+import { useTribeMemberCounts } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
+import { toast } from "sonner";
 
 export function TribeScreen({
   profile,
@@ -28,28 +25,20 @@ export function TribeScreen({
   initialTribe?: TribeId;
 }) {
   const isPlus = isPlusEffective(profile.plan);
-  const showUpgrade = MONETIZATION_ENABLED && profile.plan !== "plus";
   const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
   const initial = initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
-  const [view, setView] = useState<"feed" | "chat">("feed");
-  const [composerOpen, setComposerOpen] = useState(false);
   const [addTribeOpen, setAddTribeOpen] = useState(false);
 
-  // If profile.tribeIds changes (e.g. user joined a new tribe), keep activeTribe valid.
   useEffect(() => {
     if (!profile.tribeIds.includes(activeTribe)) setActiveTribe(profile.tribeIds[0]);
   }, [profile.tribeIds, activeTribe]);
 
-  // Honor a freshly-requested initial tribe (e.g. tap from Discover).
   useEffect(() => {
     if (initialTribe && profile.tribeIds.includes(initialTribe)) setActiveTribe(initialTribe);
   }, [initialTribe, profile.tribeIds]);
 
   const tribe = tribeById(activeTribe);
-  const feedQuery = useFeedPosts(activeTribe);
-  const blocked = useBlocked();
-  const tribePosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
   const isJoined = profile.tribeIds.includes(activeTribe);
   const countsQuery = useTribeMemberCounts(profile.tribeIds);
   const liveMembers = countsQuery.data?.[activeTribe];
@@ -57,9 +46,9 @@ export function TribeScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title={tribe.name} subtitle="Home base" accent={tribe.colorVar} onOpenMessages={onOpenMessages} unread={unread} />
+      <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} onOpenMessages={onOpenMessages} unread={unread} />
       <main className="mx-auto max-w-md px-5 pt-3">
-        {/* Tribe strip — only Plus users with multi-tribe see it. Free users hide it. */}
+        {/* Tribe strip — Plus users with multi-tribe */}
         {isPlus && (
           <TribeStrip
             joined={joinedTribes}
@@ -72,69 +61,10 @@ export function TribeScreen({
 
         <TribeBanner tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
 
-        <div className="mt-5 flex gap-2 rounded-full bg-card p-1">
-          {(["feed", "chat"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={cn(
-                "flex-1 rounded-full py-2 text-xs font-semibold capitalize transition-colors",
-                view === v ? "text-primary-foreground" : "text-muted-foreground"
-              )}
-              style={view === v ? { backgroundColor: tribe.colorVar } : undefined}
-            >
-              {v === "feed" ? "Tribe Feed" : "Group Chat"}
-            </button>
-          ))}
-        </div>
-
-        {view === "feed" ? (
-          <>
-            <SectionTitle title="Tribe Feed" hint="Posts from your scene · chronological" />
-            <div className="flex flex-col gap-3">
-              {tribePosts.map((p) => <PostCard key={p.id} post={p} />)}
-            </div>
-
-            {/* Free users: subtle multi-tribe upsell card */}
-            {showUpgrade && (
-              <Link
-                to="/upgrade"
-                className="mt-5 block rounded-2xl border border-dashed border-border bg-card p-4 transition-colors hover:bg-secondary"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
-                    <Lock className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">Join more Tribes</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      MUTUALS+ lets you join up to 3 Tribes and expand your social world.
-                    </p>
-                  </div>
-                </div>
-                <span className="mt-3 block w-full rounded-xl bg-amber-400/15 py-2 text-center text-xs font-semibold text-amber-300">
-                  Upgrade to MUTUALS+
-                </span>
-              </Link>
-            )}
-          </>
-        ) : (
-          <GroupChat tribeId={activeTribe} canChat={isJoined} />
-        )}
+        {/* Group Chat — full screen, no toggle */}
+        <GroupChat tribeId={activeTribe} canChat={isJoined} />
       </main>
 
-      {view === "feed" && isJoined && (
-        <button
-          onClick={() => setComposerOpen(true)}
-          className="fixed bottom-24 right-5 z-30 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/40 transition-transform active:scale-95"
-          style={{ backgroundColor: tribe.colorVar }}
-          aria-label="New signal"
-        >
-          <Plus className="h-4 w-4" /> Signals
-        </button>
-      )}
-
-      <ComposerModal open={composerOpen} onClose={() => setComposerOpen(false)} tribeId={activeTribe} />
       <AddTribeSheet
         open={addTribeOpen}
         onClose={() => setAddTribeOpen(false)}
@@ -192,7 +122,7 @@ function TribeStrip({
             aria-label="Add tribe"
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-amber-400/60 text-amber-300">
-              <Plus className="h-5 w-5" />
+              +
             </span>
             <span className="text-[11px] font-medium text-muted-foreground">Add Tribe</span>
           </button>
@@ -270,14 +200,8 @@ function TribeBanner({ tribe, liveMembers, liveOnline }: { tribe: ReturnType<typ
           </span>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-2xl font-bold leading-tight">{tribe.name}</h2>
-            {tribe.hosted && (
-              <span className="label-mono inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-primary" title={`Hosted by ${tribe.hostOrg}`}>
-                ✓ HOSTED
-              </span>
-            )}
           </div>
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
-          {tribe.hosted && <p className="text-[11px] text-primary/80">Run by {tribe.hostOrg}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
             <span className="text-foreground">{onlineLabel}</span> online · {memberLabel} members
           </p>
@@ -287,43 +211,138 @@ function TribeBanner({ tribe, liveMembers, liveOnline }: { tribe: ReturnType<typ
   );
 }
 
+type TribeMessage = {
+  id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  sender?: { display_name: string; avatar_url: string | null };
+};
+
 function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean }) {
   const tribe = tribeById(tribeId);
-  const seed = CHAT_BY_TRIBE[tribeId];
-  const [messages, setMessages] = useState(seed);
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<TribeMessage[]>([]);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMessages(CHAT_BY_TRIBE[tribeId]); }, [tribeId]);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Fetch existing messages
+  useEffect(() => {
+    setLoading(true);
+    setMessages([]);
 
-  const send = () => {
-    if (!canChat) return;
+    supabase
+      .from("tribe_messages")
+      .select("id, sender_id, content, created_at, profiles:sender_id(display_name, avatar_url)")
+      .eq("tribe_id", tribeId)
+      .order("created_at", { ascending: true })
+      .limit(100)
+      .then(({ data, error }) => {
+        if (error) {
+          toast.error("Couldn't load messages");
+          return;
+        }
+        const mapped = (data ?? []).map((row: any) => ({
+          id: row.id,
+          sender_id: row.sender_id,
+          content: row.content,
+          created_at: row.created_at,
+          sender: Array.isArray(row.profiles) ? row.profiles[0] : row.profiles,
+        }));
+        setMessages(mapped);
+        setLoading(false);
+      });
+  }, [tribeId]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`tribe-chat:${tribeId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "tribe_messages", filter: `tribe_id=eq.${tribeId}` },
+        async (payload) => {
+          const row = payload.new as TribeMessage;
+          // Fetch sender profile
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name, avatar_url")
+            .eq("id", row.sender_id)
+            .single();
+          setMessages((prev) => [
+            ...prev,
+            { ...row, sender: profile ?? undefined },
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [tribeId]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async () => {
+    if (!canChat || !user) return;
     const t = text.trim();
     if (!t) return;
-    setMessages((m) => [...m, { id: `me-${Date.now()}`, userId: "me", text: t, time: "now" }]);
     setText("");
+
+    const { error } = await supabase.from("tribe_messages").insert({
+      tribe_id: tribeId,
+      sender_id: user.id,
+      content: t,
+    });
+
+    if (error) {
+      toast.error("Failed to send message");
+      setText(t);
+    }
+  };
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
     <div className="mt-4">
       <div className="rounded-2xl border border-border bg-card p-3">
         <div className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
+          {loading && (
+            <p className="py-6 text-center text-xs text-muted-foreground">Loading…</p>
+          )}
+          {!loading && messages.length === 0 && (
+            <p className="py-8 text-center text-xs text-muted-foreground">
+              No messages yet. Say hello! 👋
+            </p>
+          )}
           {messages.map((m) => {
-            const mine = m.userId === "me";
-            const author = mine ? null : personById(m.userId);
+            const mine = m.sender_id === user?.id;
+            const displayName = mine ? "You" : (m.sender?.display_name ?? "Member");
+            const avatarUrl = m.sender?.avatar_url;
+
             return (
               <div key={m.id} className={cn("flex items-end gap-2", mine && "flex-row-reverse")}>
                 {!mine && (
                   <span
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-sm"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm"
                     style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
                   >
-                    {author?.avatar}
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      displayName[0]?.toUpperCase()
+                    )}
                   </span>
                 )}
                 <div className={cn("max-w-[78%]")}>
-                  {!mine && <p className="mb-0.5 text-[10px] text-muted-foreground">{author?.name}</p>}
+                  {!mine && <p className="mb-0.5 text-[10px] text-muted-foreground">{displayName}</p>}
                   <div
                     className={cn(
                       "rounded-2xl px-3 py-2 text-sm",
@@ -331,9 +350,11 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
                   >
-                    {m.text}
+                    {m.content}
                   </div>
-                  <p className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}>{m.time}</p>
+                  <p className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}>
+                    {formatTime(m.created_at)}
+                  </p>
                 </div>
               </div>
             );
