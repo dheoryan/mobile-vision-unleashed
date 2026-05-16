@@ -3,7 +3,7 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { VAPID_PUBLIC_KEY } from "@/lib/push-subscribe";
 
-type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message";
+type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message" | "new_post";
 
 const KIND_TEXT: Record<NotificationKind, string> = {
   like: "liked your post",
@@ -12,6 +12,7 @@ const KIND_TEXT: Record<NotificationKind, string> = {
   mention: "mentioned you",
   follow: "started following you",
   message: "sent you a message",
+  new_post: "shared a new signal",
 };
 
 function timingSafeEqualStr(a: string, b: string): boolean {
@@ -68,7 +69,7 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
         const verb = KIND_TEXT[kind] ?? "sent you an update";
 
         let url = "/";
-        if ((kind === "like" || kind === "comment" || kind === "reply" || kind === "mention") && notif.post_id) {
+        if ((kind === "like" || kind === "comment" || kind === "reply" || kind === "mention" || kind === "new_post") && notif.post_id) {
           url = `/?openPost=${encodeURIComponent(notif.post_id)}`;
         } else if (kind === "follow" && actor?.handle) {
           url = `/u/${encodeURIComponent(actor.handle)}`;

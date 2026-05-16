@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_followers_on_post() FROM PUBLIC, anon, authenticated;

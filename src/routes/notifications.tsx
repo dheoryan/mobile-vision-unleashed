@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ArrowLeft, Heart, MessageSquare, UserPlus, Bell, AtSign, Reply, Mail } from "lucide-react";
+import { ArrowLeft, Heart, MessageSquare, UserPlus, Bell, AtSign, Reply, Mail, Sparkles } from "lucide-react";
 import { useNotifications, type NotificationRow, type NotificationKind } from "@/lib/notifications-store";
 import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
@@ -20,21 +20,23 @@ export const Route = createFileRoute("/notifications")({
 });
 
 const ICONS: Record<NotificationKind, React.ReactNode> = {
-  like:    <Heart className="h-3 w-3" fill="currentColor" />,
-  comment: <MessageSquare className="h-3 w-3" />,
-  reply:   <Reply className="h-3 w-3" />,
-  mention: <AtSign className="h-3 w-3" />,
-  follow:  <UserPlus className="h-3 w-3" />,
-  message: <Mail className="h-3 w-3" />,
+  like:     <Heart className="h-3 w-3" fill="currentColor" />,
+  comment:  <MessageSquare className="h-3 w-3" />,
+  reply:    <Reply className="h-3 w-3" />,
+  mention:  <AtSign className="h-3 w-3" />,
+  follow:   <UserPlus className="h-3 w-3" />,
+  message:  <Mail className="h-3 w-3" />,
+  new_post: <Sparkles className="h-3 w-3" />,
 };
 
 const TEXTS: Record<NotificationKind, string> = {
-  like:    "liked your post",
-  comment: "commented on your post",
-  reply:   "replied to your comment",
-  mention: "mentioned you",
-  follow:  "started following you",
-  message: "sent you a message",
+  like:     "liked your post",
+  comment:  "commented on your post",
+  reply:    "replied to your comment",
+  mention:  "mentioned you",
+  follow:   "started following you",
+  message:  "sent you a message",
+  new_post: "shared a new signal",
 };
 
 function NotificationsPage() {
@@ -47,7 +49,7 @@ function NotificationsPage() {
   }, [markAllRead]);
 
   const handleClick = (n: NotificationRow) => {
-    if ((n.kind === "like" || n.kind === "comment" || n.kind === "reply" || n.kind === "mention") && n.post_id) {
+    if ((n.kind === "like" || n.kind === "comment" || n.kind === "reply" || n.kind === "mention" || n.kind === "new_post") && n.post_id) {
       intentStore.push({ kind: "openPost", postId: n.post_id });
       navigate({ to: "/" });
     } else if (n.kind === "follow") {
