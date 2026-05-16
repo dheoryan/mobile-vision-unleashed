@@ -227,28 +227,39 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Fetch existing messages
+  // Fetch existing messages (no join — FK points to auth.users not profiles)
   useEffect(() => {
     setLoading(true);
     setMessages([]);
 
     supabase
       .from("tribe_messages")
-      .select("id, sender_id, content, created_at, profiles:sender_id(display_name, avatar_url)")
+      .select("id, sender_id, content, created_at")
       .eq("tribe_id", tribeId)
       .order("created_at", { ascending: true })
       .limit(100)
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) {
           toast.error("Couldn't load messages");
+          setLoading(false);
           return;
         }
-        const mapped = (data ?? []).map((row: any) => ({
+        const rows = data ?? [];
+        const senderIds = [...new Set(rows.map((r: any) => r.sender_id))];
+        let profileMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
+        if (senderIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, display_name, avatar_url")
+            .in("id", senderIds);
+          (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+        }
+        const mapped = rows.map((row: any) => ({
           id: row.id,
           sender_id: row.sender_id,
           content: row.content,
           created_at: row.created_at,
-          sender: Array.isArray(row.profiles) ? row.profiles[0] : row.profiles,
+          sender: profileMap[row.sender_id],
         }));
         setMessages(mapped);
         setLoading(false);
