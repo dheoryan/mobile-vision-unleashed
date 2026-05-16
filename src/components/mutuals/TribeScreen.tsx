@@ -128,9 +128,9 @@ export function TribeScreen({
           onClick={() => setComposerOpen(true)}
           className="fixed bottom-24 right-5 z-30 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/40 transition-transform active:scale-95"
           style={{ backgroundColor: tribe.colorVar }}
-          aria-label="New post"
+          aria-label="New signal"
         >
-          <Plus className="h-4 w-4" /> Post
+          <Plus className="h-4 w-4" /> Signals
         </button>
       )}
 
