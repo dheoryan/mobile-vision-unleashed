@@ -141,7 +141,7 @@ export function ComposerModal({
           className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           style={{ backgroundColor: tribe.colorVar }}
         >
-          Post
+          Send Signal
         </button>
       </div>
     </div>
