@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ArrowLeft, Heart, MessageSquare, UserPlus, Bell, AtSign, Reply, Mail } from "lucide-react";
+import { ArrowLeft, Heart, MessageSquare, UserPlus, Bell, AtSign, Reply, Mail, Sparkles } from "lucide-react";
 import { useNotifications, type NotificationRow, type NotificationKind } from "@/lib/notifications-store";
 import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
