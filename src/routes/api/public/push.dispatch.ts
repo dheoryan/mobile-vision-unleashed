@@ -3,7 +3,7 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { VAPID_PUBLIC_KEY } from "@/lib/push-subscribe";
 
-type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message";
+type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message" | "new_post";
 
 const KIND_TEXT: Record<NotificationKind, string> = {
   like: "liked your post",
@@ -12,6 +12,7 @@ const KIND_TEXT: Record<NotificationKind, string> = {
   mention: "mentioned you",
   follow: "started following you",
   message: "sent you a message",
+  new_post: "shared a new signal",
 };
 
 function timingSafeEqualStr(a: string, b: string): boolean {
