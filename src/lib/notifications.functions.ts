@@ -5,7 +5,7 @@ import type { AuthorLite } from "@/lib/posts.functions";
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 
-export type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message";
+export type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message" | "new_post";
 
 export type NotificationRow = {
   id: string;
