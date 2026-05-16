@@ -49,7 +49,7 @@ function NotificationsPage() {
   }, [markAllRead]);
 
   const handleClick = (n: NotificationRow) => {
-    if ((n.kind === "like" || n.kind === "comment" || n.kind === "reply" || n.kind === "mention") && n.post_id) {
+    if ((n.kind === "like" || n.kind === "comment" || n.kind === "reply" || n.kind === "mention" || n.kind === "new_post") && n.post_id) {
       intentStore.push({ kind: "openPost", postId: n.post_id });
       navigate({ to: "/" });
     } else if (n.kind === "follow") {
