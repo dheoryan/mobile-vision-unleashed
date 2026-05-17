@@ -244,7 +244,7 @@ on public.tribe_messages
 for insert
 to authenticated
 with check (
-  sender_id = auth.uid()
+  sender_id::text = auth.uid()::text
   and public.is_tribe_member(tribe_id, auth.uid())
 );
 
@@ -255,7 +255,7 @@ on public.tribe_messages
 for delete
 to authenticated
 using (
-  sender_id = auth.uid()
+  sender_id::text = auth.uid()::text
 );
 
 insert into storage.buckets (
