@@ -12,13 +12,15 @@ function extOf(file: File): string {
 }
 
 async function uploadTo(
-  bucket: "avatars" | "post-images",
+  bucket: "avatars" | "post-images" | "tribe-chat-attachments",
   userId: string,
   file: File,
+  prefix = userId,
 ): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("Only image files are supported.");
   if (file.size > MAX_BYTES) throw new Error("Image too large (max 5 MB).");
-  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extOf(file)}`;
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extOf(file)}`;
+  const path = prefix === userId ? `${userId}/${suffix}` : `${prefix}/${userId}-${suffix}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "3600",
     upsert: false,
@@ -29,7 +31,8 @@ async function uploadTo(
   return data.publicUrl;
 }
 
-export const uploadAvatar = (userId: string, file: File) =>
-  uploadTo("avatars", userId, file);
+export const uploadAvatar = (userId: string, file: File) => uploadTo("avatars", userId, file);
 export const uploadPostImage = (userId: string, file: File) =>
   uploadTo("post-images", userId, file);
+export const uploadTribeChatImage = (tribeId: string, userId: string, file: File) =>
+  uploadTo("tribe-chat-attachments", userId, file, tribeId);

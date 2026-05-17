@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost } from "@/lib/posts.functions";
 
+const isLocalSupabaseRealtimeDisabled =
+  import.meta.env.VITE_SUPABASE_URL?.includes("127.0.0.1") ||
+  import.meta.env.VITE_SUPABASE_URL?.includes("localhost");
+
 /** Patch a single counter field on every cached posts list that contains the post. */
 function patchPostCount(
   qc: QueryClient,
@@ -14,29 +18,51 @@ function patchPostCount(
   qc.getQueriesData<unknown>({ queryKey: ["posts"] }).forEach(([key, data]) => {
     if (Array.isArray(data)) {
       const rows = data as FeedPost[];
-      if (!rows.some((p) => p && typeof p === "object" && "id" in p && p.id === postId)) return;
+
+      if (
+        !rows.some(
+          (p) => p && typeof p === "object" && "id" in p && p.id === postId,
+        )
+      ) {
+        return;
+      }
+
       qc.setQueryData(
         key,
         rows.map((p) =>
-          p.id === postId ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) } : p,
+          p.id === postId
+            ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) }
+            : p,
         ),
       );
+
       return;
     }
+
     // Support useInfiniteQuery shapes: { pages: FeedPost[][], pageParams }
     if (data && typeof data === "object" && "pages" in (data as Record<string, unknown>)) {
       const infinite = data as { pages: FeedPost[][]; pageParams: unknown[] };
+
       if (!Array.isArray(infinite.pages)) return;
+
       let touched = false;
+
       const nextPages = infinite.pages.map((page) => {
         if (!Array.isArray(page)) return page;
         if (!page.some((p) => p?.id === postId)) return page;
+
         touched = true;
+
         return page.map((p) =>
-          p.id === postId ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) } : p,
+          p.id === postId
+            ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) }
+            : p,
         );
       });
-      if (touched) qc.setQueryData(key, { ...infinite, pages: nextPages });
+
+      if (touched) {
+        qc.setQueryData(key, { ...infinite, pages: nextPages });
+      }
     }
   });
 }
@@ -50,7 +76,13 @@ export function RealtimeBridge() {
   const qc = useQueryClient();
 
   useEffect(() => {
+    if (isLocalSupabaseRealtimeDisabled) {
+      console.warn("[realtime] disabled in local dev to prevent websocket loop");
+      return;
+    }
+
     if (!user?.id) return;
+
     const uid = user.id;
 
     const channel = supabase
@@ -78,10 +110,20 @@ export function RealtimeBridge() {
         { event: "*", schema: "public", table: "likes" },
         (payload) => {
           const row = (payload.new ?? payload.old) as { post_id?: string } | undefined;
+
           if (row?.post_id) {
-            const delta = payload.eventType === "INSERT" ? 1 : payload.eventType === "DELETE" ? -1 : 0;
-            if (delta !== 0) patchPostCount(qc, row.post_id, "likes_count", delta);
+            const delta =
+              payload.eventType === "INSERT"
+                ? 1
+                : payload.eventType === "DELETE"
+                  ? -1
+                  : 0;
+
+            if (delta !== 0) {
+              patchPostCount(qc, row.post_id, "likes_count", delta);
+            }
           }
+
           qc.invalidateQueries({ queryKey: ["posts"] });
           qc.invalidateQueries({ queryKey: ["social", "likes"] });
           qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -93,10 +135,20 @@ export function RealtimeBridge() {
         { event: "*", schema: "public", table: "shares" },
         (payload) => {
           const row = (payload.new ?? payload.old) as { post_id?: string } | undefined;
+
           if (row?.post_id) {
-            const delta = payload.eventType === "INSERT" ? 1 : payload.eventType === "DELETE" ? -1 : 0;
-            if (delta !== 0) patchPostCount(qc, row.post_id, "shares_count", delta);
+            const delta =
+              payload.eventType === "INSERT"
+                ? 1
+                : payload.eventType === "DELETE"
+                  ? -1
+                  : 0;
+
+            if (delta !== 0) {
+              patchPostCount(qc, row.post_id, "shares_count", delta);
+            }
           }
+
           qc.invalidateQueries({ queryKey: ["posts"] });
           qc.invalidateQueries({ queryKey: ["social", "shares"] });
         },
@@ -107,11 +159,22 @@ export function RealtimeBridge() {
         { event: "*", schema: "public", table: "comments" },
         (payload) => {
           const row = (payload.new ?? payload.old) as { post_id?: string } | undefined;
+
           if (row?.post_id) {
-            const delta = payload.eventType === "INSERT" ? 1 : payload.eventType === "DELETE" ? -1 : 0;
-            if (delta !== 0) patchPostCount(qc, row.post_id, "replies_count", delta);
+            const delta =
+              payload.eventType === "INSERT"
+                ? 1
+                : payload.eventType === "DELETE"
+                  ? -1
+                  : 0;
+
+            if (delta !== 0) {
+              patchPostCount(qc, row.post_id, "replies_count", delta);
+            }
+
             qc.invalidateQueries({ queryKey: ["comments", row.post_id] });
           }
+
           qc.invalidateQueries({ queryKey: ["posts"] });
           qc.invalidateQueries({ queryKey: ["notifications"] });
         },

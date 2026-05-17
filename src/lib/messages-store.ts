@@ -89,19 +89,36 @@ export function useSendMessage(otherId: string) {
 
 const READ_KEY = "mutuals.dm.read";
 
-const readListeners = new Set<() => void>();
-let readSnapshot: Record<string, string> = readMapFromStorage();
+type ReadMap = Record<string, string>;
 
-function readMapFromStorage(): Record<string, string> {
-  if (typeof window === "undefined") return {};
+const EMPTY_READ_MAP: ReadMap = {};
+const readListeners = new Set<() => void>();
+let readSnapshot: ReadMap = readMapFromStorage();
+
+function readMapFromStorage(): ReadMap {
+  if (typeof window === "undefined") return EMPTY_READ_MAP;
   try {
     const raw = window.localStorage.getItem(READ_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    if (!raw) return EMPTY_READ_MAP;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return EMPTY_READ_MAP;
+    }
+    return parsed as ReadMap;
   } catch {
-    return {};
+    return EMPTY_READ_MAP;
   }
 }
-function persistRead(m: Record<string, string>) {
+
+function sameReadMap(a: ReadMap, b: ReadMap): boolean {
+  if (a === b) return true;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+}
+
+function persistRead(m: ReadMap) {
+  if (sameReadMap(readSnapshot, m)) return;
   readSnapshot = m;
   try {
     window.localStorage.setItem(READ_KEY, JSON.stringify(m));
@@ -117,11 +134,11 @@ function subscribeRead(l: () => void) {
 function getReadSnapshot() {
   return readSnapshot;
 }
-function getReadServerSnapshot(): Record<string, string> {
-  return {};
+function getReadServerSnapshot(): ReadMap {
+  return EMPTY_READ_MAP;
 }
 
-function useReadMap(): Record<string, string> {
+function useReadMap(): ReadMap {
   return useSyncExternalStore(subscribeRead, getReadSnapshot, getReadServerSnapshot);
 }
 
