@@ -1,0 +1,3 @@
+-- Superseded by 20260517133500_create_tribe_messages.sql
+-- Tribe group chat now uses public.tribe_messages, not public.messages.
+-- This migration is intentionally left as a no-op to avoid modifying public.messages.
