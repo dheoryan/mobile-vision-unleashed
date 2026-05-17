@@ -422,7 +422,9 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       });
     }
 
-    const mapped: TribeMessage[] = rows.map((row: any) => ({
+    const mapped: TribeMessage[] = Array.from(
+      new Map(rows.map((row: any) => [row.id, row])).values(),
+    ).map((row: any) => ({
       id: row.id,
       tribe_id: row.tribe_id,
       sender_id: row.sender_id,
@@ -475,16 +477,20 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
             .select("id, display_name, handle, avatar_emoji, avatar_url")
             .eq("id", row.sender_id)
             .single();
-          setMessages((prev) => [
-            ...prev,
-            {
-              ...row,
-              sender: (profile as TribeMember | null) ?? undefined,
-              reply_to: row.reply_to_id
-                ? (prev.find((m) => m.id === row.reply_to_id) ?? null)
-                : null,
-            },
-          ]);
+          setMessages((prev) => {
+            if (prev.some((message) => message.id === row.id)) return prev;
+
+            return [
+              ...prev,
+              {
+                ...row,
+                sender: (profile as TribeMember | null) ?? undefined,
+                reply_to: row.reply_to_id
+                  ? (prev.find((m) => m.id === row.reply_to_id) ?? null)
+                  : null,
+              },
+            ];
+          });
         },
       )
       .subscribe();
