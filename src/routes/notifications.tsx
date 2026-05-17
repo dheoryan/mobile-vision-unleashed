@@ -24,6 +24,7 @@ import { EnablePushBanner } from "@/components/mutuals/EnablePushBanner";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { timeAgo } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
+import { TRIBES, type TribeId } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
@@ -46,6 +47,7 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   venture_apply: <Users className="h-3 w-3" />,
   venture_accept: <UserCheck className="h-3 w-3" />,
   venture_message: <MessageSquare className="h-3 w-3" />,
+  tribe_join: <Users className="h-3 w-3" />,
 };
 
 const TEXTS: Record<NotificationKind, string> = {
@@ -59,7 +61,11 @@ const TEXTS: Record<NotificationKind, string> = {
   venture_apply: "asked to join your Venture",
   venture_accept: "accepted you into a Venture",
   venture_message: "sent a Venture message",
+  tribe_join: "joined your Tribe",
 };
+
+const isTribeId = (value: string | null): value is TribeId =>
+  !!value && TRIBES.some((tribe) => tribe.id === value);
 
 function NotificationsPage() {
   const { items, unread, isLoading, markAllRead } = useNotifications();
@@ -95,6 +101,13 @@ function NotificationsPage() {
       n.kind === "venture_message"
     ) {
       intentStore.push({ kind: "openTab", tab: "ventures" });
+      navigate({ to: "/" });
+    } else if (n.kind === "tribe_join") {
+      if (isTribeId(n.tribe_id)) {
+        intentStore.push({ kind: "openTribe", tribeId: n.tribe_id });
+      } else {
+        intentStore.push({ kind: "openTab", tab: "tribe" });
+      }
       navigate({ to: "/" });
     } else if (n.kind === "message") {
       intentStore.push({ kind: "openTab", tab: "discover" });

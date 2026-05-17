@@ -15,7 +15,8 @@ export type NotificationKind =
   | "new_post"
   | "venture_apply"
   | "venture_accept"
-  | "venture_message";
+  | "venture_message"
+  | "tribe_join";
 
 export type NotificationRow = {
   id: string;
@@ -26,6 +27,7 @@ export type NotificationRow = {
   comment_id: string | null;
   message_id: string | null;
   venture_id: string | null;
+  tribe_id: string | null;
   preview: string | null;
   read_at: string | null;
   created_at: string;
@@ -39,7 +41,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabase
       .from("notifications")
       .select(
-        "id, user_id, actor_id, kind, post_id, comment_id, message_id, venture_id, preview, read_at, created_at",
+        "id, user_id, actor_id, kind, post_id, comment_id, message_id, venture_id, tribe_id, preview, read_at, created_at",
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })

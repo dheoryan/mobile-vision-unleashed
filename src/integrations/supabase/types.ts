@@ -194,6 +194,7 @@ export type Database = {
           post_id: string | null;
           preview: string | null;
           read_at: string | null;
+          tribe_id: string | null;
           user_id: string;
           venture_id: string | null;
         };
@@ -207,6 +208,7 @@ export type Database = {
           post_id?: string | null;
           preview?: string | null;
           read_at?: string | null;
+          tribe_id?: string | null;
           user_id: string;
           venture_id?: string | null;
         };
@@ -220,6 +222,7 @@ export type Database = {
           post_id?: string | null;
           preview?: string | null;
           read_at?: string | null;
+          tribe_id?: string | null;
           user_id?: string;
           venture_id?: string | null;
         };

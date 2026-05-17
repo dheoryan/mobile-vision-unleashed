@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const TRIBE_IDS = ["wolf", "raven", "fox", "owl", "bear", "stag"] as const;
+const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
 
 const updateSchema = z.object({
   display_name: z.string().min(1).max(60).optional(),

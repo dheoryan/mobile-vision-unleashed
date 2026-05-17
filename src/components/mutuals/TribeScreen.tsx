@@ -618,9 +618,21 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
             </p>
           )}
           {messages.map((m) => {
+            const isSystem = m.attachment_type === "system:tribe_join";
             const mine = m.sender_id === user?.id;
             const displayName = mine ? "You" : (m.sender?.display_name ?? "Member");
             const avatarUrl = m.sender?.avatar_url;
+
+            if (isSystem) {
+              return (
+                <div key={m.id} className="flex justify-center py-1">
+                  <div className="max-w-[82%] rounded-full border border-border bg-secondary/70 px-3 py-1.5 text-center text-[11px] leading-snug text-muted-foreground">
+                    <span>{m.content}</span>
+                    <span className="ml-1 opacity-70">{formatTime(m.created_at)}</span>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div
