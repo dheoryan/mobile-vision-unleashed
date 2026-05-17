@@ -201,6 +201,7 @@ export type Database = {
           preview: string | null
           read_at: string | null
           user_id: string
+          venture_id: string | null
         }
         Insert: {
           actor_id?: string | null
@@ -213,6 +214,7 @@ export type Database = {
           preview?: string | null
           read_at?: string | null
           user_id: string
+          venture_id?: string | null
         }
         Update: {
           actor_id?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           preview?: string | null
           read_at?: string | null
           user_id?: string
+          venture_id?: string | null
         }
         Relationships: []
       }
