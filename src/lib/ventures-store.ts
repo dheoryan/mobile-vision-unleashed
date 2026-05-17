@@ -22,6 +22,7 @@ export type {
   VentureParty,
   VentureScope,
   VentureMessage,
+  VentureProfileLite,
 } from "@/lib/ventures.functions";
 
 const VENTURES_KEY = ["ventures"] as const;
