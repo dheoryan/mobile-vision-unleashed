@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, MessageCircle, Send, X } from "lucide-react";
 import {
   markThreadRead,
   useProfileById,
@@ -8,6 +8,15 @@ import {
   useThreads,
   type DMThreadSummary,
 } from "@/lib/messages-store";
+import {
+  useMyHostedVentures,
+  useMyJoinedVentures,
+  useSendVentureMessage,
+  useVentureMessages,
+  type VentureMessage,
+  type VentureParty,
+  type VentureProfileLite,
+} from "@/lib/ventures-store";
 import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeBadge } from "./Shared";
@@ -16,25 +25,38 @@ import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
+import { toast } from "sonner";
 
 export function MessagesPanel({
   open,
   onClose,
   openWithUserId,
+  openWithVenture,
 }: {
   open: boolean;
   onClose: () => void;
   openWithUserId?: string | null;
+  openWithVenture?: VentureParty | null;
 }) {
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [ventureThread, setVentureThread] = useState<VentureParty | null>(null);
 
   useEffect(() => {
     if (!open) {
       setThreadId(null);
+      setVentureThread(null);
       return;
     }
+
+    if (openWithVenture) {
+      setThreadId(null);
+      setVentureThread(openWithVenture);
+      return;
+    }
+
+    setVentureThread(null);
     if (openWithUserId) setThreadId(openWithUserId);
-  }, [open, openWithUserId]);
+  }, [open, openWithUserId, openWithVenture]);
 
   if (!open) return null;
 
@@ -42,8 +64,17 @@ export function MessagesPanel({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl animate-rise">
-        {!threadId ? (
-          <Inbox onOpen={(id) => setThreadId(id)} onClose={onClose} />
+        {ventureThread ? (
+          <VenturePartyThread venture={ventureThread} onBack={() => setVentureThread(null)} />
+        ) : !threadId ? (
+          <Inbox
+            onOpen={(id) => setThreadId(id)}
+            onOpenVenture={(venture) => {
+              setThreadId(null);
+              setVentureThread(venture);
+            }}
+            onClose={onClose}
+          />
         ) : (
           <Thread otherId={threadId} onBack={() => setThreadId(null)} />
         )}
@@ -86,8 +117,42 @@ function Avatar({
   );
 }
 
-function Inbox({ onOpen, onClose }: { onOpen: (id: string) => void; onClose: () => void }) {
-  const { data: threads, isLoading } = useThreads();
+function Inbox({
+  onOpen,
+  onOpenVenture,
+  onClose,
+}: {
+  onOpen: (id: string) => void;
+  onOpenVenture: (venture: VentureParty) => void;
+  onClose: () => void;
+}) {
+  const { user } = useAuth();
+  const { data: threads, isLoading: directMessagesLoading } = useThreads();
+  const { data: hostedVentures, isLoading: hostedVenturesLoading } = useMyHostedVentures();
+  const { data: joinedVentures, isLoading: joinedVenturesLoading } = useMyJoinedVentures();
+
+  const partyThreads = useMemo(() => {
+    const map = new Map<string, VentureParty>();
+    const all = [...(hostedVentures ?? []), ...(joinedVentures ?? [])];
+
+    for (const venture of all) {
+      const isActive = venture.status !== "closed" && !venture.closed_at && !venture.ended_at;
+      const isHost = venture.host_id === user?.id;
+      const isAcceptedMember = venture.my_application?.status === "accepted";
+
+      if (isActive && (isHost || isAcceptedMember)) {
+        map.set(venture.id, venture);
+      }
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+    );
+  }, [hostedVentures, joinedVentures, user?.id]);
+
+  const isLoading = directMessagesLoading || hostedVenturesLoading || joinedVenturesLoading;
+  const hasDirectThreads = !!threads?.length;
+  const hasPartyThreads = partyThreads.length > 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -104,19 +169,82 @@ function Inbox({ onOpen, onClose }: { onOpen: (id: string) => void; onClose: () 
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <p className="p-10 text-center text-xs text-muted-foreground">Loading…</p>
-        ) : !threads || threads.length === 0 ? (
+        ) : !hasDirectThreads && !hasPartyThreads ? (
           <p className="p-10 text-center text-sm text-muted-foreground">
-            No messages yet. Send a Hello from a Venture to start a conversation.
+            No messages yet. Active Venture party chats will appear here after you host or join one.
           </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {threads.map((t) => (
-              <ThreadRow key={t.other_id} t={t} onOpen={() => onOpen(t.other_id)} />
-            ))}
-          </ul>
+          <div className="divide-y divide-border">
+            {hasPartyThreads && (
+              <section>
+                <p className="label-mono px-5 pb-2 pt-4 text-muted-foreground">Party chats</p>
+                <ul>
+                  {partyThreads.map((venture) => (
+                    <VentureThreadRow
+                      key={venture.id}
+                      venture={venture}
+                      onOpen={() => onOpenVenture(venture)}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {hasDirectThreads && (
+              <section>
+                <p className="label-mono px-5 pb-2 pt-4 text-muted-foreground">Direct messages</p>
+                <ul className="divide-y divide-border">
+                  {threads.map((t) => (
+                    <ThreadRow key={t.other_id} t={t} onOpen={() => onOpen(t.other_id)} />
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: () => void }) {
+  const { user } = useAuth();
+  const { data: msgs } = useVentureMessages(venture.id, true);
+  const last = msgs?.[msgs.length - 1];
+  const isMine = last?.sender_id === user?.id;
+  const lastSenderName = displayVentureName(last?.sender);
+  const preview = last
+    ? `${isMine ? "You" : lastSenderName}: ${last.content}`
+    : `${Math.max(venture.filled_slots, 1)}/${venture.max_slots} slots · No messages yet`;
+
+  return (
+    <li>
+      <button
+        onClick={onOpen}
+        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+          <MessageCircle className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold">{venture.title}</p>
+            <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-primary">
+              Party
+            </span>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{preview}</p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[10px] text-muted-foreground">
+            {last ? timeAgo(last.created_at) : timeAgo(venture.created_at)}
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {Math.max(venture.filled_slots, 1)}/{venture.max_slots}
+          </span>
+        </div>
+      </button>
+    </li>
   );
 }
 
@@ -126,7 +254,10 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
   const isMine = t.last_message.sender_id === user?.id;
   return (
     <li>
-      <button onClick={onOpen} className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card">
+      <button
+        onClick={onOpen}
+        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card"
+      >
         <span className="relative">
           <Avatar value={avatarOf(t.other)} tribeColor={tribe.colorVar} />
           {showPlusBadge(t.other?.plan) && <PlusBadge />}
@@ -152,12 +283,131 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
           <span className="text-[10px] text-muted-foreground">
             {timeAgo(t.last_message.created_at)}
           </span>
-          {!isMine && t.unread_count > 0 && (
-            <span className="h-2 w-2 rounded-full bg-primary" />
-          )}
+          {!isMine && t.unread_count > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
         </div>
       </button>
     </li>
+  );
+}
+
+function displayVentureName(profile: VentureProfileLite | null | undefined) {
+  return profile?.display_name?.trim() || profile?.handle || "Someone";
+}
+
+function shortTime(iso: string) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack: () => void }) {
+  const { user } = useAuth();
+  const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
+  const send = useSendVentureMessage(venture.id);
+  const [text, setText] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!msgs?.length) return;
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [msgs]);
+
+  const submit = () => {
+    const content = text.trim();
+    if (!content) return;
+    send.mutate(content, {
+      onSuccess: () => {
+        setText("");
+        requestPushPrompt("venture");
+      },
+      onError: (err) => toast.error((err as Error).message),
+    });
+  };
+
+  const memberCount = Math.max(venture.filled_slots, 1);
+
+  return (
+    <div className="flex h-full flex-col">
+      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <button
+          onClick={onBack}
+          className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+          <MessageCircle className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{venture.title}</p>
+          <p className="text-[11px] text-muted-foreground">
+            Party chat · {memberCount}/{venture.max_slots} slots
+          </p>
+        </div>
+      </header>
+
+      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+        {isLoading ? (
+          <p className="py-10 text-center text-xs text-muted-foreground">Loading party chat…</p>
+        ) : !msgs?.length ? (
+          <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+            No messages yet.
+          </p>
+        ) : (
+          msgs.map((m: VentureMessage) => {
+            const mine = m.sender_id === user?.id;
+            const pending = m.id.startsWith("tmp-");
+            return (
+              <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+                <div className={cn("max-w-[82%]", pending && "opacity-60")}>
+                  <div
+                    className={cn(
+                      "rounded-2xl px-3 py-2 text-sm",
+                      mine
+                        ? "rounded-br-sm bg-primary text-primary-foreground"
+                        : "rounded-bl-sm bg-card text-foreground",
+                    )}
+                  >
+                    {!mine && (
+                      <p className="mb-0.5 text-[10px] font-semibold opacity-70">
+                        {displayVentureName(m.sender)}
+                      </p>
+                    )}
+                    <p className="leading-relaxed">{m.content}</p>
+                    <p
+                      className={cn(
+                        "mt-1 text-[10px]",
+                        mine ? "text-primary-foreground/70" : "text-muted-foreground",
+                      )}
+                    >
+                      {pending ? "sending…" : shortTime(m.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="border-t border-border p-3">
+        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, 2000))}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            placeholder="Message the party"
+            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
+          />
+          <button
+            onClick={submit}
+            disabled={!text.trim() || send.isPending}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+            aria-label="Send party message"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -189,7 +439,10 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <button onClick={onBack} className="rounded-full p-2 text-muted-foreground hover:text-foreground">
+        <button
+          onClick={onBack}
+          className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
@@ -219,13 +472,17 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                   <div
                     className={cn(
                       "rounded-2xl px-3 py-2 text-sm",
-                      mine ? "rounded-br-sm text-primary-foreground" : "rounded-bl-sm bg-card text-foreground",
+                      mine
+                        ? "rounded-br-sm text-primary-foreground"
+                        : "rounded-bl-sm bg-card text-foreground",
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
                   >
                     {m.content}
                   </div>
-                  <p className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}>
+                  <p
+                    className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
+                  >
                     {pending ? "sending…" : `${timeAgo(m.created_at)} ago`}
                   </p>
                 </div>

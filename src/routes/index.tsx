@@ -8,18 +8,14 @@ import { DiscoverScreen } from "@/components/mutuals/DiscoverScreen";
 import { VenturesScreen } from "@/components/mutuals/VenturesScreen";
 import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
+import type { VentureParty } from "@/lib/ventures-store";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import type { Person } from "@/lib/mutuals-data";
 import { useUnreadCount, useThreads } from "@/lib/messages-store";
 import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { intentStore, useIntent } from "@/lib/intent-store";
-import {
-  rowToProfile,
-  useProfileRow,
-  useUpdateProfile,
-  profileToPatch,
-} from "@/lib/profile-store";
+import { rowToProfile, useProfileRow, useUpdateProfile, profileToPatch } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +44,7 @@ function App() {
   const [tab, setTab] = useState<TabKey>(loadTab);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
+  const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
   const [openPostId, setOpenPostId] = useState<string | null>(null);
   const intent = useIntent();
   const threadsQuery = useThreads();
@@ -59,13 +56,19 @@ function App() {
   }, [user, authLoading, navigate]);
 
   // Persist tab
-  useEffect(() => { try { window.localStorage.setItem(TAB_KEY, tab); } catch {} }, [tab]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TAB_KEY, tab);
+    } catch {}
+  }, [tab]);
 
   // One-shot migration: push legacy localStorage profile into DB
   useEffect(() => {
     if (!user || profileQuery.isLoading) return;
     if (profile) {
-      try { window.localStorage.removeItem(LEGACY_PROFILE_KEY); } catch {}
+      try {
+        window.localStorage.removeItem(LEGACY_PROFILE_KEY);
+      } catch {}
       return;
     }
     try {
@@ -78,7 +81,9 @@ function App() {
       if (!parsed.tribeIds.length || !parsed.name) return;
       updateProfile.mutate(profileToPatch(parsed), {
         onSuccess: () => {
-          try { window.localStorage.removeItem(LEGACY_PROFILE_KEY); } catch {}
+          try {
+            window.localStorage.removeItem(LEGACY_PROFILE_KEY);
+          } catch {}
           toast.success("Welcome back — profile restored");
         },
       });
@@ -90,16 +95,25 @@ function App() {
     if (!intent || !profile) return;
     const i = intentStore.consume();
     if (!i) return;
-    if (i.kind === "openThreadWith") { setOpenThreadUser(i.userId); setMessagesOpen(true); }
-    else if (i.kind === "openPost") { setOpenPostId(i.postId); }
-    else if (i.kind === "openTab") { setTab(i.tab); }
+    if (i.kind === "openThreadWith") {
+      setOpenThreadUser(i.userId);
+      setOpenVentureChat(null);
+      setMessagesOpen(true);
+    } else if (i.kind === "openPost") {
+      setOpenPostId(i.postId);
+    } else if (i.kind === "openTab") {
+      setTab(i.tab);
+    }
   }, [intent, profile]);
 
   const unread = useUnreadCount(threadsQuery.data);
 
   // Locally-applied profile setter that syncs to DB. Passing null = sign out.
   const setProfile = (updater: Profile | null | ((p: Profile | null) => Profile | null)) => {
-    const next = typeof updater === "function" ? (updater as (p: Profile | null) => Profile | null)(profile) : updater;
+    const next =
+      typeof updater === "function"
+        ? (updater as (p: Profile | null) => Profile | null)(profile)
+        : updater;
     if (next === null) {
       supabase.auth.signOut();
       return;
@@ -110,7 +124,11 @@ function App() {
   };
 
   if (authLoading || (user && profileQuery.isLoading)) {
-    return <div className="bg-habitat flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <div className="bg-habitat flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
   }
   if (!user) return null; // redirecting
 
@@ -127,7 +145,9 @@ function App() {
   }
 
   const handleSendHello = async (person: Person, message: string) => {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(person.id);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      person.id,
+    );
     if (!isUuid) {
       toast.error("That person isn't on Mutuals yet.");
       return;
@@ -136,6 +156,7 @@ function App() {
       await sendDM({ data: { recipient_id: person.id, content: message } });
       toast.success(`Hello sent to ${person.name}`);
       setOpenThreadUser(person.id);
+      setOpenVentureChat(null);
       setMessagesOpen(true);
       threadsQuery.refetch();
     } catch (e) {
@@ -148,10 +169,26 @@ function App() {
     // Profile query is invalidated automatically; nothing else to do here.
   };
 
-  const openMessages = () => { setOpenThreadUser(null); setMessagesOpen(true); };
+  const openMessages = () => {
+    setOpenThreadUser(null);
+    setOpenVentureChat(null);
+    setMessagesOpen(true);
+  };
+  const openVentureMessages = (venture: VentureParty) => {
+    setOpenThreadUser(null);
+    setOpenVentureChat(venture);
+    setMessagesOpen(true);
+  };
 
   const screens: Record<TabKey, React.ReactNode> = {
-    tribe:    <TribeScreen    profile={profile} setProfile={setProfile} onOpenMessages={openMessages} unread={unread} />,
+    tribe: (
+      <TribeScreen
+        profile={profile}
+        setProfile={setProfile}
+        onOpenMessages={openMessages}
+        unread={unread}
+      />
+    ),
     timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,
     discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
     ventures: (
@@ -159,12 +196,20 @@ function App() {
         profile={profile}
         setProfile={setProfile}
         onOpenMessages={openMessages}
+        onOpenVentureChat={openVentureMessages}
         onSendHello={handleSendHello}
         onLaunchVenture={handleLaunchVenture}
         unread={unread}
       />
     ),
-    profile:  <ProfileScreen profile={profile} onOpenMessages={openMessages} unread={unread} setProfile={setProfile} />,
+    profile: (
+      <ProfileScreen
+        profile={profile}
+        onOpenMessages={openMessages}
+        unread={unread}
+        setProfile={setProfile}
+      />
+    ),
   };
 
   return (
@@ -178,8 +223,13 @@ function App() {
       <BottomNav active={tab} onChange={setTab} />
       <MessagesPanel
         open={messagesOpen}
-        onClose={() => { setMessagesOpen(false); setOpenThreadUser(null); }}
+        onClose={() => {
+          setMessagesOpen(false);
+          setOpenThreadUser(null);
+          setOpenVentureChat(null);
+        }}
         openWithUserId={openThreadUser}
+        openWithVenture={openVentureChat}
       />
       <CommentsModal open={!!openPostId} onClose={() => setOpenPostId(null)} postId={openPostId} />
     </>
