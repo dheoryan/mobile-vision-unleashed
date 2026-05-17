@@ -56,7 +56,6 @@ export type ProfilePatch = Partial<{
   avatar_emoji: string;
   avatar_url: string | null;
   tribe_ids: string[];
-  plan: "free" | "plus";
 }>;
 
 export function useUpdateProfile() {
@@ -74,6 +73,7 @@ export function useUpdateProfile() {
 /** Build the DB patch from a client-side Profile object. */
 export function profileToPatch(p: Profile) {
   const isUrl = !!p.avatar && (p.avatar.startsWith("data:") || p.avatar.startsWith("http"));
+  // NOTE: `plan` is intentionally omitted — it must only be changed by a trusted server flow.
   return {
     display_name: p.name,
     ...(p.handle !== undefined ? { handle: p.handle } : {}),
@@ -83,6 +83,5 @@ export function profileToPatch(p: Profile) {
     avatar_emoji: isUrl ? "🌿" : p.avatar,
     avatar_url: isUrl ? p.avatar : null,
     tribe_ids: p.tribeIds,
-    plan: p.plan,
   };
 }
