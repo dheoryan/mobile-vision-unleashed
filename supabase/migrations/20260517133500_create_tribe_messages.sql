@@ -172,6 +172,16 @@ create table if not exists public.tribe_messages (
     )
 );
 
+alter table public.tribe_messages
+  add column if not exists tribe_id uuid references public.tribes(id) on delete cascade,
+  add column if not exists sender_id uuid references public.profiles(id) on delete cascade,
+  add column if not exists content text,
+  add column if not exists attachment_url text,
+  add column if not exists attachment_type text,
+  add column if not exists reply_to_id uuid references public.tribe_messages(id) on delete set null,
+  add column if not exists mentions uuid[] not null default '{}'::uuid[],
+  add column if not exists created_at timestamptz not null default now();
+
 alter table public.tribe_messages enable row level security;
 
 create index if not exists tribe_messages_tribe_created_idx
