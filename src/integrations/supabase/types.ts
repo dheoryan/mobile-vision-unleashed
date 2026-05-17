@@ -460,32 +460,134 @@ export type Database = {
         }
         Relationships: []
       }
+      venture_applications: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          message: string
+          status: string
+          venture_id: string
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message?: string
+          status?: string
+          venture_id: string
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message?: string
+          status?: string
+          venture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venture_applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venture_applications_venture_id_fkey"
+            columns: ["venture_id"]
+            isOneToOne: false
+            referencedRelation: "ventures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venture_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+          venture_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          venture_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          venture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venture_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venture_messages_venture_id_fkey"
+            columns: ["venture_id"]
+            isOneToOne: false
+            referencedRelation: "ventures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ventures: {
         Row: {
+          closed_at: string | null
           created_at: string
           ended_at: string | null
+          filled_slots: number
           id: string
           intents: string[]
+          max_slots: number
+          note: string
           scope: string
+          status: string
           time_window: string
+          title: string
           user_id: string
         }
         Insert: {
+          closed_at?: string | null
           created_at?: string
           ended_at?: string | null
+          filled_slots?: number
           id?: string
           intents?: string[]
+          max_slots?: number
+          note?: string
           scope?: string
+          status?: string
           time_window?: string
+          title?: string
           user_id: string
         }
         Update: {
+          closed_at?: string | null
           created_at?: string
           ended_at?: string | null
+          filled_slots?: number
           id?: string
           intents?: string[]
+          max_slots?: number
+          note?: string
           scope?: string
+          status?: string
           time_window?: string
+          title?: string
           user_id?: string
         }
         Relationships: []
@@ -495,7 +597,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_venture_application: {
+        Args: { _user_id: string; _venture_id: string }
+        Returns: boolean
+      }
+      is_venture_host: {
+        Args: { _user_id: string; _venture_id: string }
+        Returns: boolean
+      }
+      is_venture_joinable: { Args: { _venture_id: string }; Returns: boolean }
+      is_venture_member: {
+        Args: { _user_id: string; _venture_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_plan: "free" | "plus"
