@@ -56,7 +56,6 @@ export type ProfilePatch = Partial<{
   avatar_emoji: string;
   avatar_url: string | null;
   tribe_ids: string[];
-  plan: "free" | "plus";
 }>;
 
 export function useUpdateProfile() {
