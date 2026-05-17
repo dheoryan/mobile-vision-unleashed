@@ -13,7 +13,8 @@ const updateSchema = z.object({
   avatar_emoji: z.string().max(8).optional(),
   avatar_url: z.string().nullable().optional(),
   tribe_ids: z.array(z.string().min(1).max(40)).max(3).optional(),
-  plan: z.enum(["free", "plus"]).optional(),
+  // plan is intentionally NOT user-editable. Plan upgrades must go through a
+  // trusted server flow (payment verification) — not the profile update endpoint.
 });
 
 export type ProfileRow = {
