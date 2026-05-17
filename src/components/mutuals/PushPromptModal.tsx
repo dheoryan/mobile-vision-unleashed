@@ -43,6 +43,10 @@ const COPY: Record<PushPromptTrigger, { title: string; body: string }> = {
     title: "See reactions in real time",
     body: "Turn on push notifications to know when people like or comment on your post.",
   },
+  venture: {
+    title: "Keep your Venture moving",
+    body: "Turn on push notifications for join requests, acceptances, and party chat.",
+  },
 };
 
 export function PushPromptModal() {
@@ -58,8 +62,12 @@ export function PushPromptModal() {
   // Subscribe to high-intent trigger requests.
   useEffect(() => {
     if (!user) return;
-    const off = onPushPromptRequest((t) => { tryOpen(t); });
-    return () => { off(); };
+    const off = onPushPromptRequest((t) => {
+      tryOpen(t);
+    });
+    return () => {
+      off();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -136,16 +144,25 @@ export function PushPromptModal() {
   const copy = COPY[trigger];
 
   const iosSteps = [
-    { icon: <Share className="h-4 w-4" />, text: "Tap the Share button in Safari's bottom toolbar." },
+    {
+      icon: <Share className="h-4 w-4" />,
+      text: "Tap the Share button in Safari's bottom toolbar.",
+    },
     { icon: <Plus className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
-    { icon: <Smartphone className="h-4 w-4" />, text: 'Tap "Add", then open MUTUALS from your home screen.' },
+    {
+      icon: <Smartphone className="h-4 w-4" />,
+      text: 'Tap "Add", then open MUTUALS from your home screen.',
+    },
     { icon: <Bell className="h-4 w-4" />, text: "Come back here and tap Enable notifications." },
   ];
 
   const androidSteps = [
     { icon: <Smartphone className="h-4 w-4" />, text: "Open Chrome's menu (⋮ in the top right)." },
     { icon: <Plus className="h-4 w-4" />, text: 'Tap "Install app" or "Add to Home screen".' },
-    { icon: <Smartphone className="h-4 w-4" />, text: "Confirm, then open MUTUALS from your home screen." },
+    {
+      icon: <Smartphone className="h-4 w-4" />,
+      text: "Confirm, then open MUTUALS from your home screen.",
+    },
     { icon: <Bell className="h-4 w-4" />, text: "Tap Enable notifications when prompted." },
   ];
 
@@ -176,7 +193,10 @@ export function PushPromptModal() {
           <>
             <ol className="mt-4 space-y-2.5">
               {iosSteps.map((s, i) => (
-                <li key={i} className="flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/40 p-3">
+                <li
+                  key={i}
+                  className="flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/40 p-3"
+                >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                     {i + 1}
                   </span>

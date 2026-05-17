@@ -3,7 +3,17 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { VAPID_PUBLIC_KEY } from "@/lib/push-subscribe";
 
-type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message" | "new_post";
+type NotificationKind =
+  | "like"
+  | "comment"
+  | "reply"
+  | "mention"
+  | "follow"
+  | "message"
+  | "new_post"
+  | "venture_apply"
+  | "venture_accept"
+  | "venture_message";
 
 const KIND_TEXT: Record<NotificationKind, string> = {
   like: "liked your post",
@@ -13,6 +23,9 @@ const KIND_TEXT: Record<NotificationKind, string> = {
   follow: "started following you",
   message: "sent you a message",
   new_post: "shared a new signal",
+  venture_apply: "asked to join your Venture",
+  venture_accept: "accepted you into a Venture",
+  venture_message: "sent a Venture message",
 };
 
 function timingSafeEqualStr(a: string, b: string): boolean {
@@ -48,7 +61,7 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
         // Load the notification
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from("notifications")
-          .select("id, user_id, actor_id, kind, post_id, preview")
+          .select("id, user_id, actor_id, kind, post_id, venture_id, preview")
           .eq("id", notificationId)
           .maybeSingle();
         if (notifErr || !notif) {
@@ -66,14 +79,29 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
 
         const actorName = actor?.display_name?.trim() || "Someone";
         const kind = notif.kind as NotificationKind;
-        const verb = KIND_TEXT[kind] ?? "sent you an update";
+        const verb = notif.venture_id
+          ? "sent a Venture update"
+          : (KIND_TEXT[kind] ?? "sent you an update");
 
         let url = "/";
-        if ((kind === "like" || kind === "comment" || kind === "reply" || kind === "mention" || kind === "new_post") && notif.post_id) {
+        if (
+          (kind === "like" ||
+            kind === "comment" ||
+            kind === "reply" ||
+            kind === "mention" ||
+            kind === "new_post") &&
+          notif.post_id
+        ) {
           url = `/?openPost=${encodeURIComponent(notif.post_id)}`;
         } else if (kind === "follow" && actor?.handle) {
           url = `/u/${encodeURIComponent(actor.handle)}`;
         } else if (kind === "message") {
+          url = "/";
+        } else if (
+          kind === "venture_apply" ||
+          kind === "venture_accept" ||
+          kind === "venture_message"
+        ) {
           url = "/";
         }
 
@@ -131,10 +159,7 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
 
               if (res.status === 404 || res.status === 410) {
                 // Subscription expired — clean up
-                await supabaseAdmin
-                  .from("push_subscriptions")
-                  .delete()
-                  .eq("endpoint", s.endpoint);
+                await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
               } else if (res.ok || res.status === 201 || res.status === 202) {
                 delivered++;
                 await supabaseAdmin
@@ -142,7 +167,11 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
                   .update({ last_used_at: new Date().toISOString() })
                   .eq("endpoint", s.endpoint);
               } else {
-                console.warn("[push] non-ok response", res.status, await res.text().catch(() => ""));
+                console.warn(
+                  "[push] non-ok response",
+                  res.status,
+                  await res.text().catch(() => ""),
+                );
               }
             } catch (err) {
               console.error("[push] send failed", err);

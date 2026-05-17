@@ -9,14 +9,28 @@ export type Intent =
 let intent: Intent | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
+const getServerSnapshot = () => null;
 
 export const intentStore = {
   get: () => intent,
-  subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
-  push: (i: Intent) => { intent = i; emit(); },
-  consume: () => { const i = intent; intent = null; emit(); return i; },
+  subscribe: (l: () => void) => {
+    listeners.add(l);
+    return () => {
+      listeners.delete(l);
+    };
+  },
+  push: (i: Intent) => {
+    intent = i;
+    emit();
+  },
+  consume: () => {
+    const i = intent;
+    intent = null;
+    emit();
+    return i;
+  },
 };
 
 export function useIntent() {
-  return useSyncExternalStore(intentStore.subscribe, intentStore.get, intentStore.get);
+  return useSyncExternalStore(intentStore.subscribe, intentStore.get, getServerSnapshot);
 }

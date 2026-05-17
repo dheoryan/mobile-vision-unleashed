@@ -1,4 +1,4 @@
-export type PushPromptTrigger = "session" | "dm" | "post";
+export type PushPromptTrigger = "session" | "dm" | "post" | "venture";
 
 type Listener = (trigger: PushPromptTrigger) => void;
 const listeners = new Set<Listener>();
@@ -10,6 +10,10 @@ export function onPushPromptRequest(fn: Listener) {
 
 export function requestPushPrompt(trigger: PushPromptTrigger) {
   for (const fn of listeners) {
-    try { fn(trigger); } catch { /* ignore */ }
+    try {
+      fn(trigger);
+    } catch {
+      /* ignore */
+    }
   }
 }

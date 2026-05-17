@@ -5,7 +5,17 @@ import type { AuthorLite } from "@/lib/posts.functions";
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 
-export type NotificationKind = "like" | "comment" | "reply" | "mention" | "follow" | "message" | "new_post";
+export type NotificationKind =
+  | "like"
+  | "comment"
+  | "reply"
+  | "mention"
+  | "follow"
+  | "message"
+  | "new_post"
+  | "venture_apply"
+  | "venture_accept"
+  | "venture_message";
 
 export type NotificationRow = {
   id: string;
@@ -15,6 +25,7 @@ export type NotificationRow = {
   post_id: string | null;
   comment_id: string | null;
   message_id: string | null;
+  venture_id: string | null;
   preview: string | null;
   read_at: string | null;
   created_at: string;
@@ -27,14 +38,20 @@ export const listMyNotifications = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data: rows, error } = await supabase
       .from("notifications")
-      .select("id, user_id, actor_id, kind, post_id, comment_id, message_id, preview, read_at, created_at")
+      .select(
+        "id, user_id, actor_id, kind, post_id, comment_id, message_id, venture_id, preview, read_at, created_at",
+      )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(80);
     if (error) throw new Error(error.message);
 
     const actorIds = Array.from(
-      new Set(((rows ?? []) as Array<{ actor_id: string | null }>).map((r) => r.actor_id).filter(Boolean) as string[]),
+      new Set(
+        ((rows ?? []) as Array<{ actor_id: string | null }>)
+          .map((r) => r.actor_id)
+          .filter(Boolean) as string[],
+      ),
     );
     const actorMap = new Map<string, AuthorLite>();
     if (actorIds.length) {
@@ -46,7 +63,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
     }
     return ((rows ?? []) as Omit<NotificationRow, "actor">[]).map((r) => ({
       ...r,
-      actor: r.actor_id ? actorMap.get(r.actor_id) ?? null : null,
+      actor: r.actor_id ? (actorMap.get(r.actor_id) ?? null) : null,
     }));
   });
 
