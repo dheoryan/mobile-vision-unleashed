@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { POSTS, PEOPLE, tribeById, personById, type TribeId } from "@/lib/mutuals-data";
@@ -326,6 +326,7 @@ function EditProfileModal({
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
   const [uploading, setUploading] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   const sanitizeHandle = (v: string) =>
     v.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_]/g, "").slice(0, 30);
@@ -333,7 +334,7 @@ function EditProfileModal({
 
   if (!open) return null;
 
-  const onPickFile = async (file: File | undefined) => {
+  const onPickFile = (file: File | undefined) => {
     if (!file || !user) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Only image files.");
@@ -343,10 +344,17 @@ function EditProfileModal({
       toast.error("Image too large", { description: "Please pick an image under 5MB." });
       return;
     }
+    setCropFile(file);
+  };
+
+  const onSaveCroppedAvatar = async (file: File) => {
+    if (!user) return;
     setUploading(true);
     try {
       const url = await uploadAvatar(user.id, file);
       setAvatar(url);
+      setCropFile(null);
+      toast.success("Photo ready", { description: "Save changes to update your profile." });
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
     } finally {
@@ -366,20 +374,25 @@ function EditProfileModal({
         <h2 className="font-display text-xl font-bold">Edit profile</h2>
 
         <div className="mt-5 flex flex-col items-center">
-          <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-background text-4xl">
-            {isImage ? (
-              <img src={avatar} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span>{avatar}</span>
-            )}
-            <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-visible">
+            <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-background text-4xl ring-2 ring-background">
+              {isImage ? (
+                <img src={avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span>{avatar}</span>
+              )}
+            </span>
+            <span className="absolute -bottom-1 -right-1 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-card">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             </span>
             <input
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => onPickFile(e.target.files?.[0])}
+              onChange={(e) => {
+                onPickFile(e.target.files?.[0]);
+                e.currentTarget.value = "";
+              }}
             />
           </label>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
@@ -412,14 +425,244 @@ function EditProfileModal({
 
         <div className="mt-5 flex flex-col gap-2">
           <button
-            disabled={!name.trim() || !city.trim() || !handleValid}
+            disabled={!name.trim() || !city.trim() || !handleValid || uploading}
             onClick={() => onSave({ name: name.trim(), handle, city: city.trim(), bio, avatar })}
             className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
-            Save changes
+            {uploading ? "Saving photo…" : "Save changes"}
           </button>
           <button onClick={onClose} className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
             Cancel
+          </button>
+        </div>
+      </div>
+
+      <AvatarCropModal
+        file={cropFile}
+        saving={uploading}
+        onClose={() => setCropFile(null)}
+        onSave={onSaveCroppedAvatar}
+      />
+    </div>
+  );
+}
+
+
+function AvatarCropModal({
+  file,
+  saving,
+  onClose,
+  onSave,
+}: {
+  file: File | null;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (file: File) => Promise<void> | void;
+}) {
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1.15);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const previewSize = 256;
+
+  useEffect(() => {
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    setZoom(1.15);
+    setOffset({ x: 0, y: 0 });
+    setImageSize(null);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  if (!file || !url) return null;
+
+  const getPreviewMetrics = (nextZoom = zoom) => {
+    if (!imageSize) return null;
+    const baseScale = Math.max(previewSize / imageSize.width, previewSize / imageSize.height);
+    const scale = baseScale * nextZoom;
+    return {
+      width: imageSize.width * scale,
+      height: imageSize.height * scale,
+    };
+  };
+
+  const clampOffset = (next: { x: number; y: number }, nextZoom = zoom) => {
+    const metrics = getPreviewMetrics(nextZoom);
+    if (!metrics) return next;
+    const maxX = Math.max(0, (metrics.width - previewSize) / 2);
+    const maxY = Math.max(0, (metrics.height - previewSize) / 2);
+    return {
+      x: Math.min(maxX, Math.max(-maxX, next.x)),
+      y: Math.min(maxY, Math.max(-maxY, next.y)),
+    };
+  };
+
+  const previewMetrics = getPreviewMetrics();
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: offset.x,
+      originY: offset.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setOffset(clampOffset({
+      x: drag.originX + event.clientX - drag.startX,
+      y: drag.originY + event.clientY - drag.startY,
+    }));
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+    }
+  };
+
+  const createCroppedAvatar = async () => {
+    const img = imgRef.current;
+    const viewport = viewportRef.current;
+    if (!img || !viewport) throw new Error("Image is not ready yet.");
+
+    await img.decode().catch(() => undefined);
+
+    const outputSize = 720;
+    const canvas = document.createElement("canvas");
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas is not supported in this browser.");
+
+    ctx.fillStyle = "#111111";
+    ctx.fillRect(0, 0, outputSize, outputSize);
+
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
+    const baseScale = Math.max(outputSize / naturalWidth, outputSize / naturalHeight);
+    const imageScale = baseScale * zoom;
+    const renderedWidth = naturalWidth * imageScale;
+    const renderedHeight = naturalHeight * imageScale;
+    const offsetScale = outputSize / viewport.clientWidth;
+    const dx = outputSize / 2 - renderedWidth / 2 + offset.x * offsetScale;
+    const dy = outputSize / 2 - renderedHeight / 2 + offset.y * offsetScale;
+
+    ctx.drawImage(img, dx, dy, renderedWidth, renderedHeight);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (value) => (value ? resolve(value) : reject(new Error("Could not export avatar."))),
+        "image/jpeg",
+        0.92,
+      );
+    });
+
+    const baseName = file.name.replace(/\.[^/.]+$/, "") || "avatar";
+    return new File([blob], `${baseName}-cropped-avatar.jpg`, { type: "image/jpeg" });
+  };
+
+  const handleUsePhoto = async () => {
+    try {
+      const cropped = await createCroppedAvatar();
+      await onSave(cropped);
+    } catch (err) {
+      toast.error("Could not crop photo", { description: (err as Error).message });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={saving ? undefined : onClose} />
+      <div className="relative mx-auto w-full max-w-md rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-3xl animate-rise">
+        <button
+          onClick={onClose}
+          disabled={saving}
+          aria-label="Close cropper"
+          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground disabled:opacity-40"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <h3 className="font-display text-xl font-bold">Adjust profile photo</h3>
+        <p className="mt-1 text-xs text-muted-foreground">Drag to reposition. Use the slider to zoom before saving.</p>
+
+        <div className="mt-5 flex justify-center">
+          <div
+            ref={viewportRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+            className="relative h-64 w-64 touch-none overflow-hidden rounded-full border border-primary/40 bg-background shadow-inner ring-4 ring-background"
+            style={{ cursor: dragRef.current ? "grabbing" : "grab" }}
+          >
+            <img
+              ref={imgRef}
+              src={url}
+              alt="Selected profile photo"
+              draggable={false}
+              onLoad={(event) => {
+                setImageSize({
+                  width: event.currentTarget.naturalWidth,
+                  height: event.currentTarget.naturalHeight,
+                });
+                setOffset({ x: 0, y: 0 });
+              }}
+              className="pointer-events-none absolute left-1/2 top-1/2 max-w-none select-none"
+              style={{
+                width: previewMetrics ? `${previewMetrics.width}px` : "auto",
+                height: previewMetrics ? `${previewMetrics.height}px` : "auto",
+                transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+              }}
+            />
+            <div className="pointer-events-none absolute inset-0 rounded-full border border-white/15" />
+          </div>
+        </div>
+
+        <label className="mt-5 block">
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="label-mono text-muted-foreground">Zoom</span>
+            <span className="text-muted-foreground">{Math.round(zoom * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="0.01"
+            value={zoom}
+            onChange={(e) => {
+              const nextZoom = Number(e.target.value);
+              setZoom(nextZoom);
+              setOffset((current) => clampOffset(current, nextZoom));
+            }}
+            className="w-full accent-primary"
+          />
+        </label>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleUsePhoto}
+            disabled={saving}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Use photo
           </button>
         </div>
       </div>
