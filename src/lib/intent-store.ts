@@ -1,10 +1,12 @@
 import { useSyncExternalStore } from "react";
 import type { TabKey } from "@/components/mutuals/BottomNav";
+import type { TribeId } from "@/lib/mutuals-data";
 
 export type Intent =
   | { kind: "openPost"; postId: string }
   | { kind: "openThreadWith"; userId: string }
-  | { kind: "openTab"; tab: TabKey };
+  | { kind: "openTab"; tab: TabKey }
+  | { kind: "openTribe"; tribeId: TribeId };
 
 let intent: Intent | null = null;
 const listeners = new Set<() => void>();

@@ -103,6 +103,13 @@ export function RealtimeBridge() {
           qc.invalidateQueries({ queryKey: ["messages"] });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${uid}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["notifications"] });
+        },
+      )
       // Likes on any post — counts come from posts table, but invalidate posts
       // so likes_count reflects when other users like
       .on(

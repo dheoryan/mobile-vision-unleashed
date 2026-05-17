@@ -10,7 +10,7 @@ import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import type { VentureParty } from "@/lib/ventures-store";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
-import type { Person } from "@/lib/mutuals-data";
+import type { Person, TribeId } from "@/lib/mutuals-data";
 import { useUnreadCount, useThreads } from "@/lib/messages-store";
 import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -46,6 +46,7 @@ function App() {
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
   const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
   const [openPostId, setOpenPostId] = useState<string | null>(null);
+  const [initialTribe, setInitialTribe] = useState<TribeId | undefined>(undefined);
   const intent = useIntent();
   const threadsQuery = useThreads();
   const sendDM = useServerFn(sendMessageFn);
@@ -103,6 +104,9 @@ function App() {
       setOpenPostId(i.postId);
     } else if (i.kind === "openTab") {
       setTab(i.tab);
+    } else if (i.kind === "openTribe") {
+      setTab("tribe");
+      setInitialTribe(i.tribeId);
     }
   }, [intent, profile]);
 
@@ -187,6 +191,7 @@ function App() {
         setProfile={setProfile}
         onOpenMessages={openMessages}
         unread={unread}
+        initialTribe={initialTribe}
       />
     ),
     timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,

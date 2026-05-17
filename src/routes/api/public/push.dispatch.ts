@@ -13,7 +13,8 @@ type NotificationKind =
   | "new_post"
   | "venture_apply"
   | "venture_accept"
-  | "venture_message";
+  | "venture_message"
+  | "tribe_join";
 
 const KIND_TEXT: Record<NotificationKind, string> = {
   like: "liked your post",
@@ -26,6 +27,7 @@ const KIND_TEXT: Record<NotificationKind, string> = {
   venture_apply: "asked to join your Venture",
   venture_accept: "accepted you into a Venture",
   venture_message: "sent a Venture message",
+  tribe_join: "joined your Tribe",
 };
 
 function timingSafeEqualStr(a: string, b: string): boolean {
@@ -103,6 +105,8 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
           kind === "venture_message"
         ) {
           url = "/";
+        } else if (kind === "tribe_join") {
+          url = "/";
         }
 
         const payload = {
@@ -111,7 +115,9 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
           icon: "/icons/icon-192.png",
           badge: "/icons/icon-192.png",
           url,
-          tag: `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
+          tag: kind === "tribe_join"
+            ? `${kind}-${notif.id}`
+            : `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
         };
 
         // Fetch this user's subscriptions
