@@ -155,6 +155,40 @@ begin
 end;
 $$;
 
+create or replace function public.is_tribe_member(
+  p_tribe_key text,
+  p_user_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  resolved_tribe_id uuid;
+begin
+  if p_tribe_key is null or p_user_id is null then
+    return false;
+  end if;
+
+  if p_tribe_key ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then
+    resolved_tribe_id := p_tribe_key::uuid;
+  else
+    select id
+    into resolved_tribe_id
+    from public.tribes
+    where key = p_tribe_key
+       or name = p_tribe_key
+    limit 1;
+  end if;
+
+  return public.is_tribe_member(resolved_tribe_id, p_user_id);
+exception
+  when invalid_text_representation then
+    return false;
+end;
+$$;
+
 create table if not exists public.tribe_messages (
   id uuid primary key default gen_random_uuid(),
   tribe_id uuid not null references public.tribes(id) on delete cascade,
