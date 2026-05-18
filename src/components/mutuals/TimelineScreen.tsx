@@ -117,6 +117,20 @@ export function TimelineScreen({
       </main>
 
       <ComposerModal open={composerOpen} onClose={() => setComposerOpen(false)} tribeId={activeTribe} />
+
+      {/* ── Floating "post a signal" FAB (tribe tab only) ── */}
+      {tab === "tribe" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-md justify-end px-5">
+          <button
+            onClick={() => setComposerOpen(true)}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
+            style={{ backgroundColor: tribe.colorVar }}
+            aria-label={`Post a signal to ${tribe.name}`}
+          >
+            <Plus className="h-4 w-4" /> Signal to {tribe.name}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
