@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, MessageCircle, Send, X } from "lucide-react";
+import { ArrowLeft, MessageCircle, Reply, Send, X } from "lucide-react";
 import {
   markThreadRead,
   useProfileById,
@@ -26,6 +26,57 @@ import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
+import { useSwipeReply } from "@/hooks/use-swipe-reply";
+
+type ReplyTarget = { id: string; name: string; snippet: string };
+
+function quotePrefix(reply: ReplyTarget) {
+  const snippet = reply.snippet.length > 80 ? reply.snippet.slice(0, 77) + "…" : reply.snippet;
+  return `↪ ${reply.name}: ${snippet}\n`;
+}
+
+function MessageSwipeRow({
+  children,
+  mine,
+  accentColor,
+  disabled,
+  onReply,
+}: {
+  children: React.ReactNode;
+  mine: boolean;
+  accentColor: string;
+  disabled?: boolean;
+  onReply: () => void;
+}) {
+  const { dragX, peekOpacity, handlers } = useSwipeReply(onReply, disabled);
+  return (
+    <div className="relative select-none">
+      {dragX > 4 && (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-1 text-muted-foreground"
+          style={{ opacity: peekOpacity }}
+        >
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full"
+            style={{ backgroundColor: `color-mix(in oklab, ${accentColor} 28%, transparent)` }}
+          >
+            <Reply className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      )}
+      <div
+        {...handlers}
+        className={cn("flex touch-pan-y", mine ? "justify-end" : "justify-start")}
+        style={{
+          transform: `translateX(${dragX}px)`,
+          transition: dragX === 0 ? "transform 180ms ease-out" : "none",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function MessagesPanel({
   open,
@@ -303,7 +354,9 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
   const send = useSendVentureMessage(venture.id);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!msgs?.length) return;
@@ -311,15 +364,27 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   }, [msgs]);
 
   const submit = () => {
-    const content = text.trim();
-    if (!content) return;
+    const body = text.trim();
+    if (!body) return;
+    const content = replyTo ? quotePrefix(replyTo) + body : body;
     send.mutate(content, {
       onSuccess: () => {
         setText("");
+        setReplyTo(null);
         requestPushPrompt("venture");
       },
       onError: (err) => toast.error((err as Error).message),
     });
+  };
+
+  const startReply = (m: VentureMessage) => {
+    const mine = m.sender_id === user?.id;
+    setReplyTo({
+      id: m.id,
+      name: mine ? "yourself" : displayVentureName(m.sender),
+      snippet: m.content,
+    });
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   const memberCount = Math.max(venture.filled_slots, 1);
@@ -356,7 +421,13 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
             return (
-              <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+              <MessageSwipeRow
+                key={m.id}
+                mine={mine}
+                accentColor="var(--color-primary)"
+                disabled={pending}
+                onReply={() => startReply(m)}
+              >
                 <div className={cn("max-w-[82%]", pending && "opacity-60")}>
                   <div
                     className={cn(
@@ -371,7 +442,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                         {displayVentureName(m.sender)}
                       </p>
                     )}
-                    <p className="leading-relaxed">{m.content}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                     <p
                       className={cn(
                         "mt-1 text-[10px]",
@@ -382,19 +453,36 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                     </p>
                   </div>
                 </div>
-              </div>
+              </MessageSwipeRow>
             );
           })
         )}
       </div>
 
       <div className="border-t border-border p-3">
+        {replyTo && (
+          <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
+            <span className="min-w-0 truncate">
+              Replying to <span className="font-semibold text-foreground">{replyTo.name}</span>
+              {" · "}
+              <span className="italic">{replyTo.snippet}</span>
+            </span>
+            <button
+              onClick={() => setReplyTo(null)}
+              className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Cancel reply"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
           <input
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, 2000))}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="Message the party"
+            placeholder={replyTo ? "Write a reply…" : "Message the party"}
             className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
           />
           <button
@@ -417,8 +505,10 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   const { data: msgs, isLoading } = useThreadMessages(otherId);
   const send = useSendMessage(otherId);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const tribe = tribeOf(other?.tribe_ids);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!msgs?.length) return;
@@ -428,10 +518,12 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   }, [msgs, otherId]);
 
   const submit = () => {
-    const t = text.trim();
-    if (!t) return;
+    const body = text.trim();
+    if (!body) return;
+    const content = replyTo ? quotePrefix(replyTo) + body : body;
     setText("");
-    send.mutate(t, {
+    setReplyTo(null);
+    send.mutate(content, {
       onSuccess: () => requestPushPrompt("dm"),
     });
   };
@@ -466,8 +558,20 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
           msgs.map((m) => {
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
+            const senderName = mine
+              ? "yourself"
+              : other?.display_name?.trim() || "Them";
             return (
-              <div key={m.id} className={cn("flex", mine && "justify-end")}>
+              <MessageSwipeRow
+                key={m.id}
+                mine={mine}
+                accentColor={tribe.colorVar}
+                disabled={pending}
+                onReply={() => {
+                  setReplyTo({ id: m.id, name: senderName, snippet: m.content });
+                  requestAnimationFrame(() => inputRef.current?.focus());
+                }}
+              >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
                   <div
                     className={cn(
@@ -478,7 +582,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
                   >
-                    {m.content}
+                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
                   </div>
                   <p
                     className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
@@ -486,19 +590,36 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     {pending ? "sending…" : `${timeAgo(m.created_at)} ago`}
                   </p>
                 </div>
-              </div>
+              </MessageSwipeRow>
             );
           })
         )}
       </div>
 
       <div className="border-t border-border p-3">
+        {replyTo && (
+          <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
+            <span className="min-w-0 truncate">
+              Replying to <span className="font-semibold text-foreground">{replyTo.name}</span>
+              {" · "}
+              <span className="italic">{replyTo.snippet}</span>
+            </span>
+            <button
+              onClick={() => setReplyTo(null)}
+              className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Cancel reply"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
           <input
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="Message"
+            placeholder={replyTo ? "Write a reply…" : "Message"}
             className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
           />
           <button
