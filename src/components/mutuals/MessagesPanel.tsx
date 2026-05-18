@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, MessageCircle, Send, X } from "lucide-react";
+import { ArrowLeft, MessageCircle, Reply, Send, X } from "lucide-react";
 import {
   markThreadRead,
   useProfileById,
@@ -26,6 +26,57 @@ import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
+import { useSwipeReply } from "@/hooks/use-swipe-reply";
+
+type ReplyTarget = { id: string; name: string; snippet: string };
+
+function quotePrefix(reply: ReplyTarget) {
+  const snippet = reply.snippet.length > 80 ? reply.snippet.slice(0, 77) + "…" : reply.snippet;
+  return `↪ ${reply.name}: ${snippet}\n`;
+}
+
+function MessageSwipeRow({
+  children,
+  mine,
+  accentColor,
+  disabled,
+  onReply,
+}: {
+  children: React.ReactNode;
+  mine: boolean;
+  accentColor: string;
+  disabled?: boolean;
+  onReply: () => void;
+}) {
+  const { dragX, peekOpacity, handlers } = useSwipeReply(onReply, disabled);
+  return (
+    <div className="relative select-none">
+      {dragX > 4 && (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-1 text-muted-foreground"
+          style={{ opacity: peekOpacity }}
+        >
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full"
+            style={{ backgroundColor: `color-mix(in oklab, ${accentColor} 28%, transparent)` }}
+          >
+            <Reply className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      )}
+      <div
+        {...handlers}
+        className={cn("flex touch-pan-y", mine ? "justify-end" : "justify-start")}
+        style={{
+          transform: `translateX(${dragX}px)`,
+          transition: dragX === 0 ? "transform 180ms ease-out" : "none",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function MessagesPanel({
   open,
