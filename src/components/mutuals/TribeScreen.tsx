@@ -573,7 +573,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       const payload = {
         tribe_id: dbTribeId,
         sender_id: user.id,
-        content: cleanContent.length > 0 ? cleanContent : null,
+        content: cleanContent,
         attachment_url: attachmentUrl,
         attachment_type: attachmentUrl ? "image" : null,
         reply_to_id: replyTo?.id ?? null,
