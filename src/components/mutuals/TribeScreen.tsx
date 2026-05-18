@@ -11,6 +11,50 @@ import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { toast } from "sonner";
 import { uploadTribeChatImage } from "@/lib/uploads";
+import { useSwipeReply } from "@/hooks/use-swipe-reply";
+
+function SwipeReplyRow({
+  children,
+  mine,
+  tribeColor,
+  disabled,
+  onReply,
+}: {
+  children: React.ReactNode;
+  mine: boolean;
+  tribeColor: string;
+  disabled?: boolean;
+  onReply: () => void;
+}) {
+  const { dragX, peekOpacity, handlers } = useSwipeReply(onReply, disabled);
+  return (
+    <div className="relative select-none">
+      {dragX > 4 && (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-2 text-muted-foreground"
+          style={{ opacity: peekOpacity }}
+        >
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 28%, transparent)` }}
+          >
+            <Reply className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      )}
+      <div
+        {...handlers}
+        className={cn("group flex items-end gap-2 touch-pan-y", mine && "flex-row-reverse")}
+        style={{
+          transform: `translateX(${dragX}px)`,
+          transition: dragX === 0 ? "transform 180ms ease-out" : "none",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const isLocalSupabaseRealtimeDisabled =
   import.meta.env.VITE_SUPABASE_URL?.includes("127.0.0.1") ||
