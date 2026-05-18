@@ -98,16 +98,6 @@ export function TimelineScreen({
             : "Discover signals from every Tribe."}
         </p>
 
-        {/* ── Post signal button (tribe tab only) ── */}
-        {tab === "tribe" && (
-          <button
-            onClick={() => setComposerOpen(true)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-          >
-            <Plus className="h-3.5 w-3.5" /> Post a signal to {tribe.name}
-          </button>
-        )}
-
         {/* ── Feed ── */}
         <div className="mt-3 flex flex-col gap-3">
           {isLoadingCurrent ? (
