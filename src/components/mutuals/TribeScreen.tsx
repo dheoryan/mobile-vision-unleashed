@@ -625,44 +625,6 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
 
             if (isSystem) {
               return (
-                <SystemRow key={m.id} content={m.content} time={formatTime(m.created_at)} />
-              );
-            }
-
-            return (
-              <SwipeReplyRow
-                key={m.id}
-                tribeColor={tribe.colorVar}
-                mine={mine}
-                disabled={!canChat}
-                onReply={() => setReplyTo(m)}
-              >
-                <TribeBubble
-                  m={m}
-                  mine={mine}
-                  displayName={displayName}
-                  avatarUrl={avatarUrl}
-                  tribeColor={tribe.colorVar}
-                  meId={user?.id ?? null}
-                  formatTime={formatTime}
-                  canChat={canChat}
-                  onReply={() => setReplyTo(m)}
-                />
-              </SwipeReplyRow>
-            );
-          })}
-          <div ref={endRef} />
-        </div>
-
-        {/* legacy inline render kept below for diff safety — never reached */}
-        {false && messages.map((m) => {
-            const isSystem = m.attachment_type === "system:tribe_join";
-            const mine = m.sender_id === user?.id;
-            const displayName = mine ? "You" : (m.sender?.display_name ?? "Member");
-            const avatarUrl = m.sender?.avatar_url;
-
-            if (isSystem) {
-              return (
                 <div key={m.id} className="flex justify-center py-1">
                   <div className="max-w-[82%] rounded-full border border-border bg-secondary/70 px-3 py-1.5 text-center text-[11px] leading-snug text-muted-foreground">
                     <span>{m.content}</span>
@@ -673,9 +635,12 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
             }
 
             return (
-              <div
+              <SwipeReplyRow
                 key={m.id}
-                className={cn("group flex items-end gap-2", mine && "flex-row-reverse")}
+                tribeColor={tribe.colorVar}
+                mine={mine}
+                disabled={!canChat}
+                onReply={() => setReplyTo(m)}
               >
                 {!mine && (
                   <span
@@ -760,7 +725,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                   </div>
                 </div>
-              </div>
+              </SwipeReplyRow>
             );
           })}
           <div ref={endRef} />
