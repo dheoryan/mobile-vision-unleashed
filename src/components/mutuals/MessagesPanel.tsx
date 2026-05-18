@@ -354,7 +354,9 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
   const send = useSendVentureMessage(venture.id);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!msgs?.length) return;
@@ -362,15 +364,27 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   }, [msgs]);
 
   const submit = () => {
-    const content = text.trim();
-    if (!content) return;
+    const body = text.trim();
+    if (!body) return;
+    const content = replyTo ? quotePrefix(replyTo) + body : body;
     send.mutate(content, {
       onSuccess: () => {
         setText("");
+        setReplyTo(null);
         requestPushPrompt("venture");
       },
       onError: (err) => toast.error((err as Error).message),
     });
+  };
+
+  const startReply = (m: VentureMessage) => {
+    const mine = m.sender_id === user?.id;
+    setReplyTo({
+      id: m.id,
+      name: mine ? "yourself" : displayVentureName(m.sender),
+      snippet: m.content,
+    });
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   const memberCount = Math.max(venture.filled_slots, 1);
@@ -407,7 +421,13 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
             return (
-              <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+              <MessageSwipeRow
+                key={m.id}
+                mine={mine}
+                accentColor="var(--color-primary)"
+                disabled={pending}
+                onReply={() => startReply(m)}
+              >
                 <div className={cn("max-w-[82%]", pending && "opacity-60")}>
                   <div
                     className={cn(
@@ -422,7 +442,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                         {displayVentureName(m.sender)}
                       </p>
                     )}
-                    <p className="leading-relaxed">{m.content}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                     <p
                       className={cn(
                         "mt-1 text-[10px]",
@@ -433,19 +453,36 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                     </p>
                   </div>
                 </div>
-              </div>
+              </MessageSwipeRow>
             );
           })
         )}
       </div>
 
       <div className="border-t border-border p-3">
+        {replyTo && (
+          <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
+            <span className="min-w-0 truncate">
+              Replying to <span className="font-semibold text-foreground">{replyTo.name}</span>
+              {" · "}
+              <span className="italic">{replyTo.snippet}</span>
+            </span>
+            <button
+              onClick={() => setReplyTo(null)}
+              className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Cancel reply"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
           <input
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, 2000))}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="Message the party"
+            placeholder={replyTo ? "Write a reply…" : "Message the party"}
             className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
           />
           <button
