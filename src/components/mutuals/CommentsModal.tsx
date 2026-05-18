@@ -267,52 +267,143 @@ function CommentItem({
   const isImg = avatar.startsWith("data:") || avatar.startsWith("http");
   const handle = c.author?.handle ?? c.author?.id ?? null;
 
+  // Swipe-right / long-press to reply (Telegram/iMessage style)
+  const [dragX, setDragX] = useState(0);
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const axis = useRef<"x" | "y" | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggered = useRef(false);
+  const SWIPE_THRESHOLD = 56;
+  const MAX_DRAG = 80;
+
+  const triggerReply = () => {
+    if (triggered.current || isPending) return;
+    triggered.current = true;
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try { navigator.vibrate?.(15); } catch { /* noop */ }
+    }
+    onReply(c);
+  };
+
+  const clearLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isPending) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    axis.current = null;
+    triggered.current = false;
+    clearLongPress();
+    longPressTimer.current = setTimeout(() => triggerReply(), 450);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (startX.current == null || startY.current == null) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+    if (axis.current == null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      axis.current = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (axis.current === "y") {
+      clearLongPress();
+      return;
+    }
+    clearLongPress();
+    const next = Math.max(0, Math.min(MAX_DRAG, dx));
+    setDragX(next);
+    if (next >= SWIPE_THRESHOLD) triggerReply();
+  };
+
+  const endDrag = () => {
+    clearLongPress();
+    startX.current = null;
+    startY.current = null;
+    axis.current = null;
+    setDragX(0);
+  };
+
+  useEffect(() => () => clearLongPress(), []);
+
   return (
-    <div className={`flex items-start gap-3 ${isPending ? "opacity-60" : ""}`}>
-      {handle && !mine ? (
-        <Link
-          to="/u/$handle"
-          params={{ handle }}
-          className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-base"
-          style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 28%, transparent)` }}
+    <div className="relative select-none">
+      {dragX > 4 && (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-2 text-muted-foreground"
+          style={{ opacity: Math.min(1, dragX / SWIPE_THRESHOLD) }}
         >
-          {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
-        </Link>
-      ) : (
-        <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-base"
-          style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 28%, transparent)` }}
-        >
-          {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
-        </span>
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 24%, transparent)` }}
+          >
+            <Reply className="h-3.5 w-3.5" />
+          </span>
+        </div>
       )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          {handle && !mine ? (
-            <Link to="/u/$handle" params={{ handle }} className="text-xs font-semibold hover:underline">{name}</Link>
-          ) : (
-            <p className="text-xs font-semibold">{name}</p>
-          )}
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={endDrag}
+        className={`flex items-start gap-3 touch-pan-y ${isPending ? "opacity-60" : ""}`}
+        style={{
+          transform: `translateX(${dragX}px)`,
+          transition: dragX === 0 ? "transform 180ms ease-out" : "none",
+        }}
+      >
+        {handle && !mine ? (
+          <Link
+            to="/u/$handle"
+            params={{ handle }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-base"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 28%, transparent)` }}
+          >
+            {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
+          </Link>
+        ) : (
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-base"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 28%, transparent)` }}
+          >
+            {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            {handle && !mine ? (
+              <Link to="/u/$handle" params={{ handle }} className="text-xs font-semibold hover:underline">{name}</Link>
+            ) : (
+              <p className="text-xs font-semibold">{name}</p>
+            )}
+          </div>
+          <p className="text-sm text-foreground">{renderContent(c.content)}</p>
+          <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+            <span>{isPending ? "sending…" : `${timeAgo(c.created_at)} ago`}</span>
+            {!isPending && (
+              <button onClick={() => onReply(c)} className="inline-flex items-center gap-1 hover:text-foreground">
+                <Reply className="h-3 w-3" /> Reply
+              </button>
+            )}
+          </div>
         </div>
-        <p className="text-sm text-foreground">{renderContent(c.content)}</p>
-        <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
-          <span>{isPending ? "sending…" : `${timeAgo(c.created_at)} ago`}</span>
-          {!isPending && (
-            <button onClick={() => onReply(c)} className="inline-flex items-center gap-1 hover:text-foreground">
-              <Reply className="h-3 w-3" /> Reply
-            </button>
-          )}
-        </div>
+        {mine && !isPending && (
+          <button
+            onClick={() => onDelete(c.id)}
+            aria-label="Delete comment"
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
-      {mine && !isPending && (
-        <button
-          onClick={() => onDelete(c.id)}
-          aria-label="Delete comment"
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      )}
     </div>
   );
 }
