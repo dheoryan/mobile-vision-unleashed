@@ -188,26 +188,32 @@ export function ProfileScreen({
         />
 
         {gridTab === "posts" && (
-          <div className="grid grid-cols-3 gap-1">
-            {postsToShow.map((p) => {
-              const t = tribeById(p.tribeId as TribeId);
-              return (
-                <div
-                  key={p.id}
-                  className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
-                  style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
-                >
-                  <span className="text-base">{p.image ?? "✦"}</span>
-                  <p className="mt-1 line-clamp-3">{p.content}</p>
-                </div>
-              );
-            })}
-            {postsToShow.length === 0 && (
-              <p className="col-span-3 rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                You haven't posted yet.
-              </p>
-            )}
-          </div>
+          myPostsQuery.isLoading ? (
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">Loading…</p>
+          ) : myPosts.length === 0 ? (
+            <div className="grid grid-cols-3 gap-1">
+              {samplePosts.map((p) => {
+                const t = tribeById(p.tribeId as TribeId);
+                return (
+                  <div
+                    key={p.id}
+                    className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
+                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
+                  >
+                    <span className="text-base">{p.image ?? "✦"}</span>
+                    <p className="mt-1 line-clamp-3">{p.content}</p>
+                  </div>
+                );
+              })}
+              {samplePosts.length === 0 && (
+                <p className="col-span-3 rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                  You haven't posted yet.
+                </p>
+              )}
+            </div>
+          ) : (
+            <ProfilePostHistory posts={myPosts} />
+          )
         )}
 
         {gridTab === "saved" && (
