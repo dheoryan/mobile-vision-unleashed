@@ -10,6 +10,7 @@ import { DeleteAccountModal } from "./DeleteAccountModal";
 import { useMyPosts, useMySavedPosts, useMyVentures } from "@/lib/posts-store";
 import { useFollowCounts } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
+import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
 import { useBlocked, useUnblockUser } from "@/lib/blocked-store";
 import { uploadAvatar } from "@/lib/uploads";
