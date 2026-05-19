@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, X, Grid as GridIcon, List, ArrowUpDown } from "lucide-react";
+import { Search, X, ArrowUpDown } from "lucide-react";
 import type { FeedPost } from "@/lib/posts-store";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PostCard } from "./PostCard";
@@ -8,7 +8,6 @@ import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 type SortKey = "newest" | "oldest" | "likes";
-type View = "grid" | "timeline";
 
 export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
   const [view, setView] = useState<View>("grid");
