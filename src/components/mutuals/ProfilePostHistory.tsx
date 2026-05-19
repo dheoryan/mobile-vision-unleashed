@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, X, Grid as GridIcon, List, ArrowUpDown } from "lucide-react";
+import { Search, X, ArrowUpDown } from "lucide-react";
 import type { FeedPost } from "@/lib/posts-store";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PostCard } from "./PostCard";
@@ -8,10 +8,8 @@ import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 type SortKey = "newest" | "oldest" | "likes";
-type View = "grid" | "timeline";
 
 export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
-  const [view, setView] = useState<View>("grid");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
   const [tribeFilter, setTribeFilter] = useState<string | null>(null);
@@ -81,14 +79,6 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
           >
             <ArrowUpDown className="h-3 w-3" /> {sortLabel}
           </button>
-          <div className="flex items-center gap-0.5 rounded-full bg-card p-0.5 text-muted-foreground">
-            <ViewBtn active={view === "grid"} onClick={() => setView("grid")} label="Grid view">
-              <GridIcon className="h-3.5 w-3.5" />
-            </ViewBtn>
-            <ViewBtn active={view === "timeline"} onClick={() => setView("timeline")} label="Timeline view">
-              <List className="h-3.5 w-3.5" />
-            </ViewBtn>
-          </div>
         </div>
 
         {tribes.length > 1 && (
@@ -110,33 +100,6 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
           {posts.length === 0 ? "You haven't posted yet." : "No posts match those filters."}
         </p>
-      ) : view === "grid" ? (
-        <div className="grid grid-cols-3 gap-1">
-          {filtered.map((p) => {
-            const t = tribeById(p.tribe_id as TribeId);
-            return (
-              <button
-                key={p.id}
-                onClick={() => setOpenPostId(p.id)}
-                className="group relative aspect-square overflow-hidden rounded-md p-2 text-left text-[10px] leading-tight text-foreground/90 transition active:scale-95"
-                style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
-              >
-                {p.image_url ? (
-                  <img src={p.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                ) : (
-                  <>
-                    <span className="text-base">✦</span>
-                    <p className="mt-1 line-clamp-3">{p.content}</p>
-                  </>
-                )}
-                <span className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-1.5 py-1 text-[9px] text-white opacity-0 transition group-hover:opacity-100">
-                  <span>♥ {p.likes_count}</span>
-                  <span>💬 {p.replies_count}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
       ) : (
         <div className="space-y-5">
           {grouped.map(([month, items]) => (
@@ -196,17 +159,6 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
   );
 }
 
-function ViewBtn({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={onClick}
-      className={cn("rounded-full px-2 py-1 transition-colors", active ? "bg-secondary text-foreground" : "hover:text-foreground")}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Chip({ active, onClick, color, children }: { active: boolean; onClick: () => void; color?: string; children: React.ReactNode }) {
   return (

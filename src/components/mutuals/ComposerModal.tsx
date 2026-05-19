@@ -1,45 +1,59 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2, Users, Globe } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
 import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
+import { useMyProfile } from "@/lib/profile-store";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
+type Audience = "tribe" | "all";
+
 export function ComposerModal({
   open, onClose, tribeId,
 }: { open: boolean; onClose: () => void; tribeId: TribeId }) {
   const { user } = useAuth();
+  const me = useMyProfile();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [audience, setAudience] = useState<Audience>("tribe");
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   if (!open) return null;
   const tribe = tribeById(tribeId);
+  const myTribeIds = (me?.tribeIds ?? [tribeId]) as TribeId[];
+  const canBroadcast = myTribeIds.length > 1;
+  const effectiveAudience: Audience = canBroadcast ? audience : "tribe";
 
-  const reset = () => { setText(""); setImageUrl(null); };
+  const reset = () => { setText(""); setImageUrl(null); setAudience("tribe"); };
 
   const submit = () => {
     const t = text.trim();
     if (!t && !imageUrl) return;
     if (uploading) return;
-    createPost.mutate(
-      { tribe_id: tribeId, content: t, image_url: imageUrl ?? null },
-      {
-        onSuccess: () => {
-          toast.success("Posted to " + tribe.name);
-          requestPushPrompt("post");
+    const targets: TribeId[] = effectiveAudience === "all" ? myTribeIds : [tribeId];
+    targets.forEach((tid) => {
+      createPost.mutate(
+        { tribe_id: tid, content: t, image_url: imageUrl ?? null },
+        {
+          onError: (e) => toast.error((e as Error).message),
         },
-        onError: (e) => toast.error((e as Error).message),
-      },
-    );
+      );
+    });
+    if (effectiveAudience === "all") {
+      toast.success(`Signal sent to ${targets.length} Tribes`);
+    } else {
+      toast.success("Posted to " + tribe.name);
+    }
+    requestPushPrompt("post");
     reset();
     onClose();
   };
@@ -73,6 +87,33 @@ export function ComposerModal({
         </button>
         <p className="label-mono text-muted-foreground">New post · {tribe.name}</p>
         <h2 className="font-display text-xl font-bold">What's happening?</h2>
+
+        {canBroadcast && (
+          <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-border bg-background p-0.5 text-[11px] font-semibold">
+            <button
+              type="button"
+              onClick={() => setAudience("tribe")}
+              className={cn(
+                "flex items-center gap-1 rounded-full px-3 py-1.5 transition",
+                audience === "tribe" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+              style={audience === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
+            >
+              <Users className="h-3 w-3" /> {tribe.name} only
+            </button>
+            <button
+              type="button"
+              onClick={() => setAudience("all")}
+              className={cn(
+                "flex items-center gap-1 rounded-full px-3 py-1.5 transition",
+                audience === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Globe className="h-3 w-3" /> All my Tribes ({myTribeIds.length})
+            </button>
+          </div>
+        )}
+
         <textarea
           autoFocus
           rows={4}
@@ -139,9 +180,9 @@ export function ComposerModal({
           onClick={submit}
           disabled={!text.trim() && !imageUrl}
           className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
-          style={{ backgroundColor: tribe.colorVar }}
+          style={{ backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar }}
         >
-          Send Signal
+          {effectiveAudience === "all" ? `Send Signal to all ${myTribeIds.length} Tribes` : "Send Signal"}
         </button>
       </div>
     </div>
