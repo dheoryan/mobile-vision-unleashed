@@ -159,17 +159,6 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
   );
 }
 
-function ViewBtn({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={onClick}
-      className={cn("rounded-full px-2 py-1 transition-colors", active ? "bg-secondary text-foreground" : "hover:text-foreground")}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Chip({ active, onClick, color, children }: { active: boolean; onClick: () => void; color?: string; children: React.ReactNode }) {
   return (
