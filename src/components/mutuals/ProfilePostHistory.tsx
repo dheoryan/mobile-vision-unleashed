@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 type SortKey = "newest" | "oldest" | "likes";
 
 export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
-  const [view, setView] = useState<View>("grid");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
   const [tribeFilter, setTribeFilter] = useState<string | null>(null);
