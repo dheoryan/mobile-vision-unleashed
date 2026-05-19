@@ -1,45 +1,59 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2, Users, Globe } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
 import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
+import { useMyProfile } from "@/lib/profile-store";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
+type Audience = "tribe" | "all";
+
 export function ComposerModal({
   open, onClose, tribeId,
 }: { open: boolean; onClose: () => void; tribeId: TribeId }) {
   const { user } = useAuth();
+  const me = useMyProfile();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [audience, setAudience] = useState<Audience>("tribe");
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   if (!open) return null;
   const tribe = tribeById(tribeId);
+  const myTribeIds = (me?.tribeIds ?? [tribeId]) as TribeId[];
+  const canBroadcast = myTribeIds.length > 1;
+  const effectiveAudience: Audience = canBroadcast ? audience : "tribe";
 
-  const reset = () => { setText(""); setImageUrl(null); };
+  const reset = () => { setText(""); setImageUrl(null); setAudience("tribe"); };
 
   const submit = () => {
     const t = text.trim();
     if (!t && !imageUrl) return;
     if (uploading) return;
-    createPost.mutate(
-      { tribe_id: tribeId, content: t, image_url: imageUrl ?? null },
-      {
-        onSuccess: () => {
-          toast.success("Posted to " + tribe.name);
-          requestPushPrompt("post");
+    const targets: TribeId[] = effectiveAudience === "all" ? myTribeIds : [tribeId];
+    targets.forEach((tid) => {
+      createPost.mutate(
+        { tribe_id: tid, content: t, image_url: imageUrl ?? null },
+        {
+          onError: (e) => toast.error((e as Error).message),
         },
-        onError: (e) => toast.error((e as Error).message),
-      },
-    );
+      );
+    });
+    if (effectiveAudience === "all") {
+      toast.success(`Signal sent to ${targets.length} Tribes`);
+    } else {
+      toast.success("Posted to " + tribe.name);
+    }
+    requestPushPrompt("post");
     reset();
     onClose();
   };
