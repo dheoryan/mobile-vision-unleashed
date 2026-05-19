@@ -180,9 +180,9 @@ export function ComposerModal({
           onClick={submit}
           disabled={!text.trim() && !imageUrl}
           className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
-          style={{ backgroundColor: tribe.colorVar }}
+          style={{ backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar }}
         >
-          Send Signal
+          {effectiveAudience === "all" ? `Send Signal to all ${myTribeIds.length} Tribes` : "Send Signal"}
         </button>
       </div>
     </div>
