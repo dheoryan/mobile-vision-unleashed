@@ -83,13 +83,17 @@ export const listFeed = createServerFn({ method: "GET" })
     z.object({ tribe_id: z.string().min(1).max(40).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     let q = supabase
       .from("posts")
       .select(POST_COLS)
       .order("created_at", { ascending: false })
       .limit(200);
-    if (data.tribe_id) q = q.eq("tribe_id", data.tribe_id);
+    if (data.tribe_id) {
+      // Include posts targeted to this tribe OR broadcast posts from users who belong to this tribe.
+      // RLS already enforces visibility; this just filters the slice the user sees in the tribe feed.
+      q = q.or(`and(tribe_id.eq.${data.tribe_id}),audience.eq.all`);
+    }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (await attachAuthors(supabase, (rows ?? []) as any)) as FeedPost[];
