@@ -236,6 +236,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          audience: string
           author_id: string
           content: string
           created_at: string
@@ -249,6 +250,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience?: string
           author_id: string
           content?: string
           created_at?: string
@@ -262,6 +264,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience?: string
           author_id?: string
           content?: string
           created_at?: string
