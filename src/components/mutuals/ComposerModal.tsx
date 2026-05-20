@@ -111,7 +111,7 @@ export function ComposerModal({
                 audience === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Globe className="h-3 w-3" /> All my Tribes ({myTribeIds.length})
+              <Globe className="h-3 w-3" /> All Tribes
             </button>
           </div>
         )}
