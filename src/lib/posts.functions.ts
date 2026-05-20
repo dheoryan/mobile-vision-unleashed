@@ -15,6 +15,7 @@ export type FeedPost = {
   id: string;
   author_id: string;
   tribe_id: string;
+  audience: "tribe" | "all";
   content: string;
   image_url: string | null;
   tag: string | null;
@@ -71,7 +72,7 @@ async function getRepliesCount(
 }
 
 const POST_COLS =
-  "id, author_id, tribe_id, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
+  "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
 
 const COMMENT_COLS =
   "id, post_id, author_id, content, created_at, parent_id, mentions";
@@ -88,7 +89,11 @@ export const listFeed = createServerFn({ method: "GET" })
       .select(POST_COLS)
       .order("created_at", { ascending: false })
       .limit(200);
-    if (data.tribe_id) q = q.eq("tribe_id", data.tribe_id);
+    if (data.tribe_id) {
+      // Include posts targeted to this tribe OR broadcast posts from users who belong to this tribe.
+      // RLS already enforces visibility; this just filters the slice the user sees in the tribe feed.
+      q = q.or(`and(tribe_id.eq.${data.tribe_id}),audience.eq.all`);
+    }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (await attachAuthors(supabase, (rows ?? []) as any)) as FeedPost[];
@@ -130,6 +135,7 @@ const createSchema = z.object({
   content: z.string().max(280).default(""),
   image_url: z.string().url().max(2000).nullable().optional(),
   tag: z.string().max(40).nullable().optional(),
+  audience: z.enum(["tribe", "all"]).default("tribe"),
 });
 
 export const createPost = createServerFn({ method: "POST" })
@@ -148,6 +154,7 @@ export const createPost = createServerFn({ method: "POST" })
         content: data.content,
         image_url: data.image_url ?? null,
         tag: data.tag ?? null,
+        audience: data.audience,
       })
       .select(POST_COLS)
       .single();

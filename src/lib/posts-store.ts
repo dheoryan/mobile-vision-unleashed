@@ -160,7 +160,7 @@ export function useCreatePost() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: (input: { tribe_id: string; content: string; image_url?: string | null }) =>
+    mutationFn: (input: { tribe_id: string; content: string; image_url?: string | null; audience?: "tribe" | "all" }) =>
       fn({ data: input }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["posts"] });
@@ -169,6 +169,7 @@ export function useCreatePost() {
         id: tempId,
         author_id: user?.id ?? "me",
         tribe_id: input.tribe_id,
+        audience: input.audience ?? "tribe",
         content: input.content,
         image_url: input.image_url ?? null,
         tag: null,

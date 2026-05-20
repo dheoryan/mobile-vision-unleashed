@@ -39,17 +39,19 @@ export function ComposerModal({
     const t = text.trim();
     if (!t && !imageUrl) return;
     if (uploading) return;
-    const targets: TribeId[] = effectiveAudience === "all" ? myTribeIds : [tribeId];
-    targets.forEach((tid) => {
-      createPost.mutate(
-        { tribe_id: tid, content: t, image_url: imageUrl ?? null },
-        {
-          onError: (e) => toast.error((e as Error).message),
-        },
-      );
-    });
+    createPost.mutate(
+      {
+        tribe_id: tribeId,
+        content: t,
+        image_url: imageUrl ?? null,
+        audience: effectiveAudience,
+      },
+      {
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
     if (effectiveAudience === "all") {
-      toast.success(`Signal sent to ${targets.length} Tribes`);
+      toast.success(`Signal sent to all your Tribes`);
     } else {
       toast.success("Posted to " + tribe.name);
     }
