@@ -135,6 +135,7 @@ const createSchema = z.object({
   content: z.string().max(280).default(""),
   image_url: z.string().url().max(2000).nullable().optional(),
   tag: z.string().max(40).nullable().optional(),
+  audience: z.enum(["tribe", "all"]).default("tribe"),
 });
 
 export const createPost = createServerFn({ method: "POST" })
@@ -153,6 +154,7 @@ export const createPost = createServerFn({ method: "POST" })
         content: data.content,
         image_url: data.image_url ?? null,
         tag: data.tag ?? null,
+        audience: data.audience,
       })
       .select(POST_COLS)
       .single();
