@@ -87,7 +87,7 @@ export function ComposerModal({
         <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
-        <p className="label-mono text-muted-foreground">New post · {tribe.name}</p>
+        <p className="label-mono text-muted-foreground">New post · {effectiveAudience === "all" ? "All Tribes" : tribe.name}</p>
         <h2 className="font-display text-xl font-bold">What's happening?</h2>
 
         {canBroadcast && (
