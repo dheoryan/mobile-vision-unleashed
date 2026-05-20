@@ -15,6 +15,7 @@ export type FeedPost = {
   id: string;
   author_id: string;
   tribe_id: string;
+  audience: "tribe" | "all";
   content: string;
   image_url: string | null;
   tag: string | null;
