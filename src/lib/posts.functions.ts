@@ -72,7 +72,7 @@ async function getRepliesCount(
 }
 
 const POST_COLS =
-  "id, author_id, tribe_id, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
+  "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
 
 const COMMENT_COLS =
   "id, post_id, author_id, content, created_at, parent_id, mentions";
