@@ -83,7 +83,7 @@ export const listFeed = createServerFn({ method: "GET" })
     z.object({ tribe_id: z.string().min(1).max(40).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { supabase } = context;
     let q = supabase
       .from("posts")
       .select(POST_COLS)
