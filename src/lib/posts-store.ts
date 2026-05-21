@@ -179,7 +179,20 @@ export function useCreatePost() {
         created_at: new Date().toISOString(),
         author: null,
       };
-      patchListsWith(qc, (rows) => [optimistic, ...rows]);
+      const audience = optimistic.audience;
+      qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
+        if (!data) return;
+        const [, kind, scope] = key as [string, string?, string?];
+        let shouldInsert = false;
+        if (kind === "feed") {
+          if (scope === "all") shouldInsert = true;
+          else if (audience === "all") shouldInsert = true;
+          else if (scope === input.tribe_id) shouldInsert = true;
+        } else if (kind === "mine") {
+          shouldInsert = true;
+        }
+        if (shouldInsert) qc.setQueryData(key, [optimistic, ...data]);
+      });
       return { tempId };
     },
     onSuccess: (saved, _input, ctx) => {
