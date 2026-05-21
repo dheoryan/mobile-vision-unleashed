@@ -33,7 +33,7 @@ export function ComposerModal({
   const canBroadcast = myTribeIds.length > 1;
   const effectiveAudience: Audience = canBroadcast ? audience : "tribe";
 
-  const reset = () => { setText(""); setImageUrl(null); setAudience("tribe"); };
+  const reset = () => { setText(""); setImageUrl(null); setAudience(initialAudience); };
 
   const submit = () => {
     const t = text.trim();
