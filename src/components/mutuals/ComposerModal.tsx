@@ -12,7 +12,7 @@ import { requestPushPrompt } from "@/lib/push-prompt-events";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
-type Audience = "tribe" | "all";
+export type Audience = "tribe" | "all";
 
 export function ComposerModal({
   open, onClose, tribeId, initialAudience = "tribe",
