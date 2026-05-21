@@ -15,14 +15,14 @@ const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 type Audience = "tribe" | "all";
 
 export function ComposerModal({
-  open, onClose, tribeId,
-}: { open: boolean; onClose: () => void; tribeId: TribeId }) {
+  open, onClose, tribeId, initialAudience = "tribe",
+}: { open: boolean; onClose: () => void; tribeId: TribeId; initialAudience?: Audience }) {
   const { user } = useAuth();
   const me = useMyProfile();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [audience, setAudience] = useState<Audience>("tribe");
+  const [audience, setAudience] = useState<Audience>(initialAudience);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
