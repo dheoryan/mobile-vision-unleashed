@@ -12,17 +12,17 @@ import { requestPushPrompt } from "@/lib/push-prompt-events";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
-type Audience = "tribe" | "all";
+export type Audience = "tribe" | "all";
 
 export function ComposerModal({
-  open, onClose, tribeId,
-}: { open: boolean; onClose: () => void; tribeId: TribeId }) {
+  open, onClose, tribeId, initialAudience = "tribe",
+}: { open: boolean; onClose: () => void; tribeId: TribeId; initialAudience?: Audience }) {
   const { user } = useAuth();
   const me = useMyProfile();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [audience, setAudience] = useState<Audience>("tribe");
+  const [audience, setAudience] = useState<Audience>(initialAudience);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
@@ -33,7 +33,7 @@ export function ComposerModal({
   const canBroadcast = myTribeIds.length > 1;
   const effectiveAudience: Audience = canBroadcast ? audience : "tribe";
 
-  const reset = () => { setText(""); setImageUrl(null); setAudience("tribe"); };
+  const reset = () => { setText(""); setImageUrl(null); setAudience(initialAudience); };
 
   const submit = () => {
     const t = text.trim();
