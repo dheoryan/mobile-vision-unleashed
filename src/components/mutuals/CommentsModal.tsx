@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { X, Send, AlertTriangle, MessageSquare, Trash2, Reply } from "lucide-react";
+import { ReplyPreview } from "./ReplyPreview";
 import { useComments, useAddComment, useDeleteComment, type CommentRow } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
@@ -157,14 +158,12 @@ export function CommentsModal({
 
         <div className="relative border-t border-border p-3">
           {replyTo && (
-            <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
-              <span>
-                Replying to <span className="font-semibold text-foreground">{replyTo.author?.display_name || "comment"}</span>
-              </span>
-              <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-3 w-3" />
-              </button>
-            </div>
+            <ReplyPreview
+              name={replyTo.author?.display_name || "comment"}
+              snippet={replyTo.content || ""}
+              accentColor={tribeColor}
+              onCancel={() => setReplyTo(null)}
+            />
           )}
           <div className="relative">
             <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />

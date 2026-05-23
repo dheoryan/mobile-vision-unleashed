@@ -27,6 +27,7 @@ import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
+import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
 
 type ReplyTarget = { id: string; name: string; snippet: string };
 
@@ -429,29 +430,42 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                 onReply={() => startReply(m)}
               >
                 <div className={cn("max-w-[82%]", pending && "opacity-60")}>
-                  <div
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-sm",
-                      mine
-                        ? "rounded-br-sm bg-primary text-primary-foreground"
-                        : "rounded-bl-sm bg-card text-foreground",
-                    )}
-                  >
-                    {!mine && (
-                      <p className="mb-0.5 text-[10px] font-semibold opacity-70">
-                        {displayVentureName(m.sender)}
-                      </p>
-                    )}
-                    <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-                    <p
-                      className={cn(
-                        "mt-1 text-[10px]",
-                        mine ? "text-primary-foreground/70" : "text-muted-foreground",
-                      )}
-                    >
-                      {pending ? "sending…" : shortTime(m.created_at)}
-                    </p>
-                  </div>
+                  {(() => {
+                    const { quote, body } = parseQuotedMessage(m.content);
+                    return (
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3 py-2 text-sm",
+                          mine
+                            ? "rounded-br-sm bg-primary text-primary-foreground"
+                            : "rounded-bl-sm bg-card text-foreground",
+                        )}
+                      >
+                        {!mine && (
+                          <p className="mb-0.5 text-[10px] font-semibold opacity-70">
+                            {displayVentureName(m.sender)}
+                          </p>
+                        )}
+                        {quote && (
+                          <QuotedBlock
+                            name={quote.name}
+                            snippet={quote.snippet}
+                            mine={mine}
+                            accentColor="var(--color-primary)"
+                          />
+                        )}
+                        <p className="whitespace-pre-wrap leading-relaxed">{body}</p>
+                        <p
+                          className={cn(
+                            "mt-1 text-[10px]",
+                            mine ? "text-primary-foreground/70" : "text-muted-foreground",
+                          )}
+                        >
+                          {pending ? "sending…" : shortTime(m.created_at)}
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </MessageSwipeRow>
             );
@@ -461,20 +475,12 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
 
       <div className="border-t border-border p-3">
         {replyTo && (
-          <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
-            <span className="min-w-0 truncate">
-              Replying to <span className="font-semibold text-foreground">{replyTo.name}</span>
-              {" · "}
-              <span className="italic">{replyTo.snippet}</span>
-            </span>
-            <button
-              onClick={() => setReplyTo(null)}
-              className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel reply"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
+          <ReplyPreview
+            name={replyTo.name}
+            snippet={replyTo.snippet}
+            accentColor="var(--color-primary)"
+            onCancel={() => setReplyTo(null)}
+          />
         )}
         <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
           <input
@@ -573,17 +579,30 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                 }}
               >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
-                  <div
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-sm",
-                      mine
-                        ? "rounded-br-sm text-primary-foreground"
-                        : "rounded-bl-sm bg-card text-foreground",
-                    )}
-                    style={mine ? { backgroundColor: tribe.colorVar } : undefined}
-                  >
-                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                  </div>
+                  {(() => {
+                    const { quote, body } = parseQuotedMessage(m.content);
+                    return (
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3 py-2 text-sm",
+                          mine
+                            ? "rounded-br-sm text-primary-foreground"
+                            : "rounded-bl-sm bg-card text-foreground",
+                        )}
+                        style={mine ? { backgroundColor: tribe.colorVar } : undefined}
+                      >
+                        {quote && (
+                          <QuotedBlock
+                            name={quote.name}
+                            snippet={quote.snippet}
+                            mine={mine}
+                            accentColor={tribe.colorVar}
+                          />
+                        )}
+                        <p className="whitespace-pre-wrap break-words">{body}</p>
+                      </div>
+                    );
+                  })()}
                   <p
                     className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
                   >
@@ -598,20 +617,12 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
 
       <div className="border-t border-border p-3">
         {replyTo && (
-          <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
-            <span className="min-w-0 truncate">
-              Replying to <span className="font-semibold text-foreground">{replyTo.name}</span>
-              {" · "}
-              <span className="italic">{replyTo.snippet}</span>
-            </span>
-            <button
-              onClick={() => setReplyTo(null)}
-              className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel reply"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
+          <ReplyPreview
+            name={replyTo.name}
+            snippet={replyTo.snippet}
+            accentColor={tribe.colorVar}
+            onCancel={() => setReplyTo(null)}
+          />
         )}
         <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
           <input
