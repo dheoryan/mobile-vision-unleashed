@@ -617,20 +617,12 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
 
       <div className="border-t border-border p-3">
         {replyTo && (
-          <div className="mb-2 flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground">
-            <span className="min-w-0 truncate">
-              Replying to <span className="font-semibold text-foreground">{replyTo.name}</span>
-              {" · "}
-              <span className="italic">{replyTo.snippet}</span>
-            </span>
-            <button
-              onClick={() => setReplyTo(null)}
-              className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel reply"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
+          <ReplyPreview
+            name={replyTo.name}
+            snippet={replyTo.snippet}
+            accentColor={tribe.colorVar}
+            onCancel={() => setReplyTo(null)}
+          />
         )}
         <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
           <input
