@@ -160,7 +160,7 @@ export function CommentsModal({
           {replyTo && (
             <ReplyPreview
               name={replyTo.author?.display_name || "comment"}
-              snippet={replyTo.body || ""}
+              snippet={replyTo.content || ""}
               accentColor={tribeColor}
               onCancel={() => setReplyTo(null)}
             />
