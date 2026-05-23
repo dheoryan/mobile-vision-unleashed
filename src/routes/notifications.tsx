@@ -50,6 +50,21 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   tribe_join: <Users className="h-3 w-3" />,
 };
 
+// Per-kind accent colors (background tint for the small icon badge under the avatar).
+const ICON_COLORS: Record<NotificationKind, string> = {
+  like: "bg-rose-500 text-white",
+  comment: "bg-sky-500 text-white",
+  reply: "bg-indigo-500 text-white",
+  mention: "bg-amber-500 text-white",
+  follow: "bg-emerald-500 text-white",
+  message: "bg-violet-500 text-white",
+  new_post: "bg-primary text-primary-foreground",
+  venture_apply: "bg-orange-500 text-white",
+  venture_accept: "bg-teal-500 text-white",
+  venture_message: "bg-cyan-500 text-white",
+  tribe_join: "bg-fuchsia-500 text-white",
+};
+
 const TEXTS: Record<NotificationKind, string> = {
   like: "liked your post",
   comment: "commented on your post",
