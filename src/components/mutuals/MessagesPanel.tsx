@@ -430,29 +430,42 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                 onReply={() => startReply(m)}
               >
                 <div className={cn("max-w-[82%]", pending && "opacity-60")}>
-                  <div
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-sm",
-                      mine
-                        ? "rounded-br-sm bg-primary text-primary-foreground"
-                        : "rounded-bl-sm bg-card text-foreground",
-                    )}
-                  >
-                    {!mine && (
-                      <p className="mb-0.5 text-[10px] font-semibold opacity-70">
-                        {displayVentureName(m.sender)}
-                      </p>
-                    )}
-                    <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-                    <p
-                      className={cn(
-                        "mt-1 text-[10px]",
-                        mine ? "text-primary-foreground/70" : "text-muted-foreground",
-                      )}
-                    >
-                      {pending ? "sending…" : shortTime(m.created_at)}
-                    </p>
-                  </div>
+                  {(() => {
+                    const { quote, body } = parseQuotedMessage(m.content);
+                    return (
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3 py-2 text-sm",
+                          mine
+                            ? "rounded-br-sm bg-primary text-primary-foreground"
+                            : "rounded-bl-sm bg-card text-foreground",
+                        )}
+                      >
+                        {!mine && (
+                          <p className="mb-0.5 text-[10px] font-semibold opacity-70">
+                            {displayVentureName(m.sender)}
+                          </p>
+                        )}
+                        {quote && (
+                          <QuotedBlock
+                            name={quote.name}
+                            snippet={quote.snippet}
+                            mine={mine}
+                            accentColor="var(--color-primary)"
+                          />
+                        )}
+                        <p className="whitespace-pre-wrap leading-relaxed">{body}</p>
+                        <p
+                          className={cn(
+                            "mt-1 text-[10px]",
+                            mine ? "text-primary-foreground/70" : "text-muted-foreground",
+                          )}
+                        >
+                          {pending ? "sending…" : shortTime(m.created_at)}
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </MessageSwipeRow>
             );
