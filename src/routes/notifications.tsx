@@ -199,3 +199,95 @@ function NotificationsPage() {
     </div>
   );
 }
+
+function Section({
+  title,
+  items,
+  onClick,
+}: {
+  title: string;
+  items: NotificationRow[];
+  onClick: (n: NotificationRow) => void;
+}) {
+  return (
+    <section>
+      <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+        {title}
+      </p>
+      <ul className="space-y-1">
+        {items.map((n) => (
+          <NotificationRowItem key={n.id} n={n} onClick={onClick} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function NotificationRowItem({
+  n,
+  onClick,
+}: {
+  n: NotificationRow;
+  onClick: (n: NotificationRow) => void;
+}) {
+  const actorName = n.actor?.display_name?.trim() || "Someone";
+  const actorAvatar = n.actor?.avatar_url || n.actor?.avatar_emoji || "👤";
+  const isImg = actorAvatar.startsWith("data:") || actorAvatar.startsWith("http");
+  const isUnread = !n.read_at;
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onClick(n)}
+        className={`group relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-left transition-all hover:-translate-y-[1px] hover:shadow-sm ${
+          isUnread
+            ? "border-primary/20 bg-primary/[0.06]"
+            : "border-transparent bg-card/40 hover:bg-secondary/40"
+        }`}
+      >
+        {isUnread && (
+          <span
+            className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-primary"
+            aria-hidden
+          />
+        )}
+        <span className="relative shrink-0">
+          <span
+            className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-card text-xl ${
+              isUnread ? "ring-2 ring-primary/30" : ""
+            }`}
+          >
+            {isImg ? (
+              <img src={actorAvatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              actorAvatar
+            )}
+          </span>
+          {showPlusBadge(n.actor?.plan) && <PlusBadge />}
+          <span
+            className={`absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-background ${ICON_COLORS[n.kind]}`}
+          >
+            {ICONS[n.kind]}
+          </span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-snug">
+            <span className="font-semibold">{actorName}</span>{" "}
+            <span className="text-muted-foreground">{TEXTS[n.kind]}</span>
+          </p>
+          {n.preview && (
+            <p className="mt-1 line-clamp-2 rounded-lg bg-background/60 px-2 py-1 text-xs italic text-muted-foreground">
+              "{n.preview}"
+            </p>
+          )}
+          <p className="mt-1 text-[11px] text-muted-foreground/80">
+            {timeAgo(n.created_at)} ago
+          </p>
+        </div>
+        {isUnread && (
+          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-primary)_20%,transparent)]" />
+        )}
+      </button>
+    </li>
+  );
+}
