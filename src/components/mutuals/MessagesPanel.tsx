@@ -579,17 +579,30 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                 }}
               >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
-                  <div
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-sm",
-                      mine
-                        ? "rounded-br-sm text-primary-foreground"
-                        : "rounded-bl-sm bg-card text-foreground",
-                    )}
-                    style={mine ? { backgroundColor: tribe.colorVar } : undefined}
-                  >
-                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                  </div>
+                  {(() => {
+                    const { quote, body } = parseQuotedMessage(m.content);
+                    return (
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3 py-2 text-sm",
+                          mine
+                            ? "rounded-br-sm text-primary-foreground"
+                            : "rounded-bl-sm bg-card text-foreground",
+                        )}
+                        style={mine ? { backgroundColor: tribe.colorVar } : undefined}
+                      >
+                        {quote && (
+                          <QuotedBlock
+                            name={quote.name}
+                            snippet={quote.snippet}
+                            mine={mine}
+                            accentColor={tribe.colorVar}
+                          />
+                        )}
+                        <p className="whitespace-pre-wrap break-words">{body}</p>
+                      </div>
+                    );
+                  })()}
                   <p
                     className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
                   >
