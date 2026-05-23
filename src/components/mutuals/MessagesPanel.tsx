@@ -27,6 +27,7 @@ import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
+import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
 
 type ReplyTarget = { id: string; name: string; snippet: string };
 
