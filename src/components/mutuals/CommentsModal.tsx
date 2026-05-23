@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { X, Send, AlertTriangle, MessageSquare, Trash2, Reply } from "lucide-react";
+import { ReplyPreview } from "./ReplyPreview";
 import { useComments, useAddComment, useDeleteComment, type CommentRow } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
