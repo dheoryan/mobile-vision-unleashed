@@ -200,7 +200,7 @@ function App() {
         initialTribe={initialTribe}
       />
     ),
-    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,
+    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} scrollToPostId={scrollToPostId} onScrolledToPost={() => setScrollToPostId(null)} />,
     discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
     ventures: (
       <VenturesScreen
