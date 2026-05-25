@@ -92,15 +92,21 @@ function NotificationsPage() {
   }, [markAllRead]);
 
   const handleClick = (n: NotificationRow) => {
-    if (
+    if (n.kind === "new_post" && n.post_id) {
+      intentStore.push({ kind: "scrollToPost", postId: n.post_id });
+      navigate({ to: "/" });
+    } else if (
       (n.kind === "like" ||
         n.kind === "comment" ||
         n.kind === "reply" ||
-        n.kind === "mention" ||
-        n.kind === "new_post") &&
+        n.kind === "mention") &&
       n.post_id
     ) {
-      intentStore.push({ kind: "openPost", postId: n.post_id });
+      intentStore.push({
+        kind: "openPost",
+        postId: n.post_id,
+        commentId: n.comment_id ?? undefined,
+      });
       navigate({ to: "/" });
     } else if (n.kind === "follow") {
       if (n.actor?.id) {
