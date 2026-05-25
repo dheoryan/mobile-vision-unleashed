@@ -46,6 +46,8 @@ function App() {
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
   const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
   const [openPostId, setOpenPostId] = useState<string | null>(null);
+  const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
+  const [scrollToPostId, setScrollToPostId] = useState<string | null>(null);
   const [initialTribe, setInitialTribe] = useState<TribeId | undefined>(undefined);
   const intent = useIntent();
   const threadsQuery = useThreads();
