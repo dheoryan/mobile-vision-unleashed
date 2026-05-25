@@ -42,10 +42,35 @@ export function TimelineScreen({
   const isLoadingCurrent = tab === "tribe" ? tribeFeedQuery.isLoading : feedQuery.isLoading;
   const currentPosts = tab === "tribe" ? tribePosts : forYouPosts;
 
+  // Auto-switch tab + scroll + highlight when an intent targets a specific post
+  useEffect(() => {
+    if (!scrollToPostId) return;
+    // Prefer the tab that contains this post; default to For You since it spans all tribes
+    const inTribe = tribePosts.some((p) => p.id === scrollToPostId);
+    if (!inTribe) setTab("foryou");
+    const target = scrollToPostId;
+    const attempt = (left: number) => {
+      const el = document.querySelector<HTMLElement>(`[data-post-id="${target}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background");
+        window.setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background");
+        }, 2200);
+        onScrolledToPost?.();
+        return;
+      }
+      if (left > 0) window.setTimeout(() => attempt(left - 1), 120);
+      else onScrolledToPost?.();
+    };
+    window.setTimeout(() => attempt(20), 60);
+  }, [scrollToPostId, tribePosts, onScrolledToPost]);
+
   return (
     <div className="bg-habitat min-h-screen pb-28">
       <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" onOpenMessages={onOpenMessages} unread={unread} />
       <main className="mx-auto max-w-md px-5">
+
 
         {/* ── Tab switcher ── */}
         <div className="mt-4 flex gap-2 rounded-full bg-card p-1">
