@@ -20,8 +20,8 @@ import {
 const TRIBE_FALLBACK = "var(--color-primary)";
 
 export function CommentsModal({
-  open, onClose, postId,
-}: { open: boolean; onClose: () => void; postId: string | null }) {
+  open, onClose, postId, highlightCommentId,
+}: { open: boolean; onClose: () => void; postId: string | null; highlightCommentId?: string | null }) {
   const me = useMyProfile();
   const { user } = useAuth();
   const [text, setText] = useState("");
