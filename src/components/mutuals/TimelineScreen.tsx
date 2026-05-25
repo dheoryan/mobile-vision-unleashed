@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PostCard } from "./PostCard";
 import { AppHeader } from "./Shared";
 import { useBlocked } from "@/lib/blocked-store";
@@ -13,10 +13,14 @@ export function TimelineScreen({
   profile,
   onOpenMessages,
   unread,
+  scrollToPostId,
+  onScrolledToPost,
 }: {
   profile: Profile;
   onOpenMessages: () => void;
   unread?: number;
+  scrollToPostId?: string | null;
+  onScrolledToPost?: () => void;
 }) {
   const [tab, setTab] = useState<"tribe" | "foryou">("tribe");
   const blocked = useBlocked();
