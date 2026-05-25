@@ -48,6 +48,27 @@ export function CommentsModal({
     return byParent;
   }, [commentsQuery.data]);
 
+  // Scroll to + flash a specific comment when opened from a notification
+  useEffect(() => {
+    if (!open || !highlightCommentId || commentsQuery.isLoading) return;
+    const attempt = (left: number) => {
+      const el = document.querySelector<HTMLElement>(
+        `[data-comment-id="${highlightCommentId}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary", "rounded-lg");
+        window.setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "rounded-lg");
+        }, 2200);
+        return;
+      }
+      if (left > 0) window.setTimeout(() => attempt(left - 1), 100);
+    };
+    const t = window.setTimeout(() => attempt(15), 80);
+    return () => window.clearTimeout(t);
+  }, [open, highlightCommentId, commentsQuery.isLoading, commentsQuery.data]);
+
   if (!open || !postId) return null;
 
   const tribeColor = TRIBE_FALLBACK;
