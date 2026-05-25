@@ -115,7 +115,8 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
 
   return (
     <article
-      className="rounded-2xl border border-border bg-card p-4 animate-rise"
+      data-post-id={post.id}
+      className="rounded-2xl border border-border bg-card p-4 animate-rise transition-shadow"
       style={{ ["--tribe-active" as string]: tribe.colorVar }}
     >
       <header className="flex items-center gap-3">
