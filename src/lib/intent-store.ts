@@ -3,7 +3,8 @@ import type { TabKey } from "@/components/mutuals/BottomNav";
 import type { TribeId } from "@/lib/mutuals-data";
 
 export type Intent =
-  | { kind: "openPost"; postId: string }
+  | { kind: "openPost"; postId: string; commentId?: string }
+  | { kind: "scrollToPost"; postId: string }
   | { kind: "openThreadWith"; userId: string }
   | { kind: "openTab"; tab: TabKey }
   | { kind: "openTribe"; tribeId: TribeId };

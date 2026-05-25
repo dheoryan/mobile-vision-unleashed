@@ -20,8 +20,8 @@ import {
 const TRIBE_FALLBACK = "var(--color-primary)";
 
 export function CommentsModal({
-  open, onClose, postId,
-}: { open: boolean; onClose: () => void; postId: string | null }) {
+  open, onClose, postId, highlightCommentId,
+}: { open: boolean; onClose: () => void; postId: string | null; highlightCommentId?: string | null }) {
   const me = useMyProfile();
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -47,6 +47,27 @@ export function CommentsModal({
     }
     return byParent;
   }, [commentsQuery.data]);
+
+  // Scroll to + flash a specific comment when opened from a notification
+  useEffect(() => {
+    if (!open || !highlightCommentId || commentsQuery.isLoading) return;
+    const attempt = (left: number) => {
+      const el = document.querySelector<HTMLElement>(
+        `[data-comment-id="${highlightCommentId}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary", "rounded-lg");
+        window.setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "rounded-lg");
+        }, 2200);
+        return;
+      }
+      if (left > 0) window.setTimeout(() => attempt(left - 1), 100);
+    };
+    const t = window.setTimeout(() => attempt(15), 80);
+    return () => window.clearTimeout(t);
+  }, [open, highlightCommentId, commentsQuery.isLoading, commentsQuery.data]);
 
   if (!open || !postId) return null;
 
@@ -332,7 +353,7 @@ function CommentItem({
   useEffect(() => () => clearLongPress(), []);
 
   return (
-    <div className="relative select-none">
+    <div className="relative select-none" data-comment-id={c.id}>
       {dragX > 4 && (
         <div
           className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-2 text-muted-foreground"

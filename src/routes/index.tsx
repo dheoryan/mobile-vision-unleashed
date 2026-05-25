@@ -46,6 +46,8 @@ function App() {
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
   const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
   const [openPostId, setOpenPostId] = useState<string | null>(null);
+  const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
+  const [scrollToPostId, setScrollToPostId] = useState<string | null>(null);
   const [initialTribe, setInitialTribe] = useState<TribeId | undefined>(undefined);
   const intent = useIntent();
   const threadsQuery = useThreads();
@@ -101,7 +103,11 @@ function App() {
       setOpenVentureChat(null);
       setMessagesOpen(true);
     } else if (i.kind === "openPost") {
+      setHighlightCommentId(i.commentId ?? null);
       setOpenPostId(i.postId);
+    } else if (i.kind === "scrollToPost") {
+      setTab("timeline");
+      setScrollToPostId(i.postId);
     } else if (i.kind === "openTab") {
       setTab(i.tab);
     } else if (i.kind === "openTribe") {
@@ -194,7 +200,7 @@ function App() {
         initialTribe={initialTribe}
       />
     ),
-    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} />,
+    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} scrollToPostId={scrollToPostId} onScrolledToPost={() => setScrollToPostId(null)} />,
     discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
     ventures: (
       <VenturesScreen
@@ -236,7 +242,15 @@ function App() {
         openWithUserId={openThreadUser}
         openWithVenture={openVentureChat}
       />
-      <CommentsModal open={!!openPostId} onClose={() => setOpenPostId(null)} postId={openPostId} />
+      <CommentsModal
+        open={!!openPostId}
+        onClose={() => {
+          setOpenPostId(null);
+          setHighlightCommentId(null);
+        }}
+        postId={openPostId}
+        highlightCommentId={highlightCommentId}
+      />
     </>
   );
 }
