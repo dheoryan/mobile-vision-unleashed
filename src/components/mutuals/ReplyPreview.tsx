@@ -102,18 +102,15 @@ export function QuotedBlock({
   return (
     <div
       className={
-        "relative mb-2 flex items-stretch gap-2 overflow-hidden rounded-lg border " +
+        "relative mb-1.5 flex items-stretch gap-2 overflow-hidden rounded-md shadow-sm " +
         (mine
-          ? "border-primary-foreground/30 bg-primary-foreground/15 text-primary-foreground"
-          : "border-border bg-background/80 text-foreground")
+          ? "bg-primary-foreground/95 text-primary"
+          : "bg-card text-foreground ring-1 ring-border")
       }
     >
       <div
-        className="w-[3px] shrink-0"
-        style={{
-          backgroundColor: mine ? "currentColor" : accentColor,
-          opacity: mine ? 0.9 : 1,
-        }}
+        className="w-1 shrink-0"
+        style={{ backgroundColor: mine ? "currentColor" : accentColor }}
         aria-hidden
       />
       <div className="min-w-0 flex-1 py-1.5 pr-2.5">
@@ -126,7 +123,7 @@ export function QuotedBlock({
         <p
           className={
             "truncate text-[11px] " +
-            (mine ? "opacity-90" : "text-muted-foreground")
+            (mine ? "opacity-80" : "text-muted-foreground")
           }
         >
           {snippet}
