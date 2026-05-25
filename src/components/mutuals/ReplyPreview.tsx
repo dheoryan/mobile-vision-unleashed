@@ -102,31 +102,31 @@ export function QuotedBlock({
   return (
     <div
       className={
-        "mb-1.5 flex items-stretch gap-2 overflow-hidden rounded-lg " +
-        (mine ? "bg-black/15" : "bg-secondary/60")
+        "relative mb-2 flex items-stretch gap-2 overflow-hidden rounded-lg border " +
+        (mine
+          ? "border-primary-foreground/30 bg-primary-foreground/15 text-primary-foreground"
+          : "border-border bg-background/80 text-foreground")
       }
     >
       <div
-        className="w-0.5 shrink-0"
+        className="w-[3px] shrink-0"
         style={{
           backgroundColor: mine ? "currentColor" : accentColor,
-          opacity: mine ? 0.7 : 1,
+          opacity: mine ? 0.9 : 1,
         }}
         aria-hidden
       />
-      <div className="min-w-0 flex-1 py-1 pr-2">
+      <div className="min-w-0 flex-1 py-1.5 pr-2.5">
         <p
-          className={
-            "truncate text-[10px] font-semibold " +
-            (mine ? "opacity-90" : "")
-          }
+          className="truncate text-[10px] font-bold uppercase tracking-wide"
           style={mine ? undefined : { color: accentColor }}
         >
           {name}
         </p>
         <p
           className={
-            "truncate text-[11px] " + (mine ? "opacity-80" : "text-muted-foreground")
+            "truncate text-[11px] " +
+            (mine ? "opacity-90" : "text-muted-foreground")
           }
         >
           {snippet}
