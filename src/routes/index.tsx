@@ -103,7 +103,11 @@ function App() {
       setOpenVentureChat(null);
       setMessagesOpen(true);
     } else if (i.kind === "openPost") {
+      setHighlightCommentId(i.commentId ?? null);
       setOpenPostId(i.postId);
+    } else if (i.kind === "scrollToPost") {
+      setTab("timeline");
+      setScrollToPostId(i.postId);
     } else if (i.kind === "openTab") {
       setTab(i.tab);
     } else if (i.kind === "openTribe") {
