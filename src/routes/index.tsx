@@ -242,7 +242,15 @@ function App() {
         openWithUserId={openThreadUser}
         openWithVenture={openVentureChat}
       />
-      <CommentsModal open={!!openPostId} onClose={() => setOpenPostId(null)} postId={openPostId} />
+      <CommentsModal
+        open={!!openPostId}
+        onClose={() => {
+          setOpenPostId(null);
+          setHighlightCommentId(null);
+        }}
+        postId={openPostId}
+        highlightCommentId={highlightCommentId}
+      />
     </>
   );
 }
