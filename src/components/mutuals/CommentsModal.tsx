@@ -353,7 +353,7 @@ function CommentItem({
   useEffect(() => () => clearLongPress(), []);
 
   return (
-    <div className="relative select-none">
+    <div className="relative select-none" data-comment-id={c.id}>
       {dragX > 4 && (
         <div
           className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-2 text-muted-foreground"
