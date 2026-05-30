@@ -1,12 +1,10 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Camera, Loader2, Users, Globe } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
 import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
-import { useMyProfile } from "@/lib/profile-store";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 
@@ -18,22 +16,18 @@ export function ComposerModal({
   open, onClose, tribeId, initialAudience = "tribe",
 }: { open: boolean; onClose: () => void; tribeId: TribeId; initialAudience?: Audience }) {
   const { user } = useAuth();
-  const me = useMyProfile();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [audience, setAudience] = useState<Audience>(initialAudience);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   if (!open) return null;
   const tribe = tribeById(tribeId);
-  const myTribeIds = (me?.tribeIds ?? [tribeId]) as TribeId[];
-  const canBroadcast = myTribeIds.length > 1;
-  const effectiveAudience: Audience = canBroadcast ? audience : "tribe";
+  const effectiveAudience: Audience = initialAudience;
 
-  const reset = () => { setText(""); setImageUrl(null); setAudience(initialAudience); };
+  const reset = () => { setText(""); setImageUrl(null); };
 
   const submit = () => {
     const t = text.trim();
@@ -90,31 +84,8 @@ export function ComposerModal({
         <p className="label-mono text-muted-foreground">New post · {effectiveAudience === "all" ? "All Tribes" : tribe.name}</p>
         <h2 className="font-display text-xl font-bold">What's happening?</h2>
 
-        {canBroadcast && (
-          <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-border bg-background p-0.5 text-[11px] font-semibold">
-            <button
-              type="button"
-              onClick={() => setAudience("tribe")}
-              className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1.5 transition",
-                audience === "tribe" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-              style={audience === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
-            >
-              <Users className="h-3 w-3" /> {tribe.name} only
-            </button>
-            <button
-              type="button"
-              onClick={() => setAudience("all")}
-              className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1.5 transition",
-                audience === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Globe className="h-3 w-3" /> All Tribes
-            </button>
-          </div>
-        )}
+
+
 
         <textarea
           autoFocus
