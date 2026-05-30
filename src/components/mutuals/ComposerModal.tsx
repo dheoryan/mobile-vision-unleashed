@@ -16,22 +16,18 @@ export function ComposerModal({
   open, onClose, tribeId, initialAudience = "tribe",
 }: { open: boolean; onClose: () => void; tribeId: TribeId; initialAudience?: Audience }) {
   const { user } = useAuth();
-  const me = useMyProfile();
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [audience, setAudience] = useState<Audience>(initialAudience);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   if (!open) return null;
   const tribe = tribeById(tribeId);
-  const myTribeIds = (me?.tribeIds ?? [tribeId]) as TribeId[];
-  const canBroadcast = myTribeIds.length > 1;
-  const effectiveAudience: Audience = canBroadcast ? audience : "tribe";
+  const effectiveAudience: Audience = initialAudience;
 
-  const reset = () => { setText(""); setImageUrl(null); setAudience(initialAudience); };
+  const reset = () => { setText(""); setImageUrl(null); };
 
   const submit = () => {
     const t = text.trim();
