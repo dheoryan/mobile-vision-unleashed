@@ -584,9 +584,9 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm",
+                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
                           mine
-                            ? "rounded-br-sm text-primary-foreground"
+                            ? "rounded-br-sm text-white"
                             : "rounded-bl-sm bg-card text-foreground",
                         )}
                         style={mine ? { backgroundColor: tribe.colorVar } : undefined}
