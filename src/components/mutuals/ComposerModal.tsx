@@ -1,12 +1,10 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Camera, Loader2, Users, Globe } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
 import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
-import { useMyProfile } from "@/lib/profile-store";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 
