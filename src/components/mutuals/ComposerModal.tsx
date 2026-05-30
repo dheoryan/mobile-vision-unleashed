@@ -84,31 +84,8 @@ export function ComposerModal({
         <p className="label-mono text-muted-foreground">New post · {effectiveAudience === "all" ? "All Tribes" : tribe.name}</p>
         <h2 className="font-display text-xl font-bold">What's happening?</h2>
 
-        {canBroadcast && (
-          <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-border bg-background p-0.5 text-[11px] font-semibold">
-            <button
-              type="button"
-              onClick={() => setAudience("tribe")}
-              className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1.5 transition",
-                audience === "tribe" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-              style={audience === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
-            >
-              <Users className="h-3 w-3" /> {tribe.name} only
-            </button>
-            <button
-              type="button"
-              onClick={() => setAudience("all")}
-              className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1.5 transition",
-                audience === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Globe className="h-3 w-3" /> All Tribes
-            </button>
-          </div>
-        )}
+
+
 
         <textarea
           autoFocus
