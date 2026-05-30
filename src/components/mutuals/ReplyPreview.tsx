@@ -104,26 +104,26 @@ export function QuotedBlock({
       className={
         "relative mb-1.5 flex items-stretch gap-2 overflow-hidden rounded-lg " +
         (mine
-          ? "bg-primary-foreground/15 text-primary-foreground"
+          ? "bg-white/20 text-white"
           : "bg-muted text-foreground")
       }
     >
       <div
         className="w-[3px] shrink-0 rounded-full"
-        style={{ backgroundColor: mine ? "var(--color-primary-foreground)" : accentColor }}
+        style={{ backgroundColor: mine ? "#ffffff" : accentColor }}
         aria-hidden
       />
       <div className="min-w-0 flex-1 py-1.5 pr-2.5">
         <p
           className="truncate text-[11px] font-semibold"
-          style={mine ? undefined : { color: accentColor }}
+          style={mine ? { color: "#ffffff" } : { color: accentColor }}
         >
           {name}
         </p>
         <p
           className={
             "truncate text-[11px] " +
-            (mine ? "text-primary-foreground/80" : "text-muted-foreground")
+            (mine ? "text-white/85" : "text-muted-foreground")
           }
         >
           {snippet}

@@ -435,9 +435,9 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm",
+                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
                           mine
-                            ? "rounded-br-sm bg-primary text-primary-foreground"
+                            ? "rounded-br-sm bg-primary text-white"
                             : "rounded-bl-sm bg-card text-foreground",
                         )}
                       >
@@ -458,7 +458,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                         <p
                           className={cn(
                             "mt-1 text-[10px]",
-                            mine ? "text-primary-foreground/70" : "text-muted-foreground",
+                            mine ? "text-white/70" : "text-muted-foreground",
                           )}
                         >
                           {pending ? "sending…" : shortTime(m.created_at)}
@@ -584,9 +584,9 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm",
+                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
                           mine
-                            ? "rounded-br-sm text-primary-foreground"
+                            ? "rounded-br-sm text-white"
                             : "rounded-bl-sm bg-card text-foreground",
                         )}
                         style={mine ? { backgroundColor: tribe.colorVar } : undefined}
