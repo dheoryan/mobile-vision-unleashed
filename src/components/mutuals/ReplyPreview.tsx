@@ -103,9 +103,14 @@ export function QuotedBlock({
     <div
       className={
         "relative mb-1.5 flex items-stretch gap-2 overflow-hidden rounded-lg " +
-        (mine
-          ? "bg-white/20 text-white"
-          : "bg-muted text-foreground")
+        (mine ? "bg-white/20 text-white" : "text-foreground")
+      }
+      style={
+        mine
+          ? undefined
+          : {
+              backgroundColor: `color-mix(in oklab, ${accentColor} 14%, transparent)`,
+            }
       }
     >
       <div
@@ -123,7 +128,7 @@ export function QuotedBlock({
         <p
           className={
             "truncate text-[11px] " +
-            (mine ? "text-white/85" : "text-muted-foreground")
+            (mine ? "text-white/85" : "text-foreground/75")
           }
         >
           {snippet}
