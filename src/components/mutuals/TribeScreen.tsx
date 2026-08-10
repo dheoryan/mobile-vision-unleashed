@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { toast } from "sonner";
-import { uploadTribeChatImage } from "@/lib/uploads";
+import { uploadTribeChatImage, signTribeChatUrl } from "@/lib/uploads";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 
 function SwipeReplyRow({
@@ -734,19 +734,9 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                       </div>
                     )}
                     {m.attachment_url && m.attachment_type === "image" && (
-                      <a
-                        href={m.attachment_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block overflow-hidden rounded-xl border border-white/10"
-                      >
-                        <img
-                          src={m.attachment_url}
-                          alt="Chat attachment"
-                          className="max-h-64 w-full object-cover"
-                        />
-                      </a>
+                      <ChatAttachmentImage value={m.attachment_url} />
                     )}
+
                     {m.content?.trim() && (
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
                     )}
@@ -945,4 +935,33 @@ function getMentionQuery(value: string) {
 function mentionLabel(member: TribeMember) {
   if (member.handle) return `@${member.handle.replace(/^@/, "")}`;
   return `@${member.display_name.replace(/\s+/g, "")}`;
+}
+
+function ChatAttachmentImage({ value }: { value: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    signTribeChatUrl(value).then((signed) => {
+      if (active) setUrl(signed);
+    });
+    return () => {
+      active = false;
+    };
+  }, [value]);
+
+  if (!url) {
+    return <div className="h-40 w-full animate-pulse rounded-xl bg-muted" />;
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="block overflow-hidden rounded-xl border border-white/10"
+    >
+      <img src={url} alt="Chat attachment" className="max-h-64 w-full object-cover" />
+    </a>
+  );
 }
