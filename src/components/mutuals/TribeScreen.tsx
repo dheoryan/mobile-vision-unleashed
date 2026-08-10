@@ -734,19 +734,9 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                       </div>
                     )}
                     {m.attachment_url && m.attachment_type === "image" && (
-                      <a
-                        href={m.attachment_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block overflow-hidden rounded-xl border border-white/10"
-                      >
-                        <img
-                          src={m.attachment_url}
-                          alt="Chat attachment"
-                          className="max-h-64 w-full object-cover"
-                        />
-                      </a>
+                      <ChatAttachmentImage value={m.attachment_url} />
                     )}
+
                     {m.content?.trim() && (
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
                     )}
