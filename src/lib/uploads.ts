@@ -27,6 +27,8 @@ async function uploadTo(
     contentType: file.type,
   });
   if (error) throw new Error(error.message);
+  // Private bucket: store the object path, resolve a signed URL at render time.
+  if (bucket === "tribe-chat-attachments") return path;
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
@@ -36,3 +38,23 @@ export const uploadPostImage = (userId: string, file: File) =>
   uploadTo("post-images", userId, file);
 export const uploadTribeChatImage = (tribeId: string, userId: string, file: File) =>
   uploadTo("tribe-chat-attachments", userId, file, tribeId);
+
+const TRIBE_BUCKET = "tribe-chat-attachments";
+
+/** Accepts either a stored object path or a legacy public URL and returns the object path. */
+export function tribeAttachmentPath(value: string): string {
+  const marker = `/${TRIBE_BUCKET}/`;
+  const i = value.indexOf(marker);
+  if (i >= 0) return decodeURIComponent(value.slice(i + marker.length));
+  return value;
+}
+
+/** Signed URL for a private tribe chat attachment (valid 1 hour). */
+export async function signTribeChatUrl(value: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(TRIBE_BUCKET)
+    .createSignedUrl(tribeAttachmentPath(value), 3600);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
+
