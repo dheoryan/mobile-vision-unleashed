@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { toast } from "sonner";
-import { uploadTribeChatImage } from "@/lib/uploads";
+import { uploadTribeChatImage, signTribeChatUrl } from "@/lib/uploads";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 
 function SwipeReplyRow({
