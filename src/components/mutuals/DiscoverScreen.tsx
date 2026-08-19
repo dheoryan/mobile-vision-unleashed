@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, Check, Loader2, Search, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
 import { useFeedPosts, type FeedPost } from "@/lib/posts-store";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSocial, useToggleFollow } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 
 type DiscoverPerson = Person & { allTribeIds: TribeId[] };
 
@@ -164,15 +167,18 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </p>
           ) : (
             <>
-              {filtered.map((p) => (
-                <PersonRow
-                  key={p.id}
-                  person={p}
-                  following={social.following.has(p.id)}
-                  pending={toggleFollow.isPending && toggleFollow.variables === p.id}
-                  onToggle={() => toggle(p.id)}
-                />
-              ))}
+              <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-3">
+                {filtered.map((p) => (
+                  <motion.div key={p.id} variants={staggerItem}>
+                    <PersonRow
+                      person={p}
+                      following={social.following.has(p.id)}
+                      pending={toggleFollow.isPending && toggleFollow.variables === p.id}
+                      onToggle={() => toggle(p.id)}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
               {profilesQuery.hasNextPage && (
                 <button
                   onClick={() => profilesQuery.fetchNextPage()}
@@ -209,28 +215,37 @@ function TribePreviewSheet({
   posts: FeedPost[];
   onClose: () => void;
 }) {
-  if (!tribe) return null;
-  const members = people.filter((p) => p.allTribeIds.includes(tribe.id)).slice(0, 4);
-  const recentPosts = posts.filter((p) => p.tribe_id === tribe.id).slice(0, 3);
+  // Keep rendering the last previewed tribe's content while the modal plays its
+  // exit animation, even after the parent has already cleared `tribe` to null.
+  const [lastTribe, setLastTribe] = useState<Tribe | null>(tribe);
+  useEffect(() => { if (tribe) setLastTribe(tribe); }, [tribe]);
+  const displayTribe = tribe ?? lastTribe;
+
+  const members = displayTribe ? people.filter((p) => p.allTribeIds.includes(displayTribe.id)).slice(0, 4) : [];
+  const recentPosts = displayTribe ? posts.filter((p) => p.tribe_id === displayTribe.id).slice(0, 3) : [];
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
+    <AnimatedModal
+      open={!!tribe}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title={displayTribe ? `${displayTribe.name} preview` : "Tribe preview"}
+      contentClassName="overflow-hidden"
+    >
       <div
-        className="relative mx-auto w-full max-w-md overflow-hidden rounded-t-3xl border border-border bg-card animate-rise sm:rounded-3xl"
-        style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${tribe.colorVar} 28%, var(--card)) 0%, var(--card) 60%)` }}
+        style={displayTribe ? { background: `linear-gradient(180deg, color-mix(in oklab, ${displayTribe.colorVar} 28%, var(--card)) 0%, var(--card) 60%)` } : undefined}
       >
         <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/40 text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
+        {displayTribe && (
         <div className="p-6">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl" style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 35%, transparent)` }}>
-            {tribe.emoji}
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl" style={{ backgroundColor: `color-mix(in oklab, ${displayTribe.colorVar} 35%, transparent)` }}>
+            {displayTribe.emoji}
           </span>
-          <h3 className="mt-4 font-display text-2xl font-bold">{tribe.name}</h3>
-          <p className="text-xs text-muted-foreground">{tribe.scene}</p>
+          <h3 className="mt-4 font-display text-2xl font-bold">{displayTribe.name}</h3>
+          <p className="text-xs text-muted-foreground">{displayTribe.scene}</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
             {members.length} visible registered members
-            {tribe.hosted && tribe.hostOrg ? ` · Hosted by ${tribe.hostOrg}` : ""}
+            {displayTribe.hosted && displayTribe.hostOrg ? ` · Hosted by ${displayTribe.hostOrg}` : ""}
           </p>
 
           <p className="mt-5 label-mono text-muted-foreground">Recent signals</p>
@@ -250,7 +265,7 @@ function TribePreviewSheet({
           <p className="mt-5 label-mono text-muted-foreground">A few members</p>
           <div className="mt-2 flex gap-2">
             {members.length ? members.map((m) => (
-              <AvatarBubble key={m.id} person={m} color={tribe.colorVar} />
+              <AvatarBubble key={m.id} person={m} color={displayTribe.colorVar} />
             )) : (
               <p className="text-xs text-muted-foreground">No registered members visible yet.</p>
             )}
@@ -260,8 +275,9 @@ function TribePreviewSheet({
             Close preview
           </button>
         </div>
+        )}
       </div>
-    </div>
+    </AnimatedModal>
   );
 }
 
@@ -293,7 +309,8 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
         <p className="text-[11px] text-muted-foreground">{person.city || person.handle || "Registered member"}</p>
         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{person.bio || "Open to meeting people across Tribes."}</p>
       </div>
-      <button
+      <motion.button
+        whileTap={{ scale: 0.93 }}
         onClick={onToggle}
         disabled={pending}
         className={cn(
@@ -301,8 +318,19 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
           following ? "border-accent bg-accent/15 text-accent" : "border-primary bg-primary/15 text-primary",
         )}
       >
-        {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><Check className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
-      </button>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={pending ? "pending" : following ? "following" : "follow"}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            transition={{ duration: 0.15 }}
+            className="inline-flex items-center gap-1"
+          >
+            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><Check className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+          </motion.span>
+        </AnimatePresence>
+      </motion.button>
     </div>
   );
 }

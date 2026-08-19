@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, ChevronDown, Download, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -134,8 +135,6 @@ export function PushPromptModal() {
     setOpen(false);
   };
 
-  if (!open || !user) return null;
-
   const standalone = isStandalonePwa();
   const ios = isIosSafari();
   const android = isAndroid();
@@ -167,9 +166,14 @@ export function PushPromptModal() {
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={skipSoft} />
-      <div className="relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl animate-rise">
+    <AnimatedModal
+      open={open && !!user}
+      onOpenChange={(o) => { if (!o) skipSoft(); }}
+      title="Push notifications"
+      center
+      zIndex={60}
+      contentClassName="max-h-[90vh] overflow-y-auto p-6 shadow-2xl"
+    >
         <button
           onClick={skipSoft}
           aria-label="Close"
@@ -290,8 +294,7 @@ export function PushPromptModal() {
             )}
           </div>
         )}
-      </div>
-    </div>
+    </AnimatedModal>
   );
 }
 

@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
+import { motion } from "motion/react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X, Loader2, Bookmark } from "lucide-react";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
@@ -116,7 +118,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   return (
     <article
       data-post-id={post.id}
-      className="rounded-2xl border border-border bg-card p-4 animate-rise transition-shadow"
+      className="rounded-2xl border border-border bg-card p-4 transition-shadow"
       style={{ ["--tribe-active" as string]: tribe.colorVar }}
     >
       <header className="flex items-center gap-3">
@@ -253,7 +255,8 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
       )}
 
       <footer className="mt-3 flex items-center gap-5 text-muted-foreground">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => {
             if (post.id.startsWith("tmp-")) return;
             toggleLike.mutate(post.id);
@@ -264,24 +267,43 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           )}
           aria-pressed={liked}
         >
-          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />{" "}
+          <motion.span
+            key={liked ? "liked" : "unliked"}
+            className="inline-flex"
+            initial={{ scale: 0.5 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+          >
+            <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
+          </motion.span>{" "}
           {post.likes_count}
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => setCommentsOpen(true)}
           className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
         >
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => { if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id); }}
           className={cn("ml-auto flex items-center gap-1.5 text-xs transition-colors", saved ? "text-amber-400" : "hover:text-foreground")}
           aria-label={saved ? "Unsave post" : "Save post"}
           aria-pressed={saved}
         >
-          <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
-        </button>
-        <button
+          <motion.span
+            key={saved ? "saved" : "unsaved"}
+            className="inline-flex"
+            initial={{ scale: 0.5 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+          >
+            <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
+          </motion.span>
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={share}
           className={cn(
             "flex items-center gap-1.5 text-xs transition-colors",
@@ -292,43 +314,44 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         >
           <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} />{" "}
           {post.shares_count}
-        </button>
+        </motion.button>
       </footer>
 
       <CommentsModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />
 
-      {confirmDel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setConfirmDel(false)} />
-          <div className="relative mx-4 w-full max-w-sm rounded-2xl border border-border bg-card p-5 animate-rise">
-            <h3 className="font-display text-base font-bold">Delete this post?</h3>
-            <p className="mt-1 text-xs text-muted-foreground">This can't be undone. Comments and likes will be removed.</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setConfirmDel(false)}
-                className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setConfirmDel(false);
-                  deletePost.mutate(
-                    { id: post.id },
-                    {
-                      onSuccess: () => toast.success("Post deleted"),
-                      onError: (e) => toast.error((e as Error).message),
-                    },
-                  );
-                }}
-                className="rounded-full bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground"
-              >
-                Delete
-              </button>
-            </div>
+      <AnimatedModal
+        open={confirmDel}
+        onOpenChange={(o) => { if (!o) setConfirmDel(false); }}
+        title="Delete this post?"
+        center
+        contentClassName="mx-4 max-w-sm p-5"
+      >
+          <h3 className="font-display text-base font-bold">Delete this post?</h3>
+          <p className="mt-1 text-xs text-muted-foreground">This can't be undone. Comments and likes will be removed.</p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmDel(false)}
+              className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setConfirmDel(false);
+                deletePost.mutate(
+                  { id: post.id },
+                  {
+                    onSuccess: () => toast.success("Post deleted"),
+                    onError: (e) => toast.error((e as Error).message),
+                  },
+                );
+              }}
+              className="rounded-full bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground"
+            >
+              Delete
+            </button>
           </div>
-        </div>
-      )}
+      </AnimatedModal>
     </article>
   );
 }

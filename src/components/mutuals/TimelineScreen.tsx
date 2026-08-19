@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import { PostCard } from "./PostCard";
 import { AppHeader } from "./Shared";
 import { useBlocked } from "@/lib/blocked-store";
@@ -128,21 +130,31 @@ export function TimelineScreen({
         </p>
 
         {/* ── Feed ── */}
-        <div className="mt-3 flex flex-col gap-3">
-          {isLoadingCurrent ? (
-            <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
-          ) : currentPosts.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              {tab === "tribe"
-                ? `No posts in ${tribe.name} yet. Be the first to signal!`
-                : "No posts yet."}
-            </p>
-          ) : (
-            currentPosts.map((p) => (
-              <PostCard key={p.id} post={p} showTribe={tab === "foryou"} />
-            ))
-          )}
-        </div>
+        {isLoadingCurrent ? (
+          <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
+        ) : currentPosts.length === 0 ? (
+          <p className="mt-3 rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            {tab === "tribe"
+              ? `No posts in ${tribe.name} yet. Be the first to signal!`
+              : "No posts yet."}
+          </p>
+        ) : (
+          <motion.div
+            key={tab}
+            className="mt-3 flex flex-col gap-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
+            <AnimatePresence initial={false}>
+              {currentPosts.map((p) => (
+                <motion.div key={p.id} layout variants={staggerItem} initial="hidden" animate="show" exit="exit">
+                  <PostCard post={p} showTribe={tab === "foryou"} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
       </main>
 
       <ComposerModal

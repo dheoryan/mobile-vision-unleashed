@@ -1,6 +1,7 @@
 import { X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { TRIBES, type TribeId } from "@/lib/mutuals-data";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { Profile } from "./Onboarding";
 
 export function AddTribeSheet({
@@ -16,8 +17,6 @@ export function AddTribeSheet({
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
   onJoined?: (tribeId: TribeId) => void;
 }) {
-  if (!open) return null;
-
   const remaining = TRIBES.filter((t) => !profile.tribeIds.includes(t.id));
   const atMax = profile.tribeIds.length >= 3;
 
@@ -35,9 +34,12 @@ export function AddTribeSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto w-full max-w-md rounded-t-3xl border border-border bg-card p-6 sm:rounded-3xl animate-rise">
+    <AnimatedModal
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title="Join another Tribe"
+      contentClassName="p-6"
+    >
         <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
@@ -75,7 +77,6 @@ export function AddTribeSheet({
             ))}
           </ul>
         )}
-      </div>
-    </div>
+    </AnimatedModal>
   );
 }

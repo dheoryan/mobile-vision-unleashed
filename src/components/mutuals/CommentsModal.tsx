@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { X, Send, AlertTriangle, MessageSquare, Trash2, Reply } from "lucide-react";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
 import { useComments, useAddComment, useDeleteComment, type CommentRow } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
@@ -69,8 +69,6 @@ export function CommentsModal({
     return () => window.clearTimeout(t);
   }, [open, highlightCommentId, commentsQuery.isLoading, commentsQuery.data]);
 
-  if (!open || !postId) return null;
-
   const tribeColor = TRIBE_FALLBACK;
   const roots = tree.get(null) ?? [];
 
@@ -131,11 +129,13 @@ export function CommentsModal({
     }
   };
 
-  if (typeof document === "undefined") return null;
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto flex h-[80vh] w-full max-w-md flex-col rounded-t-3xl border border-border bg-card animate-rise">
+  return (
+    <AnimatedModal
+      open={open && !!postId}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title="Comments"
+      contentClassName="flex h-[80vh] flex-col"
+    >
         <header className="flex items-center justify-between border-b border-border px-5 py-3">
           <h2 className="font-display text-base font-bold">Comments</h2>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
@@ -211,9 +211,7 @@ export function CommentsModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>,
-    document.body,
+    </AnimatedModal>
   );
 }
 

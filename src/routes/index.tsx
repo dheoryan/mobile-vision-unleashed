@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
 import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
 import { TribeScreen } from "@/components/mutuals/TribeScreen";
@@ -227,9 +228,16 @@ function App() {
   return (
     <>
       {(Object.keys(screens) as TabKey[]).map((k) => (
-        <div key={k} hidden={tab !== k} aria-hidden={tab !== k}>
+        <motion.div
+          key={k}
+          hidden={tab !== k}
+          aria-hidden={tab !== k}
+          initial={false}
+          animate={tab === k ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
           {screens[k]}
-        </div>
+        </motion.div>
       ))}
 
       <BottomNav active={tab} onChange={setTab} />

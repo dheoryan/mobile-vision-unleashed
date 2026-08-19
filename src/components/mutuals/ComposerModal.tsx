@@ -7,6 +7,7 @@ import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
@@ -23,7 +24,6 @@ export function ComposerModal({
   const cameraRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
-  if (!open) return null;
   const tribe = tribeById(tribeId);
   const effectiveAudience: Audience = initialAudience;
 
@@ -75,9 +75,12 @@ export function ComposerModal({
   const close = () => { reset(); onClose(); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={close} />
-      <div className="relative mx-auto w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 animate-rise">
+    <AnimatedModal
+      open={open}
+      onOpenChange={(o) => { if (!o) close(); }}
+      title={`New post — ${effectiveAudience === "all" ? "All Tribes" : tribe.name}`}
+      contentClassName="p-6"
+    >
         <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
@@ -157,7 +160,6 @@ export function ComposerModal({
         >
           Send Signal
         </button>
-      </div>
-    </div>
+    </AnimatedModal>
   );
 }

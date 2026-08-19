@@ -2,14 +2,13 @@ import { useState } from "react";
 import { X, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useDeleteAccount } from "@/lib/account-store";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 
 export function DeleteAccountModal({
   open, onClose, onDeleted,
 }: { open: boolean; onClose: () => void; onDeleted: () => void }) {
   const deleteAccount = useDeleteAccount();
   const [confirming, setConfirming] = useState(false);
-
-  if (!open) return null;
 
   const handleClose = () => {
     if (deleteAccount.isPending) return;
@@ -18,10 +17,15 @@ export function DeleteAccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative mx-auto w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 animate-rise">
-        <button onClick={handleClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
+    <AnimatedModal
+      open={open}
+      onOpenChange={(o) => { if (!o) handleClose(); }}
+      title="Delete your account"
+      preventClose={deleteAccount.isPending}
+      contentClassName="p-6"
+    >
+      <div className="relative">
+        <button onClick={handleClose} aria-label="Close" className="absolute right-0 top-0 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
@@ -74,6 +78,6 @@ export function DeleteAccountModal({
           </button>
         </div>
       </div>
-    </div>
+    </AnimatedModal>
   );
 }
