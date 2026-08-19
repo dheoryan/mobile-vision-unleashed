@@ -76,7 +76,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
         {step === 0 && (
           <div className="flex flex-1 flex-col">
             <div className="mt-16 animate-rise">
-              <p className="label-mono text-muted-foreground">Mutuals</p>
+              <p className="label-mono text-muted-foreground">Meutuals</p>
               <h1 className="mt-3 font-display text-[44px] font-bold leading-[1.05] tracking-tight">
                 Start with your <span className="text-primary">Tribe</span>.
                 <br />
@@ -209,7 +209,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
                 onClick={() => tribeId && onDone({ tribeIds: [tribeId], name, age, city, bio, avatar, plan: "free", ventureCount: 0 })}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
               >
-                Enter Mutuals <ArrowRight className="h-4 w-4" />
+                Enter Meutuals <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>

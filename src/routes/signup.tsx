@@ -46,8 +46,8 @@ function SignupPage() {
   return (
     <div className="bg-habitat flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <img src={logo} alt="Mutuals" className="mx-auto h-16 w-16 rounded-2xl" />
-        <p className="label-mono text-muted-foreground mt-4 text-center">Mutuals</p>
+        <img src={logo} alt="Meutuals" className="mx-auto h-16 w-16 rounded-2xl" />
+        <p className="label-mono text-muted-foreground mt-4 text-center">Meutuals</p>
         <h1 className="mt-2 text-center font-display text-3xl font-bold">Create your account.</h1>
         <p className="mt-1 text-center text-[11px] text-muted-foreground">For socially curious adults, 21+.</p>
         <form onSubmit={submit} className="mt-8 space-y-3">

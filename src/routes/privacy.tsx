@@ -5,10 +5,10 @@ import { LegalFooter } from "@/components/mutuals/LegalFooter";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — MUTUALS" },
-      { name: "description", content: "What data MUTUALS collects, how we use it, and your rights." },
-      { property: "og:title", content: "Privacy Policy — MUTUALS" },
-      { property: "og:description", content: "What data MUTUALS collects, how we use it, and your rights." },
+      { title: "Privacy Policy — MEUTUALS" },
+      { name: "description", content: "What data MEUTUALS collects, how we use it, and your rights." },
+      { property: "og:title", content: "Privacy Policy — MEUTUALS" },
+      { property: "og:description", content: "What data MEUTUALS collects, how we use it, and your rights." },
     ],
   }),
   component: PrivacyPage,
@@ -39,13 +39,13 @@ function PrivacyPage() {
             </ul>
           </Section>
           <Section title="How we use it">
-            To run MUTUALS — match you to people in your Tribe, deliver messages, surface relevant Ventures, prevent abuse, and improve the product.
+            To run MEUTUALS — match you to people in your Tribe, deliver messages, surface relevant Ventures, prevent abuse, and improve the product.
           </Section>
           <Section title="Third parties">
             <ul className="ml-5 mt-2 list-disc space-y-1.5">
               <li><strong className="text-foreground">Supabase</strong> — database, authentication, and file storage.</li>
               <li><strong className="text-foreground">Vercel / Netlify</strong> — web hosting.</li>
-              <li><strong className="text-foreground">Stripe</strong> — payments for MUTUALS+ subscriptions.</li>
+              <li><strong className="text-foreground">Stripe</strong> — payments for MEUTUALS+ subscriptions.</li>
               <li><strong className="text-foreground">PostHog</strong> — product analytics (usage patterns, feature adoption). No personally identifiable information is shared with PostHog.</li>
               <li><strong className="text-foreground">Sentry</strong> — error monitoring and crash reporting. Error reports are anonymised before transmission.</li>
             </ul>

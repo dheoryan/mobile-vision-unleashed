@@ -5,10 +5,10 @@ import { LegalFooter } from "@/components/mutuals/LegalFooter";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service — MUTUALS" },
-      { name: "description", content: "The rules of the road for using MUTUALS." },
-      { property: "og:title", content: "Terms of Service — MUTUALS" },
-      { property: "og:description", content: "The rules of the road for using MUTUALS. Last updated May 2026." },
+      { title: "Terms of Service — MEUTUALS" },
+      { name: "description", content: "The rules of the road for using MEUTUALS." },
+      { property: "og:title", content: "Terms of Service — MEUTUALS" },
+      { property: "og:description", content: "The rules of the road for using MEUTUALS. Last updated May 2026." },
     ],
   }),
   component: TermsPage,
@@ -32,8 +32,8 @@ function TermsPage() {
 
         <article className="prose prose-invert mt-8 max-w-none space-y-6 text-sm leading-relaxed text-muted-foreground">
           <Section title="1. Eligibility">
-            MUTUALS is built for socially curious adults. You must be at least <strong className="text-foreground">21 years old</strong> to create an account.
-            By using MUTUALS you confirm you meet this requirement.
+            MEUTUALS is built for socially curious adults. You must be at least <strong className="text-foreground">21 years old</strong> to create an account.
+            By using MEUTUALS you confirm you meet this requirement.
           </Section>
           <Section title="2. Your account">
             You're responsible for keeping your login credentials safe. You agree to provide accurate information about yourself and not impersonate anyone else.
@@ -47,19 +47,19 @@ function TermsPage() {
             </ul>
           </Section>
           <Section title="4. User content">
-            You retain ownership of content you post on MUTUALS. By posting, you grant MUTUALS a non-exclusive, royalty-free, worldwide license to display and distribute your content within the platform. You may delete your content at any time.
+            You retain ownership of content you post on MEUTUALS. By posting, you grant MEUTUALS a non-exclusive, royalty-free, worldwide license to display and distribute your content within the platform. You may delete your content at any time.
           </Section>
           <Section title="5. Intellectual property">
-            MUTUALS and its logos, design, and original content are owned by MUTUALS. You may not reproduce or redistribute any part of MUTUALS without written permission.
+            MEUTUALS and its logos, design, and original content are owned by MEUTUALS. You may not reproduce or redistribute any part of MEUTUALS without written permission.
           </Section>
           <Section title="6. Limitation of liability">
-            To the maximum extent permitted by law, MUTUALS shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.
+            To the maximum extent permitted by law, MEUTUALS shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.
           </Section>
           <Section title="7. Termination">
             We may suspend or terminate accounts that violate these Terms or our Community Guidelines, at our sole discretion.
           </Section>
           <Section title="8. No warranty">
-            MUTUALS is provided "as is" without warranties of any kind, express or implied.
+            MEUTUALS is provided "as is" without warranties of any kind, express or implied.
           </Section>
           <Section title="9. Governing law">
             These Terms are governed by the laws of the Republic of Indonesia. Any disputes shall be resolved in the courts of Jakarta, Indonesia.

@@ -6,7 +6,7 @@ import { PEOPLE, POSTS, tribeById } from "@/lib/mutuals-data";
 export const Route = createFileRoute("/host-dashboard")({
   head: () => ({
     meta: [
-      { title: "Host Dashboard — MUTUALS" },
+      { title: "Host Dashboard — MEUTUALS" },
       { name: "description", content: "Manage your Hosted Tribe: members, posts, ventures, and announcements." },
     ],
   }),

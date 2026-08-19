@@ -6,9 +6,9 @@ import { TRIBES } from "@/lib/mutuals-data";
 export const Route = createFileRoute("/host")({
   head: () => ({
     meta: [
-      { title: "Apply to host a Tribe — MUTUALS" },
-      { name: "description", content: "Brands, venues, and community builders can apply to run a Verified Hosted Tribe on MUTUALS." },
-      { property: "og:title", content: "Host a Tribe on MUTUALS" },
+      { title: "Apply to host a Tribe — MEUTUALS" },
+      { name: "description", content: "Brands, venues, and community builders can apply to run a Verified Hosted Tribe on MEUTUALS." },
+      { property: "og:title", content: "Host a Tribe on MEUTUALS" },
       { property: "og:description", content: "Verified host status, analytics, and pinned posts." },
     ],
   }),
@@ -29,8 +29,8 @@ function HostApplyPage() {
       <div className="bg-habitat flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <CheckCircle2 className="h-12 w-12 text-primary" />
         <h1 className="mt-4 font-display text-3xl font-bold">Application received.</h1>
-        <p className="mt-2 max-w-sm text-sm text-muted-foreground">We'll be in touch within 48 hours about hosting on MUTUALS.</p>
-        <Link to="/" className="mt-6 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Back to MUTUALS</Link>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">We'll be in touch within 48 hours about hosting on MEUTUALS.</p>
+        <Link to="/" className="mt-6 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Back to MEUTUALS</Link>
       </div>
     );
   }

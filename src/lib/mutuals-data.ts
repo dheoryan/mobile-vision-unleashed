@@ -17,7 +17,7 @@ export const TRIBES: Tribe[] = [
   { id: "koi",  name: "Koi",        emoji: "🐟", scene: "Books & Thoughtful Hobbies",  colorVar: "var(--tribe-koi)",  members: 8210,  online: 184 },
   { id: "cat",  name: "Studio Cat", emoji: "🎵", scene: "Music & Arts",                colorVar: "var(--tribe-cat)",  members: 15640, online: 521 },
   { id: "owl",  name: "Night Owl",  emoji: "🦉", scene: "Nightlife & Late-Night Talks",colorVar: "var(--tribe-owl)",  members: 9970,  online: 402 },
-  { id: "bee",  name: "Honeybee",   emoji: "🐝", scene: "Professional Workers",        colorVar: "var(--tribe-bee)",  members: 11230, online: 276, hosted: true, hostOrg: "Sightglass × Mutuals" },
+  { id: "bee",  name: "Honeybee",   emoji: "🐝", scene: "Professional Workers",        colorVar: "var(--tribe-bee)",  members: 11230, online: 276, hosted: true, hostOrg: "Sightglass × Meutuals" },
 ];
 
 export const tribeById = (id: TribeId) => TRIBES.find(t => t.id === id)!;

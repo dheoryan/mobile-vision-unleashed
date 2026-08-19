@@ -126,7 +126,7 @@ function ReportModal({
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">Report {kind === "post" ? "post" : `@${targetName}`}</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Reports are reviewed by the MUTUALS team. They're confidential.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Reports are reviewed by the MEUTUALS team. They're confidential.</p>
 
         <label className="mt-4 block">
           <span className="label-mono text-muted-foreground">Reason</span>

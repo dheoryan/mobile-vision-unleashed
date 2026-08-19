@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { blockUser, listMyBlocks, unblockUser } from "@/lib/social.functions";
+import { blockUser, listMyBlocks, listMyBlockedProfiles, unblockUser } from "@/lib/social.functions";
 import { useAuth } from "@/lib/auth-context";
 
 const BLOCKS_KEY = ["social", "blocks"] as const;
+const BLOCKED_PROFILES_KEY = ["social", "blocked-profiles"] as const;
 
 export function useBlocks() {
   const fn = useServerFn(listMyBlocks);
@@ -21,6 +22,18 @@ export function useBlocks() {
 export function useBlocked() {
   const q = useBlocks();
   return q.data ?? new Set<string>();
+}
+
+/** Real profile info (name/handle/avatar) for everyone the current user has blocked. */
+export function useBlockedProfiles() {
+  const fn = useServerFn(listMyBlockedProfiles);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...BLOCKED_PROFILES_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 }
 
 export function useBlockUser() {
@@ -41,6 +54,7 @@ export function useBlockUser() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: BLOCKS_KEY });
+      qc.invalidateQueries({ queryKey: BLOCKED_PROFILES_KEY });
       qc.invalidateQueries({ queryKey: ["posts"] });
     },
   });
@@ -64,6 +78,7 @@ export function useUnblockUser() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: BLOCKS_KEY });
+      qc.invalidateQueries({ queryKey: BLOCKED_PROFILES_KEY });
       qc.invalidateQueries({ queryKey: ["posts"] });
     },
   });

@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { POSTS, PEOPLE, tribeById, personById, type TribeId } from "@/lib/mutuals-data";
+import { POSTS, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
-import { useMyPosts, useMySavedPosts, useMyVentures } from "@/lib/posts-store";
+import { useMyPosts, useMySavedPosts } from "@/lib/posts-store";
+import { useMyHostedVentures } from "@/lib/ventures-store";
 import { useFollowCounts } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
 import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
-import { useBlocked, useUnblockUser } from "@/lib/blocked-store";
+import { useBlockedProfiles, useUnblockUser } from "@/lib/blocked-store";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ export function ProfileScreen({
 
   const savedQuery = useMySavedPosts();
   const savedPosts = savedQuery.data ?? [];
-  const venturesQuery = useMyVentures();
+  const venturesQuery = useMyHostedVentures();
   const ventures = venturesQuery.data ?? [];
 
   return (
@@ -132,7 +133,7 @@ export function ProfileScreen({
             <div>
               <p className="label-mono text-muted-foreground">Plan</p>
               <p className="font-display text-lg font-bold">
-                {isPlus ? (<><span className="text-primary">MUTUALS+</span></>) : "Free"}
+                {isPlus ? (<><span className="text-primary">MEUTUALS+</span></>) : "Free"}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {isPlus
@@ -250,13 +251,11 @@ export function ProfileScreen({
               ventures.map((v) => (
                 <div key={v.id} className="rounded-2xl border border-border bg-card p-4 text-sm">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold">{v.intents.slice(0, 3).join(" · ") || "Open to anything"}</p>
-                    <span className="label-mono text-muted-foreground">
-                      {v.ended_at ? "ended" : "live"}
-                    </span>
+                    <p className="font-semibold">{v.title || v.intents.slice(0, 3).join(" · ") || "Open to anything"}</p>
+                    <span className="label-mono text-muted-foreground">{v.status}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} · {v.time_window || "Any time"} · {timeAgo(v.created_at)}
+                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} · {v.time_window || "Any time"} · {v.filled_slots}/{v.max_slots} joined · {timeAgo(v.created_at)}
                   </p>
                 </div>
               ))
@@ -292,7 +291,10 @@ export function ProfileScreen({
       <DeleteAccountModal
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => setProfile?.(() => null)}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          setProfile?.(() => null);
+        }}
       />
     </div>
   );
@@ -707,9 +709,9 @@ function Input({
 function SettingsSheet({
   open, onClose, onLogout, onDelete,
 }: { open: boolean; onClose: () => void; onLogout: () => void; onDelete: () => void }) {
-  const blocked = useBlocked();
+  const blockedProfilesQuery = useBlockedProfiles();
   const unblockUser = useUnblockUser();
-  const blockedPeople = [...blocked].map((id) => PEOPLE.find((p) => p.id === id) ?? personById(id)).filter(Boolean);
+  const blockedPeople = blockedProfilesQuery.data ?? [];
 
   if (!open) return null;
   return (
@@ -730,22 +732,30 @@ function SettingsSheet({
 
         <div className="mt-5">
           <p className="label-mono text-muted-foreground">Blocked accounts</p>
-          {blockedPeople.length === 0 ? (
+          {blockedProfilesQuery.isLoading ? (
+            <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              Loading…
+            </p>
+          ) : blockedPeople.length === 0 ? (
             <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
               You haven't blocked anyone.
             </p>
           ) : (
             <ul className="mt-2 space-y-2">
-              {blockedPeople.map((p) => p && (
+              {blockedPeople.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">{p.avatar}</span>
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">{p.avatar_emoji || "🙂"}</span>
+                  )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{p.name}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{p.handle}</p>
+                    <p className="truncate text-sm font-semibold">{p.display_name || "Unnamed"}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{p.handle ? `@${p.handle}` : ""}</p>
                   </div>
                   <button
                     onClick={() => unblockUser.mutate(p.id, {
-                      onSuccess: () => toast.success(`Unblocked ${p.name}.`),
+                      onSuccess: () => toast.success(`Unblocked ${p.display_name || "user"}.`),
                       onError: (e) => toast.error((e as Error).message),
                     })}
                     className="flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"

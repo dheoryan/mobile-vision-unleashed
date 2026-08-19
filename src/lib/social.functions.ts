@@ -185,6 +185,35 @@ export const listMyBlocks = createServerFn({ method: "GET" })
     return (data ?? []).map((r: { blocked_id: string }) => r.blocked_id);
   });
 
+export type BlockedProfile = {
+  id: string;
+  display_name: string;
+  handle: string | null;
+  avatar_emoji: string;
+  avatar_url: string | null;
+};
+
+/** Real profile info for everyone the current user has blocked, for the Settings UI. */
+export const listMyBlockedProfiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: blockRows, error: blockError } = await supabase
+      .from("blocks")
+      .select("blocked_id")
+      .eq("blocker_id", userId);
+    if (blockError) throw new Error(blockError.message);
+    const ids = (blockRows ?? []).map((r: { blocked_id: string }) => r.blocked_id);
+    if (ids.length === 0) return [] as BlockedProfile[];
+
+    const { data: rows, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, handle, avatar_emoji, avatar_url")
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as BlockedProfile[];
+  });
+
 export const blockUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => uuidIn.parse(input))

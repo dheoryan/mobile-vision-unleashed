@@ -48,7 +48,7 @@ export function AddTribeSheet({
 
         {atMax || remaining.length === 0 ? (
           <div className="mt-5 flex items-center gap-2 rounded-2xl border border-dashed border-border bg-background/40 p-4 text-sm text-muted-foreground">
-            <Check className="h-4 w-4 text-primary" /> You're in 3 Tribes — the maximum for MUTUALS+.
+            <Check className="h-4 w-4 text-primary" /> You're in 3 Tribes — the maximum for MEUTUALS+.
           </div>
         ) : (
           <ul className="mt-5 space-y-2">

@@ -1,7 +1,7 @@
 import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Small ⚡ amber overlay for MUTUALS+ members. Place inside a `relative` wrapper. */
+/** Small ⚡ amber overlay for MEUTUALS+ members. Place inside a `relative` wrapper. */
 export function PlusBadge({ size = "sm", className = "" }: { size?: "sm" | "md"; className?: string }) {
   const s = size === "md" ? "h-5 w-5" : "h-4 w-4";
   return (
@@ -11,8 +11,8 @@ export function PlusBadge({ size = "sm", className = "" }: { size?: "sm" | "md";
         s,
         className
       )}
-      aria-label="MUTUALS+ member"
-      title="MUTUALS+ member"
+      aria-label="MEUTUALS+ member"
+      title="MEUTUALS+ member"
     >
       <Zap className={size === "md" ? "h-3 w-3" : "h-2.5 w-2.5"} strokeWidth={2.6} fill="currentColor" />
     </span>

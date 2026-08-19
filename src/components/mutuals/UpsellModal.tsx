@@ -6,14 +6,16 @@ import { toast } from "sonner";
 type Step = "offer" | "checkout" | "processing" | "success";
 
 export function UpsellModal({
-  open, onClose, used = 3, onUpgraded,
+  open, onClose, used = 3, onUpgraded, initialStep = "offer",
 }: {
   open: boolean;
   onClose: () => void;
   used?: number;
   onUpgraded?: () => void;
+  /** Skip straight to a later step — e.g. "checkout" when opened from a direct "Upgrade" CTA that already made the pitch. */
+  initialStep?: Step;
 }) {
-  const [step, setStep] = useState<Step>("offer");
+  const [step, setStep] = useState<Step>(initialStep);
   const [card, setCard] = useState("4242 4242 4242 4242");
   const [exp, setExp] = useState("12/29");
   const [cvc, setCvc] = useState("123");
@@ -26,7 +28,7 @@ export function UpsellModal({
     setStep("processing");
     await new Promise((r) => setTimeout(r, 1200));
     setStep("success");
-    toast.success("Welcome to MUTUALS+ ⚡", { description: "Unlimited Ventures unlocked." });
+    toast.success("Welcome to MEUTUALS+ ⚡", { description: "Unlimited Ventures unlocked." });
     setTimeout(() => {
       onUpgraded?.();
       close();
@@ -50,7 +52,7 @@ export function UpsellModal({
             </span>
             <h2 className="mt-4 font-display text-2xl font-bold leading-tight">You've used your {used} free Ventures this month.</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Upgrade to <span className="font-semibold text-primary">MUTUALS+</span> for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts.
+              Upgrade to <span className="font-semibold text-primary">MEUTUALS+</span> for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts.
             </p>
             <div className="mt-5 flex flex-col gap-2">
               <button
@@ -78,7 +80,7 @@ export function UpsellModal({
 
         {step === "checkout" && (
           <>
-            <p className="label-mono text-muted-foreground">Checkout · MUTUALS+</p>
+            <p className="label-mono text-muted-foreground">Checkout · MEUTUALS+</p>
             <h2 className="font-display text-2xl font-bold">$6.99 / month</h2>
             <p className="mt-1 text-xs text-muted-foreground">Cancel anytime. No real charges in this demo.</p>
 
@@ -131,7 +133,7 @@ export function UpsellModal({
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Check className="h-7 w-7" />
             </span>
-            <p className="mt-4 font-display text-xl font-bold">You're MUTUALS+ ⚡</p>
+            <p className="mt-4 font-display text-xl font-bold">You're MEUTUALS+ ⚡</p>
             <p className="mt-1 text-xs text-muted-foreground">Resuming your Venture…</p>
           </div>
         )}

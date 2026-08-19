@@ -33,11 +33,11 @@ import {
 const COPY: Record<PushPromptTrigger, { title: string; body: string }> = {
   session: {
     title: "Don't miss a beat",
-    body: "Get push notifications when someone likes, comments, follows, or DMs you — even when MUTUALS is closed.",
+    body: "Get push notifications when someone likes, comments, follows, or DMs you — even when MEUTUALS is closed.",
   },
   dm: {
     title: "Get notified when they reply",
-    body: "Turn on push notifications so you don't miss the next message — even when MUTUALS is closed.",
+    body: "Turn on push notifications so you don't miss the next message — even when MEUTUALS is closed.",
   },
   post: {
     title: "See reactions in real time",
@@ -151,7 +151,7 @@ export function PushPromptModal() {
     { icon: <Plus className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
     {
       icon: <Smartphone className="h-4 w-4" />,
-      text: 'Tap "Add", then open MUTUALS from your home screen.',
+      text: 'Tap "Add", then open MEUTUALS from your home screen.',
     },
     { icon: <Bell className="h-4 w-4" />, text: "Come back here and tap Enable notifications." },
   ];
@@ -161,7 +161,7 @@ export function PushPromptModal() {
     { icon: <Plus className="h-4 w-4" />, text: 'Tap "Install app" or "Add to Home screen".' },
     {
       icon: <Smartphone className="h-4 w-4" />,
-      text: "Confirm, then open MUTUALS from your home screen.",
+      text: "Confirm, then open MEUTUALS from your home screen.",
     },
     { icon: <Bell className="h-4 w-4" />, text: "Tap Enable notifications when prompted." },
   ];
@@ -185,7 +185,7 @@ export function PushPromptModal() {
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {iosNeedsInstall
-            ? "Push on iPhone requires installing MUTUALS to your home screen. Follow these steps:"
+            ? "Push on iPhone requires installing MEUTUALS to your home screen. Follow these steps:"
             : copy.body}
         </p>
 
@@ -246,7 +246,7 @@ export function PushPromptModal() {
                 onClick={async () => {
                   const outcome = await triggerInstallPrompt();
                   if (outcome === "accepted") {
-                    toast.success("MUTUALS is installing — open it from your home screen.");
+                    toast.success("MEUTUALS is installing — open it from your home screen.");
                     setOpen(false);
                   } else if (outcome === "unavailable") {
                     toast.message("Install not available", {
@@ -257,7 +257,7 @@ export function PushPromptModal() {
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15"
               >
                 <Download className="h-4 w-4" />
-                Install MUTUALS on home screen
+                Install MEUTUALS on home screen
               </button>
             )}
 
@@ -266,7 +266,7 @@ export function PushPromptModal() {
                 <summary className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-foreground">
                   <span className="inline-flex items-center gap-2">
                     <Smartphone className="h-4 w-4 text-primary" />
-                    Install MUTUALS on Android
+                    Install MEUTUALS on Android
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>

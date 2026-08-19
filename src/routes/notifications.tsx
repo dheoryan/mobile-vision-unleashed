@@ -29,7 +29,7 @@ import { TRIBES, type TribeId } from "@/lib/mutuals-data";
 export const Route = createFileRoute("/notifications")({
   head: () => ({
     meta: [
-      { title: "Notifications — MUTUALS" },
+      { title: "Notifications — MEUTUALS" },
       { name: "description", content: "Likes, comments, follows, mentions, and DMs in one place." },
     ],
   }),

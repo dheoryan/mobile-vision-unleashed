@@ -25,7 +25,7 @@ export function AppHeader({
             M
           </span>
           <div className="leading-tight">
-            <p className="label-mono text-muted-foreground">{subtitle ?? "Mutuals"}</p>
+            <p className="label-mono text-muted-foreground">{subtitle ?? "Meutuals"}</p>
             <p className="font-display text-sm font-semibold">{title}</p>
           </div>
         </div>

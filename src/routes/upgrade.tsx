@@ -1,14 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Check, Zap } from "lucide-react";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
+import { UpsellModal } from "@/components/mutuals/UpsellModal";
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
     meta: [
-      { title: "MUTUALS+ — Venture further" },
-      { name: "description", content: "Upgrade to MUTUALS+ for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts." },
-      { property: "og:title", content: "MUTUALS+ — Venture further" },
+      { title: "MEUTUALS+ — Venture further" },
+      { name: "description", content: "Upgrade to MEUTUALS+ for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts." },
+      { property: "og:title", content: "MEUTUALS+ — Venture further" },
       { property: "og:description", content: "Unlimited Ventures, unlimited Hellos, and read receipts." },
     ],
   }),
@@ -16,7 +17,9 @@ export const Route = createFileRoute("/upgrade")({
 });
 
 function UpgradePage() {
+  const navigate = useNavigate();
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  const [upsellOpen, setUpsellOpen] = useState(false);
   const price = cycle === "monthly" ? "$6.99" : "$49.99";
   const sub = cycle === "monthly" ? "per month" : "per year · save 40%";
 
@@ -32,7 +35,7 @@ function UpgradePage() {
             <Zap className="h-7 w-7" fill="currentColor" />
           </span>
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight">
-            <span className="text-primary">MUTUALS+</span>
+            <span className="text-primary">MEUTUALS+</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">Venture further. Connect deeper.</p>
         </header>
@@ -64,7 +67,7 @@ function UpgradePage() {
             ]}
           />
           <PlanCard
-            title="MUTUALS+"
+            title="MEUTUALS+"
             price={price}
             sub={sub}
             highlighted
@@ -73,15 +76,18 @@ function UpgradePage() {
               "Unlimited Hellos",
               "Full match visibility",
               "Read receipts in DMs",
-              "MUTUALS+ profile badge",
+              "MEUTUALS+ profile badge",
               "Early access to new Tribes",
               "Hide profile visits",
             ]}
           />
         </div>
 
-        <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground">
-          <Zap className="h-4 w-4" fill="currentColor" /> Upgrade to MUTUALS+
+        <button
+          onClick={() => setUpsellOpen(true)}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground"
+        >
+          <Zap className="h-4 w-4" fill="currentColor" /> Upgrade to MEUTUALS+
         </button>
         <p className="mt-3 text-center text-[11px] text-muted-foreground">Cancel anytime. Mock checkout — no payment is processed.</p>
 
@@ -90,6 +96,13 @@ function UpgradePage() {
         </div>
         <LegalFooter className="mt-6" />
       </div>
+
+      <UpsellModal
+        open={upsellOpen}
+        initialStep="checkout"
+        onClose={() => setUpsellOpen(false)}
+        onUpgraded={() => navigate({ to: "/" })}
+      />
     </div>
   );
 }

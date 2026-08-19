@@ -159,7 +159,7 @@ function App() {
       person.id,
     );
     if (!isUuid) {
-      toast.error("That person isn't on Mutuals yet.");
+      toast.error("That person isn't on Meutuals yet.");
       return;
     }
     try {
@@ -175,8 +175,9 @@ function App() {
   };
 
   const handleLaunchVenture = () => {
-    // Persistence + venture_count bump is handled server-side by useLaunchVenture.
-    // Profile query is invalidated automatically; nothing else to do here.
+    // Called by VenturesScreen after it creates a venture via ventures-store's
+    // useCreateHostedVenture (which already persists + invalidates queries server-side).
+    // Nothing else to do here.
   };
 
   const openMessages = () => {
