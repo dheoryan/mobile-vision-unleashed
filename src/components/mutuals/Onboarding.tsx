@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { FeatureIllustration } from "./FeatureIllustration";
-import onb2Art from "@/assets/app-illustrations/onboarding-02.webp";
-import onb3Art from "@/assets/app-illustrations/onboarding-03.webp";
-import onb4Art from "@/assets/app-illustrations/onboarding-04.webp";
+import welcomeArt from "@/assets/app-illustrations/onboarding-01.webp";
 import { ArrowRight, ArrowLeft, Camera, Check, Loader2, LocateFixed, ShieldCheck, TreePine, Dumbbell, BookOpen, Music2, Palette, Utensils, Coffee, MoonStar, Cpu, BriefcaseBusiness, HeartPulse, Gamepad2, Users, Activity, MessageCircle, Compass, Network, Lightbulb, Sunrise, Sunset, CalendarDays, Zap, ChevronLeft, ChevronRight, RotateCcw, Sparkles, type LucideIcon } from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import { LegalFooter } from "./LegalFooter";
@@ -157,6 +155,7 @@ export function Onboarding({
               <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
                 Find people who share your scene, your rhythm, and—only if you choose—your part of town.
               </p>
+              <FeatureIllustration src={welcomeArt} size="lg" eager className="mt-8" />
             </div>
             <div className="mt-auto pt-10">
               <PrimaryButton onClick={() => setStep(1)}>Get started <ArrowRight className="h-4 w-4" /></PrimaryButton>
@@ -232,7 +231,7 @@ export function Onboarding({
 
         {step === 2 && (
           <div className="flex flex-1 flex-col">
-            <StepHeading step={2} title="Make it recognizably you." body="A name people can remember and a handle they can find." artwork={onb2Art} />
+            <StepHeading step={2} title="Make it recognizably you." body="A name people can remember and a handle they can find." />
             <div className="mt-6 flex flex-col items-center">
               <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-visible">
                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-card text-4xl">
@@ -277,7 +276,7 @@ export function Onboarding({
 
         {step === 3 && (
           <div className="flex flex-1 flex-col">
-            <StepHeading step={3} title="What should people know?" body="These signals make Discover useful instead of random." artwork={onb3Art} />
+            <StepHeading step={3} title="What should people know?" body="These signals make Discover useful instead of random." />
             <div className="mt-6 space-y-6">
               <CitySelect value={city} onChange={setCity} />
               <Field label="Short bio" value={bio} onChange={(value) => setBio(value.slice(0, 140))} placeholder="A line about how you like to socialize." multiline hint={`${bio.length}/140`} />
@@ -295,7 +294,7 @@ export function Onboarding({
 
         {step === 4 && (
           <div className="flex flex-1 flex-col">
-            <StepHeading step={4} title="Meet your part of the city." body="Optional. Nearby works without revealing where you are." artwork={onb4Art} />
+            <StepHeading step={4} title="Meet your part of the city." body="Optional. Nearby works without revealing where you are." />
             <div className="mt-7 rounded-3xl border border-border bg-card p-5">
               <div className="flex items-start gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="h-5 w-5" /></span>
@@ -338,36 +337,8 @@ export function Onboarding({
   );
 }
 
-/**
- * Optional chapter artwork sits beside the copy rather than above it, so the
- * heading, body and the primary action below stay visible together without
- * pushing the fold. It is hidden on short viewports — the interactive content
- * matters more than the decoration when vertical space is tight.
- *
- * Rendered at 136px rather than the ~80px originally suggested: these are
- * dense editorial illustrations and the small orbiting figures in the
- * interests and nearby pieces become unreadable noise below roughly 120px.
- */
-function StepHeading({ step, title, body, artwork }: { step: number; title: string; body: string; artwork?: string }) {
-  return (
-    <div className="mt-8 animate-rise">
-      <p className="label-mono text-muted-foreground">Step {step} of 4</p>
-      <div className="mt-2 flex items-start gap-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-3xl font-bold leading-tight">{title}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
-        </div>
-        {artwork && (
-          <FeatureIllustration
-            src={artwork}
-            size="sm"
-            eager={step === 1}
-            className="hidden shrink-0 [@media(min-height:700px)]:block"
-          />
-        )}
-      </div>
-    </div>
-  );
+function StepHeading({ step, title, body }: { step: number; title: string; body: string }) {
+  return <div className="mt-8 animate-rise"><p className="label-mono text-muted-foreground">Step {step} of 4</p><h2 className="mt-2 font-display text-3xl font-bold leading-tight">{title}</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p></div>;
 }
 
 function PrimaryButton({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) {

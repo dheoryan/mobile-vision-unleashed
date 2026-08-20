@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AtSign, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
+import { ArrowLeftRight, AtSign, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -106,16 +106,13 @@ export function TribeScreen({
         unread={unread}
       />
       <main className="mx-auto max-w-md px-5 pt-3">
-        {/* Tribe strip - Plus users with multi-tribe */}
-        {isPlus && (
-          <TribeStrip
-            joined={joinedTribes}
-            active={activeTribe}
-            onChange={setActiveTribe}
-            canAdd={profile.tribeIds.length < 3}
-            onAdd={() => setAddTribeOpen(true)}
-          />
-        )}
+        {/* Your Tribe, and the way to move to another one. */}
+        <TribeStrip
+          joined={joinedTribes}
+          active={activeTribe}
+          onChange={setActiveTribe}
+          onSwitch={() => setAddTribeOpen(true)}
+        />
 
         <TribeBanner tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
 
@@ -137,14 +134,12 @@ function TribeStrip({
   joined,
   active,
   onChange,
-  canAdd,
-  onAdd,
+  onSwitch,
 }: {
   joined: ReturnType<typeof tribeById>[];
   active: TribeId;
   onChange: (id: TribeId) => void;
-  canAdd: boolean;
-  onAdd: () => void;
+  onSwitch: () => void;
 }) {
   return (
     <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -170,18 +165,16 @@ function TribeStrip({
           );
         })}
 
-        {canAdd && (
-          <button
-            onClick={onAdd}
-            className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
-            aria-label="Add tribe"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-amber-400/60 text-amber-300">
-              +
-            </span>
-            <span className="text-[11px] font-medium text-muted-foreground">Add Tribe</span>
-          </button>
-        )}
+        <button
+          onClick={onSwitch}
+          className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
+          aria-label="Move to another Tribe"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-border text-muted-foreground">
+            <ArrowLeftRight className="h-5 w-5" />
+          </span>
+          <span className="text-[11px] font-medium text-muted-foreground">Move</span>
+        </button>
       </div>
     </div>
   );

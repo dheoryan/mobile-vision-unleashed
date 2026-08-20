@@ -287,6 +287,7 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="pt-5 animate-rise">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <FeatureIllustration src={venturesArt} size="lg" className="mb-5" />
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Zap className="h-5 w-5" />
         </span>
@@ -690,13 +691,6 @@ function LookView({
           }
           actionLabel="Host a Venture"
           onAction={onStartHosting}
-          // Artwork only on the true "nothing here at all" state — not when the
-          // board is empty merely because the user already joined everything.
-          artwork={
-            activeParties.length || pendingRequests.length || invitedRequests.length
-              ? undefined
-              : venturesArt
-          }
         />
       )}
     </>
@@ -1693,26 +1687,18 @@ function EmptyPanel({
   body,
   actionLabel,
   onAction,
-  artwork,
 }: {
   icon: React.ReactNode;
   title: string;
   body: string;
   actionLabel: string;
   onAction: () => void;
-  /** Only the primary discovery empty state passes this — repeating the large
-   *  illustration in every empty subsection would drown the actions. */
-  artwork?: string;
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-      {artwork ? (
-        <FeatureIllustration src={artwork} />
-      ) : (
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-          {icon}
-        </span>
-      )}
+      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+        {icon}
+      </span>
       <p className="mt-3 text-sm font-semibold">{title}</p>
       <p className="mt-1 text-xs text-muted-foreground">{body}</p>
       <button
