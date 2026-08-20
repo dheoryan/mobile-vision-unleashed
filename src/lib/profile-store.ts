@@ -2,7 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import type { Profile } from "@/components/mutuals/Onboarding";
 import type { TribeId } from "@/lib/mutuals-data";
-import { getMyProfile, updateMyProfile, verifyMyAge, type ProfileRow } from "@/lib/profile.functions";
+import {
+  getMyProfile,
+  getTribeSwitchStatus,
+  switchTribe,
+  updateMyProfile,
+  verifyMyAge,
+  type ProfileRow,
+} from "@/lib/profile.functions";
 import { useAuth } from "@/lib/auth-context";
 import type { AvailabilityId, InterestId, SocialIntentId } from "@/lib/profile-options";
 
@@ -71,6 +78,40 @@ export function useUpdateProfile() {
     onSuccess: (row) => {
       qc.setQueryData([...PROFILE_QUERY_KEY, row.id], row);
       qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    },
+  });
+}
+
+const TRIBE_SWITCH_KEY = ["tribe-switch-status"] as const;
+
+/** Whether the user may change Tribe right now, and how long until they can. */
+export function useTribeSwitchStatus() {
+  const fn = useServerFn(getTribeSwitchStatus);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...TRIBE_SWITCH_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Change Tribe. Membership is exclusive, so this replaces rather than appends.
+ * The cooldown is enforced in the database trigger — this hook just surfaces
+ * the resulting error and refreshes the affected caches.
+ */
+export function useSwitchTribe() {
+  const fn = useServerFn(switchTribe);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tribeId: TribeId) => fn({ data: { tribe_id: tribeId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+      qc.invalidateQueries({ queryKey: TRIBE_SWITCH_KEY });
+      // The Tribe feed, member list and chat all change identity.
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["tribes"] });
     },
   });
 }

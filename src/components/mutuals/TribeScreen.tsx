@@ -127,7 +127,6 @@ export function TribeScreen({
         open={addTribeOpen}
         onClose={() => setAddTribeOpen(false)}
         profile={profile}
-        setProfile={setProfile}
         onJoined={(id) => setActiveTribe(id)}
       />
     </div>

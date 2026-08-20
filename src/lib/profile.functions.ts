@@ -126,38 +126,93 @@ export const verifyMyAge = createServerFn({ method: "POST" })
     return profile;
   });
 
-export const joinTribe = createServerFn({ method: "POST" })
+/**
+ * Tribe membership is exclusive: one Tribe per person, changed rather than
+ * accumulated. The old joinTribe/leaveTribe pair modelled a multi-membership
+ * world, had no call sites, and could not express a cooldown — so they are
+ * replaced by a single switch operation.
+ *
+ * The cooldown itself is enforced in the enforce_tribe_limit trigger (see
+ * 20260820002000_one_tribe_per_user.sql) so it holds no matter which path
+ * writes the row. This function reads the status first purely so the UI can
+ * explain the wait instead of surfacing a raw database exception.
+ */
+export type TribeSwitchStatus = {
+  current_tribe_id: string | null;
+  /** Null when a switch is allowed right now. */
+  available_at: string | null;
+  can_switch: boolean;
+  /** Whole days remaining, 0 when a switch is allowed. */
+  days_remaining: number;
+};
+
+export const getTribeSwitchStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ tribe_id: z.enum(TRIBE_IDS) }).parse(input))
+  .handler(async ({ context }): Promise<TribeSwitchStatus> => {
+    const { supabase, userId } = context;
+    // `tribe_changed_at` is added by 20260820002000_one_tribe_per_user.sql and
+    // won't appear in the generated types until they're regenerated against the
+    // migrated schema. Same cast pattern already used in ventures.functions.ts.
+    const db = supabase as unknown as any;
+    const { data, error } = await db
+      .from("profiles")
+      .select("tribe_ids, tribe_changed_at, created_at")
+      .eq("id", userId)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const GRACE_DAYS = 7;
+    const COOLDOWN_DAYS = 21;
+    const now = Date.now();
+    const createdAt = Date.parse(data.created_at as string);
+    const changedAt = data.tribe_changed_at ? Date.parse(data.tribe_changed_at as string) : null;
+
+    const withinGrace = now - createdAt < GRACE_DAYS * 86_400_000;
+    const availableMs = changedAt === null ? null : changedAt + COOLDOWN_DAYS * 86_400_000;
+    const locked = !withinGrace && availableMs !== null && now < availableMs;
+
+    return {
+      current_tribe_id: (data.tribe_ids as string[])?.[0] ?? null,
+      available_at: locked ? new Date(availableMs!).toISOString() : null,
+      can_switch: !locked,
+      days_remaining: locked ? Math.ceil((availableMs! - now) / 86_400_000) : 0,
+    };
+  });
+
+export const switchTribe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ tribe_id: z.enum(TRIBE_IDS) }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: cur, error: e1 } = await supabase
-      .from("profiles").select("tribe_ids").eq("id", userId).single();
-    if (e1) throw new Error(e1.message);
-    const next = Array.from(new Set([...(cur?.tribe_ids ?? []), data.tribe_id]));
+
+    const { data: cur, error: readErr } = await supabase
+      .from("profiles")
+      .select("tribe_ids")
+      .eq("id", userId)
+      .single();
+    if (readErr) throw new Error(readErr.message);
+
+    const current = (cur?.tribe_ids as string[] | null) ?? [];
+    if (current.length === 1 && current[0] === data.tribe_id) {
+      return current;
+    }
+
+    // Replace rather than append. The trigger rejects anything longer than one
+    // and applies the cooldown; the after-update trigger clears the stale
+    // tribe_members row so chat access actually ends.
     const { data: row, error } = await supabase
-      .from("profiles").update({ tribe_ids: next }).eq("id", userId)
-      .select("tribe_ids").single();
+      .from("profiles")
+      .update({ tribe_ids: [data.tribe_id] })
+      .eq("id", userId)
+      .select("tribe_ids")
+      .single();
     if (error) throw new Error(error.message);
+
     return row.tribe_ids as string[];
   });
 
-export const leaveTribe = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ tribe_id: z.string() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: cur, error: e1 } = await supabase
-      .from("profiles").select("tribe_ids").eq("id", userId).single();
-    if (e1) throw new Error(e1.message);
-    const next = (cur?.tribe_ids ?? []).filter((t: string) => t !== data.tribe_id);
-    if (next.length === 0) throw new Error("You must belong to at least one tribe");
-    const { data: row, error } = await supabase
-      .from("profiles").update({ tribe_ids: next }).eq("id", userId)
-      .select("tribe_ids").single();
-    if (error) throw new Error(error.message);
-    return row.tribe_ids as string[];
-  });
 
 export type VentureMatch = {
   id: string;
