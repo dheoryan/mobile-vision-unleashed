@@ -36,3 +36,11 @@ dist-ssr
 # Supabase CLI local state
 supabase/.branches/
 supabase/.temp/
+
+# Local scratch and tooling output
+.playwright-cli/
+output/
+_to_delete/
+
+# Review-only art variants; production assets live in src/assets/tribes/
+src/assets/tribes/mask-variants/

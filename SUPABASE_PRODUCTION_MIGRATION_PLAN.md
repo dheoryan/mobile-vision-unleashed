@@ -1,11 +1,34 @@
 # Taking local → production (`ppdfglcpsnllziotfiso`)
 
-23 migrations were written in this session. Local has them all; production has
-none of them (assumed — **step 0 proves it**). Several of them rewrite existing
-rows or add restrictive policies, so this is not a "run migration up and watch
-the log" job.
+**28** migrations are unapplied on production, not 23 — corrected after looking
+at the history properly. Several rewrite existing rows or add restrictive
+policies, so this is not a "run db push and watch the log" job.
 
-Read this first. The dangerous parts are §2 and §3.
+Read this first. The dangerous parts are §2, §3 and §2f.
+
+## This is a Lovable project, which changes two things
+
+The migration history has two authors, and they interleave:
+
+- **27 Lovable-generated** — `<timestamp>_<uuid>.sql`. Lovable applies these to
+  the linked project itself, so production almost certainly has them.
+- **28 hand-written** — Codex's and mine. Production has seen none of them.
+
+They are not cleanly separated by date: `20260516123000_open_party_ventures.sql`
+(ours) sits between Lovable migrations from 05-16 and 05-17. So you cannot infer
+what production has from filenames alone — §0's `migration list` is the only
+thing that answers it, and it is mandatory rather than a formality.
+
+**The live risk: Lovable is still connected.** If anyone opens the Lovable
+editor and changes anything touching the schema, Lovable generates a migration
+and applies it to production directly — reintroducing drift, and potentially
+regenerating RLS policies on tables we hardened. `fix_venture_application_self_accept`
+is a policy rewrite; if Lovable regenerates that table's policies from its own
+model, the self-accept hole reopens silently.
+
+Before deploying: stop editing in Lovable, or disconnect it from the Supabase
+project. Decide which, and write it down, because this is not a one-time
+hazard — it recurs every time someone opens that editor.
 
 ---
 
@@ -34,60 +57,75 @@ the real starting point and changes this plan.
 
 ---
 
-## 1. Does production have real users?
+## 1. Production has real users — confirmed by the user, 2026-08-20
 
-This decides whether §2 is a careful data migration or a formality.
+**An earlier version of this plan recommended `supabase db reset --linked` if
+the data looked disposable. It is not. Do not run that command.** It destroys
+every account, post and Venture on production. That section has been deleted
+rather than corrected, so nobody skims it later and reaches for it.
+
+Everything in §2 is therefore a live data migration, not a formality. Take the
+counts anyway — they tell you how much of §2 actually applies:
 
 ```sql
 select
-  (select count(*) from auth.users)                                    as users,
-  (select count(*) from public.profiles)                               as profiles,
+  (select count(*) from auth.users)                                       as users,
   (select count(*) from public.profiles where cardinality(tribe_ids) > 1) as multi_tribe,
-  (select count(*) from public.profiles where adult_verified_at is null) as unverified,
-  (select count(*) from public.posts)                                  as posts,
-  (select count(*) from public.ventures)                               as ventures;
+  (select count(*) from public.profiles where adult_verified_at is null)  as unverified,
+  (select count(*) from public.posts)                                     as posts,
+  (select count(*) from public.ventures)                                  as ventures;
 ```
 
-If `users` is small and all of them are you and Codex's test accounts, the
-honest and much safer move is to **reset production instead of migrating it**:
-
-```bash
-npx supabase db reset --linked      # destroys all production data
-```
-
-That skips every risk in §2 entirely. Given the app has not launched, this is
-what I would recommend unless the numbers above say otherwise.
+**Take a manual backup before anything else.** Dashboard → Database → Backups.
+Confirm it exists. Point-in-time recovery is a paid add-on; do not assume you
+have it.
 
 ---
 
-## 2. Five migrations that change existing rows
+## 2. Six migrations that touch existing rows or access
 
 These are fine on an empty database and consequential on a populated one.
 
-### 2a. `20260820000900_enforce_adult_verification.sql` — the one that can take the app down
+### 2a. Adult verification — SOLVED by `20260820002600_adult_gate_switch.sql`
 
-It adds `as restrictive` policies to **profiles, posts, comments, messages,
-tribe_messages and ventures**. Restrictive policies are AND-ed with everything
-else, so a user who does not satisfy them loses access regardless of what other
-policies allow.
+The problem: `enforce_adult_verification` adds `as restrictive` policies to
+seven tables and adds `adult_verified_at` in the same migration, so every
+existing user has NULL there when it applies. Restrictive policies are AND-ed,
+so all seven tables disappear for everyone at once — no error, just an empty
+app.
 
-If production profiles have `adult_verified_at IS NULL` — which they will,
-because the column is added in this same migration — **every existing user is
-locked out of all six tables the moment this applies.** Not an error, just an
-empty app.
+Verified against Postgres 16: a real, unverified user could see **0 of 2**
+posts.
 
-Pre-flight: the `unverified` count from §1. If it is greater than zero, decide
-before deploying:
+The fix ships the gate switched off. `20260820002600` adds an `app_settings`
+switch and teaches `is_verified_adult()` to short-circuit when it is off, so
+the mechanism deploys inert and nothing breaks. Putting the switch inside the
+function rather than in seven policy definitions means every current policy
+respects it, and so will any added later.
+
+**Nothing extra to do at deploy time.** The switch defaults to off.
+
+When you are ready to actually enforce it, check the cost first:
 
 ```sql
--- Option A: grandfather everyone who already signed up.
-update public.profiles set adult_verified_at = now() where adult_verified_at is null;
-
--- Option B: leave them locked and make them re-verify. Only sane if the
--- accounts are test accounts.
+select count(*) filter (where adult_verified_at is null) as still_locked_out,
+       count(*)                                          as total
+from public.profiles where suspended_at is null;
 ```
 
-Run the backfill **immediately after** this migration, in the same session.
+Everyone in `still_locked_out` loses access the moment you run:
+
+```sql
+update public.app_settings set value = 'true'::jsonb, updated_at = now()
+where key = 'adult_gate_enabled';
+```
+
+Reversible with the same statement and `'false'`. Tested in both directions,
+plus the missing-row case, which fails open — failing closed would lock
+everyone out of seven tables, which is the wrong direction to be wrong in.
+
+Before flipping it you still need an in-app way for people to verify. That does
+not exist yet.
 
 ### 2b. `20260820002000_one_tribe_per_user.sql` — silently drops Tribes
 
@@ -152,6 +190,44 @@ select distinct tribe_id from public.posts;
 ```
 
 Nothing should reference the old key.
+
+### 2f. `20260811000000_local_dev_base_grants.sql` — do NOT apply this to production
+
+It exists so a local `supabase db reset` gets the baseline grants that hosted
+Supabase applies at provisioning time. Production already has them. Applying it
+anyway is not a no-op, because of these two lines:
+
+```sql
+grant all on all routines in schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on routines to anon, ...;
+```
+
+`all` on a routine means EXECUTE. The default-privileges line makes that the
+**default for every function created afterwards** — so any function added later
+is anonymously executable unless something explicitly revokes it. Most of the
+migrations here do revoke; `fix_venture_application_self_accept` and
+`secure_post_images` create functions without one, and nothing Lovable
+generates in future will either.
+
+Mark it applied without running it:
+
+```bash
+npx supabase migration repair --status applied 20260811000000
+```
+
+Then confirm anon cannot execute the SECURITY DEFINER helpers:
+
+```sql
+select p.proname
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.prosecdef
+  and has_function_privilege('anon', p.oid, 'execute');
+```
+
+That should return **zero rows**. Anything listed is a function anonymous
+visitors can run with the owner's privileges.
 
 ---
 
