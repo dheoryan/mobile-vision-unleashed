@@ -112,20 +112,23 @@ export function QuotedBlock({
   accentColor: string;
 }) {
   return (
-    <div className="mb-1.5 flex items-stretch gap-2">
+    <div className="mb-2 flex items-stretch gap-2">
       <span
         aria-hidden
-        className={"w-[2px] shrink-0 rounded-full " + (mine ? "bg-current opacity-40" : "")}
+        className={"w-[2px] shrink-0 rounded-full " + (mine ? "bg-current opacity-45" : "")}
         style={mine ? undefined : { backgroundColor: accentColor }}
       />
-      <div className="min-w-0 flex-1 border-b border-current/10 pb-1.5">
+      <div className="min-w-0 flex-1 leading-tight">
         <p
-          className={"truncate text-[11px] font-semibold " + (mine ? "opacity-80" : "")}
+          className={"truncate text-[10px] font-bold uppercase tracking-wide " + (mine ? "opacity-75" : "")}
           style={mine ? undefined : { color: accentColor }}
         >
           {name}
         </p>
-        <p className={"truncate text-[11px] " + (mine ? "opacity-60" : "text-muted-foreground")}>
+        {/* One line, truncated. A two-line clamp made the quote compete with
+            the reply for height, which is what made it read as a second
+            message rather than as context for the first. */}
+        <p className={"truncate text-[11px] " + (mine ? "opacity-65" : "text-muted-foreground")}>
           {snippet}
         </p>
       </div>

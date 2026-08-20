@@ -14,6 +14,7 @@ import { uploadTribeChatImage, signTribeChatUrl } from "@/lib/uploads";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { SafetyMenu } from "./SafetyMenu";
 import { TribeMark } from "./TribeMark";
+import { QuotedBlock } from "./ReplyPreview";
 
 function SwipeReplyRow({
   children,
@@ -106,10 +107,12 @@ export function TribeScreen({
         unread={unread}
       />
       <main className="mx-auto max-w-md px-5 pt-3">
-        {/* Your Tribe, and the way to move to another one. */}
-        <TribeCrestButton tribe={tribe} onSwitch={() => setAddTribeOpen(true)} />
-
-        <TribeBanner tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
+        <TribeBanner
+          tribe={tribe}
+          liveMembers={liveMembers}
+          liveOnline={liveOnline}
+          onSwitch={() => setAddTribeOpen(true)}
+        />
 
         {/* Group Chat - full screen, no toggle */}
         <GroupChat tribeId={activeTribe} canChat={isJoined} />
@@ -121,46 +124,6 @@ export function TribeScreen({
         profile={profile}
         onJoined={(id) => setActiveTribe(id)}
       />
-    </div>
-  );
-}
-
-/**
- * The user's Tribe crest, which is also the way out of it.
- *
- * There is exactly one Tribe now, so the old strip — a row of crests plus a
- * separate dashed "Move" tile — was a picker with one option and a button
- * beside it. The crest carries the identity and owns the action: untouched it
- * is simply the badge, and tapping it opens the move sheet.
- *
- * The affordance is carried by the label under the crest rather than by
- * chrome around it, so nothing competes with the artwork.
- */
-function TribeCrestButton({
-  tribe,
-  onSwitch,
-}: {
-  tribe: ReturnType<typeof tribeById>;
-  onSwitch: () => void;
-}) {
-  return (
-    <div className="flex">
-      <button
-        onClick={onSwitch}
-        aria-label={`${tribe.name} — move to another Tribe`}
-        aria-haspopup="dialog"
-        className="group flex shrink-0 flex-col items-center gap-1.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95"
-      >
-        <TribeMark
-          tribe={tribe}
-          size="lg"
-          className="ring-2 ring-primary ring-offset-2 ring-offset-background transition-transform group-hover:scale-105 motion-reduce:transition-none"
-        />
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
-          {tribe.name}
-          <ArrowLeftRight className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-foreground" />
-        </span>
-      </button>
     </div>
   );
 }
@@ -223,10 +186,12 @@ function TribeBanner({
   tribe,
   liveMembers,
   liveOnline,
+  onSwitch,
 }: {
   tribe: ReturnType<typeof tribeById>;
   liveMembers?: number;
   liveOnline: number;
+  onSwitch: () => void;
 }) {
   // Show nothing until the real count arrives. This used to fall back to
   // `tribe.members` — a hardcoded five-figure number from the demo data — so a
@@ -268,7 +233,30 @@ function TribeBanner({
       />
 
       <div className="relative flex items-start gap-4 p-5">
-        <TribeMark tribe={tribe} size="lg" decorative={false} />
+        {/* The crest is the Move control. It was previously duplicated — once
+            standalone above the banner carrying the action, once inside the
+            banner as decoration — which is the same mark twice, 20px apart,
+            with only one of them doing anything. */}
+        <button
+          type="button"
+          onClick={onSwitch}
+          aria-label={`${tribe.name} — move to another Tribe`}
+          aria-haspopup="dialog"
+          className="group relative shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95"
+        >
+          <TribeMark
+            tribe={tribe}
+            size="lg"
+            decorative={false}
+            className="transition-transform group-hover:scale-105 motion-reduce:transition-none"
+          />
+          <span
+            aria-hidden
+            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors group-hover:text-foreground"
+          >
+            <ArrowLeftRight className="h-3 w-3" />
+          </span>
+        </button>
         <div className="min-w-0 flex-1">
           <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2 py-1 text-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
@@ -703,25 +691,25 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
                   >
+                    {/* Tribe chat had its OWN quote renderer — a filled,
+                        rounded box nested inside an already-rounded bubble,
+                        painting bg-background/25 over the Tribe colour. Two
+                        implementations of the same thing is why fixing the DM
+                        one left this one untouched. Both now use QuotedBlock. */}
                     {m.reply_to && (
-                      <div
-                        className={cn(
-                          "rounded-xl border-l-2 bg-background/25 px-2 py-1 text-[11px] leading-snug",
-                          mine
-                            ? "border-black/30 text-primary-foreground/80"
-                            : "border-primary/50 text-muted-foreground",
-                        )}
-                      >
-                        <p className="font-medium">
-                          {m.reply_to.sender_id === user?.id
+                      <QuotedBlock
+                        mine={mine}
+                        accentColor={tribe.colorVar}
+                        name={
+                          m.reply_to.sender_id === user?.id
                             ? "You"
-                            : (m.reply_to.sender?.display_name ?? "Member")}
-                        </p>
-                        <p className="line-clamp-2">
-                          {m.reply_to.content ||
-                            (m.reply_to.attachment_type === "image" ? "Photo" : "Message")}
-                        </p>
-                      </div>
+                            : (m.reply_to.sender?.display_name ?? "Member")
+                        }
+                        snippet={
+                          m.reply_to.content ||
+                          (m.reply_to.attachment_type === "image" ? "Photo" : "Message")
+                        }
+                      />
                     )}
                     {m.attachment_url && m.attachment_type === "image" && (
                       <ChatAttachmentImage value={m.attachment_url} />
