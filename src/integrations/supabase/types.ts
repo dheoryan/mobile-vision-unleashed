@@ -54,8 +54,6 @@ export type Database = {
           created_at: string
           id: string
           mentions: string[]
-          moderation_hidden_at: string | null
-          moderation_hidden_by: string | null
           parent_id: string | null
           post_id: string
         }
@@ -65,8 +63,6 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id: string
         }
@@ -76,8 +72,6 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id?: string
         }
@@ -176,7 +170,6 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          read_at: string | null
           recipient_id: string
           sender_id: string
         }
@@ -184,7 +177,6 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          read_at?: string | null
           recipient_id: string
           sender_id: string
         }
@@ -192,7 +184,6 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          read_at?: string | null
           recipient_id?: string
           sender_id?: string
         }
@@ -243,51 +234,6 @@ export type Database = {
         }
         Relationships: []
       }
-      moderation_actions: {
-        Row: {
-          action: string
-          created_at: string
-          id: string
-          moderator_id: string | null
-          notes: string | null
-          report_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          id?: string
-          moderator_id?: string | null
-          notes?: string | null
-          report_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          id?: string
-          moderator_id?: string | null
-          notes?: string | null
-          report_id?: string
-        }
-        Relationships: []
-      }
-      moderators: {
-        Row: {
-          granted_at: string
-          granted_by: string | null
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string
-          granted_by?: string | null
-          user_id: string
-        }
-        Update: {
-          granted_at?: string
-          granted_by?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       posts: {
         Row: {
           audience: string
@@ -297,8 +243,6 @@ export type Database = {
           id: string
           image_url: string | null
           likes_count: number
-          moderation_hidden_at: string | null
-          moderation_hidden_by: string | null
           replies_count: number
           shares_count: number
           tag: string | null
@@ -313,8 +257,6 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           replies_count?: number
           shares_count?: number
           tag?: string | null
@@ -329,8 +271,6 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           replies_count?: number
           shares_count?: number
           tag?: string | null
@@ -349,113 +289,51 @@ export type Database = {
       }
       profiles: {
         Row: {
-          adult_verified_at: string | null
           age: number | null
-          age_verification_locked_at: string | null
           avatar_emoji: string
           avatar_url: string | null
-          availability: string[]
           bio: string
           city: string
           created_at: string
-          date_of_birth: string | null
           display_name: string
           handle: string | null
           id: string
-          interests: string[]
           plan: Database["public"]["Enums"]["app_plan"]
-          social_intents: string[]
-          suspended_at: string | null
-          suspended_by: string | null
           tribe_ids: string[]
           updated_at: string
           venture_count: number
         }
         Insert: {
-          adult_verified_at?: string | null
           age?: number | null
-          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
-          availability?: string[]
           bio?: string
           city?: string
           created_at?: string
-          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id: string
-          interests?: string[]
           plan?: Database["public"]["Enums"]["app_plan"]
-          social_intents?: string[]
-          suspended_at?: string | null
-          suspended_by?: string | null
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
         }
         Update: {
-          adult_verified_at?: string | null
           age?: number | null
-          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
-          availability?: string[]
           bio?: string
           city?: string
           created_at?: string
-          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id?: string
-          interests?: string[]
           plan?: Database["public"]["Enums"]["app_plan"]
-          social_intents?: string[]
-          suspended_at?: string | null
-          suspended_by?: string | null
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
         }
         Relationships: []
-      }
-      profile_locations: {
-        Row: {
-          accuracy_m: number
-          discoverable: boolean
-          latitude: number
-          longitude: number
-          radius_km: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          accuracy_m?: number
-          discoverable?: boolean
-          latitude: number
-          longitude: number
-          radius_km?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          accuracy_m?: number
-          discoverable?: boolean
-          latitude?: number
-          longitude?: number
-          radius_km?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_locations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       push_subscriptions: {
         Row: {
@@ -492,53 +370,29 @@ export type Database = {
       }
       reports: {
         Row: {
-          action: string | null
           created_at: string
           details: string | null
-          due_at: string
           id: string
-          moderator_notes: string | null
           reason: string
-          reporter_deleted_at: string | null
-          reporter_id: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string
-          target_deleted_at: string | null
+          reporter_id: string
           target_id: string
           target_kind: Database["public"]["Enums"]["report_kind"]
         }
         Insert: {
-          action?: string | null
           created_at?: string
           details?: string | null
-          due_at?: string
           id?: string
-          moderator_notes?: string | null
           reason: string
-          reporter_deleted_at?: string | null
-          reporter_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          target_deleted_at?: string | null
+          reporter_id: string
           target_id: string
           target_kind: Database["public"]["Enums"]["report_kind"]
         }
         Update: {
-          action?: string | null
           created_at?: string
           details?: string | null
-          due_at?: string
           id?: string
-          moderator_notes?: string | null
           reason?: string
-          reporter_deleted_at?: string | null
-          reporter_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          target_deleted_at?: string | null
+          reporter_id?: string
           target_id?: string
           target_kind?: Database["public"]["Enums"]["report_kind"]
         }
@@ -836,15 +690,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_user_is_moderator: { Args: Record<PropertyKey, never>; Returns: boolean }
-      list_nearby_profile_matches: {
-        Args: { _limit?: number }
-        Returns: {
-          distance_band: string
-          match_score: number
-          profile_id: string
-        }[]
-      }
       has_venture_application: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
@@ -860,10 +705,6 @@ export type Database = {
       is_venture_member: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
-      }
-      moderate_report: {
-        Args: { decision: string; notes?: string | null; report_id: string }
-        Returns: Database["public"]["Tables"]["reports"]["Row"]
       }
     }
     Enums: {
