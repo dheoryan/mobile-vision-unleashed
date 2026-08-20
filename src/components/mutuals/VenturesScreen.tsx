@@ -21,7 +21,7 @@ import {
   ImagePlus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { INTENTS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
+import { INTENT_GROUPS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
@@ -951,26 +951,55 @@ function HostForm({
           />
         </FieldLabel>
 
-        <FieldLabel label="Intents">
-          <div className="flex flex-wrap gap-2">
-            {INTENTS.map((intent) => {
-              const active = intents.includes(intent);
-              return (
+        <FieldLabel label={`Intents · ${intents.length}/5`}>
+          {/* Scrolls rather than pushing the rest of the form off-screen. The
+              chosen chips are pinned above the scroller so the host can always
+              see what they've picked and why further taps stop working, which
+              is otherwise invisible once the list has scrolled. */}
+          {intents.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {intents.map((intent) => (
                 <button
                   key={intent}
                   type="button"
                   onClick={() => toggleIntent(intent)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                    active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-foreground",
-                  )}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
                 >
                   {intent}
+                  <X className="h-3 w-3" />
                 </button>
-              );
-            })}
+              ))}
+            </div>
+          )}
+          <div className="scroll-panel max-h-56 space-y-3 overflow-y-auto rounded-xl border border-border bg-background/40 p-3">
+            {INTENT_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="label-mono mb-1.5 text-muted-foreground">{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.items.map((intent) => {
+                    const active = intents.includes(intent);
+                    const atLimit = !active && intents.length >= 5;
+                    return (
+                      <button
+                        key={intent}
+                        type="button"
+                        disabled={atLimit}
+                        onClick={() => toggleIntent(intent)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground",
+                          atLimit && "opacity-35",
+                        )}
+                      >
+                        {intent}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </FieldLabel>
 
@@ -1539,10 +1568,16 @@ function VentureCardHeader({
   const host = venture.host;
   return (
     <div className="flex items-start justify-between gap-3">
-      {/* A leading square rather than a banner: in a list the photo is a
-          recognition cue, not the subject. Renders nothing without one, so
-          cards keep their current layout. */}
-      <VentureImage path={venture.image_url} rounded="rounded-xl" className="h-14 w-14 shrink-0" />
+      {/* Landscape, not square. Photos of a place — a rooftop, a trail, a café
+          — are almost always wide, so a square crop throws away the sides and
+          keeps a slice of ceiling. 3:2 at 96px shows enough to recognise the
+          venue at a glance. Renders nothing without a photo, so cards without
+          one keep their existing layout. */}
+      <VentureImage
+        path={venture.image_url}
+        rounded="rounded-xl"
+        className="h-16 w-24 shrink-0"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate font-display text-lg font-bold">{venture.title}</h3>

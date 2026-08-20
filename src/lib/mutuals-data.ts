@@ -151,8 +151,58 @@ export const DMS: DMThread[] = [
 ];
 
 /* Ventures */
-export const INTENTS = [
-  "Coffee", "Drinks", "Live Music", "Hiking",
-  "Co-working", "Gallery Walk", "Night Out", "Run Club",
-  "Book Club", "Dinner", "Bouldering", "Late-night Walk",
+/**
+ * What a Venture is, as a set of tags the host picks (max 5).
+ *
+ * Grouped rather than flat. Twelve chips could sit in one row-wrapped block;
+ * forty cannot — unlabelled, it becomes a wall the host skims and gives up on,
+ * and they settle for whichever tag they saw first rather than the one that
+ * describes their plan. The headings let someone jump to the right
+ * neighbourhood and read six options instead of forty.
+ *
+ * Grouped by KIND OF ACTIVITY, deliberately not by Tribe. Tribe-grouping would
+ * imply a Night Owl shouldn't host a hike, and cross-Tribe Ventures are the
+ * main way people meet outside their own room — the last thing to discourage.
+ *
+ * These are free text in the database (no enum, no check constraint), so this
+ * list can grow without a migration. Keep labels short: they render as chips
+ * on cards where horizontal space is scarce.
+ */
+export const INTENT_GROUPS: { label: string; items: string[] }[] = [
+  {
+    label: "Food & drink",
+    items: ["Coffee", "Brunch", "Dinner", "Street Food", "Drinks", "Wine", "Dessert"],
+  },
+  {
+    label: "Move",
+    items: [
+      "Run Club", "Hiking", "Bouldering", "Gym Session", "Yoga", "Pilates",
+      "Cycling", "Swim", "Pickup Game", "Tennis", "Padel", "Martial Arts",
+    ],
+  },
+  {
+    label: "Make",
+    items: [
+      "Live Music", "Open Mic", "Jam Session", "Photo Walk", "Sketch Session",
+      "Craft Workshop", "Gallery Walk",
+    ],
+  },
+  {
+    label: "Learn & play",
+    items: [
+      "Book Club", "Film Club", "Board Games", "Study Session", "Museum",
+      "Language Exchange", "Trivia",
+    ],
+  },
+  {
+    label: "Go out",
+    items: ["Night Out", "Karaoke", "Rooftop", "Club Night", "Late-night Walk", "Market"],
+  },
+  {
+    label: "Work",
+    items: ["Co-working", "Networking", "Skill Swap", "Portfolio Review", "Startup Talk"],
+  },
 ];
+
+/** Flat list, for anything that just needs every valid tag. */
+export const INTENTS = INTENT_GROUPS.flatMap((group) => group.items);
