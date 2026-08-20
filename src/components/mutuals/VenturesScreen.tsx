@@ -30,7 +30,7 @@ import { UpsellModal } from "./UpsellModal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureSwipeDeck } from "./VentureSwipeDeck";
-import { VentureImage, VentureCardShell } from "./VentureImage";
+import { VentureCardShell } from "./VentureImage";
 import { Layers, List } from "lucide-react";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
@@ -1668,29 +1668,23 @@ function VentureCardHeader({
   const host = venture.host;
   return (
     <div className="flex items-start justify-between gap-3">
-      {/* Landscape, not square. Photos of a place — a rooftop, a trail, a café
-          — are almost always wide, so a square crop throws away the sides and
-          keeps a slice of ceiling. 3:2 at 96px shows enough to recognise the
-          venue at a glance. Renders nothing without a photo, so cards without
-          one keep their existing layout. */}
-      <VentureImage
-        path={venture.image_url}
-        rounded="rounded-xl"
-        className="h-16 w-24 shrink-0"
-      />
+      {/* The host's face leads, not the Venture's photo.
+          The photo is the card's background now, so repeating it here as a
+          thumbnail said the same thing twice and pushed the one piece of
+          genuinely different information — who is running this — into a
+          secondary row. Deciding whether to join a stranger's plan is mostly a
+          judgement about the person, so they get the anchor position. */}
+      {!hideHost && <Avatar profile={host} size="md" />}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate font-display text-lg font-bold">{venture.title}</h3>
           <StatusPill status={venture.status} />
         </div>
         {!hideHost && (
-          <div className="mt-2 flex items-center gap-2">
-            <Avatar profile={host} size="sm" />
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold">{displayName(host)}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{host?.city || "Nearby"}</p>
-            </div>
-          </div>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{displayName(host)}</span>
+            {host?.city ? ` · ${host.city}` : ""}
+          </p>
         )}
       </div>
       <div className="flex items-start gap-1">
