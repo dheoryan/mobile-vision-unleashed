@@ -223,7 +223,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
                 <button
                   key={t.id}
                   onClick={() => setPreviewTribe(t)}
-                  className="group relative h-40 w-44 shrink-0 overflow-hidden rounded-2xl border border-border text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="group relative h-40 w-44 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <img src={t.art} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none" />
                   <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />

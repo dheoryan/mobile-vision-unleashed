@@ -238,7 +238,10 @@ function TribeBanner({
     // gradient made every Tribe the same card in a different hue; the
     // illustration is the thing that actually distinguishes Night Owl from
     // Iron Wolf, and it already exists.
-    <section className="relative mt-5 min-h-44 overflow-hidden rounded-2xl border border-border">
+    // bg-card matters now that the artwork is transparent: the scrim
+    // gradients below were written assuming something opaque behind them, and
+    // without a surface they would blend into whatever the page happens to be.
+    <section className="relative mt-5 min-h-44 overflow-hidden rounded-2xl border border-border bg-card">
       <img
         src={tribe.art}
         alt=""

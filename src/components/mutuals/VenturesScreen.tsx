@@ -1294,7 +1294,7 @@ function HostedVentureCard({
       path={venture.image_url}
       header={<VentureCardHeader venture={venture} hideHost />}
     >
-      <VentureMeta venture={venture} />
+      <VentureMeta venture={venture} hideHost />
 
       <div className={cn("mt-4 grid gap-2", isClosed ? "grid-cols-1" : "grid-cols-2")}>
         {!isClosed && (
@@ -1709,6 +1709,7 @@ function VentureCardHeader({
   hideHost?: boolean;
 }) {
   const host = venture.host;
+  const hostTribe = TRIBES.find((t) => host?.tribe_ids?.includes(t.id));
   return (
     <div className="flex items-start justify-between gap-3">
       {/* The host's face leads, not the Venture's photo.
@@ -1724,10 +1725,18 @@ function VentureCardHeader({
           <StatusPill status={venture.status} />
         </div>
         {!hideHost && (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">{displayName(host)}</span>
-            {host?.city ? ` · ${host.city}` : ""}
-          </p>
+          // Face, name and Tribe in one line, because they are one thing: who
+          // is running this. The Tribe used to sit in a separate block further
+          // down the card, where it read as a property of the plan rather than
+          // of the person — and with one Tribe per member it is now part of how
+          // someone introduces themselves.
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="truncate text-xs font-semibold">{displayName(host)}</span>
+            {hostTribe && <TribeBadge tribe={hostTribe} />}
+            {host?.city && (
+              <span className="truncate text-[11px] text-muted-foreground">{host.city}</span>
+            )}
+          </div>
         )}
       </div>
       <div className="flex items-start gap-1">
@@ -1749,7 +1758,7 @@ function VentureCardHeader({
   );
 }
 
-function VentureMeta({ venture }: { venture: VentureParty }) {
+function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hideHost?: boolean }) {
   const hostTribes = venture.host?.tribe_ids?.filter(Boolean) as TribeId[] | undefined;
   return (
     <div className="mt-3 space-y-2">
@@ -1766,7 +1775,9 @@ function VentureMeta({ venture }: { venture: VentureParty }) {
         </span>
         <span>{venture.scope === "mine" ? "Host tribes only" : "All tribes"}</span>
       </div>
-      {hostTribes?.length ? (
+      {/* Only when the header did not already carry it — on a hosted card the
+          header hides the host, so the Tribe belongs here instead. */}
+      {hideHost && hostTribes?.length ? (
         <div className="flex flex-wrap gap-1.5">
           {hostTribes.map((tribeId) => {
             const tribe = TRIBES.find((item) => item.id === tribeId);
