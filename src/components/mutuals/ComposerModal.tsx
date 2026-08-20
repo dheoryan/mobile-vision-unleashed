@@ -26,9 +26,22 @@ export function ComposerModal({
   const createPost = useCreatePost();
 
   const tribe = tribeById(tribeId);
-  const effectiveAudience: Audience = initialAudience;
+  /**
+   * Audience is a deliberate choice, not a consequence of navigation.
+   *
+   * This was previously fixed to whichever tab the user happened to be on when
+   * they tapped compose — the composer showed a label, but there was no way to
+   * change it and no reason for the user to realise it had been decided for
+   * them. "Who sees this?" is the question every poster resolves before
+   * posting; if the answer is set by invisible state, the rule can't be
+   * learned and people hesitate.
+   *
+   * The tab still seeds the default, since it's a good guess at intent.
+   */
+  const [audience, setAudience] = useState<Audience>(initialAudience);
+  const effectiveAudience: Audience = audience;
 
-  const reset = () => { setText(""); setImagePath(null); setImagePreviewUrl(null); };
+  const reset = () => { setText(""); setImagePath(null); setImagePreviewUrl(null); setAudience(initialAudience); };
 
   const submit = () => {
     const t = text.trim();
@@ -46,11 +59,11 @@ export function ComposerModal({
         onError: (e) => toast.error((e as Error).message),
       },
     );
-    if (effectiveAudience === "all") {
-      toast.success(`Signal sent to all your Tribes`);
-    } else {
-      toast.success("Posted to " + tribe.name);
-    }
+    toast.success(
+      effectiveAudience === "all"
+        ? "Posted to Global — everyone can see this"
+        : `Posted to ${tribe.name} — members only`,
+    );
     requestPushPrompt("post");
     reset();
     onClose();
@@ -81,16 +94,36 @@ export function ComposerModal({
     <AnimatedModal
       open={open}
       onOpenChange={(o) => { if (!o) close(); }}
-      title={`New post — ${effectiveAudience === "all" ? "All Tribes" : tribe.name}`}
+      title={`New post — ${effectiveAudience === "all" ? "Global" : tribe.name}`}
       contentClassName="p-6"
     >
         <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
-        <p className="label-mono text-muted-foreground">New post · {effectiveAudience === "all" ? "All Tribes" : tribe.name}</p>
+        <p className="label-mono text-muted-foreground">New post</p>
         <h2 className="font-display text-xl font-bold">What's happening?</h2>
 
-
+        {/* Audience picker. Stated in terms of who can see it, not where it
+            files — that is the question the user is actually asking. */}
+        <div className="mt-4">
+          <p className="label-mono text-muted-foreground">Who sees this?</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <AudienceOption
+              active={effectiveAudience === "tribe"}
+              onClick={() => setAudience("tribe")}
+              accent={tribe.colorVar}
+              title={tribe.name}
+              sub="Your Tribe only"
+            />
+            <AudienceOption
+              active={effectiveAudience === "all"}
+              onClick={() => setAudience("all")}
+              accent="var(--primary)"
+              title="Global"
+              sub="Everyone on MEUTUALS"
+            />
+          </div>
+        </div>
 
 
         <textarea
@@ -164,5 +197,32 @@ export function ComposerModal({
           Send Signal
         </button>
     </AnimatedModal>
+  );
+}
+
+function AudienceOption({
+  active, onClick, accent, title, sub,
+}: {
+  active: boolean;
+  onClick: () => void;
+  accent: string;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="rounded-2xl border p-3 text-left transition-colors"
+      style={
+        active
+          ? { borderColor: accent, background: `color-mix(in oklab, ${accent} 14%, transparent)` }
+          : { borderColor: "var(--border)" }
+      }
+    >
+      <p className="truncate text-sm font-semibold">{title}</p>
+      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{sub}</p>
+    </button>
   );
 }
