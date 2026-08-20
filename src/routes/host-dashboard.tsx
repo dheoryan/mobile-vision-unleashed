@@ -24,7 +24,7 @@ type Tab = "overview" | "members" | "posts" | "ventures" | "announcements";
 
 function HostDashboard() {
   const [tab, setTab] = useState<Tab>("overview");
-  const tribe = tribeById("bee"); // hosted demo tribe
+  const tribe = tribeById("bee");
   const members = PEOPLE.filter((p) => p.tribeId === "bee");
   const tribePosts = POSTS.filter((p) => p.tribeId === "bee");
 
@@ -39,7 +39,6 @@ function HostDashboard() {
             <TribeMark tribe={tribe} size="sm" />
             <div className="leading-tight">
               <p className="font-display text-sm font-bold">{tribe.name}</p>
-              <p className="label-mono text-muted-foreground">{tribe.hostOrg}</p>
             </div>
           </div>
         </div>

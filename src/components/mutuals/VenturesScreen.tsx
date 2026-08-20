@@ -1484,7 +1484,7 @@ function VentureMeta({ venture }: { venture: VentureParty }) {
                 key={tribe.id}
                 name={tribe.name}
                 color={tribe.colorVar}
-                hosted={tribe.hosted}
+               
               />
             );
           })}

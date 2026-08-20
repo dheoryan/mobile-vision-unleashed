@@ -123,7 +123,7 @@ function PublicProfilePage() {
               <h2 className="font-display text-2xl font-bold leading-tight">{profile.display_name || "Someone"}</h2>
               <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
+                <TribeBadge name={tribe.name} color={tribe.colorVar} />
                 {otherTribes.map((t) => (
                   <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
                 ))}
