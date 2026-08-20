@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { TRIBE_IDS } from "@/lib/profile.functions";
 
 export type AuthorLite = {
   id: string;
@@ -121,10 +122,29 @@ const POST_COLS =
 const COMMENT_COLS =
   "id, post_id, author_id, content, created_at, parent_id, mentions";
 
+/**
+ * Two feeds, two audiences, no overlap.
+ *
+ *   tribe_id given → the Tribe feed: posts made *to* that Tribe, and nothing else.
+ *   tribe_id absent → the Global feed: posts broadcast to everyone.
+ *
+ * This used to be `tribe_id.eq.X OR audience.eq.all`, which meant every global
+ * broadcast also appeared in every Tribe tab. Because the query then took the
+ * newest 200 rows overall, a Tribe tab would fill with platform-wide posts as
+ * soon as broadcast volume outpaced that Tribe's own posting rate — the Iron
+ * Wolf tab could contain zero Iron Wolf posts while its header said "Posts from
+ * Iron Wolf". "Tribe only" has to actually mean tribe only, or the audience
+ * rule is unlearnable.
+ *
+ * `tribe_id` is constrained to the known Tribe enum rather than a free string:
+ * it is interpolated into a PostgREST filter, and commas/parens/dots in a raw
+ * value could reshape the query. RLS bounds the blast radius, but the enum
+ * removes the class of problem.
+ */
 export const listFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ tribe_id: z.string().min(1).max(40).optional() }).parse(input ?? {}),
+    z.object({ tribe_id: z.enum(TRIBE_IDS).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -133,11 +153,13 @@ export const listFeed = createServerFn({ method: "GET" })
       .select(POST_COLS)
       .order("created_at", { ascending: false })
       .limit(200);
+
     if (data.tribe_id) {
-      // Include posts targeted to this tribe OR broadcast posts from users who belong to this tribe.
-      // RLS already enforces visibility; this just filters the slice the user sees in the tribe feed.
-      q = q.or(`and(tribe_id.eq.${data.tribe_id}),audience.eq.all`);
+      q = q.eq("tribe_id", data.tribe_id).eq("audience", "tribe");
+    } else {
+      q = q.eq("audience", "all");
     }
+
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return hydratePosts(supabase, rows ?? []);

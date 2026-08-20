@@ -3,7 +3,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { AVAILABILITY_IDS, INTEREST_IDS, SOCIAL_INTENT_IDS } from "@/lib/profile-options";
 
-const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
+/** Canonical Tribe ids. Exported so other server functions can validate against
+ *  the same enum instead of accepting a free-form string. */
+export const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
 
 const updateSchema = z.object({
   display_name: z.string().min(1).max(60).optional(),

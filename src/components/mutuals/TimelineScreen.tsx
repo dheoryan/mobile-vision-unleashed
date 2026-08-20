@@ -25,7 +25,7 @@ export function TimelineScreen({
   scrollToPostId?: string | null;
   onScrolledToPost?: () => void;
 }) {
-  const [tab, setTab] = useState<"tribe" | "foryou">("tribe");
+  const [tab, setTab] = useState<"tribe" | "global">("tribe");
   const blocked = useBlocked();
 
   // Tribe feed state
@@ -40,19 +40,19 @@ export function TimelineScreen({
 
   // For You posts (all tribes)
   const feedQuery = useFeedPosts();
-  const forYouPosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
+  const globalPosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
 
   const isLoadingCurrent = tab === "tribe" ? tribeFeedQuery.isLoading : feedQuery.isLoading;
   const isErrorCurrent = tab === "tribe" ? tribeFeedQuery.isError : feedQuery.isError;
   const refetchCurrent = tab === "tribe" ? tribeFeedQuery.refetch : feedQuery.refetch;
-  const currentPosts = tab === "tribe" ? tribePosts : forYouPosts;
+  const currentPosts = tab === "tribe" ? tribePosts : globalPosts;
 
   // Auto-switch tab + scroll + highlight when an intent targets a specific post
   useEffect(() => {
     if (!scrollToPostId) return;
     // Prefer the tab that contains this post; default to For You since it spans all tribes
     const inTribe = tribePosts.some((p) => p.id === scrollToPostId);
-    if (!inTribe) setTab("foryou");
+    if (!inTribe) setTab("global");
     const target = scrollToPostId;
     const attempt = (left: number) => {
       const el = document.querySelector<HTMLElement>(`[data-post-id="${target}"]`);
@@ -90,13 +90,13 @@ export function TimelineScreen({
             <TribeMark tribe={tribe} size="xs" /> {tribe.name}
           </button>
           <button
-            onClick={() => setTab("foryou")}
+            onClick={() => setTab("global")}
             className={cn(
               "flex-1 rounded-full py-2 text-xs font-semibold transition-colors",
-              tab === "foryou" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              tab === "global" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             )}
           >
-            For You
+            Global
           </button>
         </div>
 
@@ -128,8 +128,8 @@ export function TimelineScreen({
         {/* ── Hint text ── */}
         <p className="label-mono mt-3 text-muted-foreground">
           {tab === "tribe"
-            ? `Posts from ${tribe.name} · chronological`
-            : "Discover signals from every Tribe."}
+            ? `${tribe.name} only · chronological`
+            : "Posts shared with everyone · chronological"}
         </p>
 
         {/* ── Feed ── */}
@@ -155,12 +155,12 @@ export function TimelineScreen({
               <p className="mt-4 text-xs text-muted-foreground">
                 {tab === "tribe"
                   ? `No posts in ${tribe.name} yet. Be the first to signal!`
-                  : "No posts yet."}
+                  : "Nothing shared globally yet."}
               </p>
             </div>
           ) : (
             currentPosts.map((p) => (
-              <PostCard key={p.id} post={p} showTribe={tab === "foryou"} />
+              <PostCard key={p.id} post={p} showTribe={tab === "global"} />
             ))
           )}
         </div>
@@ -171,7 +171,7 @@ export function TimelineScreen({
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
         tribeId={activeTribe}
-        initialAudience={tab === "foryou" ? "all" : "tribe"}
+        initialAudience={tab === "global" ? "all" : "tribe"}
       />
 
       {/* ── Floating "post a signal" FAB ── */}
@@ -179,10 +179,10 @@ export function TimelineScreen({
         <button
           onClick={() => setComposerOpen(true)}
           className="pointer-events-auto inline-flex items-center gap-2 rounded-full px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
-          style={{ backgroundColor: tab === "foryou" ? "var(--primary)" : tribe.colorVar }}
-          aria-label={tab === "foryou" ? "Post a signal to all Tribes" : `Post a signal to ${tribe.name}`}
+          style={{ backgroundColor: tab === "global" ? "var(--primary)" : tribe.colorVar }}
+          aria-label={tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
         >
-          <Plus className="h-4 w-4" /> {tab === "foryou" ? "Signal to All Tribes" : `Signal to ${tribe.name}`}
+          <Plus className="h-4 w-4" /> {tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
         </button>
       </div>
     </div>
