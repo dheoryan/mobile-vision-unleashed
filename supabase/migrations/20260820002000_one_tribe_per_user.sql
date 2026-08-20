@@ -68,9 +68,14 @@ begin
       using hint = 'Switch Tribes instead of joining an additional one.';
   end if;
 
-  changed := tg_op = 'UPDATE'
-             and new.tribe_ids is distinct from old.tribe_ids
-             and coalesce(array_length(old.tribe_ids, 1), 0) > 0;
+  -- Guard the UPDATE branch with a nested IF rather than a compound boolean.
+  -- This trigger is BEFORE INSERT OR UPDATE, and OLD is null on INSERT; relying
+  -- on AND to short-circuit before touching OLD.* is a footgun worth avoiding.
+  changed := false;
+  if tg_op = 'UPDATE' then
+    changed := new.tribe_ids is distinct from old.tribe_ids
+               and coalesce(array_length(old.tribe_ids, 1), 0) > 0;
+  end if;
 
   if changed then
     -- service_role / SECURITY DEFINER paths bypass the cooldown by design
