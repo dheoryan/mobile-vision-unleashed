@@ -622,15 +622,11 @@ export const createHostedVenture = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const { data: profileRow } = await db
-      .from("profiles")
-      .select("venture_count")
-      .eq("id", userId)
-      .maybeSingle();
-    await db
-      .from("profiles")
-      .update({ venture_count: (profileRow?.venture_count ?? 0) + 1 })
-      .eq("id", userId);
+    // venture_count is maintained by the trg_bump_host_venture_count trigger.
+    // It used to be incremented here with a SELECT, an addition in JS, and an
+    // UPDATE — two concurrent creates both read N and both wrote N + 1, so one
+    // Venture was free. Since that counter is the free-tier quota, the lost
+    // increment is a paywall bypass. Do not reintroduce it here.
 
     const hosts = await fetchProfiles(db, [userId]);
     return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
