@@ -170,6 +170,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          read_at: string | null
           recipient_id: string
           sender_id: string
         }
@@ -177,6 +178,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          read_at?: string | null
           recipient_id: string
           sender_id: string
         }
@@ -184,6 +186,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          read_at?: string | null
           recipient_id?: string
           sender_id?: string
         }
@@ -289,12 +292,15 @@ export type Database = {
       }
       profiles: {
         Row: {
+          adult_verified_at: string | null
           age: number | null
+          age_verification_locked_at: string | null
           avatar_emoji: string
           avatar_url: string | null
           bio: string
           city: string
           created_at: string
+          date_of_birth: string | null
           display_name: string
           handle: string | null
           id: string
@@ -304,12 +310,15 @@ export type Database = {
           venture_count: number
         }
         Insert: {
+          adult_verified_at?: string | null
           age?: number | null
+          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
           bio?: string
           city?: string
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id: string
@@ -319,12 +328,15 @@ export type Database = {
           venture_count?: number
         }
         Update: {
+          adult_verified_at?: string | null
           age?: number | null
+          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
           bio?: string
           city?: string
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id?: string
@@ -374,7 +386,9 @@ export type Database = {
           details: string | null
           id: string
           reason: string
-          reporter_id: string
+          reporter_deleted_at: string | null
+          reporter_id: string | null
+          target_deleted_at: string | null
           target_id: string
           target_kind: Database["public"]["Enums"]["report_kind"]
         }
@@ -383,7 +397,9 @@ export type Database = {
           details?: string | null
           id?: string
           reason: string
-          reporter_id: string
+          reporter_deleted_at?: string | null
+          reporter_id?: string | null
+          target_deleted_at?: string | null
           target_id: string
           target_kind: Database["public"]["Enums"]["report_kind"]
         }
@@ -392,7 +408,9 @@ export type Database = {
           details?: string | null
           id?: string
           reason?: string
-          reporter_id?: string
+          reporter_deleted_at?: string | null
+          reporter_id?: string | null
+          target_deleted_at?: string | null
           target_id?: string
           target_kind?: Database["public"]["Enums"]["report_kind"]
         }
@@ -690,6 +708,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      age_in_years: { Args: { value: string }; Returns: number }
+      has_blocked: {
+        Args: { _target: string; _viewer: string }
+        Returns: boolean
+      }
       has_venture_application: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
@@ -706,6 +729,13 @@ export type Database = {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
       }
+      is_venture_scope_visible: {
+        Args: { _venture_id: string; _viewer_id: string }
+        Returns: boolean
+      }
+      is_verified_adult: { Args: { profile_id: string }; Returns: boolean }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_plan: "free" | "plus"
