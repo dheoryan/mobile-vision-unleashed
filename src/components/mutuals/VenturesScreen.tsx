@@ -27,6 +27,8 @@ import { SafetyMenu } from "./SafetyMenu";
 import { UpsellModal } from "./UpsellModal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
+import { VentureSwipeDeck } from "./VentureSwipeDeck";
+import { Layers, List } from "lucide-react";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import {
@@ -521,6 +523,8 @@ function LookView({
     onError: (err) => toast.error((err as Error).message),
   });
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // Deck by default — the board is a stream of plans, not a directory.
+  const [boardView, setBoardView] = useState<"deck" | "list">("deck");
   const mineLabel = profile.tribeIds.length > 1 ? "My Tribes" : "My Tribe";
 
   const activeParties = useMemo(
@@ -656,6 +660,26 @@ function LookView({
       <SectionTitle
         title="Open Ventures"
         hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
+        action={
+          <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
+            <button
+              onClick={() => setBoardView("deck")}
+              aria-label="One at a time"
+              aria-pressed={boardView === "deck"}
+              className={cn("rounded-full p-1.5", boardView === "deck" && "bg-primary text-primary-foreground")}
+            >
+              <Layers className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setBoardView("list")}
+              aria-label="List"
+              aria-pressed={boardView === "list"}
+              className={cn("rounded-full p-1.5", boardView === "list" && "bg-primary text-primary-foreground")}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        }
       />
 
       {isLoading ? (
@@ -663,19 +687,29 @@ function LookView({
       ) : isError ? (
         <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
       ) : joinableVentures.length ? (
-        <div className="space-y-3">
-          {joinableVentures.map((venture) => (
-            <OpenVentureCard
-              key={venture.id}
-              venture={venture}
-              note={notes[venture.id] ?? ""}
-              onNoteChange={(value) => setNotes((cur) => ({ ...cur, [venture.id]: value }))}
-              onApply={() => submitApply(venture)}
-              onOpenChat={() => onOpenChat(venture)}
-              applying={apply.isPending && apply.variables?.venture_id === venture.id}
-            />
-          ))}
-        </div>
+        boardView === "deck" ? (
+          /* One plan at a time. Judging an activity rather than a person is
+             what makes a swipe deck appropriate here at all. */
+          <VentureSwipeDeck
+            ventures={joinableVentures}
+            onOpenChat={onOpenChat}
+            onChanged={onChanged}
+          />
+        ) : (
+          <div className="space-y-3">
+            {joinableVentures.map((venture) => (
+              <OpenVentureCard
+                key={venture.id}
+                venture={venture}
+                note={notes[venture.id] ?? ""}
+                onNoteChange={(value) => setNotes((cur) => ({ ...cur, [venture.id]: value }))}
+                onApply={() => submitApply(venture)}
+                onOpenChat={() => onOpenChat(venture)}
+                applying={apply.isPending && apply.variables?.venture_id === venture.id}
+              />
+            ))}
+          </div>
+        )
       ) : (
         <EmptyPanel
           icon={<Search className="h-6 w-6" />}
