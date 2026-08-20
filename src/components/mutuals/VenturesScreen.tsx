@@ -20,6 +20,7 @@ import {
   X,
   ImagePlus,
   Pencil,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { INTENT_GROUPS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
@@ -40,6 +41,8 @@ import { uploadVentureImage, signVentureImageUrl } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import {
   useApplyToVenture,
+  useWithdrawVentureApplication,
+  useReopenHostedVenture,
   useCloseHostedVenture,
   useCreateHostedVenture,
   useUpdateHostedVenture,
@@ -522,6 +525,15 @@ function LookView({
   onChanged: () => void;
 }) {
   const apply = useApplyToVenture();
+  const withdraw = useWithdrawVentureApplication();
+  const withdrawRequest = (applicationId: string) =>
+    withdraw.mutate(applicationId, {
+      onSuccess: () => {
+        toast.success("Request withdrawn.");
+        onChanged();
+      },
+      onError: (err) => toast.error((err as Error).message),
+    });
   const respondInviteFn = useServerFn(respondToVentureInvite);
   const respondInvite = useMutation({
     mutationFn: ({
@@ -622,6 +634,7 @@ function LookView({
               <JoinedVentureCard
                 key={venture.id}
                 venture={venture}
+                onLeave={withdrawRequest}
                 onOpenChat={() => onOpenChat(venture)}
                 busy={
                   respondInvite.isPending &&
@@ -655,6 +668,7 @@ function LookView({
               <JoinedVentureCard
                 key={venture.id}
                 venture={venture}
+                onLeave={withdrawRequest}
                 onOpenChat={() => onOpenChat(venture)}
               />
             ))}
@@ -670,6 +684,7 @@ function LookView({
               <JoinedVentureCard
                 key={venture.id}
                 venture={venture}
+                onLeave={withdrawRequest}
                 onOpenChat={() => onOpenChat(venture)}
               />
             ))}
@@ -726,6 +741,8 @@ function LookView({
                 onApply={() => submitApply(venture)}
                 onOpenChat={() => onOpenChat(venture)}
                 applying={apply.isPending && apply.variables?.venture_id === venture.id}
+                onWithdraw={withdrawRequest}
+                withdrawing={withdraw.isPending && withdraw.variables === venture.my_application?.id}
               />
             ))}
           </div>
@@ -1187,6 +1204,8 @@ function OpenVentureCard({
   onApply,
   onOpenChat,
   applying,
+  onWithdraw,
+  withdrawing,
 }: {
   venture: VentureParty;
   note: string;
@@ -1194,6 +1213,8 @@ function OpenVentureCard({
   onApply: () => void;
   onOpenChat: () => void;
   applying: boolean;
+  onWithdraw: (applicationId: string) => void;
+  withdrawing: boolean;
 }) {
   const application = venture.my_application;
   const accepted = application?.status === "accepted";
@@ -1222,9 +1243,24 @@ function OpenVentureCard({
           <MessageCircle className="h-4 w-4" /> Open party chat
         </button>
       ) : pending || declined ? (
-        <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-xs font-semibold text-muted-foreground">
-          {pending ? <Clock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-          {pending ? "Request pending" : "Request declined"}
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-xs font-semibold text-muted-foreground">
+            {pending ? <Clock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {pending ? "Request pending" : "Request declined"}
+          </div>
+          {/* Withdrawing was always allowed by the database and never reachable
+              from the UI, which left people committed to a stranger's meetup
+              with no way out. */}
+          {pending && application && (
+            <button
+              type="button"
+              onClick={() => onWithdraw(application.id)}
+              disabled={withdrawing}
+              className="w-full py-1 text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+            >
+              {withdrawing ? "Withdrawing…" : "Withdraw my request"}
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-4 space-y-2">
@@ -1266,6 +1302,7 @@ function HostedVentureCard({
 }) {
   const decide = useDecideVentureApplication();
   const close = useCloseHostedVenture();
+  const reopen = useReopenHostedVenture();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const pending = venture.applications.filter((app) => app.status === "pending");
@@ -1296,6 +1333,26 @@ function HostedVentureCard({
       header={<VentureCardHeader venture={venture} hideHost />}
     >
       <VentureMeta venture={venture} hideHost />
+
+      {/* Closing by mistake used to mean recreating the plan and losing its
+          party chat. enforce_venture_host_edits permits closed -> open for
+          exactly this. */}
+      {isClosed && (
+        <button
+          type="button"
+          onClick={() =>
+            reopen.mutate(venture.id, {
+              onSuccess: () => toast.success("Venture reopened."),
+              onError: (err) => toast.error((err as Error).message),
+            })
+          }
+          disabled={reopen.isPending}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 py-2.5 text-xs font-semibold text-primary disabled:opacity-50"
+        >
+          {reopen.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+          Reopen
+        </button>
+      )}
 
       <div className={cn("mt-4 grid gap-2", isClosed ? "grid-cols-1" : "grid-cols-2")}>
         {!isClosed && (
@@ -1623,12 +1680,14 @@ function JoinedVentureCard({
   onOpenChat,
   onAcceptInvite,
   onDeclineInvite,
+  onLeave,
   busy = false,
 }: {
   venture: VentureParty;
   onOpenChat: () => void;
   onAcceptInvite?: () => void;
   onDeclineInvite?: () => void;
+  onLeave?: (applicationId: string) => void;
   busy?: boolean;
 }) {
   const status = (venture.my_application?.status as string | undefined) ?? "pending";
@@ -1698,6 +1757,20 @@ function JoinedVentureCard({
           className="shrink-0"
         />
       </div>
+
+      {/* Leaving frees the seat: the status change makes sync_venture_slots
+          recount and the capacity guard lets the next person in. Quiet styling
+          on purpose — an exit should be findable without being an invitation. */}
+      {(isAccepted || isPending) && onLeave && venture.my_application && (
+        <button
+          type="button"
+          onClick={() => onLeave(venture.my_application!.id)}
+          disabled={busy}
+          className="mt-1 text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+        >
+          {isAccepted ? "Leave this Venture" : "Withdraw request"}
+        </button>
+      )}
     </article>
   );
 }
