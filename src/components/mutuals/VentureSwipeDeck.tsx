@@ -92,7 +92,9 @@ export function VentureSwipeDeck({
             separating a plan that reads as an invitation from one that reads
             as a row in a table. Renders nothing when there is no photo, so the
             card keeps its existing layout rather than reserving an empty box. */}
-        <VentureImage path={venture.image_url} rounded="rounded-none" className="h-40 w-full" />
+        {/* Same 176px media header as the list cards, so a Venture looks
+            like the same object whichever surface it is on. */}
+        <VentureImage path={venture.image_url} rounded="rounded-none" className="h-44 w-full" />
 
         <div className="p-5">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">

@@ -27,6 +27,7 @@ import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { UpsellModal } from "./UpsellModal";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureSwipeDeck } from "./VentureSwipeDeck";
@@ -63,7 +64,19 @@ import {
 type Mode = "look" | "host";
 type VentureStage = "intro" | "role" | "feature";
 
-const TIME_WINDOWS = ["Tonight", "This week evenings", "This weekend", "Next week"];
+// Kept "This week evenings" and "This weekend" verbatim so Ventures created
+// before this list grew still match a chip when their host opens the editor.
+// Free text in the database, so this can grow again without a migration.
+const TIME_WINDOWS = [
+  "Tonight",
+  "Tomorrow",
+  "This week daytime",
+  "This week evenings",
+  "This weekend",
+  "Next weekend",
+  "Next week",
+  "Flexible",
+];
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 const VENTURES_MODE_KEY = "mutuals:ventures:last-mode";
 
@@ -817,12 +830,15 @@ function HostForm({
   onCancel,
   onCreated,
   editing,
+  variant = "inline",
 }: {
   profile: Profile;
   onCancel: () => void;
   onCreated: (venture: VentureParty) => void;
   /** When present the form saves changes to this Venture instead of creating one. */
   editing?: VentureParty;
+  /** "modal" drops the card chrome, because the dialog already provides it. */
+  variant?: "inline" | "modal";
 }) {
   const create = useCreateHostedVenture();
   const update = useUpdateHostedVenture();
@@ -955,7 +971,9 @@ function HostForm({
   return (
     <form
       onSubmit={submit}
-      className="mb-4 rounded-2xl border border-border bg-card p-4 animate-rise"
+      className={cn(
+        variant === "inline" && "mb-4 rounded-2xl border border-border bg-card p-4 animate-rise",
+      )}
     >
       <div className="grid gap-3">
         {/* Photo first, because it is the part of the card people look at. A
@@ -1182,8 +1200,10 @@ function OpenVentureCard({
   const declined = application?.status === "declined";
 
   return (
-    <VentureCardShell path={venture.image_url}>
-      <VentureCardHeader venture={venture} />
+    <VentureCardShell
+      path={venture.image_url}
+      header={<VentureCardHeader venture={venture} />}
+    >
       <VentureMeta venture={venture} />
 
       {venture.note && (
@@ -1270,34 +1290,20 @@ function HostedVentureCard({
   };
 
   return (
-    <VentureCardShell path={venture.image_url}>
-      <VentureCardHeader venture={venture} hideHost />
+    <VentureCardShell
+      path={venture.image_url}
+      header={<VentureCardHeader venture={venture} hideHost />}
+    >
       <VentureMeta venture={venture} />
-
-      {editOpen && !isClosed && (
-        <div className="mt-4">
-          <HostForm
-            profile={profile}
-            editing={venture}
-            onCancel={() => setEditOpen(false)}
-            onCreated={() => setEditOpen(false)}
-          />
-        </div>
-      )}
 
       <div className={cn("mt-4 grid gap-2", isClosed ? "grid-cols-1" : "grid-cols-2")}>
         {!isClosed && (
           <button
             type="button"
-            onClick={() => setEditOpen((open) => !open)}
-            className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-semibold",
-              editOpen
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background text-foreground",
-            )}
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground"
           >
-            <Pencil className="h-4 w-4" /> {editOpen ? "Done" : "Edit"}
+            <Pencil className="h-4 w-4" /> Edit
           </button>
         )}
         <button
@@ -1390,6 +1396,43 @@ function HostedVentureCard({
           </div>
         )}
       </div>
+      {/* A dialog, not an inline expansion. The form is a full page of
+          controls; unfolding it inside the card pushed everything below it —
+          the actions, the applicant list, every other Venture — hundreds of
+          pixels down, and the thing being edited scrolled out of view. A sheet
+          keeps the card still and puts the form where the eye already is. */}
+      <AnimatedModal
+        open={editOpen && !isClosed}
+        onOpenChange={setEditOpen}
+        title={`Edit ${venture.title}`}
+        contentClassName="scroll-panel max-h-[90dvh] overflow-y-auto"
+      >
+        <div className="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl font-bold leading-tight">Edit Venture</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Changes are visible to everyone who has already joined.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditOpen(false)}
+              aria-label="Close editor"
+              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <HostForm
+            profile={profile}
+            editing={venture}
+            variant="modal"
+            onCancel={() => setEditOpen(false)}
+            onCreated={() => setEditOpen(false)}
+          />
+        </div>
+      </AnimatedModal>
     </VentureCardShell>
   );
 }

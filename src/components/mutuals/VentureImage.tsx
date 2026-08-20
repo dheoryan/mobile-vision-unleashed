@@ -17,30 +17,42 @@ import { cn } from "@/lib/utils";
  * hour for cards nobody is looking at.
  */
 /**
- * A Venture card with its photo as the background.
+ * A Venture card: fixed-height photo header, then content on the card surface.
  *
- * The readability problem, and how it is solved rather than guessed at:
+ * The first attempt stretched the photo behind the *whole* card under a heavy
+ * wash. Two things were wrong with it, both visible the moment a real card had
+ * real content in it:
  *
- * The app's muted-foreground (used for the host's city, the meta row and the
- * note) is roughly #A1A1AA. Composited over a *white* photo pixel — the worst
- * case — it only clears WCAG AA's 4.5:1 once the scrim reaches about 85%
- * opacity. At 85% the photo is showing through at 15%, which is a tint, not a
- * picture. Scrimming the whole card to that level would technically satisfy
- * "photo as background" while making the photo pointless.
+ *   1. Cards are not a fixed height. A hosted card grows with its applicant
+ *      list and grows again when the edit form opens, so `object-cover` over
+ *      the full card meant the crop moved depending on how many people had
+ *      applied. The subject of the photo drifted out of frame.
  *
- * So the scrim is not uniform. The top band is left almost clear, because
- * nothing is drawn there — that is where the photo actually reads as a photo.
- * Everything from the content downward sits under a 92% wash, which puts even
- * muted text comfortably past AA against any photo, including a white one.
+ *   2. The wash needed to be ~92% for muted text to clear WCAG AA over a white
+ *      photo pixel. Applied across the whole card that is not a background, it
+ *      is a smear — and it sat behind sections like "Pending requests" that
+ *      have nothing to do with the photo, making them look dirty rather than
+ *      designed.
  *
- * Cards without a photo render as before, on the flat card surface.
+ * A fixed 176px media header fixes both. The crop is predictable because the
+ * height is constant. The photo is fully visible at the top, where nothing is
+ * drawn over it. Only the title block sits on the image, over a bottom-anchored
+ * gradient that reaches full opacity exactly where the text is. Everything
+ * below runs on the normal card surface, clean.
+ *
+ * Passing the header in as a prop rather than as part of `children` is what
+ * makes the Look and Host cards identical: both hand over the same
+ * VentureCardHeader and get the same treatment, photo or not.
  */
 export function VentureCardShell({
   path,
+  header,
   children,
   className,
 }: {
   path: string | null | undefined;
+  /** Title block. Rendered over the photo when there is one. */
+  header?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -65,25 +77,31 @@ export function VentureCardShell({
   return (
     <article
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border animate-rise",
-        hasPhoto ? "bg-card" : "bg-card p-4",
+        "overflow-hidden rounded-2xl border border-border bg-card animate-rise",
         className,
       )}
     >
-      {hasPhoto && (
-        <>
-          <img src={url!} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
-          {/* Clear-ish band: no text is drawn here, so the photo can be seen. */}
+      {hasPhoto ? (
+        <div className="relative h-44 w-full">
+          <img
+            src={url!}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Anchored to the bottom, so it is fully opaque exactly where the
+              text sits and clear at the top where the photo should be seen. */}
           <span
             aria-hidden
-            className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-background/10 via-background/35 to-background/92"
+            className="absolute inset-0 bg-gradient-to-t from-card via-card/75 to-transparent"
           />
-          {/* Everything under the content is washed to 92%, which keeps even
-              muted text past 4.5:1 over a pure-white photo. */}
-          <span aria-hidden className="absolute inset-x-0 bottom-0 top-36 bg-background/92" />
-        </>
+          {header && <div className="absolute inset-x-0 bottom-0 px-4 pb-3">{header}</div>}
+        </div>
+      ) : (
+        header && <div className="px-4 pt-4">{header}</div>
       )}
-      <div className={cn("relative", hasPhoto && "px-4 pb-4 pt-28")}>{children}</div>
+      <div className={cn("px-4 pb-4", hasPhoto ? "pt-3" : "pt-2")}>{children}</div>
     </article>
   );
 }
