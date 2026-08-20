@@ -9,6 +9,10 @@ import {
   toggleFollow,
   toggleLike,
   toggleShare,
+  listIncomingHellos,
+  getContactStatus,
+  sendHello,
+  answerHello
 } from "@/lib/social.functions";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost } from "@/lib/posts.functions";
@@ -242,5 +246,63 @@ export function useReportContent() {
       reason: string;
       details?: string;
     }) => fn({ data: input }),
+  });
+}
+
+// ---------- Hellos ----------
+
+const HELLOS_INCOMING_KEY = ["social", "hellos", "incoming"] as const;
+const CONTACT_STATUS_KEY = ["social", "contact-status"] as const;
+
+/** Hellos waiting on this user's answer. */
+export function useIncomingHellos() {
+  const fn = useServerFn(listIncomingHellos);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...HELLOS_INCOMING_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Whether the current user can DM this person, and if not, where a Hello
+ * between them stands. Decides which action the profile screen offers.
+ */
+export function useContactStatus(otherId: string | null) {
+  const fn = useServerFn(getContactStatus);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...CONTACT_STATUS_KEY, user?.id ?? null, otherId],
+    queryFn: () => fn({ data: { other_id: otherId! } }),
+    enabled: !!user && !!otherId && otherId !== user?.id,
+    staleTime: 30_000,
+  });
+}
+
+export function useSendHello() {
+  const fn = useServerFn(sendHello);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { recipient_id: string; message: string }) => fn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CONTACT_STATUS_KEY });
+    },
+  });
+}
+
+export function useAnswerHello() {
+  const fn = useServerFn(answerHello);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { hello_id: string; status: "accepted" | "declined" }) => fn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: HELLOS_INCOMING_KEY });
+      qc.invalidateQueries({ queryKey: CONTACT_STATUS_KEY });
+      // Accepting opens a real thread, so the inbox changes too.
+      qc.invalidateQueries({ queryKey: ["messages"] });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }

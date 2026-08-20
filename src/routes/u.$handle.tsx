@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Loader2, Hand, Clock } from "lucide-react";
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { listPostsByAuthor } from "@/lib/posts.functions";
 import { getFollowCounts } from "@/lib/social.functions";
-import { useMyFollowing as useFollowing, useToggleFollow } from "@/lib/social-store";
+import { useMyFollowing as useFollowing, useToggleFollow, useContactStatus } from "@/lib/social-store";
+import { HelloModal } from "@/components/mutuals/HelloModal";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PostCard } from "@/components/mutuals/PostCard";
@@ -57,6 +59,8 @@ function PublicProfilePage() {
   const followingQ = useFollowing();
   const isFollowing = !!profile && (followingQ.data?.has(profile.id) ?? false);
   const toggleFollow = useToggleFollow();
+  const contact = useContactStatus(isMe ? null : (profile?.id ?? null));
+  const [helloOpen, setHelloOpen] = useState(false);
 
   if (profileQ.isLoading) {
     return (
@@ -161,15 +165,46 @@ function PublicProfilePage() {
               >
                 {isFollowing ? (<><UserCheck className="h-3.5 w-3.5" /> Following</>) : (<><UserPlus className="h-3.5 w-3.5" /> Follow</>)}
               </button>
-              <button
-                onClick={() => {
-                  intentStore.push({ kind: "openThreadWith", userId: profile.id });
-                  navigate({ to: "/" });
-                }}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold hover:bg-background/60"
-              >
-                <MessageCircle className="h-3.5 w-3.5" /> Message
-              </button>
+              {/* Private contact outside your Tribe is earned, not assumed.
+                  If a DM isn't open yet, the action is a one-time Hello rather
+                  than a dead button — showing someone and then hiding them
+                  reads as broken. */}
+              {contact.data?.can_message !== false ? (
+                <button
+                  onClick={() => {
+                    intentStore.push({ kind: "openThreadWith", userId: profile.id });
+                    navigate({ to: "/" });
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold hover:bg-background/60"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> Message
+                </button>
+              ) : contact.data?.hello_status === "pending" ? (
+                <button
+                  disabled
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold text-muted-foreground disabled:opacity-70"
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  {contact.data.awaiting_my_answer ? "Hello received" : "Hello sent"}
+                </button>
+              ) : contact.data?.hello_status === "declined" ? (
+                <button
+                  disabled
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold text-muted-foreground disabled:opacity-60"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> Not accepting
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (!user) { navigate({ to: "/login" }); return; }
+                    setHelloOpen(true);
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary bg-primary/10 py-2.5 text-xs font-semibold text-primary hover:bg-primary/15"
+                >
+                  <Hand className="h-3.5 w-3.5" /> Say hello
+                </button>
+              )}
             </div>
           )}
         </section>
@@ -189,6 +224,16 @@ function PublicProfilePage() {
           </div>
         )}
       </main>
+
+      {profile && (
+        <HelloModal
+          open={helloOpen}
+          onClose={() => setHelloOpen(false)}
+          recipientId={profile.id}
+          recipientName={profile.display_name?.trim() || "them"}
+          hellosLeft={contact.data?.hellos_left_this_month}
+        />
+      )}
     </div>
   );
 }
