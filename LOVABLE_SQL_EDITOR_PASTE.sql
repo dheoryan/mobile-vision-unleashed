@@ -119,6 +119,23 @@ select
   (select count(*) from tribe_members)                              as tribe_member_rows,  -- was 52
   (select count(*) from profiles where adult_verified_at is null)   as unverified,
   (select count(*) from posts where image_url like 'http%')         as posts_with_old_urls, -- expect 0
-  (select count(*) from venture_applications where status = 'rejected')
-                                                                    as auto_rejected,
   (select count(*) from ventures where filled_slots > max_slots)    as oversubscribed;      -- expect 0
+
+
+-- ============================================================
+-- STEP 6 (read-only): did migration 20260820190650 actually FINISH?
+-- ============================================================
+-- Worth checking specifically. That file contains an over-subscription repair
+-- that writes status = 'rejected', which venture_applications_status_check does
+-- not allow — so if production had even one over-subscribed venture, the
+-- statement threw and everything after it in the file never ran.
+--
+-- app_settings is created near the very end of that same file, so its presence
+-- is the proof that the repair matched nothing and the file completed.
+
+select
+  (select count(*) from information_schema.tables
+     where table_schema = 'public' and table_name = 'app_settings') = 1
+    as migration_190650_completed,
+  (select count(*) from ventures where filled_slots > max_slots)
+    as oversubscribed_now;   -- if this is > 0, the repair never ran; tell me
