@@ -108,6 +108,42 @@
       radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in oklab, var(--color-accent) 18%, transparent) 0%, transparent 55%),
       var(--color-background);
   }
+  /* Scroll containers inside panels and sheets.
+   *
+   * Without this they get the platform default, which on Windows Chrome is a
+   * wide light-grey bar with stepper arrows — it reads as a system widget
+   * dropped into the app, and inside a rounded sheet it collides with the
+   * corner radius. `overscroll-contain` also stops a flick at the end of the
+   * list from scrolling the page behind the sheet. */
+  .scroll-panel {
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-foreground) 22%, transparent) transparent;
+  }
+  .scroll-panel::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-panel::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-foreground) 20%, transparent);
+  }
+  .scroll-panel::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--color-foreground) 34%, transparent);
+  }
+  /* Chrome renders stepper buttons on Windows unless they are zeroed out. */
+  .scroll-panel::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+  .scroll-panel::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   .glass {
     background: color-mix(in oklab, var(--color-background) 70%, transparent);
     backdrop-filter: blur(16px) saturate(140%);
@@ -179,3 +215,42 @@
   }
 }
 
+
+@layer utilities {
+  /* Venture search: a sonar sweep built from the MEUTUALS eye.
+   *
+   * CSS only, per the standing decision not to reintroduce a JS animation
+   * library. Three rings on the same keyframes at staggered delays reads as a
+   * continuous pulse without any scripting, and `prefers-reduced-motion`
+   * collapses it to a static mark rather than a jitter.
+   *
+   * The eye is the brand's own symbol and the app is about looking for people,
+   * so the metaphor is already ours — a generic spinner would say nothing. */
+  @keyframes meutuals-sonar {
+    0% {
+      transform: scale(0.35);
+      opacity: 0.55;
+    }
+    70% {
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+  .sonar-ring {
+    animation: meutuals-sonar 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  }
+  @keyframes meutuals-breathe {
+    0%, 100% { opacity: 0.85; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.04); }
+  }
+  .sonar-core {
+    animation: meutuals-breathe 2.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sonar-ring { animation: none; opacity: 0.18; transform: scale(1.3); }
+    .sonar-core { animation: none; }
+  }
+}

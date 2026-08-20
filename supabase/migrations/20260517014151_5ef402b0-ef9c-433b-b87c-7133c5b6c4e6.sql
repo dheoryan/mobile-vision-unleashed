@@ -123,6 +123,14 @@ $$;
 drop policy if exists "Users see their own ventures" on public.ventures;
 drop policy if exists "Users create their own ventures" on public.ventures;
 drop policy if exists "Users end their own ventures" on public.ventures;
+-- LOCAL-DEV PATCH: these three policies were already (re)created by
+-- 20260516123000_open_party_ventures.sql under these exact names; this
+-- migration recreates them again without dropping first, which fails on a
+-- from-scratch replay with "policy already exists". Adding the missing
+-- drops makes it idempotent.
+drop policy if exists "Users read open or related ventures" on public.ventures;
+drop policy if exists "Users create hosted ventures" on public.ventures;
+drop policy if exists "Hosts update their ventures" on public.ventures;
 
 create policy "Users read open or related ventures"
 on public.ventures for select to authenticated

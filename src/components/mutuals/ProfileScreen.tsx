@@ -1,24 +1,45 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2 } from "lucide-react";
+import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2, Check, LocateFixed, MapPinOff, RefreshCw, ShieldCheck, UserRound, KeyRound, ChevronRight, Scale, BookOpenCheck, LifeBuoy, Mail } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { POSTS, PEOPLE, tribeById, personById, type TribeId } from "@/lib/mutuals-data";
+import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
-import { useMyPosts, useMySavedPosts, useMyVentures } from "@/lib/posts-store";
+import { useMyPosts, useMySavedPosts } from "@/lib/posts-store";
+import { useMyHostedVentures } from "@/lib/ventures-store";
 import { useFollowCounts } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
 import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
-import { useBlocked, useUnblockUser } from "@/lib/blocked-store";
+import { intentStore } from "@/lib/intent-store";
+import { useBlockedProfiles, useUnblockUser } from "@/lib/blocked-store";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 import { PushSettingsRow } from "./EnablePushBanner";
+import {
+  AVAILABILITY_OPTIONS,
+  INTEREST_OPTIONS,
+  SOCIAL_INTENT_OPTIONS,
+  optionLabel,
+  toggleSelection,
+  type AvailabilityId,
+  type InterestId,
+  type SocialIntentId,
+} from "@/lib/profile-options";
+import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
+import { useDeleteMyLocation, useMyLocationSettings, useSaveMyLocation, useUpdateMyLocationSettings } from "@/lib/location-store";
+import { CitySelect } from "./CitySelect";
+import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
+import { Switch } from "@/components/ui/switch";
+import { AnimatedModal } from "@/components/ui/animated-modal";
+import { TribeMark } from "./TribeMark";
+import { FeatureIllustration } from "./FeatureIllustration";
+import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -43,17 +64,21 @@ export function ProfileScreen({
   const isPlus = isPlusEffective(profile.plan);
   const showPlanCard = MONETIZATION_ENABLED;
   const followCounts = useFollowCounts();
+  const profileCompletion = [
+    Boolean(profile.handle),
+    Boolean(profile.city),
+    Boolean(profile.bio),
+    profile.interests.length >= 2,
+    profile.socialIntents.length >= 1,
+    profile.availability.length >= 1,
+  ].filter(Boolean).length;
 
   const myPostsQuery = useMyPosts();
   const myPosts = myPostsQuery.data ?? [];
-  const samplePosts = POSTS.filter((p) => profile.tribeIds.includes(p.tribeId)).slice(0, 6);
-  const postsToShow = myPosts.length
-    ? myPosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribe_id as TribeId, image: undefined as string | undefined }))
-    : samplePosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribeId, image: p.image }));
 
   const savedQuery = useMySavedPosts();
   const savedPosts = savedQuery.data ?? [];
-  const venturesQuery = useMyVentures();
+  const venturesQuery = useMyHostedVentures();
   const ventures = venturesQuery.data ?? [];
 
   return (
@@ -96,21 +121,36 @@ export function ProfileScreen({
               </div>
               <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
+                <TribeBadge tribe={tribe} />
                 {otherTribes.map((t) => (
-                  <span
-                    key={t.id}
-                    title={t.name}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-sm"
-                    style={{ backgroundColor: `color-mix(in oklab, ${t.colorVar} 28%, transparent)` }}
-                  >
-                    {t.emoji}
-                  </span>
+                  <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
                 ))}
               </div>
             </div>
           </div>
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
+
+          {(profile.socialIntents.length > 0 || profile.interests.length > 0) && (
+            <div className="mt-4 space-y-2">
+              {profile.socialIntents.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.socialIntents.map((intent) => <ProfileTag key={intent} label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)} accent />)}
+                </div>
+              )}
+              {profile.interests.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.interests.slice(0, 5).map((interest) => <ProfileTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {profileCompletion < 6 && (
+            <button type="button" onClick={() => setEditOpen(true)} className="mt-4 w-full rounded-xl border border-dashed border-primary/40 bg-primary/5 p-3 text-left">
+              <div className="flex items-center justify-between text-xs"><span className="font-semibold">Complete your social signal</span><span className="text-primary">{Math.round((profileCompletion / 6) * 100)}%</span></div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary"><span className="block h-full rounded-full bg-primary" style={{ width: `${(profileCompletion / 6) * 100}%` }} /></div>
+            </button>
+          )}
 
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <Stat label="Following" value={String(followCounts.data?.following ?? 0)} />
@@ -132,7 +172,7 @@ export function ProfileScreen({
             <div>
               <p className="label-mono text-muted-foreground">Plan</p>
               <p className="font-display text-lg font-bold">
-                {isPlus ? (<><span className="text-primary">MUTUALS+</span></>) : "Free"}
+                {isPlus ? (<><span className="text-primary">MEUTUALS+</span></>) : "Free"}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {isPlus
@@ -167,14 +207,19 @@ export function ProfileScreen({
         </section>
         )}
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
-            Compare tiers
-          </Link>
-          <Link to="/host" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
-            Apply to host a Tribe
-          </Link>
-        </div>
+        {/* Both destinations advertise paid plans, so they stay behind the
+            monetization flag. This grid previously sat OUTSIDE the flag check,
+            which left a live pricing page reachable while monetization was off. */}
+        {MONETIZATION_ENABLED && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+              Compare tiers
+            </Link>
+            <Link to="/host" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+              Apply to host a Tribe
+            </Link>
+          </div>
+        )}
 
         <SectionTitle
           title={gridTab === "posts" ? "Your posts" : gridTab === "saved" ? "Saved" : "Ventures"}
@@ -190,27 +235,23 @@ export function ProfileScreen({
         {gridTab === "posts" && (
           myPostsQuery.isLoading ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">Loading…</p>
-          ) : myPosts.length === 0 ? (
-            <div className="grid grid-cols-3 gap-1">
-              {samplePosts.map((p) => {
-                const t = tribeById(p.tribeId as TribeId);
-                return (
-                  <div
-                    key={p.id}
-                    className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
-                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
-                  >
-                    <span className="text-base">{p.image ?? "✦"}</span>
-                    <p className="mt-1 line-clamp-3">{p.content}</p>
-                  </div>
-                );
-              })}
-              {samplePosts.length === 0 && (
-                <p className="col-span-3 rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  You haven't posted yet.
-                </p>
-              )}
+          ) : myPostsQuery.isError ? (
+            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+              <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
+              <button
+                onClick={() => myPostsQuery.refetch()}
+                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+              >
+                Retry
+              </button>
             </div>
+          ) : myPosts.length === 0 ? (
+            /* This used to render up to 6 posts from the hardcoded POSTS demo
+               array, so a brand-new user opened their own profile and saw a grid
+               of posts they had never written, attributed to themselves. */
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              You haven't posted yet. Share a signal from the Timeline tab.
+            </p>
           ) : (
             <ProfilePostHistory posts={myPosts} />
           )
@@ -222,18 +263,49 @@ export function ProfileScreen({
               {savedQuery.isLoading ? "Loading…" : "No saved posts yet. Tap the bookmark on any post to save it."}
             </p>
           ) : (
-            <div className="grid grid-cols-3 gap-1">
+            /* A list, not a square grid.
+             *
+             * The grid was a photo-grid pattern applied to text: a third of the
+             * width, aspect-square, 10px type, three-line clamp. Photo grids
+             * work because the photo IS the content; here the content is words,
+             * and at that size they are unreadable, so every tile looked like a
+             * bookmark emoji with noise under it.
+             *
+             * It was also a plain div — you could save a post and then have no
+             * way to open it again, which defeats the entire feature. These are
+             * buttons now, routed through the same openPost intent the
+             * notifications use. */
+            <div className="space-y-2">
               {savedPosts.map((p) => {
                 const t = tribeById((p.tribe_id as TribeId) || (profile.tribeIds[0] as TribeId));
                 return (
-                  <div
+                  <button
                     key={p.id}
-                    className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
-                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
+                    type="button"
+                    onClick={() => intentStore.push({ kind: "openPost", postId: p.id })}
+                    className="flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
                   >
-                    <span className="text-base">🔖</span>
-                    <p className="mt-1 line-clamp-3">{p.content}</p>
-                  </div>
+                    <span
+                      aria-hidden
+                      className="mt-0.5 h-9 w-1 shrink-0 rounded-full"
+                      style={{ backgroundColor: t.colorVar }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        {/* Whose post this was. The grid never said, so a saved
+                            collection was a pile of anonymous fragments. */}
+                        <span className="truncate font-semibold text-foreground">
+                          {p.author?.display_name?.trim() || "Someone"}
+                        </span>
+                        <span aria-hidden>·</span>
+                        <span className="shrink-0">{timeAgo(p.created_at)}</span>
+                      </span>
+                      <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-foreground/90">
+                        {p.content || (p.image_url ? "Photo" : "")}
+                      </span>
+                    </span>
+                    <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" />
+                  </button>
                 );
               })}
             </div>
@@ -250,13 +322,11 @@ export function ProfileScreen({
               ventures.map((v) => (
                 <div key={v.id} className="rounded-2xl border border-border bg-card p-4 text-sm">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold">{v.intents.slice(0, 3).join(" · ") || "Open to anything"}</p>
-                    <span className="label-mono text-muted-foreground">
-                      {v.ended_at ? "ended" : "live"}
-                    </span>
+                    <p className="font-semibold">{v.title || v.intents.slice(0, 3).join(" · ") || "Open to anything"}</p>
+                    <span className="label-mono text-muted-foreground">{v.status}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} · {v.time_window || "Any time"} · {timeAgo(v.created_at)}
+                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} · {v.time_window || "Any time"} · {v.filled_slots}/{v.max_slots} joined · {timeAgo(v.created_at)}
                   </p>
                 </div>
               ))
@@ -281,6 +351,7 @@ export function ProfileScreen({
       <SettingsSheet
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        onEditProfile={() => { setSettingsOpen(false); setEditOpen(true); }}
         onLogout={() => {
           setSettingsOpen(false);
           setProfile?.(() => null);
@@ -292,7 +363,10 @@ export function ProfileScreen({
       <DeleteAccountModal
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => setProfile?.(() => null)}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          setProfile?.(() => null);
+        }}
       />
     </div>
   );
@@ -318,7 +392,77 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const EMOJI_AVATARS = ["🌿", "🦊", "🐺", "🐟", "🎵", "🦉", "🐝", "🌙", "📚", "🏃", "🎸", "☕"];
+/**
+ * City, which follows the person rather than the form.
+ *
+ * When location is on, the server re-derives the city from the stored
+ * coordinates on every save, so typing a different one here would be
+ * overwritten the next time the app updates their position. Rather than let
+ * that fight happen silently, the picker is replaced with the derived value
+ * and a way to refresh it.
+ *
+ * Turning nearby off hands the field back — someone who does not share
+ * location has to be able to say where they are.
+ */
+function CityField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const locationQuery = useMyLocationSettings();
+  const saveLocation = useSaveMyLocation();
+  const [refreshing, setRefreshing] = useState(false);
+  const derived = Boolean(locationQuery.data);
+
+  if (!derived) return <CitySelect value={value} onChange={onChange} />;
+
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      const position = await requestBrowserLocation();
+      const saved = await saveLocation.mutateAsync({
+        ...position,
+        radius_km: (locationQuery.data?.radius_km ?? 15) as LocationRadiusKm,
+        discoverable: locationQuery.data?.discoverable ?? true,
+      });
+      if (saved.city) {
+        onChange(saved.city);
+        toast.success(`Updated to ${saved.city}`);
+      } else {
+        toast.message("No nearby city in our list", {
+          description: "Your location is saved; the city label is unchanged.",
+        });
+      }
+    } catch (error) {
+      toast.error("Could not update location", { description: (error as Error).message });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  return (
+    <div>
+      <p className="label-mono mb-1 text-muted-foreground">City</p>
+      <div className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background/60 px-4">
+        <LocateFixed className="h-4 w-4 shrink-0 text-primary" />
+        <span className="min-w-0 flex-1 truncate text-sm">{value || "Not set yet"}</span>
+        <button
+          type="button"
+          onClick={refresh}
+          disabled={refreshing}
+          className="shrink-0 text-[11px] font-semibold text-primary disabled:opacity-50"
+        >
+          {refreshing ? "Updating…" : "Update"}
+        </button>
+      </div>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+        Follows your location, so it stays right when you move. Turn off nearby in
+        Settings to set it yourself.
+      </p>
+    </div>
+  );
+}
+
+function ProfileTag({ label, accent = false }: { label: string; accent?: boolean }) {
+  return <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold", accent ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-background/50 text-muted-foreground")}>{label}</span>;
+}
+
 
 function EditProfileModal({
   open, profile, onClose, onSave,
@@ -332,6 +476,9 @@ function EditProfileModal({
   const [city, setCity] = useState(profile.city);
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
+  const [interests, setInterests] = useState<InterestId[]>(profile.interests);
+  const [socialIntents, setSocialIntents] = useState<SocialIntentId[]>(profile.socialIntents);
+  const [availability, setAvailability] = useState<AvailabilityId[]>(profile.availability);
   const [uploading, setUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
 
@@ -374,7 +521,7 @@ function EditProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto w-full max-w-md rounded-t-3xl border border-border bg-card p-6 sm:rounded-3xl animate-rise">
+      <div className="relative mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto scroll-panel rounded-t-3xl border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:rounded-3xl animate-rise">
         <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
@@ -402,20 +549,11 @@ function EditProfileModal({
               }}
             />
           </label>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            {EMOJI_AVATARS.map((e) => (
-              <button
-                key={e}
-                onClick={() => setAvatar(e)}
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full text-lg transition",
-                  avatar === e ? "bg-primary/20 ring-1 ring-primary" : "bg-secondary hover:bg-secondary/70"
-                )}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
+          {/* The emoji-avatar strip used to sit here. Removed at the user's
+              request: it offered twelve near-identical animal glyphs as a
+              parallel identity system next to real photo upload, and the
+              defaults are still applied at signup, so nothing is lost by not
+              re-offering them on the edit screen. */}
         </div>
 
         <div className="mt-5 space-y-3">
@@ -426,14 +564,17 @@ function EditProfileModal({
             onChange={(v) => setHandle(sanitizeHandle(v))}
             hint={handleValid ? `@${handle}` : "3–30 chars · a–z, 0–9, _"}
           />
-          <Input label="City" value={city} onChange={setCity} />
+          <CityField value={city} onChange={setCity} />
           <Input label="Bio" value={bio} onChange={(v) => setBio(v.slice(0, 140))} multiline hint={`${bio.length}/140`} />
+          <ProfileChoiceGroup label="Interests" options={INTEREST_OPTIONS} selected={interests} onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))} />
+          <ProfileChoiceGroup label="Here for" options={SOCIAL_INTENT_OPTIONS} selected={socialIntents} onToggle={(id) => setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))} />
+          <ProfileChoiceGroup label="Usually free" options={AVAILABILITY_OPTIONS} selected={availability} onToggle={(id) => setAvailability(toggleSelection(availability, id as AvailabilityId, 4))} />
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
           <button
-            disabled={!name.trim() || !city.trim() || !handleValid || uploading}
-            onClick={() => onSave({ name: name.trim(), handle, city: city.trim(), bio, avatar })}
+            disabled={!name.trim() || !city.trim() || !handleValid || interests.length < 2 || socialIntents.length < 1 || availability.length < 1 || uploading}
+            onClick={() => onSave({ name: name.trim(), handle, city: city.trim(), bio, avatar, interests, socialIntents, availability })}
             className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             {uploading ? "Saving photo…" : "Save changes"}
@@ -704,22 +845,92 @@ function Input({
   );
 }
 
-function SettingsSheet({
-  open, onClose, onLogout, onDelete,
-}: { open: boolean; onClose: () => void; onLogout: () => void; onDelete: () => void }) {
-  const blocked = useBlocked();
-  const unblockUser = useUnblockUser();
-  const blockedPeople = [...blocked].map((id) => PEOPLE.find((p) => p.id === id) ?? personById(id)).filter(Boolean);
-
-  if (!open) return null;
+function ProfileChoiceGroup({
+  label, options, selected, onToggle,
+}: {
+  label: string;
+  options: ReadonlyArray<{ id: string; label: string }>;
+  selected: string[];
+  onToggle: (id: string) => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto w-full max-w-md rounded-t-3xl border border-border bg-card p-6 sm:rounded-3xl animate-rise">
-        <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
+    <fieldset>
+      <legend className="label-mono text-muted-foreground">{label}</legend>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active = selected.includes(option.id);
+          return (
+            <button
+              type="button"
+              key={option.id}
+              aria-pressed={active}
+              onClick={() => onToggle(option.id)}
+              className={cn(
+                "min-h-10 rounded-full border px-3 py-2 text-[11px] font-semibold",
+                active ? "border-primary bg-primary/15 text-primary" : "border-border bg-background text-muted-foreground",
+              )}
+            >
+              {active && <Check className="mr-1 inline h-3 w-3" />}{option.label}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function SettingsSheet({
+  open, onClose, onEditProfile, onLogout, onDelete,
+}: { open: boolean; onClose: () => void; onEditProfile: () => void; onLogout: () => void; onDelete: () => void }) {
+  const { user } = useAuth();
+  const blockedProfilesQuery = useBlockedProfiles();
+  const unblockUser = useUnblockUser();
+  const blockedPeople = blockedProfilesQuery.data ?? [];
+  const locationQuery = useMyLocationSettings();
+  const saveLocation = useSaveMyLocation();
+  const updateLocation = useUpdateMyLocationSettings();
+  const deleteLocation = useDeleteMyLocation();
+  const [locating, setLocating] = useState(false);
+  const location = locationQuery.data;
+
+  const refreshLocation = async () => {
+    setLocating(true);
+    try {
+      const browserLocation = await requestBrowserLocation();
+      await saveLocation.mutateAsync({
+        ...browserLocation,
+        radius_km: (location?.radius_km ?? 15) as LocationRadiusKm,
+        discoverable: location?.discoverable ?? true,
+      });
+      toast.success("Approximate location updated.");
+    } catch (error) {
+      toast.error("Location unavailable", { description: (error as Error).message });
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  return (
+    <AnimatedModal open={open} onOpenChange={(next) => !next && onClose()} title="Settings" contentClassName="max-h-[92dvh] overflow-y-auto scroll-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div>
+        <button onClick={onClose} aria-label="Close settings" className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">Settings</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Your account, privacy, safety, and preferences.</p>
+
+        <div className="mt-5">
+          <p className="label-mono text-muted-foreground">Account</p>
+          <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
+            <SettingsAction icon={UserRound} title="Edit profile" detail="Photo, bio, home city, and social signals" onClick={onEditProfile} />
+            <div className="border-t border-border px-4 py-3">
+              <div className="flex items-center gap-3"><Mail className="h-4 w-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="text-sm font-semibold">Email</p><p className="truncate text-[11px] text-muted-foreground">{user?.email ?? "Signed-in account"}</p></div></div>
+            </div>
+            <Link to="/reset-password" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60">
+              <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Change password</p><p className="text-[11px] text-muted-foreground">Send a secure reset link</p></div><ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          </div>
+        </div>
 
         <div className="mt-5">
           <p className="label-mono text-muted-foreground">Notifications</p>
@@ -729,23 +940,96 @@ function SettingsSheet({
         </div>
 
         <div className="mt-5">
+          <p className="label-mono text-muted-foreground">Nearby discovery</p>
+          <div className="mt-2 rounded-2xl border border-border bg-background p-4">
+            {locationQuery.isLoading ? (
+              <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading location settings…</p>
+            ) : !location ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <MapPinOff className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                  <div><p className="text-sm font-semibold">City-only discovery</p><p className="mt-1 text-xs text-muted-foreground">Add an approximate location to see mutually nearby members.</p></div>
+                </div>
+                <button type="button" onClick={refreshLocation} disabled={locating || saveLocation.isPending} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground disabled:opacity-50">
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />} Enable nearby
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 text-primary" /><div><p className="text-sm font-semibold">Approximate area saved</p><p className="mt-1 text-xs text-muted-foreground">Coordinates remain private. Only distance bands are shared.</p></div></div>
+                  <Switch
+                    checked={location.discoverable}
+                    disabled={updateLocation.isPending}
+                    aria-label={location.discoverable ? "Pause nearby discovery" : "Enable nearby discovery"}
+                    onCheckedChange={(discoverable) => updateLocation.mutate(
+                      { discoverable, radius_km: location.radius_km as LocationRadiusKm },
+                      { onError: (error) => toast.error("Could not update nearby discovery", { description: (error as Error).message }) },
+                    )}
+                  />
+                </div>
+                <div className="mt-4">
+                  <DiscoveryRadiusSlider
+                    value={location.radius_km as LocationRadiusKm}
+                    disabled={updateLocation.isPending}
+                    onChange={(radiusKm) => updateLocation.mutate({ discoverable: location.discoverable, radius_km: radiusKm })}
+                  />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={refreshLocation} disabled={locating} className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold"><RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Refresh area</button>
+                  <button type="button" onClick={() => deleteLocation.mutate(undefined, { onSuccess: () => toast.success("Approximate location removed.") })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold text-muted-foreground"><MapPinOff className="h-3.5 w-3.5" /> Remove</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="label-mono text-muted-foreground">Safety & privacy</p>
+          {/* Sits with the policy links and nearby controls — deliberately not
+              next to the destructive account actions further down. Reinforces
+              that location is approximate and under the user's control; makes
+              no claim that the app guarantees safety. */}
+          <div className="mt-2 flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
+            <FeatureIllustration src={safetyArt} size="sm" className="shrink-0" />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              You control what you share. Nearby uses an approximate area, never your exact
+              location, and only while you leave it switched on.
+            </p>
+          </div>
+          <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
+            <Link to="/community-guidelines" className="flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-secondary/60"><BookOpenCheck className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Community Guidelines</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
+            <Link to="/privacy" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"><ShieldCheck className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Privacy Policy</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
+            <Link to="/terms" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"><Scale className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Terms of Service</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
+          </div>
+        </div>
+
+        <div className="mt-5">
           <p className="label-mono text-muted-foreground">Blocked accounts</p>
-          {blockedPeople.length === 0 ? (
+          {blockedProfilesQuery.isLoading ? (
+            <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              Loading…
+            </p>
+          ) : blockedPeople.length === 0 ? (
             <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
               You haven't blocked anyone.
             </p>
           ) : (
             <ul className="mt-2 space-y-2">
-              {blockedPeople.map((p) => p && (
+              {blockedPeople.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">{p.avatar}</span>
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">{p.avatar_emoji || "🙂"}</span>
+                  )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{p.name}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{p.handle}</p>
+                    <p className="truncate text-sm font-semibold">{p.display_name || "Unnamed"}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{p.handle ? `@${p.handle}` : ""}</p>
                   </div>
                   <button
                     onClick={() => unblockUser.mutate(p.id, {
-                      onSuccess: () => toast.success(`Unblocked ${p.name}.`),
+                      onSuccess: () => toast.success(`Unblocked ${p.display_name || "user"}.`),
                       onError: (e) => toast.error((e as Error).message),
                     })}
                     className="flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
@@ -773,6 +1057,10 @@ function SettingsSheet({
           </button>
         </div>
       </div>
-    </div>
+    </AnimatedModal>
   );
+}
+
+function SettingsAction({ icon: Icon, title, detail, onClick }: { icon: typeof LifeBuoy; title: string; detail: string; onClick: () => void }) {
+  return <button type="button" onClick={onClick} className="flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/60"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{title}</span><span className="block truncate text-[11px] text-muted-foreground">{detail}</span></span><ChevronRight className="h-4 w-4 text-muted-foreground" /></button>;
 }

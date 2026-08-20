@@ -1,18 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { AVAILABILITY_IDS, INTEREST_IDS, SOCIAL_INTENT_IDS } from "@/lib/profile-options";
 
-const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
+/** Canonical Tribe ids. Exported so other server functions can validate against
+ *  the same enum instead of accepting a free-form string. */
+export const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
 
 const updateSchema = z.object({
   display_name: z.string().min(1).max(60).optional(),
   handle: z.string().max(30).nullable().optional(),
-  age: z.number().int().min(21).max(120).nullable().optional(),
   city: z.string().max(80).optional(),
   bio: z.string().max(280).optional(),
   avatar_emoji: z.string().max(8).optional(),
   avatar_url: z.string().nullable().optional(),
   tribe_ids: z.array(z.string().min(1).max(40)).max(3).optional(),
+  interests: z.array(z.enum(INTEREST_IDS)).max(8).optional(),
+  social_intents: z.array(z.enum(SOCIAL_INTENT_IDS)).max(3).optional(),
+  availability: z.array(z.enum(AVAILABILITY_IDS)).max(4).optional(),
   // plan is intentionally NOT user-editable. Plan upgrades must go through a
   // trusted server flow (payment verification) — not the profile update endpoint.
 });
@@ -22,17 +27,25 @@ export type ProfileRow = {
   display_name: string;
   handle: string | null;
   age: number | null;
+  date_of_birth: string | null;
+  adult_verified_at: string | null;
+  age_verification_locked_at: string | null;
   city: string;
   bio: string;
   avatar_emoji: string;
   avatar_url: string | null;
   tribe_ids: string[];
+  interests: string[];
+  social_intents: string[];
+  availability: string[];
   plan: "free" | "plus";
   venture_count: number;
 };
 
 const PROFILE_COLS =
-  "id, display_name, handle, age, city, bio, avatar_emoji, avatar_url, tribe_ids, plan, venture_count";
+  "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan, venture_count";
+const MY_PROFILE_COLS =
+  `${PROFILE_COLS}, age, date_of_birth, adult_verified_at, age_verification_locked_at`;
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -40,7 +53,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("profiles")
-      .select(PROFILE_COLS)
+      .select(MY_PROFILE_COLS)
       .eq("id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -88,44 +101,120 @@ export const updateMyProfile = createServerFn({ method: "POST" })
       .from("profiles")
       .update(data)
       .eq("id", userId)
-      .select(PROFILE_COLS)
+      .select(MY_PROFILE_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as ProfileRow;
   });
 
-export const joinTribe = createServerFn({ method: "POST" })
+export const verifyMyAge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ tribe_id: z.enum(TRIBE_IDS) }).parse(input))
+  .inputValidator((input: unknown) =>
+    z.object({ date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: cur, error: e1 } = await supabase
-      .from("profiles").select("tribe_ids").eq("id", userId).single();
-    if (e1) throw new Error(e1.message);
-    const next = Array.from(new Set([...(cur?.tribe_ids ?? []), data.tribe_id]));
     const { data: row, error } = await supabase
-      .from("profiles").update({ tribe_ids: next }).eq("id", userId)
-      .select("tribe_ids").single();
+      .from("profiles")
+      .update({ date_of_birth: data.date_of_birth })
+      .eq("id", userId)
+      .select(MY_PROFILE_COLS)
+      .single();
     if (error) throw new Error(error.message);
+    const profile = row as ProfileRow;
+    if (!profile.adult_verified_at) {
+      throw new Error("This account does not meet the age requirement.");
+    }
+    return profile;
+  });
+
+/**
+ * Tribe membership is exclusive: one Tribe per person, changed rather than
+ * accumulated. The old joinTribe/leaveTribe pair modelled a multi-membership
+ * world, had no call sites, and could not express a cooldown — so they are
+ * replaced by a single switch operation.
+ *
+ * The cooldown itself is enforced in the enforce_tribe_limit trigger (see
+ * 20260820002000_one_tribe_per_user.sql) so it holds no matter which path
+ * writes the row. This function reads the status first purely so the UI can
+ * explain the wait instead of surfacing a raw database exception.
+ */
+export type TribeSwitchStatus = {
+  current_tribe_id: string | null;
+  /** Null when a switch is allowed right now. */
+  available_at: string | null;
+  can_switch: boolean;
+  /** Whole days remaining, 0 when a switch is allowed. */
+  days_remaining: number;
+};
+
+export const getTribeSwitchStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<TribeSwitchStatus> => {
+    const { supabase, userId } = context;
+    // `tribe_changed_at` is added by 20260820002000_one_tribe_per_user.sql and
+    // won't appear in the generated types until they're regenerated against the
+    // migrated schema. Same cast pattern already used in ventures.functions.ts.
+    const db = supabase as unknown as any;
+    const { data, error } = await db
+      .from("profiles")
+      .select("tribe_ids, tribe_changed_at, created_at")
+      .eq("id", userId)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const GRACE_DAYS = 7;
+    const COOLDOWN_DAYS = 21;
+    const now = Date.now();
+    const createdAt = Date.parse(data.created_at as string);
+    const changedAt = data.tribe_changed_at ? Date.parse(data.tribe_changed_at as string) : null;
+
+    const withinGrace = now - createdAt < GRACE_DAYS * 86_400_000;
+    const availableMs = changedAt === null ? null : changedAt + COOLDOWN_DAYS * 86_400_000;
+    const locked = !withinGrace && availableMs !== null && now < availableMs;
+
+    return {
+      current_tribe_id: (data.tribe_ids as string[])?.[0] ?? null,
+      available_at: locked ? new Date(availableMs!).toISOString() : null,
+      can_switch: !locked,
+      days_remaining: locked ? Math.ceil((availableMs! - now) / 86_400_000) : 0,
+    };
+  });
+
+export const switchTribe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ tribe_id: z.enum(TRIBE_IDS) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: cur, error: readErr } = await supabase
+      .from("profiles")
+      .select("tribe_ids")
+      .eq("id", userId)
+      .single();
+    if (readErr) throw new Error(readErr.message);
+
+    const current = (cur?.tribe_ids as string[] | null) ?? [];
+    if (current.length === 1 && current[0] === data.tribe_id) {
+      return current;
+    }
+
+    // Replace rather than append. The trigger rejects anything longer than one
+    // and applies the cooldown; the after-update trigger clears the stale
+    // tribe_members row so chat access actually ends.
+    const { data: row, error } = await supabase
+      .from("profiles")
+      .update({ tribe_ids: [data.tribe_id] })
+      .eq("id", userId)
+      .select("tribe_ids")
+      .single();
+    if (error) throw new Error(error.message);
+
     return row.tribe_ids as string[];
   });
 
-export const leaveTribe = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ tribe_id: z.string() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: cur, error: e1 } = await supabase
-      .from("profiles").select("tribe_ids").eq("id", userId).single();
-    if (e1) throw new Error(e1.message);
-    const next = (cur?.tribe_ids ?? []).filter((t: string) => t !== data.tribe_id);
-    if (next.length === 0) throw new Error("You must belong to at least one tribe");
-    const { data: row, error } = await supabase
-      .from("profiles").update({ tribe_ids: next }).eq("id", userId)
-      .select("tribe_ids").single();
-    if (error) throw new Error(error.message);
-    return row.tribe_ids as string[];
-  });
 
 export type VentureMatch = {
   id: string;
@@ -136,6 +225,9 @@ export type VentureMatch = {
   avatar_emoji: string;
   avatar_url: string | null;
   tribe_ids: string[];
+  interests: string[];
+  social_intents: string[];
+  availability: string[];
   plan: "free" | "plus";
 };
 
@@ -153,7 +245,7 @@ export const listVentureMatches = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     let q = supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
+      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
       .neq("id", userId)
       .limit(120);
     if (data.scope === "mine" && data.tribe_ids && data.tribe_ids.length) {
@@ -192,7 +284,7 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
 
     let q = supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
+      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
       .neq("id", userId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);

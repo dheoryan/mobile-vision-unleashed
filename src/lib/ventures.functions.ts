@@ -49,6 +49,10 @@ export type VentureParty = {
   created_at: string;
   ended_at: string | null;
   closed_at: string | null;
+  /** Object path in the private venture-images bucket, or null. Callers resolve
+   *  a signed URL with signVentureImageUrl at render time — never a public URL,
+   *  because a scope='mine' Venture is Tribe-only. */
+  image_url: string | null;
   host: VentureProfileLite | null;
   my_application: VentureApplication | null;
   applications: VentureApplication[];
@@ -86,6 +90,7 @@ type VentureDbRow = {
   created_at: string;
   ended_at: string | null;
   closed_at: string | null;
+  image_url: string | null;
 };
 
 type VentureApplicationDbRow = {
@@ -109,7 +114,7 @@ type VentureMessageDbRow = {
 const PROFILE_COLS =
   "id, display_name, handle, avatar_emoji, avatar_url, plan, city, bio, tribe_ids";
 const VENTURE_COLS =
-  "id, user_id, title, intents, scope, time_window, note, max_slots, filled_slots, status, created_at, ended_at, closed_at";
+  "id, user_id, title, intents, scope, time_window, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS = "id, venture_id, sender_id, content, created_at";
 
@@ -121,6 +126,16 @@ const createVentureSchema = z.object({
   time_window: z.string().trim().min(1).max(80),
   note: z.string().trim().max(280).optional().default(""),
   max_slots: z.number().int().min(2).max(20),
+  // A storage object path, not a URL. Shape is enforced again in the database
+  // by enforce_venture_image_owner, which is what actually stops a host
+  // pointing at somebody else's upload.
+  image_url: z
+    .string()
+    .trim()
+    .max(300)
+    .regex(/^[0-9a-fA-F-]{36}\/[A-Za-z0-9._-]+$/, "unexpected image path")
+    .nullable()
+    .optional(),
 });
 
 const ventureInviteInputSchema = z.object({
@@ -213,6 +228,7 @@ function mapParty(
     created_at: row.created_at,
     ended_at: row.ended_at,
     closed_at: row.closed_at,
+    image_url: row.image_url ?? null,
     host,
     my_application: myApplication,
     applications,
@@ -617,20 +633,17 @@ export const createHostedVenture = createServerFn({ method: "POST" })
         max_slots: data.max_slots,
         filled_slots: 1,
         status: "open",
+        image_url: data.image_url ?? null,
       })
       .select(VENTURE_COLS)
       .single();
     if (error) throw new Error(error.message);
 
-    const { data: profileRow } = await db
-      .from("profiles")
-      .select("venture_count")
-      .eq("id", userId)
-      .maybeSingle();
-    await db
-      .from("profiles")
-      .update({ venture_count: (profileRow?.venture_count ?? 0) + 1 })
-      .eq("id", userId);
+    // venture_count is maintained by the trg_bump_host_venture_count trigger.
+    // It used to be incremented here with a SELECT, an addition in JS, and an
+    // UPDATE — two concurrent creates both read N and both wrote N + 1, so one
+    // Venture was free. Since that counter is the free-tier quota, the lost
+    // increment is a paywall bypass. Do not reintroduce it here.
 
     const hosts = await fetchProfiles(db, [userId]);
     return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
@@ -777,6 +790,124 @@ export const closeHostedVenture = createServerFn({ method: "POST" })
     return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
   });
 
+/**
+ * Edit an open Venture.
+ *
+ * Only the fields a host should be able to revise. `filled_slots` and the
+ * computed 'full' status are deliberately absent — they are derived from
+ * accepted applications, and letting them through here would route around the
+ * capacity guard on venture_applications. enforce_venture_host_edits rejects
+ * them in the database too, so this is defence in depth rather than the only
+ * check.
+ */
+export const updateHostedVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    createVentureSchema
+      .partial()
+      .extend({ venture_id: z.string().uuid() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<VentureParty> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    const { venture_id, ...rest } = data;
+
+    // Only send keys the caller actually supplied. Spreading the whole partial
+    // would write `undefined` over untouched columns on some clients.
+    const patch: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== undefined) patch[key] = value;
+    }
+    if (!Object.keys(patch).length) {
+      throw new Error("Nothing to update.");
+    }
+
+    const { data: row, error } = await db
+      .from("ventures")
+      .update(patch)
+      .eq("id", venture_id)
+      .eq("user_id", userId)
+      .select(VENTURE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Re-read applications so the returned party carries accurate
+    // pending/accepted counts; the card renders them straight after saving.
+    const { data: appRows, error: appError } = await db
+      .from("venture_applications")
+      .select(APP_COLS)
+      .eq("venture_id", venture_id);
+    if (appError) throw new Error(appError.message);
+
+    const applicantIds = ((appRows ?? []) as VentureApplicationDbRow[]).map((a) => a.applicant_id);
+    const people = await fetchProfiles(db, [userId, ...applicantIds]);
+    const applications = ((appRows ?? []) as VentureApplicationDbRow[]).map((a) =>
+      mapApplication(a, people),
+    );
+    return mapParty(row as VentureDbRow, people.get(userId) ?? null, applications);
+  });
+
+/**
+ * Withdraw your own request, or leave a Venture you were accepted into.
+ *
+ * The database has always permitted this — venture_applications_guard_immutable_fields
+ * explicitly allows an applicant to move their own row to 'cancelled' — but
+ * nothing in the UI ever called it. So you could ask to join a stranger's
+ * meetup and then have no way out of it, which for an app that arranges
+ * in-person meetings between people who have not met is not a missing
+ * convenience, it is a missing safety exit.
+ *
+ * Leaving after acceptance frees the seat: sync_venture_slots recounts on the
+ * status change and the capacity trigger lets the next person in.
+ */
+export const withdrawVentureApplication = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ application_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ venture_id: string }> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+
+    const { data: row, error } = await db
+      .from("venture_applications")
+      .update({ status: "cancelled", decided_at: new Date().toISOString() })
+      .eq("id", data.application_id)
+      .eq("applicant_id", userId)
+      .select("venture_id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { venture_id: (row as { venture_id: string }).venture_id };
+  });
+
+/**
+ * Reopen a closed Venture.
+ *
+ * enforce_venture_host_edits permits closed -> open specifically so a host who
+ * closed by mistake is not forced to recreate the plan and lose its party
+ * chat. Everything else about a closed Venture stays frozen until it reopens.
+ */
+export const reopenHostedVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<VentureParty> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+
+    const { data: row, error } = await db
+      .from("ventures")
+      .update({ status: "open", closed_at: null, ended_at: null })
+      .eq("id", data.venture_id)
+      .eq("user_id", userId)
+      .select(VENTURE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const hosts = await fetchProfiles(db, [userId]);
+    return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
+  });
+
 export const listVentureMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
@@ -788,11 +919,11 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       .from("venture_messages")
       .select(MESSAGE_COLS)
       .eq("venture_id", data.venture_id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
 
-    const messages = (rows ?? []) as VentureMessageDbRow[];
+    const messages = ((rows ?? []) as VentureMessageDbRow[]).reverse();
     const senders = await fetchProfiles(
       db,
       messages.map((m) => m.sender_id),

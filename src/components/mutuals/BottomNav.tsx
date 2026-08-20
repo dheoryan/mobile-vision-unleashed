@@ -28,8 +28,8 @@ export function BottomNav({ active, onChange }: { active: TabKey; onChange: (t: 
                 aria-label={label}
               >
                 <span className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full",
-                  isActive ? "bg-primary/15 animate-tab" : "bg-transparent"
+                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                  isActive ? "bg-primary/15" : "bg-transparent"
                 )}>
                   <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
                 </span>

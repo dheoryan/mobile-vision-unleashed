@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, ChevronDown, Download, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -29,15 +30,16 @@ import {
   requestPushPrompt,
   type PushPromptTrigger,
 } from "@/lib/push-prompt-events";
+import { useProfileRow } from "@/lib/profile-store";
 
 const COPY: Record<PushPromptTrigger, { title: string; body: string }> = {
   session: {
     title: "Don't miss a beat",
-    body: "Get push notifications when someone likes, comments, follows, or DMs you — even when MUTUALS is closed.",
+    body: "Get push notifications when someone likes, comments, follows, or DMs you — even when MEUTUALS is closed.",
   },
   dm: {
     title: "Get notified when they reply",
-    body: "Turn on push notifications so you don't miss the next message — even when MUTUALS is closed.",
+    body: "Turn on push notifications so you don't miss the next message — even when MEUTUALS is closed.",
   },
   post: {
     title: "See reactions in real time",
@@ -56,12 +58,18 @@ export function PushPromptModal() {
   const [busy, setBusy] = useState(false);
   const [installable, setInstallable] = useState(canInstallNow());
   const save = useServerFn(saveSubscription);
+  const profileQuery = useProfileRow();
+  const profileReady = !!(
+    profileQuery.data?.adult_verified_at &&
+    profileQuery.data.display_name &&
+    profileQuery.data.tribe_ids?.length
+  );
 
   useEffect(() => onInstallAvailabilityChange(setInstallable), []);
 
   // Subscribe to high-intent trigger requests.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profileReady) return;
     const off = onPushPromptRequest((t) => {
       tryOpen(t);
     });
@@ -69,11 +77,11 @@ export function PushPromptModal() {
       off();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, profileReady]);
 
   // Session prompt on app open.
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading || !user || !profileReady) return;
     if (!isPushSupported()) return;
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -86,10 +94,10 @@ export function PushPromptModal() {
     }, 1500);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, authLoading]);
+  }, [user?.id, authLoading, profileReady]);
 
   function tryOpen(t: PushPromptTrigger) {
-    if (!user) return;
+    if (!user || !profileReady) return;
     if (!isPushSupported()) return;
     if (getPushPermission() === "denied") return;
     if (!shouldShowPrompt(user.id, t)) return;
@@ -134,8 +142,6 @@ export function PushPromptModal() {
     setOpen(false);
   };
 
-  if (!open || !user) return null;
-
   const standalone = isStandalonePwa();
   const ios = isIosSafari();
   const android = isAndroid();
@@ -151,7 +157,7 @@ export function PushPromptModal() {
     { icon: <Plus className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
     {
       icon: <Smartphone className="h-4 w-4" />,
-      text: 'Tap "Add", then open MUTUALS from your home screen.',
+      text: 'Tap "Add", then open MEUTUALS from your home screen.',
     },
     { icon: <Bell className="h-4 w-4" />, text: "Come back here and tap Enable notifications." },
   ];
@@ -161,15 +167,20 @@ export function PushPromptModal() {
     { icon: <Plus className="h-4 w-4" />, text: 'Tap "Install app" or "Add to Home screen".' },
     {
       icon: <Smartphone className="h-4 w-4" />,
-      text: "Confirm, then open MUTUALS from your home screen.",
+      text: "Confirm, then open MEUTUALS from your home screen.",
     },
     { icon: <Bell className="h-4 w-4" />, text: "Tap Enable notifications when prompted." },
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={skipSoft} />
-      <div className="relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl animate-rise">
+    <AnimatedModal
+      open={open && !!user}
+      onOpenChange={(o) => { if (!o) skipSoft(); }}
+      title="Push notifications"
+      center
+      zIndex={60}
+      contentClassName="max-h-[90vh] overflow-y-auto scroll-panel p-6 shadow-2xl"
+    >
         <button
           onClick={skipSoft}
           aria-label="Close"
@@ -185,7 +196,7 @@ export function PushPromptModal() {
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {iosNeedsInstall
-            ? "Push on iPhone requires installing MUTUALS to your home screen. Follow these steps:"
+            ? "Push on iPhone requires installing MEUTUALS to your home screen. Follow these steps:"
             : copy.body}
         </p>
 
@@ -246,7 +257,7 @@ export function PushPromptModal() {
                 onClick={async () => {
                   const outcome = await triggerInstallPrompt();
                   if (outcome === "accepted") {
-                    toast.success("MUTUALS is installing — open it from your home screen.");
+                    toast.success("MEUTUALS is installing — open it from your home screen.");
                     setOpen(false);
                   } else if (outcome === "unavailable") {
                     toast.message("Install not available", {
@@ -257,7 +268,7 @@ export function PushPromptModal() {
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15"
               >
                 <Download className="h-4 w-4" />
-                Install MUTUALS on home screen
+                Install MEUTUALS on home screen
               </button>
             )}
 
@@ -266,7 +277,7 @@ export function PushPromptModal() {
                 <summary className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-foreground">
                   <span className="inline-flex items-center gap-2">
                     <Smartphone className="h-4 w-4 text-primary" />
-                    Install MUTUALS on Android
+                    Install MEUTUALS on Android
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
@@ -290,8 +301,7 @@ export function PushPromptModal() {
             )}
           </div>
         )}
-      </div>
-    </div>
+    </AnimatedModal>
   );
 }
 

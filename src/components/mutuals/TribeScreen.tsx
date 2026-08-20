@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AtSign, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
+import { ArrowLeftRight, AtSign, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -12,6 +12,9 @@ import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { toast } from "sonner";
 import { uploadTribeChatImage, signTribeChatUrl } from "@/lib/uploads";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
+import { SafetyMenu } from "./SafetyMenu";
+import { TribeMark } from "./TribeMark";
+import { QuotedBlock } from "./ReplyPreview";
 
 function SwipeReplyRow({
   children,
@@ -104,18 +107,12 @@ export function TribeScreen({
         unread={unread}
       />
       <main className="mx-auto max-w-md px-5 pt-3">
-        {/* Tribe strip - Plus users with multi-tribe */}
-        {isPlus && (
-          <TribeStrip
-            joined={joinedTribes}
-            active={activeTribe}
-            onChange={setActiveTribe}
-            canAdd={profile.tribeIds.length < 3}
-            onAdd={() => setAddTribeOpen(true)}
-          />
-        )}
-
-        <TribeBanner tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
+        <TribeBanner
+          tribe={tribe}
+          liveMembers={liveMembers}
+          liveOnline={liveOnline}
+          onSwitch={() => setAddTribeOpen(true)}
+        />
 
         {/* Group Chat - full screen, no toggle */}
         <GroupChat tribeId={activeTribe} canChat={isJoined} />
@@ -125,74 +122,8 @@ export function TribeScreen({
         open={addTribeOpen}
         onClose={() => setAddTribeOpen(false)}
         profile={profile}
-        setProfile={setProfile}
         onJoined={(id) => setActiveTribe(id)}
       />
-    </div>
-  );
-}
-
-function TribeStrip({
-  joined,
-  active,
-  onChange,
-  canAdd,
-  onAdd,
-}: {
-  joined: ReturnType<typeof tribeById>[];
-  active: TribeId;
-  onChange: (id: TribeId) => void;
-  canAdd: boolean;
-  onAdd: () => void;
-}) {
-  return (
-    <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-3">
-        {joined.map((t) => {
-          const isActive = t.id === active;
-          return (
-            <button
-              key={t.id}
-              onClick={() => onChange(t.id)}
-              className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
-            >
-              <span
-                className={cn(
-                  "flex h-14 w-14 items-center justify-center rounded-2xl text-2xl transition-all",
-                  isActive ? "" : "opacity-60",
-                )}
-                style={{
-                  backgroundColor: `color-mix(in oklab, ${t.colorVar} 22%, transparent)`,
-                  boxShadow: isActive ? `0 0 0 2px ${t.colorVar}` : undefined,
-                }}
-              >
-                {t.emoji}
-              </span>
-              <span
-                className={cn(
-                  "text-[11px] font-medium",
-                  isActive ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {t.name}
-              </span>
-            </button>
-          );
-        })}
-
-        {canAdd && (
-          <button
-            onClick={onAdd}
-            className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
-            aria-label="Add tribe"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-amber-400/60 text-amber-300">
-              +
-            </span>
-            <span className="text-[11px] font-medium text-muted-foreground">Add Tribe</span>
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -255,41 +186,88 @@ function TribeBanner({
   tribe,
   liveMembers,
   liveOnline,
+  onSwitch,
 }: {
   tribe: ReturnType<typeof tribeById>;
   liveMembers?: number;
   liveOnline: number;
+  onSwitch: () => void;
 }) {
-  const memberLabel = (liveMembers ?? tribe.members).toLocaleString();
+  // Show nothing until the real count arrives. This used to fall back to
+  // `tribe.members` — a hardcoded five-figure number from the demo data — so a
+  // new user saw "12,480 members" for a beat before it snapped to "1".
+  const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
   const onlineLabel = liveOnline.toLocaleString();
   return (
-    <section
-      className="relative mt-5 overflow-hidden rounded-2xl border border-border p-5"
-      style={{
-        background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 38%, var(--card)) 0%, var(--card) 75%)`,
-      }}
-    >
-      <div
-        className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-40 blur-3xl"
+    // Each Tribe's own artwork instead of a tint of its colour. The flat
+    // gradient made every Tribe the same card in a different hue; the
+    // illustration is the thing that actually distinguishes Night Owl from
+    // Iron Wolf, and it already exists.
+    // bg-card matters now that the artwork is transparent: the scrim
+    // gradients below were written assuming something opaque behind them, and
+    // without a surface they would blend into whatever the page happens to be.
+    <section className="relative mt-5 min-h-44 overflow-hidden rounded-2xl border border-border bg-card">
+      <img
+        src={tribe.art}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
+      />
+      {/* Two layers doing different jobs: a horizontal wash that keeps the left
+          side legible for text, and a bottom-up scrim for the stats line. The
+          art stays visible on the right, where nothing sits on top of it. */}
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/25"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-1"
         style={{ backgroundColor: tribe.colorVar }}
       />
-      <div className="relative flex items-start gap-4">
-        <span
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-3xl"
-          style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 30%, var(--card))` }}
+
+      <div className="relative flex items-start gap-4 p-5">
+        {/* The crest is the Move control. It was previously duplicated — once
+            standalone above the banner carrying the action, once inside the
+            banner as decoration — which is the same mark twice, 20px apart,
+            with only one of them doing anything. */}
+        <button
+          type="button"
+          onClick={onSwitch}
+          aria-label={`${tribe.name} — move to another Tribe`}
+          aria-haspopup="dialog"
+          className="group relative shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95"
         >
-          {tribe.emoji}
-        </span>
+          <TribeMark
+            tribe={tribe}
+            size="lg"
+            decorative={false}
+            className="transition-transform group-hover:scale-105 motion-reduce:transition-none"
+          />
+          <span
+            aria-hidden
+            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors group-hover:text-foreground"
+          >
+            <ArrowLeftRight className="h-3 w-3" />
+          </span>
+        </button>
         <div className="min-w-0 flex-1">
-          <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/40 px-2 py-1 text-foreground">
+          <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2 py-1 text-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-2xl font-bold leading-tight">{tribe.name}</h2>
+            <h2 className="font-display text-2xl font-bold leading-tight drop-shadow-sm">{tribe.name}</h2>
           </div>
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            <span className="text-foreground">{onlineLabel}</span> online · {memberLabel} members
+            <span className="text-foreground">{onlineLabel}</span> online
+            {memberLabel !== null && <> · {memberLabel} members</>}
           </p>
         </div>
       </div>
@@ -444,7 +422,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
         "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at",
       )
       .eq("tribe_id", dbTribeId)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) {
@@ -453,7 +431,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       return;
     }
 
-    const rows = data ?? [];
+    const rows = [...(data ?? [])].reverse();
     const senderIds = [...new Set(rows.map((r: any) => r.sender_id))];
     let profileMap: Record<string, TribeMember> = {};
     if (senderIds.length > 0) {
@@ -654,7 +632,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
   return (
     <div className="mt-4">
       <div className="rounded-2xl border border-border bg-card p-3">
-        <div className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
+        <div className="scroll-panel flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
           {loading && <p className="py-6 text-center text-xs text-muted-foreground">Loading...</p>}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
@@ -700,38 +678,38 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                   </span>
                 )}
-                <div className="max-w-[78%]">
+                <div className="max-w-[70%]">
                   {!mine && (
                     <p className="mb-0.5 text-[10px] text-muted-foreground">{displayName}</p>
                   )}
                   <div
                     className={cn(
-                      "space-y-2 rounded-2xl px-3 py-2 text-sm",
+                      "space-y-2 rounded-xl px-3 py-2 text-sm",
                       mine
                         ? "rounded-br-sm text-primary-foreground"
                         : "rounded-bl-sm bg-secondary text-foreground",
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
                   >
+                    {/* Tribe chat had its OWN quote renderer — a filled,
+                        rounded box nested inside an already-rounded bubble,
+                        painting bg-background/25 over the Tribe colour. Two
+                        implementations of the same thing is why fixing the DM
+                        one left this one untouched. Both now use QuotedBlock. */}
                     {m.reply_to && (
-                      <div
-                        className={cn(
-                          "rounded-xl border-l-2 bg-background/25 px-2 py-1 text-[11px] leading-snug",
-                          mine
-                            ? "border-black/30 text-primary-foreground/80"
-                            : "border-primary/50 text-muted-foreground",
-                        )}
-                      >
-                        <p className="font-medium">
-                          {m.reply_to.sender_id === user?.id
+                      <QuotedBlock
+                        mine={mine}
+                        accentColor={tribe.colorVar}
+                        name={
+                          m.reply_to.sender_id === user?.id
                             ? "You"
-                            : (m.reply_to.sender?.display_name ?? "Member")}
-                        </p>
-                        <p className="line-clamp-2">
-                          {m.reply_to.content ||
-                            (m.reply_to.attachment_type === "image" ? "Photo" : "Message")}
-                        </p>
-                      </div>
+                            : (m.reply_to.sender?.display_name ?? "Member")
+                        }
+                        snippet={
+                          m.reply_to.content ||
+                          (m.reply_to.attachment_type === "image" ? "Photo" : "Message")
+                        }
+                      />
                     )}
                     {m.attachment_url && m.attachment_type === "image" && (
                       <ChatAttachmentImage value={m.attachment_url} />
@@ -759,6 +737,13 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                   </div>
                 </div>
+                {!mine && (
+                  <SafetyMenu
+                    targetName={displayName}
+                    targetUserId={m.sender_id}
+                    className="self-start -mt-1 shrink-0"
+                  />
+                )}
               </SwipeReplyRow>
             );
           })}

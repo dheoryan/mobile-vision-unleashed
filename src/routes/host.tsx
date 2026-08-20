@@ -1,14 +1,20 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRIBES } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/host")({
+  // Advertises $199–$499/month plans and "we'll be in touch within 48 hours",
+  // but the form writes nothing. Gated until it's wired to a real table.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
-      { title: "Apply to host a Tribe — MUTUALS" },
-      { name: "description", content: "Brands, venues, and community builders can apply to run a Verified Hosted Tribe on MUTUALS." },
-      { property: "og:title", content: "Host a Tribe on MUTUALS" },
+      { title: "Apply to host a Tribe — MEUTUALS" },
+      { name: "description", content: "Brands, venues, and community builders can apply to run a Verified Hosted Tribe on MEUTUALS." },
+      { property: "og:title", content: "Host a Tribe on MEUTUALS" },
       { property: "og:description", content: "Verified host status, analytics, and pinned posts." },
     ],
   }),
@@ -29,8 +35,8 @@ function HostApplyPage() {
       <div className="bg-habitat flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <CheckCircle2 className="h-12 w-12 text-primary" />
         <h1 className="mt-4 font-display text-3xl font-bold">Application received.</h1>
-        <p className="mt-2 max-w-sm text-sm text-muted-foreground">We'll be in touch within 48 hours about hosting on MUTUALS.</p>
-        <Link to="/" className="mt-6 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Back to MUTUALS</Link>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">We'll be in touch within 48 hours about hosting on MEUTUALS.</p>
+        <Link to="/" className="mt-6 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Back to MEUTUALS</Link>
       </div>
     );
   }
@@ -70,7 +76,7 @@ function HostApplyPage() {
               onChange={(e) => setForm({ ...form, tribe: e.target.value })}
               className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none"
             >
-              {TRIBES.map((t) => (<option key={t.id} value={t.id}>{t.emoji} {t.name} — {t.scene}</option>))}
+              {TRIBES.map((t) => (<option key={t.id} value={t.id}>{t.name} — {t.scene}</option>))}
             </select>
           </label>
           <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} placeholder="San Francisco" required />

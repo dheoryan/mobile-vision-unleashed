@@ -83,10 +83,22 @@ export function parseQuotedMessage(content: string): {
 }
 
 /**
- * Styled inline quote block rendered inside a chat bubble for
- * a replied-to message. `mine` controls contrast against the
- * bubble background (own messages use a translucent dark overlay,
- * incoming use a tinted accent strip).
+ * The quoted message shown inside a chat bubble.
+ *
+ * Previously this was a filled, rounded box nested inside an already-rounded
+ * bubble — a card inside a card. On an owned message it painted `white/20`
+ * over the accent fill, which muddied the colour, and the two stacked corner
+ * radii made every reply look like a broken attachment.
+ *
+ * Now it is a rule and two lines of text: a hairline bar, the author, and one
+ * line of what they said, at reduced weight. Nothing is filled, nothing is
+ * rounded, and the quote reads as a margin note on the reply rather than as a
+ * separate object competing with it. The single divider under it does the
+ * separating that the box used to do, for a fraction of the visual cost.
+ *
+ * `mine` switches contrast: on an owned bubble everything is drawn in the
+ * foreground colour at low alpha via `currentColor`, so it works whatever the
+ * accent behind it happens to be.
  */
 export function QuotedBlock({
   name,
@@ -100,37 +112,23 @@ export function QuotedBlock({
   accentColor: string;
 }) {
   return (
-    <div
-      className={
-        "relative mb-1.5 flex items-stretch gap-2 overflow-hidden rounded-lg " +
-        (mine ? "bg-white/20 text-white" : "text-foreground")
-      }
-      style={
-        mine
-          ? undefined
-          : {
-              backgroundColor: `color-mix(in oklab, ${accentColor} 14%, transparent)`,
-            }
-      }
-    >
-      <div
-        className="w-[3px] shrink-0 rounded-full"
-        style={{ backgroundColor: mine ? "#ffffff" : accentColor }}
+    <div className="mb-2 flex items-stretch gap-2">
+      <span
         aria-hidden
+        className={"w-[2px] shrink-0 rounded-full " + (mine ? "bg-current opacity-45" : "")}
+        style={mine ? undefined : { backgroundColor: accentColor }}
       />
-      <div className="min-w-0 flex-1 py-1.5 pr-2.5">
+      <div className="min-w-0 flex-1 leading-tight">
         <p
-          className="truncate text-[11px] font-semibold"
-          style={mine ? { color: "#ffffff" } : { color: accentColor }}
+          className={"truncate text-[10px] font-bold uppercase tracking-wide " + (mine ? "opacity-75" : "")}
+          style={mine ? undefined : { color: accentColor }}
         >
           {name}
         </p>
-        <p
-          className={
-            "truncate text-[11px] " +
-            (mine ? "text-white/85" : "text-foreground/75")
-          }
-        >
+        {/* One line, truncated. A two-line clamp made the quote compete with
+            the reply for height, which is what made it read as a second
+            message rather than as context for the first. */}
+        <p className={"truncate text-[11px] " + (mine ? "opacity-65" : "text-muted-foreground")}>
           {snippet}
         </p>
       </div>

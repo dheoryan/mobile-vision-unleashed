@@ -84,7 +84,7 @@ export function MentionSuggestions({
 }) {
   if (!suggestions.length) return null;
   return (
-    <div className="absolute bottom-full left-0 right-0 z-30 mb-2 max-h-56 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
+    <div className="scroll-panel absolute bottom-full left-0 right-0 z-30 mb-2 max-h-56 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
       {suggestions.map((p) => {
         const av = p.avatar_url || p.avatar_emoji || "🙂";
         const isImg = av.startsWith("data:") || av.startsWith("http");

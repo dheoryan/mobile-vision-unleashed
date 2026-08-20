@@ -1,23 +1,35 @@
+import ironWolfArt from "@/assets/tribes/iron-wolf.webp";
+import koiArt from "@/assets/tribes/koi.webp";
+import studioCatArt from "@/assets/tribes/studio-cat.webp";
+import nightOwlArt from "@/assets/tribes/night-owl.webp";
+import honeybeeArt from "@/assets/tribes/honeybee.webp";
+import ironWolfCrest from "@/assets/tribes/crests/iron-wolf.webp";
+import koiCrest from "@/assets/tribes/crests/koi.webp";
+import studioCatCrest from "@/assets/tribes/crests/studio-cat.webp";
+import nightOwlCrest from "@/assets/tribes/crests/night-owl.webp";
+import honeybeeCrest from "@/assets/tribes/crests/honeybee.webp";
+
 export type TribeId = "wolf" | "koi" | "cat" | "owl" | "bee";
 
 export interface Tribe {
   id: TribeId;
   name: string;
-  emoji: string;
   scene: string;
+  art: string;
+  crest: string;
+  motto: string;
+  about: string;
+  inside: readonly [string, string, string];
+  bestFor: string;
   colorVar: string;
-  members: number;
-  online: number;
-  hosted?: boolean;
-  hostOrg?: string;
 }
 
 export const TRIBES: Tribe[] = [
-  { id: "wolf", name: "Iron Wolf",  emoji: "🐺", scene: "Sports & Healthy Lifestyle",  colorVar: "var(--tribe-wolf)", members: 12480, online: 312 },
-  { id: "koi",  name: "Koi",        emoji: "🐟", scene: "Books & Thoughtful Hobbies",  colorVar: "var(--tribe-koi)",  members: 8210,  online: 184 },
-  { id: "cat",  name: "Studio Cat", emoji: "🎵", scene: "Music & Arts",                colorVar: "var(--tribe-cat)",  members: 15640, online: 521 },
-  { id: "owl",  name: "Night Owl",  emoji: "🦉", scene: "Nightlife & Late-Night Talks",colorVar: "var(--tribe-owl)",  members: 9970,  online: 402 },
-  { id: "bee",  name: "Honeybee",   emoji: "🐝", scene: "Professional Workers",        colorVar: "var(--tribe-bee)",  members: 11230, online: 276, hosted: true, hostOrg: "Sightglass × Mutuals" },
+  { id: "wolf", name: "Iron Wolf", scene: "Sports & Healthy Lifestyle", art: ironWolfArt, crest: ironWolfCrest, motto: "Move together. Grow stronger.", about: "A high-energy home for people who build friendship through movement, consistency, and showing up for one another.", inside: ["Local runs and training", "Recovery and healthy habits", "Activity partners"], bestFor: "People who would rather connect while doing than sit through small talk.", colorVar: "var(--tribe-wolf)" },
+  { id: "koi", name: "Mindful Koi", scene: "Books & Thoughtful Hobbies", art: koiArt, crest: koiCrest, motto: "Follow curiosity slowly.", about: "A quieter current for readers, collectors, learners, and people who enjoy thoughtful conversations without rushing them.", inside: ["Book and film circles", "Slow hobbies and learning", "Café conversations"], bestFor: "Curious minds who prefer depth, reflection, and low-pressure connection.", colorVar: "var(--tribe-koi)" },
+  { id: "cat", name: "Studio Cat", scene: "Music & Arts", art: studioCatArt, crest: studioCatCrest, motto: "Make something worth sharing.", about: "A creative room for artists, musicians, designers, and enthusiastic beginners to exchange work, ideas, and invitations.", inside: ["Open mics and exhibitions", "Works in progress", "Creative collaborators"], bestFor: "People energized by expression, experimentation, and making things together.", colorVar: "var(--tribe-cat)" },
+  { id: "owl", name: "Night Owl", scene: "Nightlife & Late-Night Talks", art: nightOwlArt, crest: nightOwlCrest, motto: "The city changes after dark.", about: "An after-hours circle for spontaneous plans, hidden venues, and conversations that become more honest when the day winds down.", inside: ["Late food and walks", "Nightlife discoveries", "After-dark conversations"], bestFor: "People whose social energy arrives late and who enjoy plans with a little spontaneity.", colorVar: "var(--tribe-owl)" },
+  { id: "bee", name: "Honeybee", scene: "Professional Workers", art: honeybeeArt, crest: honeybeeCrest, motto: "Build well. Share what works.", about: "A generous professional network where useful introductions, practical knowledge, and collaborative momentum matter more than self-promotion.", inside: ["Peer problem-solving", "Skill and idea exchange", "Collaborative ventures"], bestFor: "Builders and professionals looking for useful relationships with a human side.", colorVar: "var(--tribe-bee)" },
 ];
 
 export const tribeById = (id: TribeId) => TRIBES.find(t => t.id === id)!;
@@ -139,8 +151,58 @@ export const DMS: DMThread[] = [
 ];
 
 /* Ventures */
-export const INTENTS = [
-  "Coffee", "Drinks", "Live Music", "Hiking",
-  "Co-working", "Gallery Walk", "Night Out", "Run Club",
-  "Book Club", "Dinner", "Bouldering", "Late-night Walk",
+/**
+ * What a Venture is, as a set of tags the host picks (max 5).
+ *
+ * Grouped rather than flat. Twelve chips could sit in one row-wrapped block;
+ * forty cannot — unlabelled, it becomes a wall the host skims and gives up on,
+ * and they settle for whichever tag they saw first rather than the one that
+ * describes their plan. The headings let someone jump to the right
+ * neighbourhood and read six options instead of forty.
+ *
+ * Grouped by KIND OF ACTIVITY, deliberately not by Tribe. Tribe-grouping would
+ * imply a Night Owl shouldn't host a hike, and cross-Tribe Ventures are the
+ * main way people meet outside their own room — the last thing to discourage.
+ *
+ * These are free text in the database (no enum, no check constraint), so this
+ * list can grow without a migration. Keep labels short: they render as chips
+ * on cards where horizontal space is scarce.
+ */
+export const INTENT_GROUPS: { label: string; items: string[] }[] = [
+  {
+    label: "Food & drink",
+    items: ["Coffee", "Brunch", "Dinner", "Street Food", "Drinks", "Wine", "Dessert"],
+  },
+  {
+    label: "Move",
+    items: [
+      "Run Club", "Hiking", "Bouldering", "Gym Session", "Yoga", "Pilates",
+      "Cycling", "Swim", "Pickup Game", "Tennis", "Padel", "Martial Arts",
+    ],
+  },
+  {
+    label: "Make",
+    items: [
+      "Live Music", "Open Mic", "Jam Session", "Photo Walk", "Sketch Session",
+      "Craft Workshop", "Gallery Walk",
+    ],
+  },
+  {
+    label: "Learn & play",
+    items: [
+      "Book Club", "Film Club", "Board Games", "Study Session", "Museum",
+      "Language Exchange", "Trivia",
+    ],
+  },
+  {
+    label: "Go out",
+    items: ["Night Out", "Karaoke", "Rooftop", "Club Night", "Late-night Walk", "Market"],
+  },
+  {
+    label: "Work",
+    items: ["Co-working", "Networking", "Skill Swap", "Portfolio Review", "Startup Talk"],
+  },
 ];
+
+/** Flat list, for anything that just needs every valid tag. */
+export const INTENTS = INTENT_GROUPS.flatMap((group) => group.items);

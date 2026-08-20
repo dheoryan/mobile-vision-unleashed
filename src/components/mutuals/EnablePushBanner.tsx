@@ -70,7 +70,7 @@ export function EnablePushBanner() {
         <div className="min-w-0 flex-1 text-xs">
           <p className="font-semibold text-foreground">Get push notifications on iPhone</p>
           <p className="mt-1 text-muted-foreground">
-            Tap Share <span aria-hidden>􀈂</span> → <b>Add to Home Screen</b>, then open MUTUALS from the home screen and enable notifications there.
+            Tap Share <span aria-hidden>􀈂</span> → <b>Add to Home Screen</b>, then open MEUTUALS from the home screen and enable notifications there.
           </p>
         </div>
         <button onClick={dismiss} aria-label="Dismiss" className="text-muted-foreground hover:text-foreground">
@@ -86,7 +86,7 @@ export function EnablePushBanner() {
       <div className="min-w-0 flex-1 text-xs">
         <p className="font-semibold text-foreground">Don't miss a beat</p>
         <p className="mt-1 text-muted-foreground">
-          Get push notifications when someone likes, comments, follows, or DMs you — even when MUTUALS is closed.
+          Get push notifications when someone likes, comments, follows, or DMs you — even when MEUTUALS is closed.
         </p>
         <div className="mt-2 flex gap-2">
           <button
@@ -132,7 +132,7 @@ export function PushSettingsRow() {
   const enable = async () => {
     if (isIosSafari() && !isStandalonePwa()) {
       toast.message("Install the app first", {
-        description: "Tap Share → Add to Home Screen, then open MUTUALS from the home screen.",
+        description: "Tap Share → Add to Home Screen, then open MEUTUALS from the home screen.",
       });
       return;
     }
@@ -183,7 +183,7 @@ export function PushSettingsRow() {
             ? "On for this device."
             : permission === "denied"
               ? "Blocked. Enable them in your browser site settings."
-              : "Off. Get notified when MUTUALS is closed."}
+              : "Off. Get notified when MEUTUALS is closed."}
         </p>
       </div>
       {subscribed ? (

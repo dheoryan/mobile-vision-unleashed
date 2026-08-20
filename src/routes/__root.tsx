@@ -108,13 +108,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#0F0F0F" },
-      { title: "Moots— Start with your Tribe" },
+      // iOS ignores the manifest for standalone launches; these three are what
+      // give it a dark status bar and a real splash instead of a white flash.
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "MEUTUALS" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { title: "MEUTUALS — Start with your Tribe" },
       { name: "description", content: "A new social layer for real-life meetups. 21+ only." },
-      { property: "og:title", content: "Moots— Start with your Tribe" },
+      { property: "og:title", content: "MEUTUALS — Start with your Tribe" },
       { property: "og:description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Moots— Start with your Tribe" },
+      { name: "twitter:title", content: "MEUTUALS — Start with your Tribe" },
       { name: "twitter:description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55" },
@@ -128,7 +134,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap",
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/icons/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
 
@@ -163,7 +169,12 @@ function RootComponent() {
         <ServiceWorkerRegistrar />
         <Outlet />
         <PushPromptModal />
-        <Toaster position="bottom-center" richColors />
+        <Toaster
+          position="top-center"
+          offset={{ top: "calc(env(safe-area-inset-top) + 72px)" }}
+          mobileOffset={{ top: "calc(env(safe-area-inset-top) + 64px)", left: 12, right: 12 }}
+          richColors
+        />
       </AuthProvider>
     </QueryClientProvider>
   );

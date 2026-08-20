@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Search, X, ArrowUpDown } from "lucide-react";
 import type { FeedPost } from "@/lib/posts-store";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { TribeMark } from "./TribeMark";
 import { PostCard } from "./PostCard";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
               const t = tribeById(tid as TribeId);
               return (
                 <Chip key={tid} active={tribeFilter === tid} onClick={() => setTribeFilter(tid)} color={t.colorVar}>
-                  <span className="mr-1">{t.emoji}</span>{t.name}
+                  <TribeMark tribe={t} size="xs" />{t.name}
                 </Chip>
               );
             })}
@@ -114,12 +115,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
                         onClick={() => setOpenPostId(p.id)}
                         className="flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-3 text-left transition hover:bg-secondary/40"
                       >
-                        <span
-                          className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm"
-                          style={{ backgroundColor: `color-mix(in oklab, ${t.colorVar} 28%, transparent)` }}
-                        >
-                          {t.emoji}
-                        </span>
+                        <TribeMark tribe={t} size="sm" className="mt-0.5 flex-none" />
                         <div className="min-w-0 flex-1">
                           <p className="line-clamp-2 text-sm">{p.content || "(no text)"}</p>
                           <p className="mt-1 text-[11px] text-muted-foreground">
@@ -142,7 +138,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
       {openPost && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setOpenPostId(null)} />
-          <div className="relative mx-auto max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-background p-4 sm:rounded-3xl animate-rise">
+          <div className="scroll-panel relative mx-auto max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-background p-4 sm:rounded-3xl animate-rise">
             <button
               onClick={() => setOpenPostId(null)}
               aria-label="Close post"

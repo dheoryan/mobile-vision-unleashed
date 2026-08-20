@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { X, Send, AlertTriangle, MessageSquare, Trash2, Reply } from "lucide-react";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
+import { SafetyMenu } from "./SafetyMenu";
 import { useComments, useAddComment, useDeleteComment, type CommentRow } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
-import { timeAgo } from "@/lib/time";
+import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import {
   useMentionPicker,
@@ -69,8 +70,6 @@ export function CommentsModal({
     return () => window.clearTimeout(t);
   }, [open, highlightCommentId, commentsQuery.isLoading, commentsQuery.data]);
 
-  if (!open || !postId) return null;
-
   const tribeColor = TRIBE_FALLBACK;
   const roots = tree.get(null) ?? [];
 
@@ -131,11 +130,13 @@ export function CommentsModal({
     }
   };
 
-  if (typeof document === "undefined") return null;
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto flex h-[80vh] w-full max-w-md flex-col rounded-t-3xl border border-border bg-card animate-rise">
+  return (
+    <AnimatedModal
+      open={open && !!postId}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title="Comments"
+      contentClassName="flex h-[80vh] flex-col"
+    >
         <header className="flex items-center justify-between border-b border-border px-5 py-3">
           <h2 className="font-display text-base font-bold">Comments</h2>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
@@ -143,7 +144,7 @@ export function CommentsModal({
           </button>
         </header>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {commentsQuery.isLoading ? (
             <SkeletonList tribeColor={tribeColor} />
           ) : commentsQuery.isError ? (
@@ -211,9 +212,7 @@ export function CommentsModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>,
-    document.body,
+    </AnimatedModal>
   );
 }
 
@@ -406,7 +405,7 @@ function CommentItem({
           </div>
           <p className="text-sm text-foreground">{renderContent(c.content)}</p>
           <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span>{isPending ? "sending…" : `${timeAgo(c.created_at)} ago`}</span>
+            <span>{isPending ? "sending…" : timeAgoLabel(c.created_at)}</span>
             {!isPending && (
               <button onClick={() => onReply(c)} className="inline-flex items-center gap-1 hover:text-foreground">
                 <Reply className="h-3 w-3" /> Reply
@@ -422,6 +421,15 @@ function CommentItem({
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
+        )}
+        {!mine && !isPending && (
+          <SafetyMenu
+            targetName={name}
+            targetUserId={c.author_id}
+            targetCommentId={c.id}
+            kind="comment"
+            className="-mr-2 -mt-1"
+          />
         )}
       </div>
     </div>

@@ -1,14 +1,20 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, Check, Zap } from "lucide-react";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
 
 export const Route = createFileRoute("/upgrade")({
+  // Same reasoning as /tiers — and this one previously mounted a card-entry
+  // checkout, which is an automatic Apple 3.1.1 rejection.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
-      { title: "MUTUALS+ — Venture further" },
-      { name: "description", content: "Upgrade to MUTUALS+ for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts." },
-      { property: "og:title", content: "MUTUALS+ — Venture further" },
+      { title: "MEUTUALS+ — Venture further" },
+      { name: "description", content: "Upgrade to MEUTUALS+ for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts." },
+      { property: "og:title", content: "MEUTUALS+ — Venture further" },
       { property: "og:description", content: "Unlimited Ventures, unlimited Hellos, and read receipts." },
     ],
   }),
@@ -32,7 +38,7 @@ function UpgradePage() {
             <Zap className="h-7 w-7" fill="currentColor" />
           </span>
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight">
-            <span className="text-primary">MUTUALS+</span>
+            <span className="text-primary">MEUTUALS+</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">Venture further. Connect deeper.</p>
         </header>
@@ -64,7 +70,7 @@ function UpgradePage() {
             ]}
           />
           <PlanCard
-            title="MUTUALS+"
+            title="MEUTUALS+"
             price={price}
             sub={sub}
             highlighted
@@ -73,17 +79,24 @@ function UpgradePage() {
               "Unlimited Hellos",
               "Full match visibility",
               "Read receipts in DMs",
-              "MUTUALS+ profile badge",
+              "MEUTUALS+ profile badge",
               "Early access to new Tribes",
               "Hide profile visits",
             ]}
           />
         </div>
 
-        <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground">
-          <Zap className="h-4 w-4" fill="currentColor" /> Upgrade to MUTUALS+
+        {/* TODO(billing): wire to StoreKit (iOS) / Play Billing (Android) / a hosted
+            processor on web. Never an in-app card form — Apple 3.1.1. Entitlement
+            must be granted server-side from the store webhook, since profiles.plan
+            is not user-writable by design. */}
+        <button
+          disabled
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+        >
+          <Zap className="h-4 w-4" fill="currentColor" /> Coming soon
         </button>
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">Cancel anytime. Mock checkout — no payment is processed.</p>
+        <p className="mt-3 text-center text-[11px] text-muted-foreground">MEUTUALS+ isn't available for purchase yet.</p>
 
         <div className="mt-8 text-center">
           <Link to="/tiers" className="text-xs text-primary hover:underline">Compare full subscription tiers →</Link>

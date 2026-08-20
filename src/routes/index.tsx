@@ -19,6 +19,8 @@ import { rowToProfile, useProfileRow, useUpdateProfile, profileToPatch } from "@
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AgeVerification } from "@/components/mutuals/AgeVerification";
+import { useSaveMyLocation } from "@/lib/location-store";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -38,6 +40,7 @@ function App() {
   const navigate = useNavigate();
   const profileQuery = useProfileRow();
   const updateProfile = useUpdateProfile();
+  const saveLocation = useSaveMyLocation();
 
   const profile = rowToProfile(profileQuery.data ?? null);
 
@@ -142,11 +145,22 @@ function App() {
   }
   if (!user) return null; // redirecting
 
+  if (profileQuery.data && !profileQuery.data.adult_verified_at) {
+    return <AgeVerification locked={!!profileQuery.data.date_of_birth} />;
+  }
+
   if (!profile) {
     return (
       <Onboarding
-        onDone={(p) =>
+        saving={updateProfile.isPending || saveLocation.isPending}
+        onDone={(p, location) =>
           updateProfile.mutate(profileToPatch(p), {
+            onSuccess: () => {
+              if (!location) return;
+              saveLocation.mutate(location, {
+                onError: (error) => toast.error("Profile saved, but nearby is off", { description: (error as Error).message }),
+              });
+            },
             onError: (err) => toast.error((err as Error).message),
           })
         }
@@ -159,7 +173,7 @@ function App() {
       person.id,
     );
     if (!isUuid) {
-      toast.error("That person isn't on Mutuals yet.");
+      toast.error("That person isn't on Meutuals yet.");
       return;
     }
     try {
@@ -175,8 +189,9 @@ function App() {
   };
 
   const handleLaunchVenture = () => {
-    // Persistence + venture_count bump is handled server-side by useLaunchVenture.
-    // Profile query is invalidated automatically; nothing else to do here.
+    // Called by VenturesScreen after it creates a venture via ventures-store's
+    // useCreateHostedVenture (which already persists + invalidates queries server-side).
+    // Nothing else to do here.
   };
 
   const openMessages = () => {
@@ -225,11 +240,16 @@ function App() {
 
   return (
     <>
-      {(Object.keys(screens) as TabKey[]).map((k) => (
-        <div key={k} hidden={tab !== k} aria-hidden={tab !== k}>
-          {screens[k]}
-        </div>
-      ))}
+      {/* Only the active tab is mounted. Previously all five were rendered with
+          `hidden`, which is CSS-only — every screen's hooks ran on every page
+          load, producing ~21 requests and ~40 Postgres queries per load, with
+          17 separate JWT verifications. Mounting one tab cuts that to what the
+          user is actually looking at.
+
+          Trade-off: per-tab component state and scroll position reset on
+          switch. If that becomes a problem, keep a Set of visited tabs and
+          render those, rather than reverting to rendering all five. */}
+      {screens[tab]}
 
       <BottomNav active={tab} onChange={setTab} />
       <MessagesPanel

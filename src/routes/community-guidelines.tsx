@@ -5,10 +5,10 @@ import { LegalFooter } from "@/components/mutuals/LegalFooter";
 export const Route = createFileRoute("/community-guidelines")({
   head: () => ({
     meta: [
-      { title: "Community Guidelines — MUTUALS" },
-      { name: "description", content: "Five simple rules that keep MUTUALS warm, safe, and real." },
-      { property: "og:title", content: "Community Guidelines — MUTUALS" },
-      { property: "og:description", content: "Five simple rules that keep MUTUALS warm, safe, and real." },
+      { title: "Community Guidelines — MEUTUALS" },
+      { name: "description", content: "Five simple rules that keep MEUTUALS warm, safe, and real." },
+      { property: "og:title", content: "Community Guidelines — MEUTUALS" },
+      { property: "og:description", content: "Five simple rules that keep MEUTUALS warm, safe, and real." },
     ],
   }),
   component: GuidelinesPage,
@@ -18,7 +18,7 @@ const RULES = [
   { icon: Heart,       title: "Be authentic", body: "No impersonating others, no fake personas designed to deceive. Your profile should represent who you actually are." },
   { icon: ShieldCheck, title: "Be kind",      body: "No harassment, hate speech, or discrimination of any kind." },
   { icon: Lock,        title: "Be safe",      body: "Don't share other people's personal info without their consent." },
-  { icon: Sparkles,    title: "21 and up",    body: "MUTUALS is for adults. Underage accounts will be removed." },
+  { icon: Sparkles,    title: "21 and up",    body: "MEUTUALS is for adults. Underage accounts will be removed." },
   { icon: X,           title: "Keep it clean", body: "No explicit, violent, or unlawful content." },
 ];
 

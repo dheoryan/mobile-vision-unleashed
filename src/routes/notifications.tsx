@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
   UserCheck,
+  Hand,
 } from "lucide-react";
 import {
   useNotifications,
@@ -22,14 +23,14 @@ import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { EnablePushBanner } from "@/components/mutuals/EnablePushBanner";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
-import { timeAgo } from "@/lib/time";
+import { timeAgoLabel } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { TRIBES, type TribeId } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
     meta: [
-      { title: "Notifications — MUTUALS" },
+      { title: "Notifications — MEUTUALS" },
       { name: "description", content: "Likes, comments, follows, mentions, and DMs in one place." },
     ],
   }),
@@ -45,9 +46,12 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   message: <Mail className="h-3 w-3" />,
   new_post: <Sparkles className="h-3 w-3" />,
   venture_apply: <Users className="h-3 w-3" />,
+  venture_invite: <Users className="h-3 w-3" />,
   venture_accept: <UserCheck className="h-3 w-3" />,
   venture_message: <MessageSquare className="h-3 w-3" />,
   tribe_join: <Users className="h-3 w-3" />,
+  hello: <Hand className="h-3 w-3" />,
+  hello_accepted: <Hand className="h-3 w-3" />,
 };
 
 // Per-kind accent colors (background tint for the small icon badge under the avatar).
@@ -60,9 +64,12 @@ const ICON_COLORS: Record<NotificationKind, string> = {
   message: "bg-violet-500 text-white",
   new_post: "bg-primary text-primary-foreground",
   venture_apply: "bg-orange-500 text-white",
+  venture_invite: "bg-amber-500 text-white",
   venture_accept: "bg-teal-500 text-white",
   venture_message: "bg-cyan-500 text-white",
   tribe_join: "bg-fuchsia-500 text-white",
+  hello: "bg-primary text-primary-foreground",
+  hello_accepted: "bg-emerald-500 text-white",
 };
 
 const TEXTS: Record<NotificationKind, string> = {
@@ -74,9 +81,12 @@ const TEXTS: Record<NotificationKind, string> = {
   message: "sent you a message",
   new_post: "shared a new signal",
   venture_apply: "asked to join your Venture",
+  venture_invite: "invited you to a Venture",
   venture_accept: "accepted you into a Venture",
   venture_message: "sent a Venture message",
   tribe_join: "joined your Tribe",
+  hello: "said hello",
+  hello_accepted: "accepted your Hello",
 };
 
 const isTribeId = (value: string | null): value is TribeId =>
@@ -118,6 +128,7 @@ function NotificationsPage() {
     } else if (
       n.venture_id ||
       n.kind === "venture_apply" ||
+      n.kind === "venture_invite" ||
       n.kind === "venture_accept" ||
       n.kind === "venture_message"
     ) {
@@ -131,7 +142,11 @@ function NotificationsPage() {
       }
       navigate({ to: "/" });
     } else if (n.kind === "message") {
-      intentStore.push({ kind: "openTab", tab: "discover" });
+      if (n.actor_id) {
+        intentStore.push({ kind: "openThreadWith", userId: n.actor_id });
+      } else {
+        intentStore.push({ kind: "openTab", tab: "discover" });
+      }
       navigate({ to: "/" });
     }
   };
@@ -287,7 +302,7 @@ function NotificationRowItem({
             </p>
           )}
           <p className="mt-1 text-[11px] text-muted-foreground/80">
-            {timeAgo(n.created_at)} ago
+            {timeAgoLabel(n.created_at)}
           </p>
         </div>
         {isUnread && (

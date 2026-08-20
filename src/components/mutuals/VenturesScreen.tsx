@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Plus,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   UserCheck,
   UserPlus,
@@ -17,18 +18,34 @@ import {
   Users,
   UserX,
   X,
+  ImagePlus,
+  Pencil,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { INTENTS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
+import { INTENT_GROUPS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
+import { SafetyMenu } from "./SafetyMenu";
 import { UpsellModal } from "./UpsellModal";
+import { AnimatedModal } from "@/components/ui/animated-modal";
+import { FeatureIllustration } from "./FeatureIllustration";
+import venturesArt from "@/assets/app-illustrations/ventures.webp";
+import { VentureSwipeDeck } from "./VentureSwipeDeck";
+import { VentureCardShell } from "./VentureImage";
+import { VentureSearching } from "./VentureSearching";
+import { Layers, List } from "lucide-react";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
+import { uploadVentureImage, signVentureImageUrl } from "@/lib/uploads";
+import { useAuth } from "@/lib/auth-context";
 import {
   useApplyToVenture,
+  useWithdrawVentureApplication,
+  useReopenHostedVenture,
   useCloseHostedVenture,
   useCreateHostedVenture,
+  useUpdateHostedVenture,
   useDecideVentureApplication,
   useMyHostedVentures,
   useMyJoinedVentures,
@@ -51,7 +68,19 @@ import {
 type Mode = "look" | "host";
 type VentureStage = "intro" | "role" | "feature";
 
-const TIME_WINDOWS = ["Tonight", "This week evenings", "This weekend", "Next week"];
+// Kept "This week evenings" and "This weekend" verbatim so Ventures created
+// before this list grew still match a chip when their host opens the editor.
+// Free text in the database, so this can grow again without a migration.
+const TIME_WINDOWS = [
+  "Tonight",
+  "Tomorrow",
+  "This week daytime",
+  "This week evenings",
+  "This weekend",
+  "Next weekend",
+  "Next week",
+  "Flexible",
+];
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 const VENTURES_MODE_KEY = "mutuals:ventures:last-mode";
 
@@ -179,15 +208,6 @@ export function VenturesScreen({
     setHostFormOpen(true);
   };
 
-  const handleUpgraded = () => {
-    setProfile?.((p) => (p ? { ...p, plan: "plus" } : p));
-    setPaywall(false);
-    markVentureIntroSeen();
-    persistMode("host");
-    setStage("feature");
-    setHostFormOpen(true);
-  };
-
   const handleCreated = (venture: VentureParty) => {
     onLaunchVenture?.();
     setHostFormOpen(false);
@@ -255,7 +275,6 @@ export function VenturesScreen({
         open={paywall}
         onClose={() => setPaywall(false)}
         used={profile.ventureCount}
-        onUpgraded={handleUpgraded}
       />
     </div>
   );
@@ -293,6 +312,7 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="pt-5 animate-rise">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <FeatureIllustration src={venturesArt} size="lg" className="mb-5" />
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Zap className="h-5 w-5" />
         </span>
@@ -324,6 +344,18 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
             body="Accepted members get a shared chat while the Venture is active."
           />
         </div>
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
+        <div className="flex items-center gap-2 text-emerald-300">
+          <ShieldCheck className="h-4 w-4" />
+          <h3 className="text-sm font-semibold">Meet safely</h3>
+        </div>
+        <ul className="mt-2 space-y-1 text-xs leading-relaxed text-muted-foreground">
+          <li>Meet in a public place and arrange your own transport.</li>
+          <li>Keep exact locations and personal contact details in accepted-member chat.</li>
+          <li>Tell someone you trust where you are going. Leave and report anything that feels wrong.</li>
+        </ul>
       </section>
 
       <button
@@ -493,6 +525,15 @@ function LookView({
   onChanged: () => void;
 }) {
   const apply = useApplyToVenture();
+  const withdraw = useWithdrawVentureApplication();
+  const withdrawRequest = (applicationId: string) =>
+    withdraw.mutate(applicationId, {
+      onSuccess: () => {
+        toast.success("Request withdrawn.");
+        onChanged();
+      },
+      onError: (err) => toast.error((err as Error).message),
+    });
   const respondInviteFn = useServerFn(respondToVentureInvite);
   const respondInvite = useMutation({
     mutationFn: ({
@@ -514,6 +555,8 @@ function LookView({
     onError: (err) => toast.error((err as Error).message),
   });
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // Deck by default — the board is a stream of plans, not a directory.
+  const [boardView, setBoardView] = useState<"deck" | "list">("deck");
   const mineLabel = profile.tribeIds.length > 1 ? "My Tribes" : "My Tribe";
 
   const activeParties = useMemo(
@@ -591,6 +634,7 @@ function LookView({
               <JoinedVentureCard
                 key={venture.id}
                 venture={venture}
+                onLeave={withdrawRequest}
                 onOpenChat={() => onOpenChat(venture)}
                 busy={
                   respondInvite.isPending &&
@@ -624,6 +668,7 @@ function LookView({
               <JoinedVentureCard
                 key={venture.id}
                 venture={venture}
+                onLeave={withdrawRequest}
                 onOpenChat={() => onOpenChat(venture)}
               />
             ))}
@@ -639,6 +684,7 @@ function LookView({
               <JoinedVentureCard
                 key={venture.id}
                 venture={venture}
+                onLeave={withdrawRequest}
                 onOpenChat={() => onOpenChat(venture)}
               />
             ))}
@@ -649,26 +695,58 @@ function LookView({
       <SectionTitle
         title="Open Ventures"
         hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
+        action={
+          <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
+            <button
+              onClick={() => setBoardView("deck")}
+              aria-label="One at a time"
+              aria-pressed={boardView === "deck"}
+              className={cn("rounded-full p-1.5", boardView === "deck" && "bg-primary text-primary-foreground")}
+            >
+              <Layers className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setBoardView("list")}
+              aria-label="List"
+              aria-pressed={boardView === "list"}
+              className={cn("rounded-full p-1.5", boardView === "list" && "bg-primary text-primary-foreground")}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        }
       />
 
       {isLoading ? (
-        <LoadingBlock label="Finding open Ventures" />
+        <VentureSearching />
       ) : isError ? (
         <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
       ) : joinableVentures.length ? (
-        <div className="space-y-3">
-          {joinableVentures.map((venture) => (
-            <OpenVentureCard
-              key={venture.id}
-              venture={venture}
-              note={notes[venture.id] ?? ""}
-              onNoteChange={(value) => setNotes((cur) => ({ ...cur, [venture.id]: value }))}
-              onApply={() => submitApply(venture)}
-              onOpenChat={() => onOpenChat(venture)}
-              applying={apply.isPending && apply.variables?.venture_id === venture.id}
-            />
-          ))}
-        </div>
+        boardView === "deck" ? (
+          /* One plan at a time. Judging an activity rather than a person is
+             what makes a swipe deck appropriate here at all. */
+          <VentureSwipeDeck
+            ventures={joinableVentures}
+            onOpenChat={onOpenChat}
+            onChanged={onChanged}
+          />
+        ) : (
+          <div className="space-y-3">
+            {joinableVentures.map((venture) => (
+              <OpenVentureCard
+                key={venture.id}
+                venture={venture}
+                note={notes[venture.id] ?? ""}
+                onNoteChange={(value) => setNotes((cur) => ({ ...cur, [venture.id]: value }))}
+                onApply={() => submitApply(venture)}
+                onOpenChat={() => onOpenChat(venture)}
+                applying={apply.isPending && apply.variables?.venture_id === venture.id}
+                onWithdraw={withdrawRequest}
+                withdrawing={withdraw.isPending && withdraw.variables === venture.my_application?.id}
+              />
+            ))}
+          </div>
+        )
       ) : (
         <EmptyPanel
           icon={<Search className="h-6 w-6" />}
@@ -738,6 +816,7 @@ function HostView({
             <HostedVentureCard
               key={venture.id}
               venture={venture}
+              profile={profile}
               onOpenChat={() => onOpenChat(venture)}
               onInvited={onChanged}
             />
@@ -756,26 +835,91 @@ function HostView({
   );
 }
 
+/**
+ * Create a Venture, or edit an open one.
+ *
+ * One component for both because the fields are identical and a second,
+ * near-duplicate form is how the two drift apart — a new field gets added to
+ * create and quietly missing from edit. `editing` switches the mutation, the
+ * copy and the reset behaviour; everything else is shared.
+ */
 function HostForm({
   profile,
   onCancel,
   onCreated,
+  editing,
+  variant = "inline",
 }: {
   profile: Profile;
   onCancel: () => void;
   onCreated: (venture: VentureParty) => void;
+  /** When present the form saves changes to this Venture instead of creating one. */
+  editing?: VentureParty;
+  /** "modal" drops the card chrome, because the dialog already provides it. */
+  variant?: "inline" | "modal";
 }) {
   const create = useCreateHostedVenture();
-  const [title, setTitle] = useState("");
-  const [intents, setIntents] = useState<string[]>([]);
-  const [scope, setScope] = useState<VentureScope>("all");
-  const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[1]);
-  const [maxSlots, setMaxSlots] = useState(4);
-  const [note, setNote] = useState("");
+  const update = useUpdateHostedVenture();
+  const isEditing = Boolean(editing);
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [intents, setIntents] = useState<string[]>(editing?.intents ?? []);
+  const [scope, setScope] = useState<VentureScope>(editing?.scope ?? "all");
+  const [timeWindow, setTimeWindow] = useState(editing?.time_window || TIME_WINDOWS[1]);
+  const [maxSlots, setMaxSlots] = useState(editing?.max_slots ?? 4);
+  const [note, setNote] = useState(editing?.note ?? "");
+  const [imagePath, setImagePath] = useState<string | null>(editing?.image_url ?? null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const { user } = useAuth();
+
+  // Resolve a preview for a photo that already exists on the Venture.
+  useEffect(() => {
+    if (!editing?.image_url) return;
+    let cancelled = false;
+    void signVentureImageUrl(editing.image_url).then((url) => {
+      if (!cancelled) setImagePreview(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editing?.image_url]);
+
+  // Audience is locked in the database once anyone has applied, because
+  // flipping 'all' -> 'mine' would retroactively revoke access for people from
+  // other Tribes who already joined. Reflect that here rather than letting the
+  // host try and get an error back.
+  const audienceLocked =
+    isEditing && (editing!.applications?.length ?? 0) > 0;
+  const occupancy = editing ? editing.filled_slots : 1;
 
   const myTribes = TRIBES.filter((tribe) => profile.tribeIds.includes(tribe.id));
   const canSubmit =
-    title.trim().length >= 3 && intents.length > 0 && maxSlots >= 2 && maxSlots <= 20;
+    title.trim().length >= 3 &&
+    intents.length > 0 &&
+    maxSlots >= 2 &&
+    maxSlots <= 20 &&
+    // Cannot shrink below the people already in the room. The database refuses
+    // this too; saying so here avoids a pointless round trip.
+    maxSlots >= occupancy &&
+    !uploading &&
+    !update.isPending;
+
+  // Upload immediately on pick rather than on submit. The object lands in the
+  // host's own prefix, which the storage policy allows them to read straight
+  // away, so the preview works before any Venture row exists to point at it.
+  const pickImage = async (file?: File) => {
+    if (!file || !user?.id) return;
+    setUploading(true);
+    try {
+      const path = await uploadVentureImage(user.id, file);
+      setImagePath(path);
+      setImagePreview(await signVentureImageUrl(path));
+    } catch (error) {
+      toast.error("Could not upload that photo", { description: (error as Error).message });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const toggleIntent = (intent: string) => {
     setIntents((cur) => {
@@ -787,6 +931,32 @@ function HostForm({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!canSubmit) return;
+
+    if (editing) {
+      update.mutate(
+        {
+          venture_id: editing.id,
+          title: title.trim(),
+          intents,
+          // Omitted when locked so the database never sees an unchanged-but-sent
+          // scope on a Venture people have already joined.
+          ...(audienceLocked ? {} : { scope }),
+          time_window: timeWindow,
+          max_slots: maxSlots,
+          note: note.trim(),
+          image_url: imagePath,
+        },
+        {
+          onSuccess: (venture) => {
+            toast.success("Venture updated.");
+            onCreated(venture);
+          },
+          onError: (err) => toast.error((err as Error).message),
+        },
+      );
+      return;
+    }
+
     create.mutate(
       {
         title: title.trim(),
@@ -795,6 +965,7 @@ function HostForm({
         time_window: timeWindow,
         max_slots: maxSlots,
         note: note.trim(),
+        image_url: imagePath,
       },
       {
         onSuccess: (venture) => {
@@ -807,6 +978,8 @@ function HostForm({
           setTimeWindow(TIME_WINDOWS[1]);
           setMaxSlots(4);
           setNote("");
+          setImagePath(null);
+          setImagePreview(null);
         },
         onError: (err) => toast.error((err as Error).message),
       },
@@ -816,9 +989,61 @@ function HostForm({
   return (
     <form
       onSubmit={submit}
-      className="mb-4 rounded-2xl border border-border bg-card p-4 animate-rise"
+      className={cn(
+        variant === "inline" && "mb-4 rounded-2xl border border-border bg-card p-4 animate-rise",
+      )}
     >
       <div className="grid gap-3">
+        {/* Photo first, because it is the part of the card people look at. A
+            plan with a picture of the place reads as an invitation; a plan
+            without one reads as a database row. Optional on purpose — making
+            it required would stop people posting spontaneous plans, which are
+            the ones the app most wants. */}
+        <FieldLabel label="Photo (optional)">
+          <label
+            className={cn(
+              "relative flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-background transition-colors hover:border-primary/50",
+              uploading && "pointer-events-none opacity-60",
+            )}
+          >
+            {imagePreview ? (
+              <img src={imagePreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-5 w-5" />
+                )}
+                <span className="text-[11px] font-semibold">
+                  {uploading ? "Uploading…" : "Add a photo of the place"}
+                </span>
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                void pickImage(event.target.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+          {imagePreview && (
+            <button
+              type="button"
+              onClick={() => {
+                setImagePath(null);
+                setImagePreview(null);
+              }}
+              className="mt-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Remove photo
+            </button>
+          )}
+        </FieldLabel>
+
         <FieldLabel label="Venture title">
           <input
             value={title}
@@ -828,44 +1053,79 @@ function HostForm({
           />
         </FieldLabel>
 
-        <FieldLabel label="Intents">
-          <div className="flex flex-wrap gap-2">
-            {INTENTS.map((intent) => {
-              const active = intents.includes(intent);
-              return (
+        <FieldLabel label={`Intents · ${intents.length}/5`}>
+          {/* Scrolls rather than pushing the rest of the form off-screen. The
+              chosen chips are pinned above the scroller so the host can always
+              see what they've picked and why further taps stop working, which
+              is otherwise invisible once the list has scrolled. */}
+          {intents.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {intents.map((intent) => (
                 <button
                   key={intent}
                   type="button"
                   onClick={() => toggleIntent(intent)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                    active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-foreground",
-                  )}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
                 >
                   {intent}
+                  <X className="h-3 w-3" />
                 </button>
-              );
-            })}
+              ))}
+            </div>
+          )}
+          <div className="scroll-panel max-h-56 space-y-3 overflow-y-auto rounded-xl border border-border bg-background/40 p-3">
+            {INTENT_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="label-mono mb-1.5 text-muted-foreground">{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.items.map((intent) => {
+                    const active = intents.includes(intent);
+                    const atLimit = !active && intents.length >= 5;
+                    return (
+                      <button
+                        key={intent}
+                        type="button"
+                        disabled={atLimit}
+                        onClick={() => toggleIntent(intent)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground",
+                          atLimit && "opacity-35",
+                        )}
+                      >
+                        {intent}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </FieldLabel>
 
         <FieldLabel label="Audience">
-          <div className="grid grid-cols-2 gap-2">
+          <div className={cn("grid grid-cols-2 gap-2", audienceLocked && "opacity-50")}>
             <ChoiceButton
               active={scope === "all"}
-              onClick={() => setScope("all")}
+              onClick={() => !audienceLocked && setScope("all")}
               title="All Tribes"
               body="Anyone nearby can apply."
             />
             <ChoiceButton
               active={scope === "mine"}
-              onClick={() => setScope("mine")}
+              onClick={() => !audienceLocked && setScope("mine")}
               title={myTribes.length > 1 ? "My Tribes" : "My Tribe"}
               body={myTribes.map((tribe) => tribe.name).join(", ") || "Your home base."}
             />
           </div>
+          {audienceLocked && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              Locked — people have already applied. Narrowing the audience now would
+              cut them out of a Venture they already joined.
+            </p>
+          )}
         </FieldLabel>
 
         <FieldLabel label="Time window">
@@ -901,11 +1161,14 @@ function HostForm({
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value.slice(0, 280))}
-            placeholder="Where to meet, vibe, or a tiny bit of context."
+            placeholder="Share the vibe and a public area — save exact details for accepted-member chat."
             rows={3}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
-          <p className="mt-1 text-right text-[10px] text-muted-foreground">{note.length}/280</p>
+          <div className="mt-1 flex items-start justify-between gap-3 text-[10px] text-muted-foreground">
+            <span>Don't post a home address, phone number, or exact private location.</span>
+            <span className="shrink-0">{note.length}/280</span>
+          </div>
         </FieldLabel>
       </div>
 
@@ -919,15 +1182,15 @@ function HostForm({
         </button>
         <button
           type="submit"
-          disabled={!canSubmit || create.isPending}
+          disabled={!canSubmit || create.isPending || update.isPending}
           className="inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
         >
-          {create.isPending ? (
+          {create.isPending || update.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <ArrowRight className="h-4 w-4" />
           )}
-          Go live
+          {isEditing ? "Save changes" : "Go live"}
         </button>
       </div>
     </form>
@@ -941,6 +1204,8 @@ function OpenVentureCard({
   onApply,
   onOpenChat,
   applying,
+  onWithdraw,
+  withdrawing,
 }: {
   venture: VentureParty;
   note: string;
@@ -948,6 +1213,8 @@ function OpenVentureCard({
   onApply: () => void;
   onOpenChat: () => void;
   applying: boolean;
+  onWithdraw: (applicationId: string) => void;
+  withdrawing: boolean;
 }) {
   const application = venture.my_application;
   const accepted = application?.status === "accepted";
@@ -955,8 +1222,10 @@ function OpenVentureCard({
   const declined = application?.status === "declined";
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 animate-rise">
-      <VentureCardHeader venture={venture} />
+    <VentureCardShell
+      path={venture.image_url}
+      header={<VentureCardHeader venture={venture} />}
+    >
       <VentureMeta venture={venture} />
 
       {venture.note && (
@@ -974,9 +1243,24 @@ function OpenVentureCard({
           <MessageCircle className="h-4 w-4" /> Open party chat
         </button>
       ) : pending || declined ? (
-        <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-xs font-semibold text-muted-foreground">
-          {pending ? <Clock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-          {pending ? "Request pending" : "Request declined"}
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-xs font-semibold text-muted-foreground">
+            {pending ? <Clock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {pending ? "Request pending" : "Request declined"}
+          </div>
+          {/* Withdrawing was always allowed by the database and never reachable
+              from the UI, which left people committed to a stranger's meetup
+              with no way out. */}
+          {pending && application && (
+            <button
+              type="button"
+              onClick={() => onWithdraw(application.id)}
+              disabled={withdrawing}
+              className="w-full py-1 text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+            >
+              {withdrawing ? "Withdrawing…" : "Withdraw my request"}
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-4 space-y-2">
@@ -1001,22 +1285,26 @@ function OpenVentureCard({
           </button>
         </div>
       )}
-    </article>
+    </VentureCardShell>
   );
 }
 
 function HostedVentureCard({
   venture,
+  profile,
   onOpenChat,
   onInvited,
 }: {
   venture: VentureParty;
+  profile: Profile;
   onOpenChat: () => void;
   onInvited: () => void;
 }) {
   const decide = useDecideVentureApplication();
   const close = useCloseHostedVenture();
+  const reopen = useReopenHostedVenture();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const pending = venture.applications.filter((app) => app.status === "pending");
   const accepted = venture.applications.filter((app) => app.status === "accepted");
   const isClosed = venture.status === "closed";
@@ -1040,11 +1328,42 @@ function HostedVentureCard({
   };
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 animate-rise">
-      <VentureCardHeader venture={venture} hideHost />
-      <VentureMeta venture={venture} />
+    <VentureCardShell
+      path={venture.image_url}
+      header={<VentureCardHeader venture={venture} hideHost />}
+    >
+      <VentureMeta venture={venture} hideHost />
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      {/* Closing by mistake used to mean recreating the plan and losing its
+          party chat. enforce_venture_host_edits permits closed -> open for
+          exactly this. */}
+      {isClosed && (
+        <button
+          type="button"
+          onClick={() =>
+            reopen.mutate(venture.id, {
+              onSuccess: () => toast.success("Venture reopened."),
+              onError: (err) => toast.error((err as Error).message),
+            })
+          }
+          disabled={reopen.isPending}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 py-2.5 text-xs font-semibold text-primary disabled:opacity-50"
+        >
+          {reopen.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+          Reopen
+        </button>
+      )}
+
+      <div className={cn("mt-4 grid gap-2", isClosed ? "grid-cols-1" : "grid-cols-2")}>
+        {!isClosed && (
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground"
+          >
+            <Pencil className="h-4 w-4" /> Edit
+          </button>
+        )}
         <button
           type="button"
           onClick={onOpenChat}
@@ -1135,7 +1454,44 @@ function HostedVentureCard({
           </div>
         )}
       </div>
-    </article>
+      {/* A dialog, not an inline expansion. The form is a full page of
+          controls; unfolding it inside the card pushed everything below it —
+          the actions, the applicant list, every other Venture — hundreds of
+          pixels down, and the thing being edited scrolled out of view. A sheet
+          keeps the card still and puts the form where the eye already is. */}
+      <AnimatedModal
+        open={editOpen && !isClosed}
+        onOpenChange={setEditOpen}
+        title={`Edit ${venture.title}`}
+        contentClassName="scroll-panel max-h-[90dvh] overflow-y-auto"
+      >
+        <div className="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl font-bold leading-tight">Edit Venture</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Changes are visible to everyone who has already joined.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditOpen(false)}
+              aria-label="Close editor"
+              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <HostForm
+            profile={profile}
+            editing={venture}
+            variant="modal"
+            onCancel={() => setEditOpen(false)}
+            onCreated={() => setEditOpen(false)}
+          />
+        </div>
+      </AnimatedModal>
+    </VentureCardShell>
   );
 }
 
@@ -1218,7 +1574,7 @@ function InviteConnectedUsersPanel({
           Could not load people. Retry
         </button>
       ) : filtered.length ? (
-        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+        <div className="scroll-panel mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
           {filtered.map((candidate) => {
             const alreadyAccepted = candidate.invite_status === "accepted";
             const alreadyPending = candidate.invite_status === "pending";
@@ -1324,12 +1680,14 @@ function JoinedVentureCard({
   onOpenChat,
   onAcceptInvite,
   onDeclineInvite,
+  onLeave,
   busy = false,
 }: {
   venture: VentureParty;
   onOpenChat: () => void;
   onAcceptInvite?: () => void;
   onDeclineInvite?: () => void;
+  onLeave?: (applicationId: string) => void;
   busy?: boolean;
 }) {
   const status = (venture.my_application?.status as string | undefined) ?? "pending";
@@ -1393,7 +1751,26 @@ function JoinedVentureCard({
             {isPending ? "Waiting" : "Closed"}
           </span>
         )}
+        <SafetyMenu
+          targetName={displayName(host)}
+          targetUserId={venture.host_id}
+          className="shrink-0"
+        />
       </div>
+
+      {/* Leaving frees the seat: the status change makes sync_venture_slots
+          recount and the capacity guard lets the next person in. Quiet styling
+          on purpose — an exit should be findable without being an invitation. */}
+      {(isAccepted || isPending) && onLeave && venture.my_application && (
+        <button
+          type="button"
+          onClick={() => onLeave(venture.my_application!.id)}
+          disabled={busy}
+          className="mt-1 text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+        >
+          {isAccepted ? "Leave this Venture" : "Withdraw request"}
+        </button>
+      )}
     </article>
   );
 }
@@ -1406,34 +1783,56 @@ function VentureCardHeader({
   hideHost?: boolean;
 }) {
   const host = venture.host;
+  const hostTribe = TRIBES.find((t) => host?.tribe_ids?.includes(t.id));
   return (
     <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
+      {/* The host's face leads, not the Venture's photo.
+          The photo is the card's background now, so repeating it here as a
+          thumbnail said the same thing twice and pushed the one piece of
+          genuinely different information — who is running this — into a
+          secondary row. Deciding whether to join a stranger's plan is mostly a
+          judgement about the person, so they get the anchor position. */}
+      {!hideHost && <Avatar profile={host} size="md" />}
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate font-display text-lg font-bold">{venture.title}</h3>
           <StatusPill status={venture.status} />
         </div>
         {!hideHost && (
-          <div className="mt-2 flex items-center gap-2">
-            <Avatar profile={host} size="sm" />
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold">{displayName(host)}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{host?.city || "Nearby"}</p>
-            </div>
+          // Face, name and Tribe in one line, because they are one thing: who
+          // is running this. The Tribe used to sit in a separate block further
+          // down the card, where it read as a property of the plan rather than
+          // of the person — and with one Tribe per member it is now part of how
+          // someone introduces themselves.
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="truncate text-xs font-semibold">{displayName(host)}</span>
+            {hostTribe && <TribeBadge tribe={hostTribe} />}
+            {host?.city && (
+              <span className="truncate text-[11px] text-muted-foreground">{host.city}</span>
+            )}
           </div>
         )}
       </div>
-      <div className="text-right">
-        <p className="text-sm font-bold">
-          {venture.filled_slots}/{venture.max_slots}
-        </p>
-        <p className="text-[10px] text-muted-foreground">slots</p>
+      <div className="flex items-start gap-1">
+        <div className="text-right">
+          <p className="text-sm font-bold">
+            {venture.filled_slots}/{venture.max_slots}
+          </p>
+          <p className="text-[10px] text-muted-foreground">slots</p>
+        </div>
+        {!hideHost && (
+          <SafetyMenu
+            targetName={displayName(host)}
+            targetUserId={venture.host_id}
+            className="-mt-1 shrink-0"
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function VentureMeta({ venture }: { venture: VentureParty }) {
+function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hideHost?: boolean }) {
   const hostTribes = venture.host?.tribe_ids?.filter(Boolean) as TribeId[] | undefined;
   return (
     <div className="mt-3 space-y-2">
@@ -1450,18 +1849,15 @@ function VentureMeta({ venture }: { venture: VentureParty }) {
         </span>
         <span>{venture.scope === "mine" ? "Host tribes only" : "All tribes"}</span>
       </div>
-      {hostTribes?.length ? (
+      {/* Only when the header did not already carry it — on a hosted card the
+          header hides the host, so the Tribe belongs here instead. */}
+      {hideHost && hostTribes?.length ? (
         <div className="flex flex-wrap gap-1.5">
           {hostTribes.map((tribeId) => {
             const tribe = TRIBES.find((item) => item.id === tribeId);
             if (!tribe) return null;
             return (
-              <TribeBadge
-                key={tribe.id}
-                name={tribe.name}
-                color={tribe.colorVar}
-                hosted={tribe.hosted}
-              />
+              <TribeBadge key={tribe.id} tribe={tribe} />
             );
           })}
         </div>
@@ -1495,6 +1891,11 @@ function ApplicantRow({
             <p className="mt-0.5 text-xs text-muted-foreground">No note attached.</p>
           )}
         </div>
+        <SafetyMenu
+          targetName={displayName(application.applicant)}
+          targetUserId={application.applicant_id}
+          className="-mt-1 shrink-0"
+        />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button

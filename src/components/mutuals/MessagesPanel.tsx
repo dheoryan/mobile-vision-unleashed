@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, MessageCircle, Reply, Send, X } from "lucide-react";
 import {
-  markThreadRead,
+  useMarkThreadRead,
   useProfileById,
   useSendMessage,
   useThreadMessages,
@@ -21,13 +21,17 @@ import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
-import { timeAgo } from "@/lib/time";
+import { timeAgo, timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
+import { FeatureIllustration } from "./FeatureIllustration";
+import { useAnswerHello, useIncomingHellos } from "@/lib/social-store";
+import messagesArt from "@/assets/app-illustrations/messages.webp";
+import { SafetyMenu } from "./SafetyMenu";
 
 type ReplyTarget = { id: string; name: string; snippet: string };
 
@@ -115,7 +119,7 @@ export function MessagesPanel({
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl animate-rise">
+      <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl">
         {ventureThread ? (
           <VenturePartyThread venture={ventureThread} onBack={() => setVentureThread(null)} />
         ) : !threadId ? (
@@ -218,13 +222,19 @@ function Inbox({
           <X className="h-5 w-5" />
         </button>
       </header>
-      <div className="flex-1 overflow-y-auto">
+      <div className="scroll-panel flex-1 overflow-y-auto">
+        <IncomingHellos />
         {isLoading ? (
           <p className="p-10 text-center text-xs text-muted-foreground">Loading…</p>
         ) : !hasDirectThreads && !hasPartyThreads ? (
-          <p className="p-10 text-center text-sm text-muted-foreground">
-            No messages yet. Active Venture party chats will appear here after you host or join one.
-          </p>
+          /* Top-level empty inbox only. Inside an open conversation the
+             composer stays the visual priority — no artwork there. */
+          <div className="p-10 text-center">
+            <FeatureIllustration src={messagesArt} />
+            <p className="mt-4 text-sm text-muted-foreground">
+              No messages yet. Active Venture party chats will appear here after you host or join one.
+            </p>
+          </div>
         ) : (
           <div className="divide-y divide-border">
             {hasPartyThreads && (
@@ -319,7 +329,7 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
             <p className="truncate text-sm font-semibold">
               {t.other?.display_name?.trim() || "Someone"}
             </p>
-            <TribeBadge name={tribe.name} color={tribe.colorVar} />
+            <TribeBadge tribe={tribe} />
           </div>
           <p
             className={cn(
@@ -410,7 +420,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Loading party chat…</p>
         ) : !msgs?.length ? (
@@ -429,13 +439,13 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                 disabled={pending}
                 onReply={() => startReply(m)}
               >
-                <div className={cn("max-w-[82%]", pending && "opacity-60")}>
+                <div className={cn("flex max-w-[88%] items-start gap-1", pending && "opacity-60")}>
                   {(() => {
                     const { quote, body } = parseQuotedMessage(m.content);
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
+                          "rounded-xl px-3 py-2 text-sm shadow-sm",
                           mine
                             ? "rounded-br-sm bg-primary text-white"
                             : "rounded-bl-sm bg-card text-foreground",
@@ -466,6 +476,13 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                       </div>
                     );
                   })()}
+                  {!mine && !pending && (
+                    <SafetyMenu
+                      targetName={displayVentureName(m.sender)}
+                      targetUserId={m.sender_id}
+                      className="-mt-1 shrink-0"
+                    />
+                  )}
                 </div>
               </MessageSwipeRow>
             );
@@ -510,6 +527,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   const { data: other } = useProfileById(otherId);
   const { data: msgs, isLoading } = useThreadMessages(otherId);
   const send = useSendMessage(otherId);
+  const markRead = useMarkThreadRead(otherId);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const tribe = tribeOf(other?.tribe_ids);
@@ -519,9 +537,11 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   useEffect(() => {
     if (!msgs?.length) return;
     const last = msgs[msgs.length - 1];
-    markThreadRead(otherId, last.created_at);
+    if (last.sender_id !== user?.id && !last.read_at) markRead.mutate();
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [msgs, otherId]);
+    // React only when the final message changes; mutation object identity is irrelevant.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [msgs?.[msgs.length - 1]?.id, otherId, user?.id]);
 
   const submit = () => {
     const body = text.trim();
@@ -553,9 +573,14 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
             {other?.city ? ` · ${other.city}` : ""}
           </p>
         </div>
+        <SafetyMenu
+          targetName={other?.display_name?.trim() || other?.handle || "this user"}
+          targetUserId={otherId}
+          className="shrink-0"
+        />
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
         ) : !msgs?.length ? (
@@ -584,7 +609,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
+                          "rounded-xl px-3 py-2 text-sm shadow-sm",
                           mine
                             ? "rounded-br-sm text-white"
                             : "rounded-bl-sm bg-card text-foreground",
@@ -606,7 +631,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                   <p
                     className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
                   >
-                    {pending ? "sending…" : `${timeAgo(m.created_at)} ago`}
+                    {pending ? "sending…" : timeAgoLabel(m.created_at)}
                   </p>
                 </div>
               </MessageSwipeRow>
@@ -644,5 +669,85 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Hellos waiting on an answer, pinned above the inbox.
+ *
+ * A request that arrives with no obvious place to answer it is the same as no
+ * request at all, so this sits at the top of Messages rather than behind a
+ * separate screen. Accepting opens a normal thread; declining is final, which
+ * is stated before the user taps.
+ */
+function IncomingHellos() {
+  const hellos = useIncomingHellos();
+  const answer = useAnswerHello();
+  const rows = hellos.data ?? [];
+
+  if (!rows.length) return null;
+
+  return (
+    <section className="border-b border-border bg-primary/5">
+      <p className="label-mono px-5 pb-2 pt-4 text-muted-foreground">
+        {rows.length === 1 ? "1 Hello" : `${rows.length} Hellos`} waiting
+      </p>
+      <ul className="space-y-2 px-5 pb-4">
+        {rows.map((h) => {
+          const name = h.other?.display_name?.trim() || "Someone";
+          const avatar = h.other?.avatar_url || h.other?.avatar_emoji || "👋";
+          const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
+          const busy = answer.isPending && answer.variables?.hello_id === h.id;
+          return (
+            <li key={h.id} className="rounded-2xl border border-border bg-card p-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
+                  {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{name}</p>
+                  {h.other?.handle && (
+                    <p className="truncate text-[11px] text-muted-foreground">@{h.other.handle}</p>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-foreground">{h.message}</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    answer.mutate(
+                      { hello_id: h.id, status: "accepted" },
+                      {
+                        onSuccess: () => toast.success(`You can now message ${name}`),
+                        onError: (e) => toast.error((e as Error).message),
+                      },
+                    )
+                  }
+                  className="flex-1 rounded-full bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  Accept
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    answer.mutate(
+                      { hello_id: h.id, status: "declined" },
+                      {
+                        onSuccess: () => toast("Hello declined.", { description: "They can't send another." }),
+                        onError: (e) => toast.error((e as Error).message),
+                      },
+                    )
+                  }
+                  className="flex-1 rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                >
+                  Decline
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

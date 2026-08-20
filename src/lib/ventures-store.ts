@@ -4,6 +4,9 @@ import { useAuth } from "@/lib/auth-context";
 import {
   applyToVenture,
   closeHostedVenture,
+  updateHostedVenture,
+  withdrawVentureApplication,
+  reopenHostedVenture,
   createHostedVenture,
   decideVentureApplication,
   listMyHostedVentures,
@@ -80,6 +83,8 @@ export function useCreateHostedVenture() {
       time_window: string;
       note?: string;
       max_slots: number;
+      /** Object path in the private venture-images bucket, not a URL. */
+      image_url?: string | null;
     }) => fn({ data: input }),
     onSuccess: () => {
       invalidateVentures(qc);
@@ -109,6 +114,42 @@ export function useDecideVentureApplication() {
 
 export function useCloseHostedVenture() {
   const fn = useServerFn(closeHostedVenture);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ventureId: string) => fn({ data: { venture_id: ventureId } }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useUpdateHostedVenture() {
+  const fn = useServerFn(updateHostedVenture);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      venture_id: string;
+      title?: string;
+      intents?: string[];
+      scope?: VentureScope;
+      time_window?: string;
+      note?: string;
+      max_slots?: number;
+      image_url?: string | null;
+    }) => fn({ data: input }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useWithdrawVentureApplication() {
+  const fn = useServerFn(withdrawVentureApplication);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (applicationId: string) => fn({ data: { application_id: applicationId } }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useReopenHostedVenture() {
+  const fn = useServerFn(reopenHostedVenture);
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ventureId: string) => fn({ data: { venture_id: ventureId } }),

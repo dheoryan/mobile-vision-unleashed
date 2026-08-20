@@ -1,12 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, Users, MessageSquare, Zap, TrendingUp, Pin, Megaphone } from "lucide-react";
 import { PEOPLE, POSTS, tribeById } from "@/lib/mutuals-data";
+import { TribeMark } from "@/components/mutuals/TribeMark";
 
 export const Route = createFileRoute("/host-dashboard")({
+  // 100% fabricated analytics (hardcoded member counts, invented growth chart,
+  // fictional people) on a live, publicly reachable route. Apple 2.3.1.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
-      { title: "Host Dashboard — MUTUALS" },
+      { title: "Host Dashboard — MEUTUALS" },
       { name: "description", content: "Manage your Hosted Tribe: members, posts, ventures, and announcements." },
     ],
   }),
@@ -17,7 +24,7 @@ type Tab = "overview" | "members" | "posts" | "ventures" | "announcements";
 
 function HostDashboard() {
   const [tab, setTab] = useState<Tab>("overview");
-  const tribe = tribeById("bee"); // hosted demo tribe
+  const tribe = tribeById("bee");
   const members = PEOPLE.filter((p) => p.tribeId === "bee");
   const tribePosts = POSTS.filter((p) => p.tribeId === "bee");
 
@@ -29,10 +36,9 @@ function HostDashboard() {
             <ArrowLeft className="h-3.5 w-3.5" /> Back to app
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{tribe.emoji}</span>
+            <TribeMark tribe={tribe} size="sm" />
             <div className="leading-tight">
               <p className="font-display text-sm font-bold">{tribe.name}</p>
-              <p className="label-mono text-muted-foreground">{tribe.hostOrg}</p>
             </div>
           </div>
         </div>

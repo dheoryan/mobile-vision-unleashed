@@ -12,3 +12,10 @@ export function timeAgo(iso: string): string {
   if (d < 7) return `${d}d`;
   return new Date(iso).toLocaleDateString();
 }
+
+/** Human-readable relative time for sentence-style surfaces. */
+export function timeAgoLabel(iso: string): string {
+  const value = timeAgo(iso);
+  if (!value || value === "now") return value;
+  return /^\d+[smhd]$/.test(value) ? `${value} ago` : value;
+}
