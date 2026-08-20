@@ -84,45 +84,73 @@ export function VentureSwipeDeck({
 
   return (
     <div>
+      {/* A poster, not a list row.
+       *
+       * Fixed 3:4 whether or not there is a photo. In a deck, cards that
+       * change height make every advance jarring — the buttons move, the eye
+       * has to relocate, and comparing one plan to the next stops being
+       * possible. A constant frame is what lets someone flick through ten of
+       * these and actually judge them.
+       *
+       * Photo fills the frame and the copy sits on it, bottom-anchored, which
+       * is also why this reads as an invitation rather than a database row:
+       * the picture of the place is the argument for going, so it gets the
+       * area. Without a photo the Tribe gradient fills the same frame, so the
+       * shape never changes.
+       *
+       * max-h caps it at 58vh so the card, its two action buttons and the undo
+       * row still fit one screen on a short phone. A deck you have to scroll
+       * to act on is not a deck.
+       */}
       <div
-        className="overflow-hidden rounded-3xl border border-border"
-        style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${tribe.colorVar} 24%, var(--card)) 0%, var(--card) 60%)` }}
+        className="relative aspect-[3/4] max-h-[58vh] w-full overflow-hidden rounded-3xl border border-border"
+        style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${tribe.colorVar} 30%, var(--card)) 0%, var(--card) 62%)` }}
       >
-        {/* Full-bleed at the top of the card. This is the single biggest thing
-            separating a plan that reads as an invitation from one that reads
-            as a row in a table. Renders nothing when there is no photo, so the
-            card keeps its existing layout rather than reserving an empty box. */}
-        {/* Same 176px media header as the list cards, so a Venture looks
-            like the same object whichever surface it is on. */}
-        <VentureImage path={venture.image_url} rounded="rounded-none" className="h-44 w-full" />
+        <VentureImage
+          path={venture.image_url}
+          rounded="rounded-none"
+          className="absolute inset-0 h-full w-full"
+        />
 
-        <div className="p-5">
+        {/* Opaque exactly where the text lands, clear where the photo should
+            be seen. Same principle as the list cards. */}
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"
+        />
+
+        <div className="absolute inset-x-0 bottom-0 p-5">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <TribeMark tribe={tribe} size="xs" />
-            <span>{hostName}</span>
+            <span className="truncate">{hostName}</span>
             <span aria-hidden>·</span>
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex shrink-0 items-center gap-1">
               <Clock className="h-3 w-3" /> {venture.time_window}
             </span>
           </div>
 
-          <h3 className="mt-3 font-display text-2xl font-bold leading-tight">{venture.title}</h3>
+          <h3 className="mt-2 font-display text-3xl font-bold leading-[1.1]">{venture.title}</h3>
 
           {venture.note && (
-            <p className="mt-2 text-sm leading-relaxed text-foreground/90">{venture.note}</p>
+            <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-foreground/85">
+              {venture.note}
+            </p>
           )}
 
           {venture.intents?.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {venture.intents.slice(0, 4).map((i) => (
-                <span key={i} className="rounded-full border border-border bg-background/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              {venture.intents.slice(0, 3).map((i) => (
+                <span
+                  key={i}
+                  className="rounded-full border border-white/15 bg-background/50 px-2 py-0.5 text-[11px] text-foreground/80 backdrop-blur-sm"
+                >
                   {i}
                 </span>
               ))}
             </div>
           )}
 
-          <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <Users className="h-3.5 w-3.5" />
             {spotsLeft > 0
               ? `${spotsLeft} ${spotsLeft === 1 ? "spot" : "spots"} left of ${venture.max_slots}`
