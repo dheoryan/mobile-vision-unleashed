@@ -54,8 +54,6 @@ export type Database = {
           created_at: string
           id: string
           mentions: string[]
-          moderation_hidden_at: string | null
-          moderation_hidden_by: string | null
           parent_id: string | null
           post_id: string
         }
@@ -65,8 +63,6 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id: string
         }
@@ -76,8 +72,6 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id?: string
         }
@@ -243,51 +237,6 @@ export type Database = {
         }
         Relationships: []
       }
-      moderation_actions: {
-        Row: {
-          action: string
-          created_at: string
-          id: string
-          moderator_id: string | null
-          notes: string | null
-          report_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          id?: string
-          moderator_id?: string | null
-          notes?: string | null
-          report_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          id?: string
-          moderator_id?: string | null
-          notes?: string | null
-          report_id?: string
-        }
-        Relationships: []
-      }
-      moderators: {
-        Row: {
-          granted_at: string
-          granted_by: string | null
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string
-          granted_by?: string | null
-          user_id: string
-        }
-        Update: {
-          granted_at?: string
-          granted_by?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       posts: {
         Row: {
           audience: string
@@ -297,8 +246,6 @@ export type Database = {
           id: string
           image_url: string | null
           likes_count: number
-          moderation_hidden_at: string | null
-          moderation_hidden_by: string | null
           replies_count: number
           shares_count: number
           tag: string | null
@@ -313,8 +260,6 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           replies_count?: number
           shares_count?: number
           tag?: string | null
@@ -329,8 +274,6 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
-          moderation_hidden_at?: string | null
-          moderation_hidden_by?: string | null
           replies_count?: number
           shares_count?: number
           tag?: string | null
@@ -365,8 +308,6 @@ export type Database = {
           interests: string[]
           plan: Database["public"]["Enums"]["app_plan"]
           social_intents: string[]
-          suspended_at: string | null
-          suspended_by: string | null
           tribe_ids: string[]
           updated_at: string
           venture_count: number
@@ -388,8 +329,6 @@ export type Database = {
           interests?: string[]
           plan?: Database["public"]["Enums"]["app_plan"]
           social_intents?: string[]
-          suspended_at?: string | null
-          suspended_by?: string | null
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
@@ -411,8 +350,6 @@ export type Database = {
           interests?: string[]
           plan?: Database["public"]["Enums"]["app_plan"]
           social_intents?: string[]
-          suspended_at?: string | null
-          suspended_by?: string | null
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
@@ -422,6 +359,7 @@ export type Database = {
       profile_locations: {
         Row: {
           accuracy_m: number
+          created_at: string
           discoverable: boolean
           latitude: number
           longitude: number
@@ -431,6 +369,7 @@ export type Database = {
         }
         Insert: {
           accuracy_m?: number
+          created_at?: string
           discoverable?: boolean
           latitude: number
           longitude: number
@@ -440,6 +379,7 @@ export type Database = {
         }
         Update: {
           accuracy_m?: number
+          created_at?: string
           discoverable?: boolean
           latitude?: number
           longitude?: number
@@ -499,8 +439,7 @@ export type Database = {
           id: string
           moderator_notes: string | null
           reason: string
-          reporter_deleted_at: string | null
-          reporter_id: string | null
+          reporter_id: string
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -516,8 +455,7 @@ export type Database = {
           id?: string
           moderator_notes?: string | null
           reason: string
-          reporter_deleted_at?: string | null
-          reporter_id?: string | null
+          reporter_id: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -533,8 +471,7 @@ export type Database = {
           id?: string
           moderator_notes?: string | null
           reason?: string
-          reporter_deleted_at?: string | null
-          reporter_id?: string | null
+          reporter_id?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -546,6 +483,13 @@ export type Database = {
           {
             foreignKeyName: "reports_reporter_id_fkey"
             columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -836,15 +780,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_user_is_moderator: { Args: Record<PropertyKey, never>; Returns: boolean }
-      list_nearby_profile_matches: {
-        Args: { _limit?: number }
-        Returns: {
-          distance_band: string
-          match_score: number
-          profile_id: string
-        }[]
-      }
       has_venture_application: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
@@ -861,8 +796,34 @@ export type Database = {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
       }
+      current_user_is_moderator: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      list_explore_matches: {
+        Args: { _limit: number; _offset: number }
+        Returns: {
+          profile_id: string
+          score: number
+          shared_interests: string[]
+          shared_intents: string[]
+          shared_availability: string[]
+          same_tribe: boolean
+          distance_band: string
+          open_venture_id: string
+          open_venture_title: string
+        }[]
+      }
+      list_nearby_profile_matches: {
+        Args: { _limit: number }
+        Returns: {
+          profile_id: string
+          distance_band: string
+          match_score: number
+        }[]
+      }
       moderate_report: {
-        Args: { decision: string; notes?: string | null; report_id: string }
+        Args: { report_id: string; decision: string; notes?: string | null }
         Returns: Database["public"]["Tables"]["reports"]["Row"]
       }
     }
