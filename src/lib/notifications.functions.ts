@@ -17,7 +17,9 @@ export type NotificationKind =
   | "venture_invite"
   | "venture_accept"
   | "venture_message"
-  | "tribe_join";
+  | "tribe_join"
+  | "hello"
+  | "hello_accepted";
 
 export type NotificationRow = {
   id: string;

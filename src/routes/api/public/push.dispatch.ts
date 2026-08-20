@@ -15,7 +15,9 @@ type NotificationKind =
   | "venture_invite"
   | "venture_accept"
   | "venture_message"
-  | "tribe_join";
+  | "tribe_join"
+  | "hello"
+  | "hello_accepted";
 
 const KIND_TEXT: Record<NotificationKind, string> = {
   like: "liked your post",
@@ -30,6 +32,8 @@ const KIND_TEXT: Record<NotificationKind, string> = {
   venture_accept: "accepted you into a Venture",
   venture_message: "sent a Venture message",
   tribe_join: "joined your Tribe",
+  hello: "said hello",
+  hello_accepted: "accepted your Hello",
 };
 
 function timingSafeEqualStr(a: string, b: string): boolean {

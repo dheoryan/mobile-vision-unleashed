@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
   UserCheck,
+  Hand,
 } from "lucide-react";
 import {
   useNotifications,
@@ -49,6 +50,8 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   venture_accept: <UserCheck className="h-3 w-3" />,
   venture_message: <MessageSquare className="h-3 w-3" />,
   tribe_join: <Users className="h-3 w-3" />,
+  hello: <Hand className="h-3 w-3" />,
+  hello_accepted: <Hand className="h-3 w-3" />,
 };
 
 // Per-kind accent colors (background tint for the small icon badge under the avatar).
@@ -65,6 +68,8 @@ const ICON_COLORS: Record<NotificationKind, string> = {
   venture_accept: "bg-teal-500 text-white",
   venture_message: "bg-cyan-500 text-white",
   tribe_join: "bg-fuchsia-500 text-white",
+  hello: "bg-primary text-primary-foreground",
+  hello_accepted: "bg-emerald-500 text-white",
 };
 
 const TEXTS: Record<NotificationKind, string> = {
@@ -80,6 +85,8 @@ const TEXTS: Record<NotificationKind, string> = {
   venture_accept: "accepted you into a Venture",
   venture_message: "sent a Venture message",
   tribe_join: "joined your Tribe",
+  hello: "said hello",
+  hello_accepted: "accepted your Hello",
 };
 
 const isTribeId = (value: string | null): value is TribeId =>
