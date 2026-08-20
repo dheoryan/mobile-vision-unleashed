@@ -170,7 +170,6 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          read_at: string | null
           recipient_id: string
           sender_id: string
         }
@@ -178,7 +177,6 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          read_at?: string | null
           recipient_id: string
           sender_id: string
         }
@@ -186,7 +184,6 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          read_at?: string | null
           recipient_id?: string
           sender_id?: string
         }
@@ -292,110 +289,51 @@ export type Database = {
       }
       profiles: {
         Row: {
-          adult_verified_at: string | null
           age: number | null
-          age_verification_locked_at: string | null
           avatar_emoji: string
           avatar_url: string | null
-          availability: string[]
           bio: string
           city: string
           created_at: string
-          date_of_birth: string | null
           display_name: string
           handle: string | null
           id: string
-          interests: string[]
           plan: Database["public"]["Enums"]["app_plan"]
-          social_intents: string[]
           tribe_ids: string[]
           updated_at: string
           venture_count: number
         }
         Insert: {
-          adult_verified_at?: string | null
           age?: number | null
-          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
-          availability?: string[]
           bio?: string
           city?: string
           created_at?: string
-          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id: string
-          interests?: string[]
           plan?: Database["public"]["Enums"]["app_plan"]
-          social_intents?: string[]
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
         }
         Update: {
-          adult_verified_at?: string | null
           age?: number | null
-          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
-          availability?: string[]
           bio?: string
           city?: string
           created_at?: string
-          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id?: string
-          interests?: string[]
           plan?: Database["public"]["Enums"]["app_plan"]
-          social_intents?: string[]
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
         }
         Relationships: []
-      }
-      profile_locations: {
-        Row: {
-          accuracy_m: number
-          created_at: string
-          discoverable: boolean
-          latitude: number
-          longitude: number
-          radius_km: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          accuracy_m?: number
-          created_at?: string
-          discoverable?: boolean
-          latitude: number
-          longitude: number
-          radius_km?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          accuracy_m?: number
-          created_at?: string
-          discoverable?: boolean
-          latitude?: number
-          longitude?: number
-          radius_km?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_locations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       push_subscriptions: {
         Row: {
@@ -432,50 +370,29 @@ export type Database = {
       }
       reports: {
         Row: {
-          action: string | null
           created_at: string
           details: string | null
-          due_at: string
           id: string
-          moderator_notes: string | null
           reason: string
           reporter_id: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string
-          target_deleted_at: string | null
           target_id: string
           target_kind: Database["public"]["Enums"]["report_kind"]
         }
         Insert: {
-          action?: string | null
           created_at?: string
           details?: string | null
-          due_at?: string
           id?: string
-          moderator_notes?: string | null
           reason: string
           reporter_id: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          target_deleted_at?: string | null
           target_id: string
           target_kind: Database["public"]["Enums"]["report_kind"]
         }
         Update: {
-          action?: string | null
           created_at?: string
           details?: string | null
-          due_at?: string
           id?: string
-          moderator_notes?: string | null
           reason?: string
           reporter_id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          target_deleted_at?: string | null
           target_id?: string
           target_kind?: Database["public"]["Enums"]["report_kind"]
         }
@@ -483,13 +400,6 @@ export type Database = {
           {
             foreignKeyName: "reports_reporter_id_fkey"
             columns: ["reporter_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reports_reviewed_by_fkey"
-            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -795,36 +705,6 @@ export type Database = {
       is_venture_member: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
-      }
-      current_user_is_moderator: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      list_explore_matches: {
-        Args: { _limit: number; _offset: number }
-        Returns: {
-          profile_id: string
-          score: number
-          shared_interests: string[]
-          shared_intents: string[]
-          shared_availability: string[]
-          same_tribe: boolean
-          distance_band: string
-          open_venture_id: string
-          open_venture_title: string
-        }[]
-      }
-      list_nearby_profile_matches: {
-        Args: { _limit: number }
-        Returns: {
-          profile_id: string
-          distance_band: string
-          match_score: number
-        }[]
-      }
-      moderate_report: {
-        Args: { report_id: string; decision: string; notes?: string | null }
-        Returns: Database["public"]["Tables"]["reports"]["Row"]
       }
     }
     Enums: {
