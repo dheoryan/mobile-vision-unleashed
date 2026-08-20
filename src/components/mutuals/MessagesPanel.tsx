@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, MessageCircle, Reply, Send, X } from "lucide-react";
 import {
   markThreadRead,
@@ -111,43 +110,28 @@ export function MessagesPanel({
     if (openWithUserId) setThreadId(openWithUserId);
   }, [open, openWithUserId, openWithVenture]);
 
+  if (!open) return null;
+
   return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-50">
-          <motion.div
-            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl">
+        {ventureThread ? (
+          <VenturePartyThread venture={ventureThread} onBack={() => setVentureThread(null)} />
+        ) : !threadId ? (
+          <Inbox
+            onOpen={(id) => setThreadId(id)}
+            onOpenVenture={(venture) => {
+              setThreadId(null);
+              setVentureThread(venture);
+            }}
+            onClose={onClose}
           />
-          <motion.div
-            className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 380, damping: 38 }}
-          >
-            {ventureThread ? (
-              <VenturePartyThread venture={ventureThread} onBack={() => setVentureThread(null)} />
-            ) : !threadId ? (
-              <Inbox
-                onOpen={(id) => setThreadId(id)}
-                onOpenVenture={(venture) => {
-                  setThreadId(null);
-                  setVentureThread(venture);
-                }}
-                onClose={onClose}
-              />
-            ) : (
-              <Thread otherId={threadId} onBack={() => setThreadId(null)} />
-            )}
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+        ) : (
+          <Thread otherId={threadId} onBack={() => setThreadId(null)} />
+        )}
+      </div>
+    </div>
   );
 }
 

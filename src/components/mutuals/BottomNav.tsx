@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { Tent, Newspaper, Globe2, Zap, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,35 +19,22 @@ export function BottomNav({ active, onChange }: { active: TabKey; onChange: (t: 
           const isActive = active === key;
           return (
             <li key={key} className="flex-1">
-              <motion.button
+              <button
                 onClick={() => onChange(key)}
-                whileTap={{ scale: 0.9 }}
                 className={cn(
                   "flex w-full flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label={label}
               >
-                <span className="relative flex h-8 w-8 items-center justify-center rounded-full">
-                  {isActive && (
-                    <motion.span
-                      layoutId="bottom-nav-active-pill"
-                      className="absolute inset-0 rounded-full bg-primary/15"
-                      transition={{ type: "spring", stiffness: 500, damping: 34 }}
-                    />
-                  )}
-                  <motion.span
-                    key={isActive ? "active" : "inactive"}
-                    className="relative"
-                    initial={isActive ? { scale: 1 } : false}
-                    animate={isActive ? { scale: [1, 1.18, 1] } : { scale: 1 }}
-                    transition={{ duration: 0.32, ease: "easeOut" }}
-                  >
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
-                  </motion.span>
+                <span className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                  isActive ? "bg-primary/15" : "bg-transparent"
+                )}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
                 </span>
                 <span className="text-[10px] font-medium tracking-wide">{label}</span>
-              </motion.button>
+              </button>
             </li>
           );
         })}

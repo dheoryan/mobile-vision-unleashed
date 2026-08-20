@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { motion } from "motion/react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X, Loader2, Bookmark } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
@@ -255,8 +254,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
       )}
 
       <footer className="mt-3 flex items-center gap-5 text-muted-foreground">
-        <motion.button
-          whileTap={{ scale: 0.85 }}
+        <button
           onClick={() => {
             if (post.id.startsWith("tmp-")) return;
             toggleLike.mutate(post.id);
@@ -267,43 +265,24 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           )}
           aria-pressed={liked}
         >
-          <motion.span
-            key={liked ? "liked" : "unliked"}
-            className="inline-flex"
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-          >
-            <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
-          </motion.span>{" "}
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />{" "}
           {post.likes_count}
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.85 }}
+        </button>
+        <button
           onClick={() => setCommentsOpen(true)}
           className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
         >
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.85 }}
+        </button>
+        <button
           onClick={() => { if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id); }}
           className={cn("ml-auto flex items-center gap-1.5 text-xs transition-colors", saved ? "text-amber-400" : "hover:text-foreground")}
           aria-label={saved ? "Unsave post" : "Save post"}
           aria-pressed={saved}
         >
-          <motion.span
-            key={saved ? "saved" : "unsaved"}
-            className="inline-flex"
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-          >
-            <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
-          </motion.span>
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.85 }}
+          <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
+        </button>
+        <button
           onClick={share}
           className={cn(
             "flex items-center gap-1.5 text-xs transition-colors",
@@ -314,7 +293,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         >
           <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} />{" "}
           {post.shares_count}
-        </motion.button>
+        </button>
       </footer>
 
       <CommentsModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />

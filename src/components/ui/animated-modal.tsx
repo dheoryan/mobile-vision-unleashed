@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion, type PanInfo } from "motion/react";
+import { cn } from "@/lib/utils";
 
 /**
  * Shared bottom-sheet-on-mobile / centered-dialog-on-desktop primitive used by
@@ -8,9 +8,10 @@ import { AnimatePresence, motion, type PanInfo } from "motion/react";
  * (focus trap, ESC to close, aria-modal, click-outside-to-dismiss) instead of
  * the hand-rolled `fixed inset-0` + backdrop-click divs this used to be.
  *
- * Motion drives the actual enter/exit — Radix only owns behavior, not visuals,
- * so `forceMount` + `AnimatePresence` keeps the panel mounted long enough to
- * play its exit animation instead of vanishing instantly on close.
+ * Animation is a plain CSS fade driven by Radix's own `data-state` attribute
+ * (via tw-animate-css, already imported in styles.css). Radix waits for the
+ * animation to finish before unmounting, so the exit fade works without any
+ * JS animation library.
  */
 export function AnimatedModal({
   open,
@@ -19,7 +20,6 @@ export function AnimatedModal({
   title,
   contentClassName = "",
   center = false,
-  drag = true,
   preventClose = false,
   zIndex = 50,
 }: {
@@ -31,68 +31,42 @@ export function AnimatedModal({
   contentClassName?: string;
   /** Always centered (no bottom-sheet-on-mobile behavior) — used for compact confirm-style dialogs. */
   center?: boolean;
-  /** Allow drag-down-to-dismiss on the bottom-sheet variant. */
-  drag?: boolean;
   /** Block outside-click / Escape from closing (e.g. while a mutation is in flight). */
   preventClose?: boolean;
   zIndex?: number;
 }) {
+  const block = (e: Event) => { if (preventClose) e.preventDefault(); };
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <AnimatePresence>
-        {open && (
-          <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay asChild forceMount>
-              <motion.div
-                className="fixed inset-0 bg-background/70 backdrop-blur-sm"
-                style={{ zIndex }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-              />
-            </DialogPrimitive.Overlay>
-            <div
-              className={`pointer-events-none fixed inset-0 flex justify-center ${
-                center ? "items-center px-4" : "items-end sm:items-center"
-              }`}
-              style={{ zIndex }}
-            >
-              <DialogPrimitive.Content
-                asChild
-                forceMount
-                onEscapeKeyDown={(e) => { if (preventClose) e.preventDefault(); }}
-                onInteractOutside={(e) => { if (preventClose) e.preventDefault(); }}
-                onPointerDownOutside={(e) => { if (preventClose) e.preventDefault(); }}
-              >
-                <motion.div
-                  className={`pointer-events-auto relative mx-auto w-full max-w-md border border-border bg-card ${
-                    center ? "rounded-3xl shadow-2xl" : "rounded-t-3xl sm:rounded-3xl"
-                  } ${contentClassName}`}
-                  initial={{ opacity: 0, y: center ? 16 : 48, scale: center ? 0.96 : 1 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: center ? 16 : 48, scale: center ? 0.96 : 1 }}
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                  drag={drag && !center ? "y" : false}
-                  dragConstraints={{ top: 0, bottom: 0 }}
-                  dragElastic={{ top: 0, bottom: 0.55 }}
-                  onDragEnd={(_e, info: PanInfo) => {
-                    if (!preventClose && (info.offset.y > 120 || info.velocity.y > 600)) {
-                      onOpenChange(false);
-                    }
-                  }}
-                >
-                  {!center && drag && (
-                    <div className="mx-auto mb-1 mt-2 h-1 w-9 shrink-0 rounded-full bg-border sm:hidden" />
-                  )}
-                  <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-                  {children}
-                </motion.div>
-              </DialogPrimitive.Content>
-            </div>
-          </DialogPrimitive.Portal>
-        )}
-      </AnimatePresence>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className="fixed inset-0 bg-background/70 backdrop-blur-sm duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
+          style={{ zIndex }}
+        />
+        <div
+          className={cn(
+            "pointer-events-none fixed inset-0 flex justify-center",
+            center ? "items-center px-4" : "items-end sm:items-center",
+          )}
+          style={{ zIndex }}
+        >
+          <DialogPrimitive.Content
+            onEscapeKeyDown={block}
+            onInteractOutside={block}
+            onPointerDownOutside={block}
+            className={cn(
+              "pointer-events-auto relative mx-auto w-full max-w-md border border-border bg-card duration-150",
+              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+              center ? "rounded-3xl shadow-2xl" : "rounded-t-3xl sm:rounded-3xl",
+              contentClassName,
+            )}
+          >
+            <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+            {children}
+          </DialogPrimitive.Content>
+        </div>
+      </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }

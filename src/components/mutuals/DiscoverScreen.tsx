@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, Check, Loader2, Search, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
@@ -14,7 +13,6 @@ import { useBlocked } from "@/lib/blocked-store";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
-import { staggerContainer, staggerItem } from "@/lib/motion";
 
 type DiscoverPerson = Person & { allTribeIds: TribeId[] };
 
@@ -167,18 +165,15 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </p>
           ) : (
             <>
-              <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-3">
-                {filtered.map((p) => (
-                  <motion.div key={p.id} variants={staggerItem}>
-                    <PersonRow
-                      person={p}
-                      following={social.following.has(p.id)}
-                      pending={toggleFollow.isPending && toggleFollow.variables === p.id}
-                      onToggle={() => toggle(p.id)}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
+              {filtered.map((p) => (
+                <PersonRow
+                  key={p.id}
+                  person={p}
+                  following={social.following.has(p.id)}
+                  pending={toggleFollow.isPending && toggleFollow.variables === p.id}
+                  onToggle={() => toggle(p.id)}
+                />
+              ))}
               {profilesQuery.hasNextPage && (
                 <button
                   onClick={() => profilesQuery.fetchNextPage()}
@@ -309,8 +304,7 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
         <p className="text-[11px] text-muted-foreground">{person.city || person.handle || "Registered member"}</p>
         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{person.bio || "Open to meeting people across Tribes."}</p>
       </div>
-      <motion.button
-        whileTap={{ scale: 0.93 }}
+      <button
         onClick={onToggle}
         disabled={pending}
         className={cn(
@@ -318,19 +312,8 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
           following ? "border-accent bg-accent/15 text-accent" : "border-primary bg-primary/15 text-primary",
         )}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={pending ? "pending" : following ? "following" : "follow"}
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.7 }}
-            transition={{ duration: 0.15 }}
-            className="inline-flex items-center gap-1"
-          >
-            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><Check className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
-          </motion.span>
-        </AnimatePresence>
-      </motion.button>
+        {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><Check className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+      </button>
     </div>
   );
 }

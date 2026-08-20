@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { Zap, X, CreditCard, Loader2, Check } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -49,10 +48,9 @@ export function UpsellModal({
         </button>
       )}
 
-      <AnimatePresence mode="wait">
+      <>
         {step === "offer" && (
-          <motion.div key="offer" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18, ease: "easeOut" }}>
-            <>
+          <>
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               <Zap className="h-6 w-6" fill="currentColor" />
             </span>
@@ -81,13 +79,11 @@ export function UpsellModal({
                 Maybe later
               </button>
             </div>
-            </>
-          </motion.div>
+          </>
         )}
 
         {step === "checkout" && (
-          <motion.div key="checkout" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18, ease: "easeOut" }}>
-            <>
+          <>
             <p className="label-mono text-muted-foreground">Checkout · MEUTUALS+</p>
             <h2 className="font-display text-2xl font-bold">$6.99 / month</h2>
             <p className="mt-1 text-xs text-muted-foreground">Cancel anytime. No real charges in this demo.</p>
@@ -125,35 +121,27 @@ export function UpsellModal({
               Pay $6.99
             </button>
             <button onClick={() => setStep("offer")} className="mt-2 w-full py-2 text-xs text-muted-foreground hover:text-foreground">Back</button>
-            </>
-          </motion.div>
+          </>
         )}
 
         {step === "processing" && (
-          <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="flex flex-col items-center py-8 text-center">
+          <div className="flex flex-col items-center py-8 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="mt-4 font-display text-lg font-bold">Processing payment…</p>
             <p className="text-xs text-muted-foreground">Hang tight.</p>
-          </motion.div>
+          </div>
         )}
 
         {step === "success" && (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="flex flex-col items-center py-8 text-center"
-          >
+          <div className="flex flex-col items-center py-8 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Check className="h-7 w-7" />
             </span>
             <p className="mt-4 font-display text-xl font-bold">You're MEUTUALS+ ⚡</p>
             <p className="mt-1 text-xs text-muted-foreground">Resuming your Venture…</p>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </AnimatedModal>
   );
 }
