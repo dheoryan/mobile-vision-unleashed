@@ -23,9 +23,21 @@ import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { ExploreDeck } from "./ExploreDeck";
-import { Layers, List } from "lucide-react";
+import { Layers, List, Wand2 } from "lucide-react";
+import { useExploreMatches } from "@/lib/explore-store";
+import type { ExploreMatch } from "@/lib/explore.functions";
+import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
+import { useMyProfile } from "@/lib/profile-store";
+import { intentStore } from "@/lib/intent-store";
 
-type DiscoverPerson = Person & { allTribeIds: TribeId[]; distanceBand?: string; matchScore?: number };
+type DiscoverPerson = Person & {
+  allTribeIds: TribeId[];
+  distanceBand?: string | null;
+  matchScore?: number;
+  signals?: MatchSignals;
+  openVentureId?: string | null;
+  openVentureTitle?: string | null;
+};
 
 const VALID_TRIBES = new Set<TribeId>(TRIBES.map((t) => t.id));
 const PAGE_SIZE = 20;
@@ -34,9 +46,12 @@ function toTribeIds(ids: string[] | null | undefined): TribeId[] {
   return (ids ?? []).filter((id): id is TribeId => VALID_TRIBES.has(id as TribeId));
 }
 
-function rowToPerson(row: DiscoverProfile | NearbyProfile): DiscoverPerson {
+function rowToPerson(row: DiscoverProfile | NearbyProfile | ExploreMatch): DiscoverPerson {
   const allTribeIds = toTribeIds(row.tribe_ids);
   const tribeId = allTribeIds[0] ?? "wolf";
+  // Only the scored RPC returns the matched signals; a text search result has
+  // no ranking to explain and deliberately renders without chips.
+  const scored = "shared_interests" in row ? (row as ExploreMatch) : null;
   return {
     id: row.id,
     name: row.display_name?.trim() || "Someone",
@@ -50,6 +65,18 @@ function rowToPerson(row: DiscoverProfile | NearbyProfile): DiscoverPerson {
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
     distanceBand: "distance_band" in row ? row.distance_band : undefined,
     matchScore: "match_score" in row ? row.match_score : undefined,
+    signals: scored
+      ? {
+          shared_interests: scored.shared_interests,
+          shared_intents: scored.shared_intents,
+          shared_availability: scored.shared_availability,
+          same_tribe: scored.same_tribe,
+          distance_band: scored.distance_band,
+          open_venture_title: scored.open_venture_title,
+        }
+      : undefined,
+    openVentureId: scored?.open_venture_id ?? undefined,
+    openVentureTitle: scored?.open_venture_title ?? undefined,
   };
 }
 
@@ -65,6 +92,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
   const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
+  const myProfile = useMyProfile();
   const discoverFn = useServerFn(listDiscoverProfiles);
   const locationQuery = useMyLocationSettings();
   const saveLocation = useSaveMyLocation();
@@ -76,6 +104,15 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     return () => clearTimeout(t);
   }, [query]);
 
+  // Two different questions, so two different queries.
+  //
+  // With no search term the screen is answering "who should I meet?", which is
+  // a ranking problem — list_explore_matches scores on stated interests,
+  // intents, availability and open Ventures. With a term it is answering "where
+  // is this specific person?", which is a lookup, and relevance ranking would
+  // only get in the way. Search stays on listDiscoverProfiles.
+  const searching = debounced.length > 0;
+  const exploreQuery = useExploreMatches(!searching);
   const profilesQuery = useInfiniteQuery({
     queryKey: ["discover", "profiles", debounced],
     queryFn: ({ pageParam }) =>
@@ -85,18 +122,20 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     initialPageParam: 0,
     getNextPageParam: (last) => last.nextOffset ?? undefined,
     staleTime: 20_000,
+    enabled: searching,
   });
+  const activeQuery = searching ? profilesQuery : exploreQuery;
   const feedQuery = useFeedPosts();
   const tribeCounts = useTribeMemberCounts(TRIBES.map((t) => t.id));
   const toggleFollow = useToggleFollow();
 
   const people = useMemo(
     () =>
-      (profilesQuery.data?.pages ?? [])
-        .flatMap((p) => p.rows)
+      (activeQuery.data?.pages ?? [])
+        .flatMap((p) => p.rows as Array<DiscoverProfile | ExploreMatch>)
         .map(rowToPerson)
         .filter((p) => !blocked.has(p.id)),
-    [profilesQuery.data, blocked],
+    [activeQuery.data, blocked],
   );
   const nearbyPeople = useMemo(
     () => (nearbyQuery.data ?? []).map(rowToPerson).filter((person) => !blocked.has(person.id)),
@@ -144,6 +183,13 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
 
   const toggle = (id: string) => toggleFollow.mutate(id);
   const isSearching = query.trim() !== debounced;
+  // Nothing to match on means every candidate scores zero, so the ranking
+  // degenerates to "recently active" — worth admitting rather than hiding.
+  const needsProfileSignals =
+    !!myProfile &&
+    myProfile.interests.length === 0 &&
+    myProfile.socialIntents.length === 0 &&
+    myProfile.availability.length === 0;
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -242,8 +288,14 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         )}
 
         <SectionTitle
-          title="People to discover"
-          hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`}
+          title={searching ? "Search results" : "People to meet"}
+          hint={
+            activeQuery.isLoading
+              ? "Loading"
+              : searching
+                ? `${filtered.length} found`
+                : `${filtered.length} ranked for you`
+          }
           action={
             <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
               <button
@@ -265,16 +317,37 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </div>
           }
         />
+        {/* The ranking can only work with what people have told it. Someone who
+            skipped these fields scores zero against everyone and gets an
+            effectively arbitrary order — so say that plainly and link to the
+            fix, rather than presenting noise as a recommendation. */}
+        {!searching && needsProfileSignals && (
+          <button
+            type="button"
+            onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
+            className="mb-3 flex w-full items-start gap-2.5 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-left"
+          >
+            <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0">
+              <span className="block text-xs font-semibold">Add your interests to get real matches</span>
+              <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                Right now there's nothing to match you on, so this list is close to random.
+                Two minutes fixes it.
+              </span>
+            </span>
+          </button>
+        )}
+
         <div className="flex flex-col gap-3">
-          {profilesQuery.isLoading ? (
+          {activeQuery.isLoading ? (
             <p className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading people…
             </p>
-          ) : profilesQuery.isError ? (
+          ) : activeQuery.isError ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
               <AlertTriangle className="h-9 w-9 text-destructive" />
               <p className="text-sm font-semibold">Couldn't load registered users.</p>
-              <button onClick={() => profilesQuery.refetch()} className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
+              <button onClick={() => activeQuery.refetch()} className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
                 Retry
               </button>
             </div>
@@ -301,6 +374,9 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
                   following={social.following}
                   onToggleFollow={toggle}
                   followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
+                  onLoadMore={() => activeQuery.fetchNextPage()}
+                  loadingMore={activeQuery.isFetchingNextPage}
+                  hasMore={activeQuery.hasNextPage}
                 />
               ) : (
                 filtered.map((p) => (
@@ -313,13 +389,15 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
                   />
                 ))
               )}
-              {profilesQuery.hasNextPage && (
+              {/* The deck pulls its own next page when it runs out of cards, so
+                  this button is only for the list view. */}
+              {view === "list" && activeQuery.hasNextPage && (
                 <button
-                  onClick={() => profilesQuery.fetchNextPage()}
-                  disabled={profilesQuery.isFetchingNextPage}
+                  onClick={() => activeQuery.fetchNextPage()}
+                  disabled={activeQuery.isFetchingNextPage}
                   className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold disabled:opacity-60"
                 >
-                  {profilesQuery.isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {activeQuery.isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                   Load more
                 </button>
               )}
@@ -501,6 +579,9 @@ function AvatarBubble({ person, color }: { person: Pick<Person, "avatar" | "name
 
 function PersonRow({ person, following, pending, onToggle }: { person: DiscoverPerson; following: boolean; pending: boolean; onToggle: () => void }) {
   const tribe = tribeById(person.tribeId);
+  // The list is the scanning surface, so one reason rather than the deck's
+  // three — enough to justify a tap, not so much that rows stop being scannable.
+  const reason = person.signals ? matchReasons(person.signals, 1)[0] : undefined;
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
       <span className="relative shrink-0">
@@ -518,8 +599,13 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span>{person.city || person.handle || "Registered member"}</span>
           {person.distanceBand && <span className="inline-flex items-center gap-1 text-primary"><MapPin className="h-3 w-3" /> {person.distanceBand}</span>}
-          {person.matchScore !== undefined && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {person.matchScore}% match</span>}
+          {person.matchScore !== undefined && person.matchScore > 0 && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {person.matchScore}% match</span>}
         </div>
+        {reason && (
+          <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            {reason.label}
+          </p>
+        )}
         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{person.bio || "Open to meeting people across Tribes."}</p>
       </div>
       <button

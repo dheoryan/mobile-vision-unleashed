@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Hand, MapPin, Sparkles, Undo2, UserCheck, UserPlus, Loader2 } from "lucide-react";
+import { ArrowRight, CalendarPlus, Hand, Loader2, MapPin, Sparkles, Undo2, UserCheck, UserPlus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
 import { PlusBadge } from "./PlusBadge";
 import { HelloModal } from "./HelloModal";
 import { useContactStatus } from "@/lib/social-store";
+import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
+import { intentStore } from "@/lib/intent-store";
 import { cn } from "@/lib/utils";
 
 export type DeckPerson = {
@@ -18,8 +20,13 @@ export type DeckPerson = {
   city: string;
   bio: string;
   plus?: boolean;
-  distanceBand?: string;
+  distanceBand?: string | null;
   matchScore?: number;
+  /** Why the ranking put them here. Absent while searching, which is fine —
+      a search result explains itself. */
+  signals?: MatchSignals;
+  openVentureId?: string | null;
+  openVentureTitle?: string | null;
 };
 
 /**
@@ -31,7 +38,8 @@ export type DeckPerson = {
  * what label sits above it. This app is for finding people to do things with;
  * importing that grammar would change who installs it, change what people put
  * in their profiles, and work against the harassment protections the Hello flow
- * exists to provide.
+ * exists to provide. (The swipe lives on Ventures, where the judgement is about
+ * a plan rather than a person.)
  *
  * Practically, a reject-forever deck needs a pool of thousands. Launch density
  * is deliberately concentrated — one city, one or two Tribes — so a deck that
@@ -44,15 +52,22 @@ export function ExploreDeck({
   following,
   onToggleFollow,
   followPending,
+  onLoadMore,
+  loadingMore,
+  hasMore,
 }: {
   people: DeckPerson[];
   following: Set<string>;
   onToggleFollow: (id: string) => void;
   followPending: string | null;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+  hasMore?: boolean;
 }) {
   const [order, setOrder] = useState<string[]>([]);
   const [index, setIndex] = useState(0);
   const [helloFor, setHelloFor] = useState<DeckPerson | null>(null);
+  const [seenAll, setSeenAll] = useState(false);
 
   // Keep the queue in step with the loaded page without losing the user's place.
   useEffect(() => {
@@ -75,8 +90,20 @@ export function ExploreDeck({
   const isFollowing = following.has(person.id);
   const canMessage = contact.data?.can_message !== false;
   const helloStatus = contact.data?.hello_status ?? null;
+  const reasons = person.signals ? matchReasons(person.signals) : [];
 
-  const next = () => setIndex((i) => (i + 1) % Math.max(queue.length, 1));
+  const next = () => {
+    // Reaching the end is a real state, not a silent wrap. Pull another page if
+    // there is one; otherwise say so once before looping.
+    if (index + 1 >= queue.length) {
+      if (hasMore && onLoadMore) {
+        onLoadMore();
+        return;
+      }
+      setSeenAll(true);
+    }
+    setIndex((i) => (i + 1) % Math.max(queue.length, 1));
+  };
   const back = () => setIndex((i) => (i - 1 + queue.length) % Math.max(queue.length, 1));
 
   return (
@@ -113,7 +140,9 @@ export function ExploreDeck({
                     <MapPin className="h-3 w-3" /> {person.distanceBand}
                   </span>
                 )}
-                {person.matchScore !== undefined && (
+                {/* The score only earns its place next to the reasons that
+                    produced it. On its own it is decoration. */}
+                {person.matchScore !== undefined && person.matchScore > 0 && (
                   <span className="inline-flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> {person.matchScore}% match
                   </span>
@@ -122,9 +151,44 @@ export function ExploreDeck({
             </div>
           </div>
 
+          {reasons.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {reasons.map((r) => (
+                <span
+                  key={r.key}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                    r.kind === "intent"
+                      ? "border-primary/35 bg-primary/10 text-primary"
+                      : "border-border bg-background/40 text-muted-foreground",
+                  )}
+                >
+                  {r.label}
+                </span>
+              ))}
+            </div>
+          )}
+
           <p className="mt-4 text-sm leading-relaxed text-foreground/90">
             {person.bio || "Open to meeting people across Tribes."}
           </p>
+
+          {/* A live plan with an empty seat is a far better opening than a
+              profile. Surface it as an actual door, not a badge. */}
+          {person.openVentureTitle && (
+            <button
+              type="button"
+              onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
+              className="mt-4 flex w-full items-center gap-2.5 rounded-2xl border border-accent/35 bg-accent/10 px-3 py-2.5 text-left"
+            >
+              <CalendarPlus className="h-4 w-4 shrink-0 text-accent" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold">{person.openVentureTitle}</span>
+                <span className="block text-[11px] text-muted-foreground">Hosting now · spots open</span>
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          )}
 
           <div className="mt-5 flex gap-2">
             <button
@@ -184,12 +248,22 @@ export function ExploreDeck({
         </span>
         <button
           onClick={next}
-          disabled={queue.length < 2}
+          disabled={queue.length < 2 || loadingMore}
           className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
         >
-          Next <ArrowRight className="h-3.5 w-3.5" />
+          {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Next <ArrowRight className="h-3.5 w-3.5" /></>}
         </button>
       </div>
+
+      {/* Said once, when it becomes true — not a permanent empty-state banner.
+          Pretending there is an endless supply is how a small network gets
+          caught lying to its first hundred users. */}
+      {seenAll && !hasMore && (
+        <p className="mt-3 rounded-2xl border border-dashed border-border px-4 py-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+          That's everyone for now — you're back at the top. New members show up
+          here as they join.
+        </p>
+      )}
 
       {helloFor && (
         <HelloModal
@@ -198,6 +272,7 @@ export function ExploreDeck({
           recipientId={helloFor.id}
           recipientName={helloFor.name}
           hellosLeft={contact.data?.hellos_left_this_month}
+          signals={helloFor.signals}
         />
       )}
     </div>

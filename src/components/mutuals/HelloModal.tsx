@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { X, Loader2, Hand } from "lucide-react";
+import { useMemo, useState } from "react";
+import { X, Loader2, Hand, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSendHello } from "@/lib/social-store";
+import { suggestedOpener, type MatchSignals } from "@/lib/explore-reasons";
 
 /**
  * Compose a Hello — the one message request you get with someone you have no
@@ -19,15 +20,22 @@ export function HelloModal({
   recipientId,
   recipientName,
   hellosLeft,
+  signals,
 }: {
   open: boolean;
   onClose: () => void;
   recipientId: string;
   recipientName: string;
   hellosLeft?: number;
+  /** What Explore matched on, used to offer a first line. */
+  signals?: MatchSignals;
 }) {
   const [message, setMessage] = useState("");
   const send = useSendHello();
+  const opener = useMemo(
+    () => (signals ? suggestedOpener(signals, recipientName) : null),
+    [signals, recipientName],
+  );
 
   const close = () => {
     if (send.isPending) return;
@@ -84,6 +92,26 @@ export function HelloModal({
         placeholder="Why do you want to connect? Keep it human."
         className="mt-4 w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
       />
+
+      {/* Offered, never prefilled. The blank box is where this flow loses
+          people, but an opener the app writes for everyone is worth less than
+          a clumsy one the user wrote. Tapping it drops the text in so they can
+          edit it before sending. */}
+      {opener && !message.trim() && (
+        <button
+          type="button"
+          onClick={() => setMessage(opener)}
+          className="mt-3 flex w-full items-start gap-2.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-left transition-colors hover:bg-primary/10"
+        >
+          <Wand2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">
+              Use this opener
+            </span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{opener}</span>
+          </span>
+        </button>
+      )}
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
         <span>
