@@ -42,12 +42,22 @@ set tribe_ids = array[tribe_ids[1]]
 where coalesce(array_length(tribe_ids, 1), 0) > 1;
 
 -- Drop tribe_members rows that no longer correspond to a profile's Tribe.
+--
+-- NOTE ON TYPES: tribe_members.tribe_id is a uuid referencing tribes.id, while
+-- profiles.tribe_ids is a text[] of tribe *keys* ('wolf', 'koi', ...). They
+-- cannot be compared directly — the join through public.tribes is what maps
+-- one to the other. handle_profile_tribe_joins resolves the same key -> uuid
+-- lookup before inserting.
+--
+-- Membership rows carry the profile in both user_id and profile_id (that
+-- trigger sets both), so match on either rather than assuming one.
 delete from public.tribe_members tm
 where not exists (
   select 1
   from public.profiles p
-  where p.id = tm.user_id
-    and tm.tribe_id = any (p.tribe_ids)
+  join public.tribes t on t.id = tm.tribe_id
+  where (tm.user_id = p.id or tm.profile_id = p.id)
+    and t.key = any (p.tribe_ids)
 );
 
 -- ---------- 3. cap at one, and enforce the cooldown ----------
@@ -112,9 +122,15 @@ set search_path = public
 as $$
 begin
   if new.tribe_ids is distinct from old.tribe_ids then
+    -- Same key -> uuid mapping as above: tribe_id is a uuid, tribe_ids are keys.
     delete from public.tribe_members tm
-    where tm.user_id = new.id
-      and not (tm.tribe_id = any (new.tribe_ids));
+    where (tm.user_id = new.id or tm.profile_id = new.id)
+      and not exists (
+        select 1
+        from public.tribes t
+        where t.id = tm.tribe_id
+          and t.key = any (new.tribe_ids)
+      );
   end if;
   return new;
 end;
