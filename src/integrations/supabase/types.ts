@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      blocked_content_patterns: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          id: number
+          pattern: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          id?: never
+          pattern: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          id?: never
+          pattern?: string
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -54,6 +96,8 @@ export type Database = {
           created_at: string
           id: string
           mentions: string[]
+          moderation_hidden_at: string | null
+          moderation_hidden_by: string | null
           parent_id: string | null
           post_id: string
         }
@@ -63,6 +107,8 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
+          moderation_hidden_at?: string | null
+          moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id: string
         }
@@ -72,6 +118,8 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
+          moderation_hidden_at?: string | null
+          moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id?: string
         }
@@ -79,6 +127,13 @@ export type Database = {
           {
             foreignKeyName: "comments_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_moderation_hidden_by_fkey"
+            columns: ["moderation_hidden_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -131,6 +186,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hellos: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          id: string
+          message: string
+          recipient_id: string
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message: string
+          recipient_id: string
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message?: string
+          recipient_id?: string
+          sender_id?: string
+          status?: string
+        }
+        Relationships: []
       }
       likes: {
         Row: {
@@ -192,6 +277,81 @@ export type Database = {
         }
         Relationships: []
       }
+      moderation_actions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          moderator_id: string | null
+          notes: string | null
+          report_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          moderator_id?: string | null
+          notes?: string | null
+          report_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          moderator_id?: string | null
+          notes?: string | null
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_actions_moderator_id_fkey"
+            columns: ["moderator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderators: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderators_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string | null
@@ -246,6 +406,8 @@ export type Database = {
           id: string
           image_url: string | null
           likes_count: number
+          moderation_hidden_at: string | null
+          moderation_hidden_by: string | null
           replies_count: number
           shares_count: number
           tag: string | null
@@ -260,6 +422,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
+          moderation_hidden_at?: string | null
+          moderation_hidden_by?: string | null
           replies_count?: number
           shares_count?: number
           tag?: string | null
@@ -274,6 +438,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
+          moderation_hidden_at?: string | null
+          moderation_hidden_by?: string | null
           replies_count?: number
           shares_count?: number
           tag?: string | null
@@ -288,78 +454,18 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "posts_moderation_hidden_by_fkey"
+            columns: ["moderation_hidden_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
-      }
-      profiles: {
-        Row: {
-          adult_verified_at: string | null
-          age: number | null
-          age_verification_locked_at: string | null
-          avatar_emoji: string
-          avatar_url: string | null
-          availability: string[]
-          bio: string
-          city: string
-          created_at: string
-          date_of_birth: string | null
-          display_name: string
-          handle: string | null
-          id: string
-          interests: string[]
-          plan: Database["public"]["Enums"]["app_plan"]
-          social_intents: string[]
-          tribe_ids: string[]
-          updated_at: string
-          venture_count: number
-        }
-        Insert: {
-          adult_verified_at?: string | null
-          age?: number | null
-          age_verification_locked_at?: string | null
-          avatar_emoji?: string
-          avatar_url?: string | null
-          availability?: string[]
-          bio?: string
-          city?: string
-          created_at?: string
-          date_of_birth?: string | null
-          display_name?: string
-          handle?: string | null
-          id: string
-          interests?: string[]
-          plan?: Database["public"]["Enums"]["app_plan"]
-          social_intents?: string[]
-          tribe_ids?: string[]
-          updated_at?: string
-          venture_count?: number
-        }
-        Update: {
-          adult_verified_at?: string | null
-          age?: number | null
-          age_verification_locked_at?: string | null
-          avatar_emoji?: string
-          avatar_url?: string | null
-          availability?: string[]
-          bio?: string
-          city?: string
-          created_at?: string
-          date_of_birth?: string | null
-          display_name?: string
-          handle?: string | null
-          id?: string
-          interests?: string[]
-          plan?: Database["public"]["Enums"]["app_plan"]
-          social_intents?: string[]
-          tribe_ids?: string[]
-          updated_at?: string
-          venture_count?: number
-        }
-        Relationships: []
       }
       profile_locations: {
         Row: {
           accuracy_m: number
-          created_at: string
           discoverable: boolean
           latitude: number
           longitude: number
@@ -369,7 +475,6 @@ export type Database = {
         }
         Insert: {
           accuracy_m?: number
-          created_at?: string
           discoverable?: boolean
           latitude: number
           longitude: number
@@ -379,7 +484,6 @@ export type Database = {
         }
         Update: {
           accuracy_m?: number
-          created_at?: string
           discoverable?: boolean
           latitude?: number
           longitude?: number
@@ -392,6 +496,89 @@ export type Database = {
             foreignKeyName: "profile_locations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          adult_verified_at: string | null
+          age: number | null
+          age_verification_locked_at: string | null
+          availability: string[]
+          avatar_emoji: string
+          avatar_url: string | null
+          bio: string
+          city: string
+          created_at: string
+          date_of_birth: string | null
+          display_name: string
+          handle: string | null
+          id: string
+          interests: string[]
+          plan: Database["public"]["Enums"]["app_plan"]
+          social_intents: string[]
+          suspended_at: string | null
+          suspended_by: string | null
+          tribe_changed_at: string | null
+          tribe_ids: string[]
+          updated_at: string
+          venture_count: number
+        }
+        Insert: {
+          adult_verified_at?: string | null
+          age?: number | null
+          age_verification_locked_at?: string | null
+          availability?: string[]
+          avatar_emoji?: string
+          avatar_url?: string | null
+          bio?: string
+          city?: string
+          created_at?: string
+          date_of_birth?: string | null
+          display_name?: string
+          handle?: string | null
+          id: string
+          interests?: string[]
+          plan?: Database["public"]["Enums"]["app_plan"]
+          social_intents?: string[]
+          suspended_at?: string | null
+          suspended_by?: string | null
+          tribe_changed_at?: string | null
+          tribe_ids?: string[]
+          updated_at?: string
+          venture_count?: number
+        }
+        Update: {
+          adult_verified_at?: string | null
+          age?: number | null
+          age_verification_locked_at?: string | null
+          availability?: string[]
+          avatar_emoji?: string
+          avatar_url?: string | null
+          bio?: string
+          city?: string
+          created_at?: string
+          date_of_birth?: string | null
+          display_name?: string
+          handle?: string | null
+          id?: string
+          interests?: string[]
+          plan?: Database["public"]["Enums"]["app_plan"]
+          social_intents?: string[]
+          suspended_at?: string | null
+          suspended_by?: string | null
+          tribe_changed_at?: string | null
+          tribe_ids?: string[]
+          updated_at?: string
+          venture_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_suspended_by_fkey"
+            columns: ["suspended_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -439,7 +626,8 @@ export type Database = {
           id: string
           moderator_notes: string | null
           reason: string
-          reporter_id: string
+          reporter_deleted_at: string | null
+          reporter_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -455,7 +643,8 @@ export type Database = {
           id?: string
           moderator_notes?: string | null
           reason: string
-          reporter_id: string
+          reporter_deleted_at?: string | null
+          reporter_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -471,7 +660,8 @@ export type Database = {
           id?: string
           moderator_notes?: string | null
           reason?: string
-          reporter_id?: string
+          reporter_deleted_at?: string | null
+          reporter_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -734,6 +924,7 @@ export type Database = {
           ended_at: string | null
           filled_slots: number
           id: string
+          image_url: string | null
           intents: string[]
           max_slots: number
           note: string
@@ -749,6 +940,7 @@ export type Database = {
           ended_at?: string | null
           filled_slots?: number
           id?: string
+          image_url?: string | null
           intents?: string[]
           max_slots?: number
           note?: string
@@ -764,6 +956,7 @@ export type Database = {
           ended_at?: string | null
           filled_slots?: number
           id?: string
+          image_url?: string | null
           intents?: string[]
           max_slots?: number
           note?: string
@@ -780,6 +973,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adult_gate_enabled: { Args: never; Returns: boolean }
+      age_in_years: { Args: { value: string }; Returns: number }
+      can_direct_message: { Args: { _a: string; _b: string }; Returns: boolean }
+      content_is_blocked: { Args: { value: string }; Returns: boolean }
+      current_user_is_moderator: { Args: never; Returns: boolean }
+      has_blocked: {
+        Args: { _target: string; _viewer: string }
+        Returns: boolean
+      }
       has_venture_application: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
@@ -796,36 +998,62 @@ export type Database = {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
       }
-      current_user_is_moderator: {
-        Args: Record<PropertyKey, never>
+      is_venture_scope_visible: {
+        Args: { _venture_id: string; _viewer_id: string }
         Returns: boolean
       }
+      is_verified_adult: { Args: { profile_id: string }; Returns: boolean }
       list_explore_matches: {
-        Args: { _limit: number; _offset: number }
+        Args: { _limit?: number; _offset?: number }
         Returns: {
-          profile_id: string
-          score: number
-          shared_interests: string[]
-          shared_intents: string[]
-          shared_availability: string[]
-          same_tribe: boolean
           distance_band: string
           open_venture_id: string
           open_venture_title: string
+          profile_id: string
+          same_tribe: boolean
+          score: number
+          shared_availability: string[]
+          shared_intents: string[]
+          shared_interests: string[]
         }[]
       }
       list_nearby_profile_matches: {
-        Args: { _limit: number }
+        Args: { _limit?: number }
         Returns: {
-          profile_id: string
           distance_band: string
           match_score: number
+          profile_id: string
         }[]
       }
       moderate_report: {
-        Args: { report_id: string; decision: string; notes?: string | null }
-        Returns: Database["public"]["Tables"]["reports"]["Row"]
+        Args: { decision: string; notes?: string; report_id: string }
+        Returns: {
+          action: string | null
+          created_at: string
+          details: string | null
+          due_at: string
+          id: string
+          moderator_notes: string | null
+          reason: string
+          reporter_deleted_at: string | null
+          reporter_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          target_deleted_at: string | null
+          target_id: string
+          target_kind: Database["public"]["Enums"]["report_kind"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      tribe_switch_available_at: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_plan: "free" | "plus"

@@ -130,7 +130,7 @@ export const decideModerationReport = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase.rpc("moderate_report", {
       report_id: data.report_id,
       decision: data.decision,
-      notes: data.notes ?? null,
+      notes: data.notes,
     });
     if (error) throw new Error(error.message);
     return row;
