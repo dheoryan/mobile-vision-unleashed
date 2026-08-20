@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       blocked_content_patterns: {
         Row: {
           active: boolean
@@ -168,6 +186,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hellos: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          id: string
+          message: string
+          recipient_id: string
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message: string
+          recipient_id: string
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message?: string
+          recipient_id?: string
+          sender_id?: string
+          status?: string
+        }
+        Relationships: []
       }
       likes: {
         Row: {
@@ -473,6 +521,7 @@ export type Database = {
           social_intents: string[]
           suspended_at: string | null
           suspended_by: string | null
+          tribe_changed_at: string | null
           tribe_ids: string[]
           updated_at: string
           venture_count: number
@@ -496,6 +545,7 @@ export type Database = {
           social_intents?: string[]
           suspended_at?: string | null
           suspended_by?: string | null
+          tribe_changed_at?: string | null
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
@@ -519,6 +569,7 @@ export type Database = {
           social_intents?: string[]
           suspended_at?: string | null
           suspended_by?: string | null
+          tribe_changed_at?: string | null
           tribe_ids?: string[]
           updated_at?: string
           venture_count?: number
@@ -873,6 +924,7 @@ export type Database = {
           ended_at: string | null
           filled_slots: number
           id: string
+          image_url: string | null
           intents: string[]
           max_slots: number
           note: string
@@ -888,6 +940,7 @@ export type Database = {
           ended_at?: string | null
           filled_slots?: number
           id?: string
+          image_url?: string | null
           intents?: string[]
           max_slots?: number
           note?: string
@@ -903,6 +956,7 @@ export type Database = {
           ended_at?: string | null
           filled_slots?: number
           id?: string
+          image_url?: string | null
           intents?: string[]
           max_slots?: number
           note?: string
@@ -919,7 +973,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adult_gate_enabled: { Args: never; Returns: boolean }
       age_in_years: { Args: { value: string }; Returns: number }
+      can_direct_message: { Args: { _a: string; _b: string }; Returns: boolean }
       content_is_blocked: { Args: { value: string }; Returns: boolean }
       current_user_is_moderator: { Args: never; Returns: boolean }
       has_blocked: {
@@ -947,6 +1003,20 @@ export type Database = {
         Returns: boolean
       }
       is_verified_adult: { Args: { profile_id: string }; Returns: boolean }
+      list_explore_matches: {
+        Args: { _limit?: number; _offset?: number }
+        Returns: {
+          distance_band: string
+          open_venture_id: string
+          open_venture_title: string
+          profile_id: string
+          same_tribe: boolean
+          score: number
+          shared_availability: string[]
+          shared_intents: string[]
+          shared_interests: string[]
+        }[]
+      }
       list_nearby_profile_matches: {
         Args: { _limit?: number }
         Returns: {
@@ -983,6 +1053,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      tribe_switch_available_at: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_plan: "free" | "plus"
