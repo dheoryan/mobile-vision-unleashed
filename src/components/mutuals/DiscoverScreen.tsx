@@ -22,6 +22,8 @@ import { Switch } from "@/components/ui/switch";
 import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
+import { ExploreDeck } from "./ExploreDeck";
+import { Layers, List } from "lucide-react";
 
 type DiscoverPerson = Person & { allTribeIds: TribeId[]; distanceBand?: string; matchScore?: number };
 
@@ -57,6 +59,9 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
   const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+  // Focus mode shows one person at a time. Default, because a flat list is a
+  // scanning surface and this is meant to be a considering one.
+  const [view, setView] = useState<"deck" | "list">("deck");
   const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
@@ -236,7 +241,30 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
           </div>
         )}
 
-        <SectionTitle title="People to discover" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`} />
+        <SectionTitle
+          title="People to discover"
+          hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`}
+          action={
+            <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
+              <button
+                onClick={() => setView("deck")}
+                aria-label="One at a time"
+                aria-pressed={view === "deck"}
+                className={cn("rounded-full p-1.5", view === "deck" && "bg-primary text-primary-foreground")}
+              >
+                <Layers className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setView("list")}
+                aria-label="List"
+                aria-pressed={view === "list"}
+                className={cn("rounded-full p-1.5", view === "list" && "bg-primary text-primary-foreground")}
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          }
+        />
         <div className="flex flex-col gap-3">
           {profilesQuery.isLoading ? (
             <p className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
@@ -267,15 +295,24 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </div>
           ) : (
             <>
-              {filtered.map((p) => (
-                <PersonRow
-                  key={p.id}
-                  person={p}
-                  following={social.following.has(p.id)}
-                  pending={toggleFollow.isPending && toggleFollow.variables === p.id}
-                  onToggle={() => toggle(p.id)}
+              {view === "deck" ? (
+                <ExploreDeck
+                  people={filtered}
+                  following={social.following}
+                  onToggleFollow={toggle}
+                  followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
                 />
-              ))}
+              ) : (
+                filtered.map((p) => (
+                  <PersonRow
+                    key={p.id}
+                    person={p}
+                    following={social.following.has(p.id)}
+                    pending={toggleFollow.isPending && toggleFollow.variables === p.id}
+                    onToggle={() => toggle(p.id)}
+                  />
+                ))
+              )}
               {profilesQuery.hasNextPage && (
                 <button
                   onClick={() => profilesQuery.fetchNextPage()}
