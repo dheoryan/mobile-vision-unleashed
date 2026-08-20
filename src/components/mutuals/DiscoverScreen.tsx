@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
 import { Switch } from "@/components/ui/switch";
 import { TribeMark } from "./TribeMark";
+import { FeatureIllustration } from "./FeatureIllustration";
+import discoverArt from "@/assets/app-illustrations/discover.webp";
 
 type DiscoverPerson = Person & { allTribeIds: TribeId[]; distanceBand?: string; matchScore?: number };
 
@@ -249,13 +251,20 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
               </button>
             </div>
           ) : filtered.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              {debounced
-                ? `No one matches "${debounced}". Try another search.`
-                : nearbyIds.size > 0
-                  ? "Everyone currently loaded is already shown in People near you."
-                  : "No registered users yet."}
-            </p>
+            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+              {/* Only for a genuinely empty result — not when the optional
+                  nearby list is empty, and never implying location is required
+                  for general discovery. A live search that found nothing keeps
+                  the plain message so the query stays the focus. */}
+              {!debounced && nearbyIds.size === 0 && <FeatureIllustration src={discoverArt} />}
+              <p className={cn("text-sm text-muted-foreground", !debounced && nearbyIds.size === 0 && "mt-4")}>
+                {debounced
+                  ? `No one matches "${debounced}". Try another search.`
+                  : nearbyIds.size > 0
+                    ? "Everyone currently loaded is already shown in People near you."
+                    : "No registered users yet."}
+              </p>
+            </div>
           ) : (
             <>
               {filtered.map((p) => (

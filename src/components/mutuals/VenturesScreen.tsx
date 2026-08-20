@@ -25,6 +25,8 @@ import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { UpsellModal } from "./UpsellModal";
+import { FeatureIllustration } from "./FeatureIllustration";
+import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import {
@@ -688,6 +690,13 @@ function LookView({
           }
           actionLabel="Host a Venture"
           onAction={onStartHosting}
+          // Artwork only on the true "nothing here at all" state — not when the
+          // board is empty merely because the user already joined everything.
+          artwork={
+            activeParties.length || pendingRequests.length || invitedRequests.length
+              ? undefined
+              : venturesArt
+          }
         />
       )}
     </>
@@ -1684,18 +1693,26 @@ function EmptyPanel({
   body,
   actionLabel,
   onAction,
+  artwork,
 }: {
   icon: React.ReactNode;
   title: string;
   body: string;
   actionLabel: string;
   onAction: () => void;
+  /** Only the primary discovery empty state passes this — repeating the large
+   *  illustration in every empty subsection would drown the actions. */
+  artwork?: string;
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-        {icon}
-      </span>
+      {artwork ? (
+        <FeatureIllustration src={artwork} />
+      ) : (
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+          {icon}
+        </span>
+      )}
       <p className="mt-3 text-sm font-semibold">{title}</p>
       <p className="mt-1 text-xs text-muted-foreground">{body}</p>
       <button

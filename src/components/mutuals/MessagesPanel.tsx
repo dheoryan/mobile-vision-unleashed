@@ -28,6 +28,8 @@ import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
+import { FeatureIllustration } from "./FeatureIllustration";
+import messagesArt from "@/assets/app-illustrations/messages.webp";
 import { SafetyMenu } from "./SafetyMenu";
 
 type ReplyTarget = { id: string; name: string; snippet: string };
@@ -223,9 +225,14 @@ function Inbox({
         {isLoading ? (
           <p className="p-10 text-center text-xs text-muted-foreground">Loading…</p>
         ) : !hasDirectThreads && !hasPartyThreads ? (
-          <p className="p-10 text-center text-sm text-muted-foreground">
-            No messages yet. Active Venture party chats will appear here after you host or join one.
-          </p>
+          /* Top-level empty inbox only. Inside an open conversation the
+             composer stays the visual priority — no artwork there. */
+          <div className="p-10 text-center">
+            <FeatureIllustration src={messagesArt} />
+            <p className="mt-4 text-sm text-muted-foreground">
+              No messages yet. Active Venture party chats will appear here after you host or join one.
+            </p>
+          </div>
         ) : (
           <div className="divide-y divide-border">
             {hasPartyThreads && (

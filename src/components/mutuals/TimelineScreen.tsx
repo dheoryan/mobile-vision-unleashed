@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { PostCard } from "./PostCard";
+import { FeatureIllustration } from "./FeatureIllustration";
+import timelineArt from "@/assets/app-illustrations/timeline.webp";
 import { AppHeader } from "./Shared";
 import { useBlocked } from "@/lib/blocked-store";
 import { useFeedPosts } from "@/lib/posts-store";
@@ -145,11 +147,17 @@ export function TimelineScreen({
               </button>
             </div>
           ) : currentPosts.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              {tab === "tribe"
-                ? `No posts in ${tribe.name} yet. Be the first to signal!`
-                : "No posts yet."}
-            </p>
+            /* True empty feed only — never during loading or error, so the
+               artwork can't be mistaken for a loaded state. Pairs with the
+               existing FAB rather than adding a competing CTA. */
+            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+              <FeatureIllustration src={timelineArt} />
+              <p className="mt-4 text-xs text-muted-foreground">
+                {tab === "tribe"
+                  ? `No posts in ${tribe.name} yet. Be the first to signal!`
+                  : "No posts yet."}
+              </p>
+            </div>
           ) : (
             currentPosts.map((p) => (
               <PostCard key={p.id} post={p} showTribe={tab === "foryou"} />

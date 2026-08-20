@@ -37,6 +37,8 @@ import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
 import { Switch } from "@/components/ui/switch";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { TribeMark } from "./TribeMark";
+import { FeatureIllustration } from "./FeatureIllustration";
+import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -895,6 +897,17 @@ function SettingsSheet({
 
         <div className="mt-5">
           <p className="label-mono text-muted-foreground">Safety & privacy</p>
+          {/* Sits with the policy links and nearby controls — deliberately not
+              next to the destructive account actions further down. Reinforces
+              that location is approximate and under the user's control; makes
+              no claim that the app guarantees safety. */}
+          <div className="mt-2 flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
+            <FeatureIllustration src={safetyArt} size="sm" className="shrink-0" />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              You control what you share. Nearby uses an approximate area, never your exact
+              location, and only while you leave it switched on.
+            </p>
+          </div>
           <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
             <Link to="/community-guidelines" className="flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-secondary/60"><BookOpenCheck className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Community Guidelines</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
             <Link to="/privacy" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"><ShieldCheck className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Privacy Policy</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
