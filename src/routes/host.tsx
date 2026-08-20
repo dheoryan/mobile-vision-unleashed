@@ -1,9 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRIBES } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/host")({
+  // Advertises $199–$499/month plans and "we'll be in touch within 48 hours",
+  // but the form writes nothing. Gated until it's wired to a real table.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
       { title: "Apply to host a Tribe — MEUTUALS" },

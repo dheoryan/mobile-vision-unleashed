@@ -65,7 +65,6 @@ export function AddTribeSheet({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{t.name}</p>
                   <p className="truncate text-[11px] text-muted-foreground">{t.scene}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.members.toLocaleString()} members</p>
                 </div>
                 <button
                   onClick={() => join(t.id, t.name)}

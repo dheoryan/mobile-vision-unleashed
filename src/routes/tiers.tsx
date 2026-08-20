@@ -1,7 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { ArrowLeft, Check, Compass, Zap, Crown } from "lucide-react";
 
 export const Route = createFileRoute("/tiers")({
+  // Advertises paid plans. Unreachable while monetization is off — otherwise a
+  // store reviewer can open a live pricing page for a product that can't bill.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
       { title: "Subscription tiers — MEUTUALS" },

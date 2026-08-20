@@ -226,11 +226,16 @@ function App() {
 
   return (
     <>
-      {(Object.keys(screens) as TabKey[]).map((k) => (
-        <div key={k} hidden={tab !== k} aria-hidden={tab !== k}>
-          {screens[k]}
-        </div>
-      ))}
+      {/* Only the active tab is mounted. Previously all five were rendered with
+          `hidden`, which is CSS-only — every screen's hooks ran on every page
+          load, producing ~21 requests and ~40 Postgres queries per load, with
+          17 separate JWT verifications. Mounting one tab cuts that to what the
+          user is actually looking at.
+
+          Trade-off: per-tab component state and scroll position reset on
+          switch. If that becomes a problem, keep a Set of visited tabs and
+          render those, rather than reverting to rendering all five. */}
+      {screens[tab]}
 
       <BottomNav active={tab} onChange={setTab} />
       <MessagesPanel

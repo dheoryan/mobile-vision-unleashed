@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Check, Loader2, Search, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
-import { useFeedPosts, type FeedPost } from "@/lib/posts-store";
+import { useFeedPosts, useTribeMemberCounts, type FeedPost } from "@/lib/posts-store";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { AnimatedModal } from "@/components/ui/animated-modal";
@@ -65,6 +65,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
     staleTime: 20_000,
   });
   const feedQuery = useFeedPosts();
+  const tribeCounts = useTribeMemberCounts(TRIBES.map((t) => t.id));
   const toggleFollow = useToggleFollow();
 
   const people = useMemo(
@@ -126,7 +127,11 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         >
           <div className="flex w-max gap-3 pb-1">
             {TRIBES.map((t) => {
-              const memberCount = people.filter((p) => p.allTribeIds.includes(t.id)).length;
+              // Real count from the DB. This previously counted matches within
+              // the currently-loaded page of 20 profiles, so it read
+              // "3 registered members" when the tribe actually had hundreds —
+              // and "0" for every tribe before the first page arrived.
+              const memberCount = tribeCounts.data?.[t.id];
               return (
                 <button
                   key={t.id}
@@ -138,7 +143,9 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
                 >
                   <span className="relative text-3xl">{t.emoji}</span>
                   <p className="relative mt-3 font-display text-base font-bold">{t.name}</p>
-                  <p className="relative text-[11px] text-muted-foreground">{memberCount} registered members</p>
+                  <p className="relative text-[11px] text-muted-foreground">
+                    {memberCount === undefined ? " " : `${memberCount} registered members`}
+                  </p>
                 </button>
               );
             })}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { POSTS, tribeById, type TribeId } from "@/lib/mutuals-data";
+import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
@@ -47,10 +47,6 @@ export function ProfileScreen({
 
   const myPostsQuery = useMyPosts();
   const myPosts = myPostsQuery.data ?? [];
-  const samplePosts = POSTS.filter((p) => profile.tribeIds.includes(p.tribeId)).slice(0, 6);
-  const postsToShow = myPosts.length
-    ? myPosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribe_id as TribeId, image: undefined as string | undefined }))
-    : samplePosts.map((p) => ({ id: p.id, content: p.content, tribeId: p.tribeId, image: p.image }));
 
   const savedQuery = useMySavedPosts();
   const savedPosts = savedQuery.data ?? [];
@@ -168,14 +164,19 @@ export function ProfileScreen({
         </section>
         )}
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
-            Compare tiers
-          </Link>
-          <Link to="/host" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
-            Apply to host a Tribe
-          </Link>
-        </div>
+        {/* Both destinations advertise paid plans, so they stay behind the
+            monetization flag. This grid previously sat OUTSIDE the flag check,
+            which left a live pricing page reachable while monetization was off. */}
+        {MONETIZATION_ENABLED && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+              Compare tiers
+            </Link>
+            <Link to="/host" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+              Apply to host a Tribe
+            </Link>
+          </div>
+        )}
 
         <SectionTitle
           title={gridTab === "posts" ? "Your posts" : gridTab === "saved" ? "Saved" : "Ventures"}
@@ -191,27 +192,23 @@ export function ProfileScreen({
         {gridTab === "posts" && (
           myPostsQuery.isLoading ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">Loading…</p>
-          ) : myPosts.length === 0 ? (
-            <div className="grid grid-cols-3 gap-1">
-              {samplePosts.map((p) => {
-                const t = tribeById(p.tribeId as TribeId);
-                return (
-                  <div
-                    key={p.id}
-                    className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
-                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
-                  >
-                    <span className="text-base">{p.image ?? "✦"}</span>
-                    <p className="mt-1 line-clamp-3">{p.content}</p>
-                  </div>
-                );
-              })}
-              {samplePosts.length === 0 && (
-                <p className="col-span-3 rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  You haven't posted yet.
-                </p>
-              )}
+          ) : myPostsQuery.isError ? (
+            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+              <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
+              <button
+                onClick={() => myPostsQuery.refetch()}
+                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+              >
+                Retry
+              </button>
             </div>
+          ) : myPosts.length === 0 ? (
+            /* This used to render up to 6 posts from the hardcoded POSTS demo
+               array, so a brand-new user opened their own profile and saw a grid
+               of posts they had never written, attributed to themselves. */
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              You haven't posted yet. Share a signal from the Timeline tab.
+            </p>
           ) : (
             <ProfilePostHistory posts={myPosts} />
           )

@@ -1,10 +1,15 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, Check, Zap } from "lucide-react";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
-import { UpsellModal } from "@/components/mutuals/UpsellModal";
 
 export const Route = createFileRoute("/upgrade")({
+  // Same reasoning as /tiers — and this one previously mounted a card-entry
+  // checkout, which is an automatic Apple 3.1.1 rejection.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
       { title: "MEUTUALS+ — Venture further" },
@@ -17,9 +22,7 @@ export const Route = createFileRoute("/upgrade")({
 });
 
 function UpgradePage() {
-  const navigate = useNavigate();
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
-  const [upsellOpen, setUpsellOpen] = useState(false);
   const price = cycle === "monthly" ? "$6.99" : "$49.99";
   const sub = cycle === "monthly" ? "per month" : "per year · save 40%";
 
@@ -83,26 +86,23 @@ function UpgradePage() {
           />
         </div>
 
+        {/* TODO(billing): wire to StoreKit (iOS) / Play Billing (Android) / a hosted
+            processor on web. Never an in-app card form — Apple 3.1.1. Entitlement
+            must be granted server-side from the store webhook, since profiles.plan
+            is not user-writable by design. */}
         <button
-          onClick={() => setUpsellOpen(true)}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground"
+          disabled
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground disabled:opacity-40"
         >
-          <Zap className="h-4 w-4" fill="currentColor" /> Upgrade to MEUTUALS+
+          <Zap className="h-4 w-4" fill="currentColor" /> Coming soon
         </button>
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">Cancel anytime. Mock checkout — no payment is processed.</p>
+        <p className="mt-3 text-center text-[11px] text-muted-foreground">MEUTUALS+ isn't available for purchase yet.</p>
 
         <div className="mt-8 text-center">
           <Link to="/tiers" className="text-xs text-primary hover:underline">Compare full subscription tiers →</Link>
         </div>
         <LegalFooter className="mt-6" />
       </div>
-
-      <UpsellModal
-        open={upsellOpen}
-        initialStep="checkout"
-        onClose={() => setUpsellOpen(false)}
-        onUpgraded={() => navigate({ to: "/" })}
-      />
     </div>
   );
 }

@@ -1,9 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, Users, MessageSquare, Zap, TrendingUp, Pin, Megaphone } from "lucide-react";
 import { PEOPLE, POSTS, tribeById } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/host-dashboard")({
+  // 100% fabricated analytics (hardcoded member counts, invented growth chart,
+  // fictional people) on a live, publicly reachable route. Apple 2.3.1.
+  beforeLoad: () => {
+    if (!MONETIZATION_ENABLED) throw notFound();
+  },
   head: () => ({
     meta: [
       { title: "Host Dashboard — MEUTUALS" },

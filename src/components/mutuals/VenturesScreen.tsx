@@ -179,15 +179,6 @@ export function VenturesScreen({
     setHostFormOpen(true);
   };
 
-  const handleUpgraded = () => {
-    setProfile?.((p) => (p ? { ...p, plan: "plus" } : p));
-    setPaywall(false);
-    markVentureIntroSeen();
-    persistMode("host");
-    setStage("feature");
-    setHostFormOpen(true);
-  };
-
   const handleCreated = (venture: VentureParty) => {
     onLaunchVenture?.();
     setHostFormOpen(false);
@@ -255,7 +246,6 @@ export function VenturesScreen({
         open={paywall}
         onClose={() => setPaywall(false)}
         used={profile.ventureCount}
-        onUpgraded={handleUpgraded}
       />
     </div>
   );

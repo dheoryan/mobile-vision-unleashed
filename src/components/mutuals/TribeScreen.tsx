@@ -260,7 +260,10 @@ function TribeBanner({
   liveMembers?: number;
   liveOnline: number;
 }) {
-  const memberLabel = (liveMembers ?? tribe.members).toLocaleString();
+  // Show nothing until the real count arrives. This used to fall back to
+  // `tribe.members` — a hardcoded five-figure number from the demo data — so a
+  // new user saw "12,480 members" for a beat before it snapped to "1".
+  const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
   const onlineLabel = liveOnline.toLocaleString();
   return (
     <section
@@ -289,7 +292,8 @@ function TribeBanner({
           </div>
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            <span className="text-foreground">{onlineLabel}</span> online · {memberLabel} members
+            <span className="text-foreground">{onlineLabel}</span> online
+            {memberLabel !== null && <> · {memberLabel} members</>}
           </p>
         </div>
       </div>
