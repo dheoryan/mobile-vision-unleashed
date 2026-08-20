@@ -292,13 +292,16 @@ export type Database = {
       }
       profiles: {
         Row: {
+          adult_verified_at: string | null
           age: number | null
+          age_verification_locked_at: string | null
           avatar_emoji: string
           avatar_url: string | null
           availability: string[]
           bio: string
           city: string
           created_at: string
+          date_of_birth: string | null
           display_name: string
           handle: string | null
           id: string
@@ -310,13 +313,16 @@ export type Database = {
           venture_count: number
         }
         Insert: {
+          adult_verified_at?: string | null
           age?: number | null
+          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
           availability?: string[]
           bio?: string
           city?: string
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id: string
@@ -328,13 +334,16 @@ export type Database = {
           venture_count?: number
         }
         Update: {
+          adult_verified_at?: string | null
           age?: number | null
+          age_verification_locked_at?: string | null
           avatar_emoji?: string
           avatar_url?: string | null
           availability?: string[]
           bio?: string
           city?: string
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string
           handle?: string | null
           id?: string
@@ -814,8 +823,8 @@ export type Database = {
         }[]
       }
       moderate_report: {
-        Args: { report_id: string; decision: string; notes: string }
-        Returns: Json
+        Args: { report_id: string; decision: string; notes?: string | null }
+        Returns: Database["public"]["Tables"]["reports"]["Row"]
       }
     }
     Enums: {
