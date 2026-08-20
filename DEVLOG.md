@@ -62,6 +62,8 @@ and logged below.
 | **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
 | **Global vs Tribe timeline** | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`. |
 | **Swipe lives on Ventures, not people** | Judging a plan, not a face. Explore uses focused one-at-a-time cards with Next/Back where Next means *later*, not *never*. Reject-forever on people needs a pool of thousands and imports dating semantics; user agreed. |
+| **Illustration masks** | Tribe animals appear as masks **worn up / half-masks with faces visible** — never full face-covering. A masquerade signals anonymity, and this product is built on accountable identity (real handles, adult verification, Hello gating). Full masks would also pull toward the romantic register the Explore deck was designed away from. |
+| **Illustration assets** | `src/assets/app-illustrations/*` are **transparent WebP**. `FeatureIllustration` draws no card, border or crop. Any regeneration must preserve transparency, or ship on flat pure #000000 with no vignette/gradient/frame so it can be re-keyed. Black-backed art puts the rectangle back in every empty state. |
 | **Explore ranking** | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius. |
 
 ---
@@ -137,6 +139,80 @@ _(empty)_
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-20 — Claude — SPEC FOR CODEX: Tribe masks in the illustrations
+
+The user has asked Codex directly to regenerate the app illustrations with the
+Tribe animal appearing as a masquerade mask on the people. **Codex: read this
+before generating.** Two of these are decisions already taken, not suggestions.
+
+**1. Masks are worn UP or as half-masks. Faces stay visible.**
+
+Decided with the user. Push the mask onto the forehead, hold it on a stick
+(lorgnette / carnival style), or use a half-mask that leaves the eyes and mouth
+visible. Do NOT cover faces.
+
+The reasoning, so this does not get "improved" back to full masks: a
+masquerade is *about concealment*, and this product is built on the opposite.
+Real display names, handles, adult verification, Hello requests before a
+stranger can DM — an entire safety architecture that assumes people are
+accountable to an identity. Full masks advertise an anonymity the app
+deliberately does not offer, and someone who installs expecting a masked
+anonymous space hits the real signup feeling misled. Secondarily, masquerade
+carries a romantic register, which is exactly what the Explore deck was
+designed away from (see the swipe decision above).
+
+The goal is "a party where people wear their Tribe", not "a party where people
+hide".
+
+**2. Output must be transparent, on a flat pure-black background at minimum.**
+
+The nine files in `src/assets/app-illustrations/` were regenerated on
+2026-08-20 as **transparent WebP** — the black card they were originally drawn
+on has been keyed out, and `FeatureIllustration` no longer draws a card,
+border or crop. Shipping black-backed art again silently undoes that and the
+black rectangle returns to every empty state.
+
+- Best: emit RGBA with a genuinely transparent background.
+- Acceptable: flat **pure #000000**, no vignette, no gradient, no texture, no
+  rounded frame or border drawn into the image. Claude re-keys it by
+  flood-filling the background from the image border, so the background must
+  be one connected near-black region. A gradient or a drawn frame breaks that.
+- Interior black is fine and expected — hair, trousers, dark panels all
+  survive the key, because it fills from the border rather than keying by
+  luminance.
+- Keep 600×800 (3:4). `FeatureIllustration` reserves `aspect-[3/4]` and uses
+  `object-contain`.
+
+**3. Mask per Tribe — match the existing crests, don't invent new animals.**
+
+`src/assets/tribes/crests/*.webp` are already built like faces (the Night Owl
+crest is a brow, two eyes and a beak). Reuse their shape language and palette
+so the mask and the badge read as the same object.
+
+| Tribe | key | crest file | palette |
+|---|---|---|---|
+| Iron Wolf | `wolf` | `iron-wolf.webp` | `var(--tribe-wolf)` |
+| Mindful Koi | `koi` | `koi.webp` | `var(--tribe-koi)` |
+| Studio Cat | `cat` | `studio-cat.webp` | `var(--tribe-cat)` |
+| Night Owl | `owl` | `night-owl.webp` | `var(--tribe-owl)` |
+| Honeybee | `bee` | `honeybee.webp` | `var(--tribe-bee)` |
+
+**4. Start with `onboarding-01.webp` and stop for review.**
+
+It is the five-doorways welcome scene and the first thing a new user sees.
+Right now nothing indicates which doorway is which Tribe; give each group its
+Tribe's mask and the image explains the whole Tribe system before any copy is
+read. It is also one file, so the user can judge the direction before
+committing to a nine-image regeneration.
+
+**5. Placement rules already set by the user — do not regress them.**
+
+Artwork does not go beside form inputs (it competes with the task). It belongs
+on the welcome screen, on feature intros, and in genuinely empty states. This
+was corrected once already on 2026-08-20; see the illustration-placement entry
+below.
+
 
 ### 2026-08-20 — Claude — Explore ranks on stated signals (`69a9ae2`)
 
