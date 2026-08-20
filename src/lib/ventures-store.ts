@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   applyToVenture,
   closeHostedVenture,
+  updateHostedVenture,
   createHostedVenture,
   decideVentureApplication,
   listMyHostedVentures,
@@ -114,6 +115,24 @@ export function useCloseHostedVenture() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ventureId: string) => fn({ data: { venture_id: ventureId } }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useUpdateHostedVenture() {
+  const fn = useServerFn(updateHostedVenture);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      venture_id: string;
+      title?: string;
+      intents?: string[];
+      scope?: VentureScope;
+      time_window?: string;
+      note?: string;
+      max_slots?: number;
+      image_url?: string | null;
+    }) => fn({ data: input }),
     onSuccess: () => invalidateVentures(qc),
   });
 }

@@ -19,6 +19,7 @@ import {
   UserX,
   X,
   ImagePlus,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { INTENT_GROUPS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
@@ -29,7 +30,7 @@ import { UpsellModal } from "./UpsellModal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureSwipeDeck } from "./VentureSwipeDeck";
-import { VentureImage } from "./VentureImage";
+import { VentureImage, VentureCardShell } from "./VentureImage";
 import { Layers, List } from "lucide-react";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
@@ -39,6 +40,7 @@ import {
   useApplyToVenture,
   useCloseHostedVenture,
   useCreateHostedVenture,
+  useUpdateHostedVenture,
   useDecideVentureApplication,
   useMyHostedVentures,
   useMyJoinedVentures,
@@ -783,6 +785,7 @@ function HostView({
             <HostedVentureCard
               key={venture.id}
               venture={venture}
+              profile={profile}
               onOpenChat={() => onOpenChat(venture)}
               onInvited={onChanged}
             />
@@ -801,26 +804,59 @@ function HostView({
   );
 }
 
+/**
+ * Create a Venture, or edit an open one.
+ *
+ * One component for both because the fields are identical and a second,
+ * near-duplicate form is how the two drift apart — a new field gets added to
+ * create and quietly missing from edit. `editing` switches the mutation, the
+ * copy and the reset behaviour; everything else is shared.
+ */
 function HostForm({
   profile,
   onCancel,
   onCreated,
+  editing,
 }: {
   profile: Profile;
   onCancel: () => void;
   onCreated: (venture: VentureParty) => void;
+  /** When present the form saves changes to this Venture instead of creating one. */
+  editing?: VentureParty;
 }) {
   const create = useCreateHostedVenture();
-  const [title, setTitle] = useState("");
-  const [intents, setIntents] = useState<string[]>([]);
-  const [scope, setScope] = useState<VentureScope>("all");
-  const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[1]);
-  const [maxSlots, setMaxSlots] = useState(4);
-  const [note, setNote] = useState("");
-  const [imagePath, setImagePath] = useState<string | null>(null);
+  const update = useUpdateHostedVenture();
+  const isEditing = Boolean(editing);
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [intents, setIntents] = useState<string[]>(editing?.intents ?? []);
+  const [scope, setScope] = useState<VentureScope>(editing?.scope ?? "all");
+  const [timeWindow, setTimeWindow] = useState(editing?.time_window || TIME_WINDOWS[1]);
+  const [maxSlots, setMaxSlots] = useState(editing?.max_slots ?? 4);
+  const [note, setNote] = useState(editing?.note ?? "");
+  const [imagePath, setImagePath] = useState<string | null>(editing?.image_url ?? null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
+
+  // Resolve a preview for a photo that already exists on the Venture.
+  useEffect(() => {
+    if (!editing?.image_url) return;
+    let cancelled = false;
+    void signVentureImageUrl(editing.image_url).then((url) => {
+      if (!cancelled) setImagePreview(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editing?.image_url]);
+
+  // Audience is locked in the database once anyone has applied, because
+  // flipping 'all' -> 'mine' would retroactively revoke access for people from
+  // other Tribes who already joined. Reflect that here rather than letting the
+  // host try and get an error back.
+  const audienceLocked =
+    isEditing && (editing!.applications?.length ?? 0) > 0;
+  const occupancy = editing ? editing.filled_slots : 1;
 
   const myTribes = TRIBES.filter((tribe) => profile.tribeIds.includes(tribe.id));
   const canSubmit =
@@ -828,7 +864,11 @@ function HostForm({
     intents.length > 0 &&
     maxSlots >= 2 &&
     maxSlots <= 20 &&
-    !uploading;
+    // Cannot shrink below the people already in the room. The database refuses
+    // this too; saying so here avoids a pointless round trip.
+    maxSlots >= occupancy &&
+    !uploading &&
+    !update.isPending;
 
   // Upload immediately on pick rather than on submit. The object lands in the
   // host's own prefix, which the storage policy allows them to read straight
@@ -857,6 +897,32 @@ function HostForm({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!canSubmit) return;
+
+    if (editing) {
+      update.mutate(
+        {
+          venture_id: editing.id,
+          title: title.trim(),
+          intents,
+          // Omitted when locked so the database never sees an unchanged-but-sent
+          // scope on a Venture people have already joined.
+          ...(audienceLocked ? {} : { scope }),
+          time_window: timeWindow,
+          max_slots: maxSlots,
+          note: note.trim(),
+          image_url: imagePath,
+        },
+        {
+          onSuccess: (venture) => {
+            toast.success("Venture updated.");
+            onCreated(venture);
+          },
+          onError: (err) => toast.error((err as Error).message),
+        },
+      );
+      return;
+    }
+
     create.mutate(
       {
         title: title.trim(),
@@ -1004,20 +1070,26 @@ function HostForm({
         </FieldLabel>
 
         <FieldLabel label="Audience">
-          <div className="grid grid-cols-2 gap-2">
+          <div className={cn("grid grid-cols-2 gap-2", audienceLocked && "opacity-50")}>
             <ChoiceButton
               active={scope === "all"}
-              onClick={() => setScope("all")}
+              onClick={() => !audienceLocked && setScope("all")}
               title="All Tribes"
               body="Anyone nearby can apply."
             />
             <ChoiceButton
               active={scope === "mine"}
-              onClick={() => setScope("mine")}
+              onClick={() => !audienceLocked && setScope("mine")}
               title={myTribes.length > 1 ? "My Tribes" : "My Tribe"}
               body={myTribes.map((tribe) => tribe.name).join(", ") || "Your home base."}
             />
           </div>
+          {audienceLocked && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              Locked — people have already applied. Narrowing the audience now would
+              cut them out of a Venture they already joined.
+            </p>
+          )}
         </FieldLabel>
 
         <FieldLabel label="Time window">
@@ -1074,15 +1146,15 @@ function HostForm({
         </button>
         <button
           type="submit"
-          disabled={!canSubmit || create.isPending}
+          disabled={!canSubmit || create.isPending || update.isPending}
           className="inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
         >
-          {create.isPending ? (
+          {create.isPending || update.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <ArrowRight className="h-4 w-4" />
           )}
-          Go live
+          {isEditing ? "Save changes" : "Go live"}
         </button>
       </div>
     </form>
@@ -1110,7 +1182,7 @@ function OpenVentureCard({
   const declined = application?.status === "declined";
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 animate-rise">
+    <VentureCardShell path={venture.image_url}>
       <VentureCardHeader venture={venture} />
       <VentureMeta venture={venture} />
 
@@ -1156,22 +1228,25 @@ function OpenVentureCard({
           </button>
         </div>
       )}
-    </article>
+    </VentureCardShell>
   );
 }
 
 function HostedVentureCard({
   venture,
+  profile,
   onOpenChat,
   onInvited,
 }: {
   venture: VentureParty;
+  profile: Profile;
   onOpenChat: () => void;
   onInvited: () => void;
 }) {
   const decide = useDecideVentureApplication();
   const close = useCloseHostedVenture();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const pending = venture.applications.filter((app) => app.status === "pending");
   const accepted = venture.applications.filter((app) => app.status === "accepted");
   const isClosed = venture.status === "closed";
@@ -1195,11 +1270,36 @@ function HostedVentureCard({
   };
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 animate-rise">
+    <VentureCardShell path={venture.image_url}>
       <VentureCardHeader venture={venture} hideHost />
       <VentureMeta venture={venture} />
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      {editOpen && !isClosed && (
+        <div className="mt-4">
+          <HostForm
+            profile={profile}
+            editing={venture}
+            onCancel={() => setEditOpen(false)}
+            onCreated={() => setEditOpen(false)}
+          />
+        </div>
+      )}
+
+      <div className={cn("mt-4 grid gap-2", isClosed ? "grid-cols-1" : "grid-cols-2")}>
+        {!isClosed && (
+          <button
+            type="button"
+            onClick={() => setEditOpen((open) => !open)}
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-semibold",
+              editOpen
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-foreground",
+            )}
+          >
+            <Pencil className="h-4 w-4" /> {editOpen ? "Done" : "Edit"}
+          </button>
+        )}
         <button
           type="button"
           onClick={onOpenChat}
@@ -1290,7 +1390,7 @@ function HostedVentureCard({
           </div>
         )}
       </div>
-    </article>
+    </VentureCardShell>
   );
 }
 

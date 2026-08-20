@@ -790,6 +790,64 @@ export const closeHostedVenture = createServerFn({ method: "POST" })
     return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
   });
 
+/**
+ * Edit an open Venture.
+ *
+ * Only the fields a host should be able to revise. `filled_slots` and the
+ * computed 'full' status are deliberately absent — they are derived from
+ * accepted applications, and letting them through here would route around the
+ * capacity guard on venture_applications. enforce_venture_host_edits rejects
+ * them in the database too, so this is defence in depth rather than the only
+ * check.
+ */
+export const updateHostedVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    createVentureSchema
+      .partial()
+      .extend({ venture_id: z.string().uuid() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<VentureParty> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    const { venture_id, ...rest } = data;
+
+    // Only send keys the caller actually supplied. Spreading the whole partial
+    // would write `undefined` over untouched columns on some clients.
+    const patch: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== undefined) patch[key] = value;
+    }
+    if (!Object.keys(patch).length) {
+      throw new Error("Nothing to update.");
+    }
+
+    const { data: row, error } = await db
+      .from("ventures")
+      .update(patch)
+      .eq("id", venture_id)
+      .eq("user_id", userId)
+      .select(VENTURE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Re-read applications so the returned party carries accurate
+    // pending/accepted counts; the card renders them straight after saving.
+    const { data: appRows, error: appError } = await db
+      .from("venture_applications")
+      .select(APP_COLS)
+      .eq("venture_id", venture_id);
+    if (appError) throw new Error(appError.message);
+
+    const applicantIds = ((appRows ?? []) as VentureApplicationDbRow[]).map((a) => a.applicant_id);
+    const people = await fetchProfiles(db, [userId, ...applicantIds]);
+    const applications = ((appRows ?? []) as VentureApplicationDbRow[]).map((a) =>
+      mapApplication(a, people),
+    );
+    return mapParty(row as VentureDbRow, people.get(userId) ?? null, applications);
+  });
+
 export const listVentureMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
