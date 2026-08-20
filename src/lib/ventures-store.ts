@@ -5,6 +5,8 @@ import {
   applyToVenture,
   closeHostedVenture,
   updateHostedVenture,
+  withdrawVentureApplication,
+  reopenHostedVenture,
   createHostedVenture,
   decideVentureApplication,
   listMyHostedVentures,
@@ -133,6 +135,24 @@ export function useUpdateHostedVenture() {
       max_slots?: number;
       image_url?: string | null;
     }) => fn({ data: input }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useWithdrawVentureApplication() {
+  const fn = useServerFn(withdrawVentureApplication);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (applicationId: string) => fn({ data: { application_id: applicationId } }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useReopenHostedVenture() {
+  const fn = useServerFn(reopenHostedVenture);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ventureId: string) => fn({ data: { venture_id: ventureId } }),
     onSuccess: () => invalidateVentures(qc),
   });
 }

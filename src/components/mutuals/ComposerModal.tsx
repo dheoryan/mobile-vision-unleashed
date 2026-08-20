@@ -61,7 +61,7 @@ export function ComposerModal({
     );
     toast.success(
       effectiveAudience === "all"
-        ? "Posted to Global — everyone can see this"
+        ? "Posted to The Wild — everyone can see this"
         : `Posted to ${tribe.name} — members only`,
     );
     requestPushPrompt("post");
@@ -94,7 +94,7 @@ export function ComposerModal({
     <AnimatedModal
       open={open}
       onOpenChange={(o) => { if (!o) close(); }}
-      title={`New post — ${effectiveAudience === "all" ? "Global" : tribe.name}`}
+      title={`New post — ${effectiveAudience === "all" ? "The Wild" : tribe.name}`}
       contentClassName="p-6"
     >
         <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
@@ -119,7 +119,7 @@ export function ComposerModal({
               active={effectiveAudience === "all"}
               onClick={() => setAudience("all")}
               accent="var(--primary)"
-              title="Global"
+              title="The Wild"
               sub="Everyone on MEUTUALS"
             />
           </div>

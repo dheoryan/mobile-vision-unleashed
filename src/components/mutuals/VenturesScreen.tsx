@@ -32,6 +32,7 @@ import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureSwipeDeck } from "./VentureSwipeDeck";
 import { VentureCardShell } from "./VentureImage";
+import { VentureSearching } from "./VentureSearching";
 import { Layers, List } from "lucide-react";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
@@ -702,7 +703,7 @@ function LookView({
       />
 
       {isLoading ? (
-        <LoadingBlock label="Finding open Ventures" />
+        <VentureSearching />
       ) : isError ? (
         <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
       ) : joinableVentures.length ? (

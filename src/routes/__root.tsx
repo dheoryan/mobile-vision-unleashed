@@ -108,6 +108,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#0F0F0F" },
+      // iOS ignores the manifest for standalone launches; these three are what
+      // give it a dark status bar and a real splash instead of a white flash.
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "MEUTUALS" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { title: "MEUTUALS — Start with your Tribe" },
       { name: "description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:title", content: "MEUTUALS — Start with your Tribe" },
@@ -128,7 +134,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap",
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/icons/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
 

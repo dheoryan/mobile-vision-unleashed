@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { Profile } from "./Onboarding";
 import { tribeById, TRIBES, type TribeId } from "@/lib/mutuals-data";
 import { ComposerModal } from "./ComposerModal";
-import { Plus } from "lucide-react";
+import { Compass, Plus } from "lucide-react";
 import { TribeMark } from "./TribeMark";
 
 export function TimelineScreen({
@@ -79,24 +79,29 @@ export function TimelineScreen({
 
         {/* ── Tab switcher ── */}
         <div className="mt-4 flex gap-2 rounded-full bg-card p-1">
+          {/* inline-flex + items-center on the button itself. The crest was a
+              plain inline child of a block button, so it sat on the text
+              baseline and rode high against the label. */}
           <button
             onClick={() => setTab("tribe")}
             className={cn(
-              "flex-1 rounded-full py-2 text-xs font-semibold transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors",
               tab === "tribe" ? "text-primary-foreground" : "text-muted-foreground"
             )}
             style={tab === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
           >
-            <TribeMark tribe={tribe} size="xs" /> {tribe.name}
+            <TribeMark tribe={tribe} size="xs" />
+            <span className="truncate">{tribe.name}</span>
           </button>
           <button
             onClick={() => setTab("global")}
             className={cn(
-              "flex-1 rounded-full py-2 text-xs font-semibold transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors",
               tab === "global" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             )}
           >
-            Global
+            <Compass className="h-3.5 w-3.5" />
+            <span className="truncate">The Wild</span>
           </button>
         </div>
 

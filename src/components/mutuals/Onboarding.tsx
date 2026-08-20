@@ -285,28 +285,37 @@ export function Onboarding({
           <div className="flex flex-1 flex-col">
             <StepHeading step={3} title="What should people know?" body="These signals make Discover useful instead of random." />
             <div className="mt-6 space-y-6">
-              {/* City follows location once it is on, so offer to detect it
-                  here rather than making people scroll a country list first.
-                  The manual picker stays for anyone who declines the prompt —
-                  a permission refusal should never be a dead end in
-                  onboarding. */}
+              {/* Detect FIRST, picker second.
+                  The previous order put the manual country/city selects on top
+                  with their own instruction ("Choose a standardized country,
+                  then city"), then the detect button, then a third line saying
+                  the city updates itself from location. Three instructions
+                  stacked, the last two contradicting the first — and the
+                  cheapest, most accurate path was buried at the bottom. The
+                  action people should take is now the first thing they see;
+                  the picker is explicitly the fallback. */}
               <div>
-                <CitySelect value={city} onChange={setCity} />
+                <p className="label-mono mb-1 text-muted-foreground">City</p>
                 <button
                   type="button"
                   onClick={locate}
                   disabled={locating}
-                  className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-primary/35 bg-primary/10 px-3 text-[11px] font-semibold text-primary disabled:opacity-60"
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary disabled:opacity-60"
                 >
-                  {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
-                  {location ? "Detect again" : "Use my location"}
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+                  {city ? "Detect again" : "Use my location"}
                 </button>
                 <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  {location
-                    ? "Your city updates automatically whenever your location changes."
-                    : "If you turn on nearby in the next step, your city keeps itself up to date."}
+                  {city
+                    ? "Your city stays right on its own whenever your location changes."
+                    : "Fastest and stays accurate if you move. Or pick it yourself below."}
                 </p>
+
+                <div className="mt-3">
+                  <CitySelect value={city} onChange={setCity} label="Or choose manually" />
+                </div>
               </div>
+
               <Field label="Short bio" value={bio} onChange={(value) => setBio(value.slice(0, 140))} placeholder="A line about how you like to socialize." multiline hint={`${bio.length}/140`} />
               <ChoiceGroup label="Your interests" hint={`${interests.length}/8 · choose at least 2`} options={INTEREST_OPTIONS} selected={interests} onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))} />
               <ChoiceGroup label="Here for" hint={`${socialIntents.length}/3 · choose at least 1`} options={SOCIAL_INTENT_OPTIONS} selected={socialIntents} onToggle={(id) => setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))} />

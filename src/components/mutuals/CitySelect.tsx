@@ -110,7 +110,9 @@ export function CitySelect({ value, onChange, label = "City" }: { value: string;
         </PopoverContent>
       </Popover>
       </div>
-      <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">Choose a standardized country, then city. Nearby uses a separate device-confirmed approximate area.</p>
+      {/* The old helper text lived here and fought with whatever the caller
+          said above it. Callers own the explanation now; this component just
+          renders the two selects. */}
     </div>
   );
 }

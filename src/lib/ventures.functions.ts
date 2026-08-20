@@ -848,6 +848,66 @@ export const updateHostedVenture = createServerFn({ method: "POST" })
     return mapParty(row as VentureDbRow, people.get(userId) ?? null, applications);
   });
 
+/**
+ * Withdraw your own request, or leave a Venture you were accepted into.
+ *
+ * The database has always permitted this — venture_applications_guard_immutable_fields
+ * explicitly allows an applicant to move their own row to 'cancelled' — but
+ * nothing in the UI ever called it. So you could ask to join a stranger's
+ * meetup and then have no way out of it, which for an app that arranges
+ * in-person meetings between people who have not met is not a missing
+ * convenience, it is a missing safety exit.
+ *
+ * Leaving after acceptance frees the seat: sync_venture_slots recounts on the
+ * status change and the capacity trigger lets the next person in.
+ */
+export const withdrawVentureApplication = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ application_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ venture_id: string }> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+
+    const { data: row, error } = await db
+      .from("venture_applications")
+      .update({ status: "cancelled", decided_at: new Date().toISOString() })
+      .eq("id", data.application_id)
+      .eq("applicant_id", userId)
+      .select("venture_id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { venture_id: (row as { venture_id: string }).venture_id };
+  });
+
+/**
+ * Reopen a closed Venture.
+ *
+ * enforce_venture_host_edits permits closed -> open specifically so a host who
+ * closed by mistake is not forced to recreate the plan and lose its party
+ * chat. Everything else about a closed Venture stays frozen until it reopens.
+ */
+export const reopenHostedVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<VentureParty> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+
+    const { data: row, error } = await db
+      .from("ventures")
+      .update({ status: "open", closed_at: null, ended_at: null })
+      .eq("id", data.venture_id)
+      .eq("user_id", userId)
+      .select(VENTURE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const hosts = await fetchProfiles(db, [userId]);
+    return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
+  });
+
 export const listVentureMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
