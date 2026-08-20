@@ -138,7 +138,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
       {openPost && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setOpenPostId(null)} />
-          <div className="relative mx-auto max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-background p-4 sm:rounded-3xl animate-rise">
+          <div className="scroll-panel relative mx-auto max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-background p-4 sm:rounded-3xl animate-rise">
             <button
               onClick={() => setOpenPostId(null)}
               aria-label="Close post"

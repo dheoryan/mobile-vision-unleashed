@@ -593,7 +593,7 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
           <p className="truncate text-sm font-semibold">{person.name}</p>
           {person.allTribeIds.slice(0, 2).map((id) => {
             const t = tribeById(id);
-            return <TribeBadge key={id} name={t.name} color={t.colorVar} />;
+            return <TribeBadge key={id} tribe={t} />;
           })}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">

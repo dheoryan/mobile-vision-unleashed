@@ -107,12 +107,7 @@ export function TribeScreen({
       />
       <main className="mx-auto max-w-md px-5 pt-3">
         {/* Your Tribe, and the way to move to another one. */}
-        <TribeStrip
-          joined={joinedTribes}
-          active={activeTribe}
-          onChange={setActiveTribe}
-          onSwitch={() => setAddTribeOpen(true)}
-        />
+        <TribeCrestButton tribe={tribe} onSwitch={() => setAddTribeOpen(true)} />
 
         <TribeBanner tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
 
@@ -130,52 +125,42 @@ export function TribeScreen({
   );
 }
 
-function TribeStrip({
-  joined,
-  active,
-  onChange,
+/**
+ * The user's Tribe crest, which is also the way out of it.
+ *
+ * There is exactly one Tribe now, so the old strip — a row of crests plus a
+ * separate dashed "Move" tile — was a picker with one option and a button
+ * beside it. The crest carries the identity and owns the action: untouched it
+ * is simply the badge, and tapping it opens the move sheet.
+ *
+ * The affordance is carried by the label under the crest rather than by
+ * chrome around it, so nothing competes with the artwork.
+ */
+function TribeCrestButton({
+  tribe,
   onSwitch,
 }: {
-  joined: ReturnType<typeof tribeById>[];
-  active: TribeId;
-  onChange: (id: TribeId) => void;
+  tribe: ReturnType<typeof tribeById>;
   onSwitch: () => void;
 }) {
   return (
-    <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-3">
-        {joined.map((t) => {
-          const isActive = t.id === active;
-          return (
-            <button
-              key={t.id}
-              onClick={() => onChange(t.id)}
-              className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
-            >
-              <TribeMark tribe={t} size="lg" className={cn("transition-all", isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-60")} />
-              <span
-                className={cn(
-                  "text-[11px] font-medium",
-                  isActive ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {t.name}
-              </span>
-            </button>
-          );
-        })}
-
-        <button
-          onClick={onSwitch}
-          className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
-          aria-label="Move to another Tribe"
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-border text-muted-foreground">
-            <ArrowLeftRight className="h-5 w-5" />
-          </span>
-          <span className="text-[11px] font-medium text-muted-foreground">Move</span>
-        </button>
-      </div>
+    <div className="flex">
+      <button
+        onClick={onSwitch}
+        aria-label={`${tribe.name} — move to another Tribe`}
+        aria-haspopup="dialog"
+        className="group flex shrink-0 flex-col items-center gap-1.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95"
+      >
+        <TribeMark
+          tribe={tribe}
+          size="lg"
+          className="ring-2 ring-primary ring-offset-2 ring-offset-background transition-transform group-hover:scale-105 motion-reduce:transition-none"
+        />
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
+          {tribe.name}
+          <ArrowLeftRight className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-foreground" />
+        </span>
+      </button>
     </div>
   );
 }
@@ -249,24 +234,44 @@ function TribeBanner({
   const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
   const onlineLabel = liveOnline.toLocaleString();
   return (
-    <section
-      className="relative mt-5 overflow-hidden rounded-2xl border border-border p-5"
-      style={{
-        background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 38%, var(--card)) 0%, var(--card) 75%)`,
-      }}
-    >
-      <div
-        className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-40 blur-3xl"
+    // Each Tribe's own artwork instead of a tint of its colour. The flat
+    // gradient made every Tribe the same card in a different hue; the
+    // illustration is the thing that actually distinguishes Night Owl from
+    // Iron Wolf, and it already exists.
+    <section className="relative mt-5 min-h-44 overflow-hidden rounded-2xl border border-border">
+      <img
+        src={tribe.art}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
+      />
+      {/* Two layers doing different jobs: a horizontal wash that keeps the left
+          side legible for text, and a bottom-up scrim for the stats line. The
+          art stays visible on the right, where nothing sits on top of it. */}
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/25"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-1"
         style={{ backgroundColor: tribe.colorVar }}
       />
-      <div className="relative flex items-start gap-4">
+
+      <div className="relative flex items-start gap-4 p-5">
         <TribeMark tribe={tribe} size="lg" decorative={false} />
         <div className="min-w-0 flex-1">
-          <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/40 px-2 py-1 text-foreground">
+          <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2 py-1 text-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-2xl font-bold leading-tight">{tribe.name}</h2>
+            <h2 className="font-display text-2xl font-bold leading-tight drop-shadow-sm">{tribe.name}</h2>
           </div>
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           <p className="mt-2 text-xs text-muted-foreground">
@@ -636,7 +641,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
   return (
     <div className="mt-4">
       <div className="rounded-2xl border border-border bg-card p-3">
-        <div className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
+        <div className="scroll-panel flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
           {loading && <p className="py-6 text-center text-xs text-muted-foreground">Loading...</p>}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">

@@ -22,7 +22,12 @@ export function useSaveMyLocation() {
   return useMutation({
     mutationFn: (input: BrowserLocation & { radius_km: LocationRadiusKm; discoverable?: boolean }) =>
       save({ data: { ...input, discoverable: input.discoverable ?? true } }),
-    onSuccess: (row) => queryClient.setQueryData(LOCATION_KEY, row),
+    onSuccess: ({ city, ...settings }) => {
+      queryClient.setQueryData(LOCATION_KEY, settings);
+      // The server re-derives profiles.city from the new coordinates, so the
+      // cached profile is stale the moment this resolves.
+      if (city) queryClient.invalidateQueries({ queryKey: ["my-profile"] });
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["nearby-profiles"] }),
   });
 }

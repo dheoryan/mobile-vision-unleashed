@@ -120,7 +120,7 @@ export function ProfileScreen({
               </div>
               <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <TribeBadge name={tribe.name} color={tribe.colorVar} />
+                <TribeBadge tribe={tribe} />
                 {otherTribes.map((t) => (
                   <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
                 ))}
@@ -360,11 +360,77 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * City, which follows the person rather than the form.
+ *
+ * When location is on, the server re-derives the city from the stored
+ * coordinates on every save, so typing a different one here would be
+ * overwritten the next time the app updates their position. Rather than let
+ * that fight happen silently, the picker is replaced with the derived value
+ * and a way to refresh it.
+ *
+ * Turning nearby off hands the field back — someone who does not share
+ * location has to be able to say where they are.
+ */
+function CityField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const locationQuery = useMyLocationSettings();
+  const saveLocation = useSaveMyLocation();
+  const [refreshing, setRefreshing] = useState(false);
+  const derived = Boolean(locationQuery.data);
+
+  if (!derived) return <CitySelect value={value} onChange={onChange} />;
+
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      const position = await requestBrowserLocation();
+      const saved = await saveLocation.mutateAsync({
+        ...position,
+        radius_km: (locationQuery.data?.radius_km ?? 15) as LocationRadiusKm,
+        discoverable: locationQuery.data?.discoverable ?? true,
+      });
+      if (saved.city) {
+        onChange(saved.city);
+        toast.success(`Updated to ${saved.city}`);
+      } else {
+        toast.message("No nearby city in our list", {
+          description: "Your location is saved; the city label is unchanged.",
+        });
+      }
+    } catch (error) {
+      toast.error("Could not update location", { description: (error as Error).message });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  return (
+    <div>
+      <p className="label-mono mb-1 text-muted-foreground">City</p>
+      <div className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background/60 px-4">
+        <LocateFixed className="h-4 w-4 shrink-0 text-primary" />
+        <span className="min-w-0 flex-1 truncate text-sm">{value || "Not set yet"}</span>
+        <button
+          type="button"
+          onClick={refresh}
+          disabled={refreshing}
+          className="shrink-0 text-[11px] font-semibold text-primary disabled:opacity-50"
+        >
+          {refreshing ? "Updating…" : "Update"}
+        </button>
+      </div>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+        Follows your location, so it stays right when you move. Turn off nearby in
+        Settings to set it yourself.
+      </p>
+    </div>
+  );
+}
+
 function ProfileTag({ label, accent = false }: { label: string; accent?: boolean }) {
   return <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold", accent ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-background/50 text-muted-foreground")}>{label}</span>;
 }
 
-const EMOJI_AVATARS = ["🌿", "🦊", "🐺", "🐟", "🎵", "🦉", "🐝", "🌙", "📚", "🏃", "🎸", "☕"];
 
 function EditProfileModal({
   open, profile, onClose, onSave,
@@ -423,7 +489,7 @@ function EditProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-card p-6 sm:rounded-3xl animate-rise">
+      <div className="relative mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto scroll-panel rounded-t-3xl border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:rounded-3xl animate-rise">
         <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
@@ -451,20 +517,11 @@ function EditProfileModal({
               }}
             />
           </label>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            {EMOJI_AVATARS.map((e) => (
-              <button
-                key={e}
-                onClick={() => setAvatar(e)}
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full text-lg transition",
-                  avatar === e ? "bg-primary/20 ring-1 ring-primary" : "bg-secondary hover:bg-secondary/70"
-                )}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
+          {/* The emoji-avatar strip used to sit here. Removed at the user's
+              request: it offered twelve near-identical animal glyphs as a
+              parallel identity system next to real photo upload, and the
+              defaults are still applied at signup, so nothing is lost by not
+              re-offering them on the edit screen. */}
         </div>
 
         <div className="mt-5 space-y-3">
@@ -475,7 +532,7 @@ function EditProfileModal({
             onChange={(v) => setHandle(sanitizeHandle(v))}
             hint={handleValid ? `@${handle}` : "3–30 chars · a–z, 0–9, _"}
           />
-          <CitySelect value={city} onChange={setCity} />
+          <CityField value={city} onChange={setCity} />
           <Input label="Bio" value={bio} onChange={(v) => setBio(v.slice(0, 140))} multiline hint={`${bio.length}/140`} />
           <ProfileChoiceGroup label="Interests" options={INTEREST_OPTIONS} selected={interests} onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))} />
           <ProfileChoiceGroup label="Here for" options={SOCIAL_INTENT_OPTIONS} selected={socialIntents} onToggle={(id) => setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))} />
@@ -822,7 +879,7 @@ function SettingsSheet({
   };
 
   return (
-    <AnimatedModal open={open} onOpenChange={(next) => !next && onClose()} title="Settings" contentClassName="max-h-[92dvh] overflow-y-auto p-6">
+    <AnimatedModal open={open} onOpenChange={(next) => !next && onClose()} title="Settings" contentClassName="max-h-[92dvh] overflow-y-auto scroll-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div>
         <button onClick={onClose} aria-label="Close settings" className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
           <X className="h-5 w-5" />

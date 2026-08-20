@@ -10,6 +10,13 @@ import { cn } from "@/lib/utils";
  * The art is always decorative — adjacent copy carries the meaning, so `alt`
  * defaults to empty and the image is hidden from assistive tech. Never put an
  * instruction only in one of these.
+ *
+ * The assets are transparent WebP: the black card the artwork was generated on
+ * has been keyed out, so the art sits directly on whatever surface is behind
+ * it. That means no card, no border and no crop here — a frame around
+ * already-transparent art just reintroduces the box we removed. `object-contain`
+ * rather than `cover`, because with no background to bleed into, cropping just
+ * cuts the composition.
  */
 export function FeatureIllustration({
   src,
@@ -30,7 +37,7 @@ export function FeatureIllustration({
     <div
       aria-hidden="true"
       className={cn(
-        "mx-auto overflow-hidden rounded-2xl border border-border/60 bg-card",
+        "mx-auto",
         // Reserve the box before the image decodes so nothing shifts.
         "aspect-[3/4]",
         width,
@@ -45,9 +52,7 @@ export function FeatureIllustration({
         height={800}
         loading={eager ? "eager" : "lazy"}
         decoding="async"
-        // Figures sit slightly above centre in this set; bias the crop upward
-        // so heads aren't clipped at narrow widths.
-        className="h-full w-full object-cover object-[center_38%]"
+        className="h-full w-full object-contain"
       />
     </div>
   );

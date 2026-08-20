@@ -179,7 +179,7 @@ export function PushPromptModal() {
       title="Push notifications"
       center
       zIndex={60}
-      contentClassName="max-h-[90vh] overflow-y-auto p-6 shadow-2xl"
+      contentClassName="max-h-[90vh] overflow-y-auto scroll-panel p-6 shadow-2xl"
     >
         <button
           onClick={skipSoft}

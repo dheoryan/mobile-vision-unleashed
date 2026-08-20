@@ -1262,7 +1262,7 @@ function InviteConnectedUsersPanel({
           Could not load people. Retry
         </button>
       ) : filtered.length ? (
-        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+        <div className="scroll-panel mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
           {filtered.map((candidate) => {
             const alreadyAccepted = candidate.invite_status === "accepted";
             const alreadyPending = candidate.invite_status === "pending";
@@ -1514,12 +1514,7 @@ function VentureMeta({ venture }: { venture: VentureParty }) {
             const tribe = TRIBES.find((item) => item.id === tribeId);
             if (!tribe) return null;
             return (
-              <TribeBadge
-                key={tribe.id}
-                name={tribe.name}
-                color={tribe.colorVar}
-               
-              />
+              <TribeBadge key={tribe.id} tribe={tribe} />
             );
           })}
         </div>

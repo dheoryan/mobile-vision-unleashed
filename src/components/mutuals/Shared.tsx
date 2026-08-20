@@ -1,6 +1,8 @@
 import { MessageCircle } from "lucide-react";
 import logoMark from "@/assets/logo-mark.webp";
 import { NotificationBell } from "./NotificationBell";
+import { TribeMark } from "./TribeMark";
+import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
 
 export function AppHeader({
   title,
@@ -62,13 +64,41 @@ export function SectionTitle({ title, hint, action }: { title: string; hint?: st
   );
 }
 
-export function TribeBadge({ name, color, className = "" }: { name: string; color: string; className?: string }) {
+/**
+ * The Tribe pill.
+ *
+ * Carries the crest, not just the name. With one Tribe per person this pill is
+ * the main place someone's Tribe is stated away from the Tribe screen itself,
+ * and the crests are the thing people actually learn to recognise — a
+ * lowercase-mono name alone made every Tribe look like the same pill in a
+ * different colour.
+ *
+ * `tribe` may be the object or its id, matching TribeMark. The legacy
+ * name/color pair is still accepted for the few call sites that only have
+ * strings; those render without a crest rather than guessing one.
+ */
+export function TribeBadge({
+  tribe,
+  name,
+  color,
+  className = "",
+}: {
+  tribe?: Tribe | TribeId;
+  name?: string;
+  color?: string;
+  className?: string;
+}) {
+  const resolved = typeof tribe === "string" ? tribeById(tribe) : tribe;
+  const label = resolved?.name ?? name ?? "";
+  const accent = resolved?.colorVar ?? color ?? "var(--color-primary)";
+
   return (
     <span
-      className={`label-mono inline-flex items-center gap-1 rounded-full px-2 py-1 ${className}`}
-      style={{ color, backgroundColor: `color-mix(in oklab, ${color} 16%, transparent)` }}
+      className={`label-mono inline-flex items-center gap-1.5 rounded-full py-1 pr-2.5 ${resolved ? "pl-1" : "pl-2.5"} ${className}`}
+      style={{ color: accent, backgroundColor: `color-mix(in oklab, ${accent} 16%, transparent)` }}
     >
-      {name}
+      {resolved && <TribeMark tribe={resolved} size="xs" />}
+      {label}
     </span>
   );
 }

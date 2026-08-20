@@ -18,6 +18,7 @@ import {
   type SocialIntentId,
 } from "@/lib/profile-options";
 import { requestBrowserLocation, type BrowserLocation, type LocationRadiusKm } from "@/lib/location";
+import { cityLabelFor } from "@/lib/city-options";
 import { CitySelect } from "./CitySelect";
 import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
 
@@ -85,7 +86,13 @@ export function Onboarding({
     try {
       const next = await requestBrowserLocation();
       setLocation(next);
-      toast.success("Approximate location ready", {
+      // Fill the city from the coordinates as well. The server re-derives this
+      // on save, so this is only to show the person what it resolved to before
+      // they commit — but seeing "Denpasar, Indonesia" appear is the thing that
+      // makes the permission prompt feel worth answering.
+      const resolved = cityLabelFor(next.latitude, next.longitude);
+      if (resolved) setCity(resolved);
+      toast.success(resolved ? `Location set — ${resolved}` : "Approximate location ready", {
         description: "Other members will only see a distance band, never your coordinates.",
       });
     } catch (error) {
@@ -278,7 +285,28 @@ export function Onboarding({
           <div className="flex flex-1 flex-col">
             <StepHeading step={3} title="What should people know?" body="These signals make Discover useful instead of random." />
             <div className="mt-6 space-y-6">
-              <CitySelect value={city} onChange={setCity} />
+              {/* City follows location once it is on, so offer to detect it
+                  here rather than making people scroll a country list first.
+                  The manual picker stays for anyone who declines the prompt —
+                  a permission refusal should never be a dead end in
+                  onboarding. */}
+              <div>
+                <CitySelect value={city} onChange={setCity} />
+                <button
+                  type="button"
+                  onClick={locate}
+                  disabled={locating}
+                  className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-primary/35 bg-primary/10 px-3 text-[11px] font-semibold text-primary disabled:opacity-60"
+                >
+                  {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+                  {location ? "Detect again" : "Use my location"}
+                </button>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {location
+                    ? "Your city updates automatically whenever your location changes."
+                    : "If you turn on nearby in the next step, your city keeps itself up to date."}
+                </p>
+              </div>
               <Field label="Short bio" value={bio} onChange={(value) => setBio(value.slice(0, 140))} placeholder="A line about how you like to socialize." multiline hint={`${bio.length}/140`} />
               <ChoiceGroup label="Your interests" hint={`${interests.length}/8 · choose at least 2`} options={INTEREST_OPTIONS} selected={interests} onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))} />
               <ChoiceGroup label="Here for" hint={`${socialIntents.length}/3 · choose at least 1`} options={SOCIAL_INTENT_OPTIONS} selected={socialIntents} onToggle={(id) => setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))} />

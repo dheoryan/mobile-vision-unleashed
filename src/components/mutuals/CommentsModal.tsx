@@ -144,7 +144,7 @@ export function CommentsModal({
           </button>
         </header>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {commentsQuery.isLoading ? (
             <SkeletonList tribeColor={tribeColor} />
           ) : commentsQuery.isError ? (

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { cityLabelFor } from "@/lib/city-options";
 
 const radiusSchema = z.union([z.literal(5), z.literal(15), z.literal(50)]);
 
@@ -9,6 +10,12 @@ export type LocationSettings = {
   radius_km: 5 | 15 | 50;
   accuracy_m: number;
   updated_at: string;
+};
+
+export type SavedLocation = LocationSettings & {
+  /** The city this save resolved to, if any. Null when the person is not near
+   *  a city in the catalog — their existing city is left untouched. */
+  city: string | null;
 };
 
 export type NearbyProfile = {
@@ -51,7 +58,7 @@ export const saveMyLocation = createServerFn({ method: "POST" })
     discoverable: z.boolean().default(true),
     radius_km: radiusSchema.default(15),
   }).parse(input))
-  .handler(async ({ data, context }): Promise<LocationSettings> => {
+  .handler(async ({ data, context }): Promise<SavedLocation> => {
     const { supabase, userId } = context;
     // About 1.1 km at the equator: enough for proximity bands, deliberately
     // too coarse to preserve a home/building-level coordinate.
@@ -70,7 +77,30 @@ export const saveMyLocation = createServerFn({ method: "POST" })
       .select("discoverable, radius_km, accuracy_m, updated_at")
       .single();
     if (error) throw new Error(error.message);
-    return row as LocationSettings;
+
+    // Location is the source of truth for the displayed city.
+    //
+    // A self-declared city drifts: someone picks Delhi at signup, moves to
+    // Bali, and their card keeps saying Delhi indefinitely. Deriving it here
+    // means every location save re-derives it, so the city follows the person.
+    //
+    // Done server-side rather than in the client so it cannot be desynced by a
+    // direct PostgREST write, and skipped entirely when the person is not near
+    // a known city — better to leave whatever they chose than to relabel
+    // someone in rural Java as living in Jakarta.
+    const city = cityLabelFor(latitude, longitude);
+    if (city) {
+      const { error: cityError } = await supabase
+        .from("profiles")
+        .update({ city })
+        .eq("id", userId);
+      // Non-fatal: the location itself saved, and a stale city label is a
+      // cosmetic problem. Failing the whole call here would make "enable
+      // nearby" look broken.
+      if (cityError) console.warn("[location] could not sync city:", cityError.message);
+    }
+
+    return { ...(row as LocationSettings), city };
   });
 
 export const updateMyLocationSettings = createServerFn({ method: "POST" })

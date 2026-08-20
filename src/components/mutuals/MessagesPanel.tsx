@@ -222,7 +222,7 @@ function Inbox({
           <X className="h-5 w-5" />
         </button>
       </header>
-      <div className="flex-1 overflow-y-auto">
+      <div className="scroll-panel flex-1 overflow-y-auto">
         <IncomingHellos />
         {isLoading ? (
           <p className="p-10 text-center text-xs text-muted-foreground">Loading…</p>
@@ -329,7 +329,7 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
             <p className="truncate text-sm font-semibold">
               {t.other?.display_name?.trim() || "Someone"}
             </p>
-            <TribeBadge name={tribe.name} color={tribe.colorVar} />
+            <TribeBadge tribe={tribe} />
           </div>
           <p
             className={cn(
@@ -420,7 +420,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Loading party chat…</p>
         ) : !msgs?.length ? (
@@ -580,7 +580,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
         />
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
         ) : !msgs?.length ? (
