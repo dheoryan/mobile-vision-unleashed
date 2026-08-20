@@ -15,8 +15,24 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
-.env
+
+# .env IS TRACKED ON PURPOSE — do not add it back to this list.
+#
+# Vite replaces `import.meta.env.VITE_*` at BUILD time, so the deploy build
+# reads these values out of the repo. Untracking .env is what took
+# moots.lovable.app down with "Missing Supabase environment variable(s)".
+#
+# It may only ever hold publishable values (SUPABASE_URL,
+# SUPABASE_PUBLISHABLE_KEY, SUPABASE_PROJECT_ID and their VITE_ twins) —
+# every one of those already ships inside the browser bundle by design.
+#
+# SUPABASE_SERVICE_ROLE_KEY MUST NOT GO IN HERE. It is read from process.env
+# by src/integrations/supabase/client.server.ts: locally that means .env.local
+# below, and on the deploy it comes from the Lovable Cloud secret store.
+# A VITE_ prefix on it would publish it to every visitor.
+!.env
 .env.local
+.env.*.local
 
 # Wrangler / Cloudflare
 .wrangler/
