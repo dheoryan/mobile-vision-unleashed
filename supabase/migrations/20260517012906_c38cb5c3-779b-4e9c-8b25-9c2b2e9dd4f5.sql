@@ -46,19 +46,28 @@ revoke all on function public.dispatch_push_for_notification() from anon;
 revoke all on function public.dispatch_push_for_notification() from authenticated;
 
 -- 2) Restrict tribe_messages SELECT to members of the tribe
-drop policy if exists "Authenticated users can read tribe messages" on public.tribe_messages;
+-- LOCAL-DEV PATCH: original file order predates the table's creation
+-- (20260517133500_create_tribe_messages.sql) when replayed fresh via
+-- `supabase start`/`db reset`. Guarded so a from-scratch local database
+-- doesn't error; on production the table already exists so this still runs.
+do $$
+begin
+  if to_regclass('public.tribe_messages') is not null then
+    drop policy if exists "Authenticated users can read tribe messages" on public.tribe_messages;
 
-create policy "Members read tribe messages"
-  on public.tribe_messages
-  for select
-  to authenticated
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid()
-        and tribe_messages.tribe_id = any(p.tribe_ids)
-    )
-  );
+    create policy "Members read tribe messages"
+      on public.tribe_messages
+      for select
+      to authenticated
+      using (
+        exists (
+          select 1 from public.profiles p
+          where p.id = auth.uid()
+            and tribe_messages.tribe_id = any(p.tribe_ids)
+        )
+      );
+  end if;
+end $$;
 
 -- 3) Drop overly broad public listing policy on avatars; public URLs still work via CDN
 drop policy if exists "Avatars are publicly readable" on storage.objects;
