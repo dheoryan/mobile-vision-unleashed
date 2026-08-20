@@ -684,7 +684,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                   )}
                   <div
                     className={cn(
-                      "space-y-2 rounded-2xl px-3 py-2 text-sm",
+                      "space-y-2 rounded-xl px-3 py-2 text-sm",
                       mine
                         ? "rounded-br-sm text-primary-foreground"
                         : "rounded-bl-sm bg-secondary text-foreground",

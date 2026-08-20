@@ -13,6 +13,7 @@ import { useFollowCounts } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
 import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
+import { intentStore } from "@/lib/intent-store";
 import { useBlockedProfiles, useUnblockUser } from "@/lib/blocked-store";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
@@ -262,18 +263,49 @@ export function ProfileScreen({
               {savedQuery.isLoading ? "Loading…" : "No saved posts yet. Tap the bookmark on any post to save it."}
             </p>
           ) : (
-            <div className="grid grid-cols-3 gap-1">
+            /* A list, not a square grid.
+             *
+             * The grid was a photo-grid pattern applied to text: a third of the
+             * width, aspect-square, 10px type, three-line clamp. Photo grids
+             * work because the photo IS the content; here the content is words,
+             * and at that size they are unreadable, so every tile looked like a
+             * bookmark emoji with noise under it.
+             *
+             * It was also a plain div — you could save a post and then have no
+             * way to open it again, which defeats the entire feature. These are
+             * buttons now, routed through the same openPost intent the
+             * notifications use. */
+            <div className="space-y-2">
               {savedPosts.map((p) => {
                 const t = tribeById((p.tribe_id as TribeId) || (profile.tribeIds[0] as TribeId));
                 return (
-                  <div
+                  <button
                     key={p.id}
-                    className="aspect-square overflow-hidden rounded-md p-2 text-[10px] leading-tight text-foreground/90"
-                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.colorVar} 35%, var(--card)), var(--card))` }}
+                    type="button"
+                    onClick={() => intentStore.push({ kind: "openPost", postId: p.id })}
+                    className="flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
                   >
-                    <span className="text-base">🔖</span>
-                    <p className="mt-1 line-clamp-3">{p.content}</p>
-                  </div>
+                    <span
+                      aria-hidden
+                      className="mt-0.5 h-9 w-1 shrink-0 rounded-full"
+                      style={{ backgroundColor: t.colorVar }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        {/* Whose post this was. The grid never said, so a saved
+                            collection was a pile of anonymous fragments. */}
+                        <span className="truncate font-semibold text-foreground">
+                          {p.author?.display_name?.trim() || "Someone"}
+                        </span>
+                        <span aria-hidden>·</span>
+                        <span className="shrink-0">{timeAgo(p.created_at)}</span>
+                      </span>
+                      <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-foreground/90">
+                        {p.content || (p.image_url ? "Photo" : "")}
+                      </span>
+                    </span>
+                    <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" />
+                  </button>
                 );
               })}
             </div>

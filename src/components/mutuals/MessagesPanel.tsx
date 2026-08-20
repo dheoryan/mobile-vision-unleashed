@@ -445,7 +445,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
+                          "rounded-xl px-3 py-2 text-sm shadow-sm",
                           mine
                             ? "rounded-br-sm bg-primary text-white"
                             : "rounded-bl-sm bg-card text-foreground",
@@ -609,7 +609,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     return (
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 text-sm shadow-sm",
+                          "rounded-xl px-3 py-2 text-sm shadow-sm",
                           mine
                             ? "rounded-br-sm text-white"
                             : "rounded-bl-sm bg-card text-foreground",
