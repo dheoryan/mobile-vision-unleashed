@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **5 commits unpushed** — the user has not authorised a push.
+**Branch:** `main`. **19 commits unpushed** — the user has not authorised a push.
 Do not push without asking.
 
 **Local dev works.** Docker Supabase + dev server run on the user's machine.
@@ -41,7 +41,10 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Claude | Tribe-first Timeline (phase step 1–2): feed derives from joined Tribes; `audience:'all'` rescoped to member Tribes; Follow reframed as saved connections | `src/lib/posts.functions.ts`, `src/lib/posts-store.ts`, `src/components/mutuals/TimelineScreen.tsx`, `src/components/mutuals/DiscoverScreen.tsx` | 2026-08-20 10:20 |
+| _(none)_ | | | |
+
+Claude's Tribe-first phase and the Explore relevance pass are both **complete**
+and logged below.
 
 ---
 
@@ -56,6 +59,10 @@ Claim before you start. Remove your row when done and log it below.
 | **Modals** | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals. |
 | **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
 | **Pushing to remote** | User-authorised only. Both agents. |
+| **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
+| **Global vs Tribe timeline** | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`. |
+| **Swipe lives on Ventures, not people** | Judging a plan, not a face. Explore uses focused one-at-a-time cards with Next/Back where Next means *later*, not *never*. Reject-forever on people needs a pool of thousands and imports dating semantics; user agreed. |
+| **Explore ranking** | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius. |
 
 ---
 
@@ -130,6 +137,99 @@ _(empty)_
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-20 — Claude — Explore ranks on stated signals (`69a9ae2`)
+
+**The bug, and why it was invisible.** `list_nearby_profile_matches` was the
+only scored discovery path in the app. It INNER JOINs `profile_locations` on
+*both* sides and requires `discoverable`. So any user who had not granted
+browser geolocation got zero scored rows and fell through to
+`listDiscoverProfiles`, which is `order by created_at desc`. At launch density
+that is what Explore actually was for nearly every user: a list of whoever
+signed up last, with no relevance signal of any kind. Nothing errored, so it
+looked like it worked.
+
+**New:** `supabase/migrations/20260820002200_explore_relevance.sql` —
+`public.list_explore_matches(_limit, _offset)`.
+
+Scoring, 0–100:
+
+| Signal | Points |
+|---|---|
+| Any shared social intent | 30 |
+| Each shared interest (capped) | 10, max 30 |
+| Any shared availability | 15 |
+| Hosts an open Venture with a free seat | 15 |
+| Within the mutual radius | 10 |
+
+- **Location is a LEFT JOIN.** No location means no proximity bonus, not an
+  empty result set. This is the whole fix.
+- **Sharing a Tribe is worth 0, deliberately.** Under exclusive membership,
+  tribemates are already directly reachable and Explore is the *cross-Tribe*
+  bridge. Boosting them would fill the deck with people the user can already
+  message and starve the one surface that crosses Tribes. They stay in the pool
+  (a large Tribe contains strangers) and `same_tribe` is returned so the UI can
+  label them honestly.
+- **The open-Venture lateral respects scope.** A `scope = 'mine'` Venture is
+  only surfaced to someone who shares the host's Tribe — advertising a door the
+  viewer would be refused at is worse than not mentioning it.
+- **Distance bands are disclosed only inside the mutual radius.** `radius_km` is
+  a consent setting, not a display filter: someone who chose 5 km is saying
+  "people further away should not be told where I am". An earlier draft of this
+  migration leaked "Within 50 km" to anyone within 50 km regardless. Caught in
+  testing, fixed before commit.
+- Ordering is `score desc, updated_at desc, id` — `updated_at` rather than
+  `created_at` so equal matches favour recently-active people over recent
+  signups, and `id` last so offset pagination cannot duplicate or skip.
+
+**Why the RPC returns the matched signals.** A bare "78% match" is not
+information — the user cannot tell whether it means shared taste or shared
+postcode, so it reads as decoration. `src/lib/explore-reasons.ts` turns the
+signals into chips ("Both want activity partners", "Also into Outdoors &
+Coffee") and into a suggested Hello opener. The opener is **offered, never
+prefilled** — an opener everybody sends identically is worth less than none.
+
+**Client:** `explore.functions.ts` (server fn), `explore-store.ts` (paged
+query), `explore-reasons.ts` (phrasings — written out, not derived from picker
+labels, which produce "Both want make friends"). `DiscoverScreen` now runs two
+queries: no search term is a *ranking* question and uses the RPC; a search term
+is a *lookup* and stays on `listDiscoverProfiles`.
+
+Also added: an honest end-of-pool line in the deck when it wraps, deck-driven
+auto-paging, and a prompt for users with no interests/intents/availability —
+their ranking is necessarily arbitrary and the app should say so rather than
+present noise as a recommendation.
+
+**Verified against Postgres 16, not by inspection.** Seven cases: viewer with no
+location row, proximity-as-bonus, `discoverable = false` neighbour, stable
+offset pagination across three pages, viewer with an entirely empty profile, and
+both sides of the mutual-radius band rule. `tsc --noEmit` and `vite build` pass.
+
+**Note for Codex:** `list_explore_matches` is not in
+`src/integrations/supabase/types.ts` yet, so `explore.functions.ts` casts. If
+you regenerate types, drop the cast.
+
+### 2026-08-20 — Claude — one Tribe per user, Hellos, DM gating
+
+- `20260820002000_one_tribe_per_user.sql` — exclusive membership, 21-day
+  cooldown, 7-day onboarding grace, `tribe_members` reconciled on change.
+  Also closed a real gap: leaving a Tribe updated `profiles.tribe_ids` but never
+  deleted the `tribe_members` row, so a departed member kept database-level
+  access to that Tribe's chat forever.
+- `20260820002100_hellos_and_dm_gating.sql` — `hellos` table, one per
+  sender/recipient pair ever, monthly cap by trigger, and `can_direct_message()`
+  with four ways in: tribemates, an accepted Hello, a shared active Venture, or
+  an existing thread. The last one matters — without it, switching Tribe would
+  sever conversations already in progress.
+- **Landmine, cost me a failed `db reset`:** `tribe_members.tribe_id` is a
+  **uuid** referencing `tribes.id`, while `profiles.tribe_ids` is a **text[] of
+  tribe keys** (`'wolf'`, `'koi'`). They cannot be compared directly —
+  `operator does not exist: uuid = text`. Always join through `public.tribes`
+  and match `t.key = any (p.tribe_ids)`. Membership rows also carry the profile
+  in *both* `user_id` and `profile_id`, so match on either.
+- `AddTribeSheet` is now a switch flow. The old "Add Tribe" button was
+  conditioned on `tribeIds.length < 3`, which under exclusive membership would
+  have made it vanish entirely. It is **Move** now.
 
 ### 2026-08-20 — Codex — MEUTUALS logo in app header
 
