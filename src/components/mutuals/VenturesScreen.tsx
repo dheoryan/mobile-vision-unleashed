@@ -18,6 +18,7 @@ import {
   Users,
   UserX,
   X,
+  ImagePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { INTENTS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
@@ -28,9 +29,12 @@ import { UpsellModal } from "./UpsellModal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureSwipeDeck } from "./VentureSwipeDeck";
+import { VentureImage } from "./VentureImage";
 import { Layers, List } from "lucide-react";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
+import { uploadVentureImage, signVentureImageUrl } from "@/lib/uploads";
+import { useAuth } from "@/lib/auth-context";
 import {
   useApplyToVenture,
   useCloseHostedVenture,
@@ -813,10 +817,35 @@ function HostForm({
   const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[1]);
   const [maxSlots, setMaxSlots] = useState(4);
   const [note, setNote] = useState("");
+  const [imagePath, setImagePath] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const { user } = useAuth();
 
   const myTribes = TRIBES.filter((tribe) => profile.tribeIds.includes(tribe.id));
   const canSubmit =
-    title.trim().length >= 3 && intents.length > 0 && maxSlots >= 2 && maxSlots <= 20;
+    title.trim().length >= 3 &&
+    intents.length > 0 &&
+    maxSlots >= 2 &&
+    maxSlots <= 20 &&
+    !uploading;
+
+  // Upload immediately on pick rather than on submit. The object lands in the
+  // host's own prefix, which the storage policy allows them to read straight
+  // away, so the preview works before any Venture row exists to point at it.
+  const pickImage = async (file?: File) => {
+    if (!file || !user?.id) return;
+    setUploading(true);
+    try {
+      const path = await uploadVentureImage(user.id, file);
+      setImagePath(path);
+      setImagePreview(await signVentureImageUrl(path));
+    } catch (error) {
+      toast.error("Could not upload that photo", { description: (error as Error).message });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const toggleIntent = (intent: string) => {
     setIntents((cur) => {
@@ -836,6 +865,7 @@ function HostForm({
         time_window: timeWindow,
         max_slots: maxSlots,
         note: note.trim(),
+        image_url: imagePath,
       },
       {
         onSuccess: (venture) => {
@@ -848,6 +878,8 @@ function HostForm({
           setTimeWindow(TIME_WINDOWS[1]);
           setMaxSlots(4);
           setNote("");
+          setImagePath(null);
+          setImagePreview(null);
         },
         onError: (err) => toast.error((err as Error).message),
       },
@@ -860,6 +892,56 @@ function HostForm({
       className="mb-4 rounded-2xl border border-border bg-card p-4 animate-rise"
     >
       <div className="grid gap-3">
+        {/* Photo first, because it is the part of the card people look at. A
+            plan with a picture of the place reads as an invitation; a plan
+            without one reads as a database row. Optional on purpose — making
+            it required would stop people posting spontaneous plans, which are
+            the ones the app most wants. */}
+        <FieldLabel label="Photo (optional)">
+          <label
+            className={cn(
+              "relative flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-background transition-colors hover:border-primary/50",
+              uploading && "pointer-events-none opacity-60",
+            )}
+          >
+            {imagePreview ? (
+              <img src={imagePreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-5 w-5" />
+                )}
+                <span className="text-[11px] font-semibold">
+                  {uploading ? "Uploading…" : "Add a photo of the place"}
+                </span>
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                void pickImage(event.target.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+          {imagePreview && (
+            <button
+              type="button"
+              onClick={() => {
+                setImagePath(null);
+                setImagePreview(null);
+              }}
+              className="mt-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Remove photo
+            </button>
+          )}
+        </FieldLabel>
+
         <FieldLabel label="Venture title">
           <input
             value={title}
@@ -1457,7 +1539,11 @@ function VentureCardHeader({
   const host = venture.host;
   return (
     <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
+      {/* A leading square rather than a banner: in a list the photo is a
+          recognition cue, not the subject. Renders nothing without one, so
+          cards keep their current layout. */}
+      <VentureImage path={venture.image_url} rounded="rounded-xl" className="h-14 w-14 shrink-0" />
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate font-display text-lg font-bold">{venture.title}</h3>
           <StatusPill status={venture.status} />

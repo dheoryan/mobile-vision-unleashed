@@ -80,6 +80,8 @@ export function useCreateHostedVenture() {
       time_window: string;
       note?: string;
       max_slots: number;
+      /** Object path in the private venture-images bucket, not a URL. */
+      image_url?: string | null;
     }) => fn({ data: input }),
     onSuccess: () => {
       invalidateVentures(qc);

@@ -49,6 +49,10 @@ export type VentureParty = {
   created_at: string;
   ended_at: string | null;
   closed_at: string | null;
+  /** Object path in the private venture-images bucket, or null. Callers resolve
+   *  a signed URL with signVentureImageUrl at render time — never a public URL,
+   *  because a scope='mine' Venture is Tribe-only. */
+  image_url: string | null;
   host: VentureProfileLite | null;
   my_application: VentureApplication | null;
   applications: VentureApplication[];
@@ -86,6 +90,7 @@ type VentureDbRow = {
   created_at: string;
   ended_at: string | null;
   closed_at: string | null;
+  image_url: string | null;
 };
 
 type VentureApplicationDbRow = {
@@ -109,7 +114,7 @@ type VentureMessageDbRow = {
 const PROFILE_COLS =
   "id, display_name, handle, avatar_emoji, avatar_url, plan, city, bio, tribe_ids";
 const VENTURE_COLS =
-  "id, user_id, title, intents, scope, time_window, note, max_slots, filled_slots, status, created_at, ended_at, closed_at";
+  "id, user_id, title, intents, scope, time_window, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS = "id, venture_id, sender_id, content, created_at";
 
@@ -121,6 +126,16 @@ const createVentureSchema = z.object({
   time_window: z.string().trim().min(1).max(80),
   note: z.string().trim().max(280).optional().default(""),
   max_slots: z.number().int().min(2).max(20),
+  // A storage object path, not a URL. Shape is enforced again in the database
+  // by enforce_venture_image_owner, which is what actually stops a host
+  // pointing at somebody else's upload.
+  image_url: z
+    .string()
+    .trim()
+    .max(300)
+    .regex(/^[0-9a-fA-F-]{36}\/[A-Za-z0-9._-]+$/, "unexpected image path")
+    .nullable()
+    .optional(),
 });
 
 const ventureInviteInputSchema = z.object({
@@ -213,6 +228,7 @@ function mapParty(
     created_at: row.created_at,
     ended_at: row.ended_at,
     closed_at: row.closed_at,
+    image_url: row.image_url ?? null,
     host,
     my_application: myApplication,
     applications,
@@ -617,6 +633,7 @@ export const createHostedVenture = createServerFn({ method: "POST" })
         max_slots: data.max_slots,
         filled_slots: 1,
         status: "open",
+        image_url: data.image_url ?? null,
       })
       .select(VENTURE_COLS)
       .single();

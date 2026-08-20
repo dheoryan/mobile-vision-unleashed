@@ -12,7 +12,7 @@ function extOf(file: File): string {
 }
 
 async function uploadTo(
-  bucket: "avatars" | "post-images" | "tribe-chat-attachments",
+  bucket: "avatars" | "post-images" | "tribe-chat-attachments" | "venture-images",
   userId: string,
   file: File,
   prefix = userId,
@@ -28,7 +28,13 @@ async function uploadTo(
   });
   if (error) throw new Error(error.message);
   // Private buckets store an object path; authorized callers resolve a signed URL at render time.
-  if (bucket === "tribe-chat-attachments" || bucket === "post-images") return path;
+  if (
+    bucket === "tribe-chat-attachments" ||
+    bucket === "post-images" ||
+    bucket === "venture-images"
+  ) {
+    return path;
+  }
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
@@ -38,6 +44,27 @@ export const uploadPostImage = (userId: string, file: File) =>
   uploadTo("post-images", userId, file);
 export const uploadTribeChatImage = (tribeId: string, userId: string, file: File) =>
   uploadTo("tribe-chat-attachments", userId, file, tribeId);
+export const uploadVentureImage = (userId: string, file: File) =>
+  uploadTo("venture-images", userId, file);
+
+const VENTURE_BUCKET = "venture-images";
+
+/**
+ * Signed URL for a Venture thumbnail, valid one hour.
+ *
+ * The bucket is private because a scope='mine' Venture is Tribe-only — a
+ * public URL would hand its photo to anyone with the link and silently undo
+ * that scoping. Storage RLS decides whether the caller gets a URL at all, so a
+ * null here means "not allowed to see it", not "broken".
+ */
+export async function signVentureImageUrl(value: string): Promise<string | null> {
+  const marker = `/${VENTURE_BUCKET}/`;
+  const i = value.indexOf(marker);
+  const path = i >= 0 ? decodeURIComponent(value.slice(i + marker.length)) : value;
+  const { data, error } = await supabase.storage.from(VENTURE_BUCKET).createSignedUrl(path, 3600);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
 
 const TRIBE_BUCKET = "tribe-chat-attachments";
 

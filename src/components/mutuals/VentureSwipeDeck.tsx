@@ -3,6 +3,7 @@ import { Check, Clock, Loader2, Users, X, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
+import { VentureImage } from "./VentureImage";
 import { useApplyToVenture, type VentureParty } from "@/lib/ventures-store";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +88,12 @@ export function VentureSwipeDeck({
         className="overflow-hidden rounded-3xl border border-border"
         style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${tribe.colorVar} 24%, var(--card)) 0%, var(--card) 60%)` }}
       >
+        {/* Full-bleed at the top of the card. This is the single biggest thing
+            separating a plan that reads as an invitation from one that reads
+            as a row in a table. Renders nothing when there is no photo, so the
+            card keeps its existing layout rather than reserving an empty box. */}
+        <VentureImage path={venture.image_url} rounded="rounded-none" className="h-40 w-full" />
+
         <div className="p-5">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <TribeMark tribe={tribe} size="xs" />
