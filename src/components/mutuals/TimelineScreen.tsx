@@ -8,6 +8,7 @@ import type { Profile } from "./Onboarding";
 import { tribeById, TRIBES, type TribeId } from "@/lib/mutuals-data";
 import { ComposerModal } from "./ComposerModal";
 import { Plus } from "lucide-react";
+import { TribeMark } from "./TribeMark";
 
 export function TimelineScreen({
   profile,
@@ -40,6 +41,8 @@ export function TimelineScreen({
   const forYouPosts = (feedQuery.data ?? []).filter((p) => !blocked.has(p.author_id));
 
   const isLoadingCurrent = tab === "tribe" ? tribeFeedQuery.isLoading : feedQuery.isLoading;
+  const isErrorCurrent = tab === "tribe" ? tribeFeedQuery.isError : feedQuery.isError;
+  const refetchCurrent = tab === "tribe" ? tribeFeedQuery.refetch : feedQuery.refetch;
   const currentPosts = tab === "tribe" ? tribePosts : forYouPosts;
 
   // Auto-switch tab + scroll + highlight when an intent targets a specific post
@@ -82,7 +85,7 @@ export function TimelineScreen({
             )}
             style={tab === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
           >
-            {tribe.emoji} {tribe.name}
+            <TribeMark tribe={tribe} size="xs" /> {tribe.name}
           </button>
           <button
             onClick={() => setTab("foryou")}
@@ -111,7 +114,7 @@ export function TimelineScreen({
                     )}
                     style={isActive ? { backgroundColor: t.colorVar } : undefined}
                   >
-                    <span>{t.emoji}</span>
+                    <TribeMark tribe={t} size="xs" />
                     {t.name}
                   </button>
                 );
@@ -131,6 +134,16 @@ export function TimelineScreen({
         <div className="mt-3 flex flex-col gap-3">
           {isLoadingCurrent ? (
             <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
+          ) : isErrorCurrent ? (
+            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+              <p className="text-xs text-muted-foreground">Couldn't load these signals.</p>
+              <button
+                onClick={() => void refetchCurrent()}
+                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+              >
+                Retry
+              </button>
+            </div>
           ) : currentPosts.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
               {tab === "tribe"

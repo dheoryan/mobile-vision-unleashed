@@ -11,7 +11,7 @@ import { useSocial, useToggleLike, useMyShares, useToggleShare } from "@/lib/soc
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { uploadPostImage } from "@/lib/uploads";
-import { timeAgo } from "@/lib/time";
+import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
@@ -57,7 +57,8 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
-  const [editImage, setEditImage] = useState<string | null>(post.image_url);
+  const [editImagePath, setEditImagePath] = useState<string | null>(post.image_path);
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(post.image_url);
   const [confirmDel, setConfirmDel] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -66,7 +67,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     if (post.id.startsWith("tmp-")) return;
     toggleShare.mutate(post.id);
     try {
-      await navigator.clipboard?.writeText(`https://mutuals.app/p/${post.id}`);
+      await navigator.clipboard?.writeText(`${window.location.origin}/p/${post.id}`);
       toast.success(shared ? "Unshared" : "Link copied");
     } catch {
       toast.success(shared ? "Unshared" : "Shared");
@@ -76,19 +77,20 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const startEdit = () => {
     setMenuOpen(false);
     setEditText(post.content);
-    setEditImage(post.image_url);
+    setEditImagePath(post.image_path);
+    setEditImageUrl(post.image_url);
     setEditing(true);
   };
 
   const saveEdit = () => {
     const t = editText.trim();
-    if (!t && !editImage) {
+    if (!t && !editImagePath) {
       toast.error("Post can't be empty.");
       return;
     }
-    const imageChanged = editImage !== post.image_url;
+    const imageChanged = editImagePath !== post.image_path;
     editPost.mutate(
-      { id: post.id, content: t, ...(imageChanged ? { image_url: editImage } : {}) },
+      { id: post.id, content: t, ...(imageChanged ? { image_path: editImagePath } : {}) },
       {
         onSuccess: () => toast.success("Post updated"),
         onError: (e) => toast.error((e as Error).message),
@@ -105,8 +107,9 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     if (f.size > MAX_IMG_BYTES) { toast.error("Image too large", { description: "Max 5 MB." }); return; }
     setUploading(true);
     try {
-      const url = await uploadPostImage(user.id, f);
-      setEditImage(url);
+      const path = await uploadPostImage(user.id, f);
+      setEditImagePath(path);
+      setEditImageUrl(URL.createObjectURL(f));
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
     } finally {
@@ -148,7 +151,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               </span>
             )}
             {showTribe && " · "}
-            {timeAgo(post.created_at)} ago
+            {timeAgoLabel(post.created_at)}
           </p>
         </div>
         {post.tag && (
@@ -199,11 +202,11 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             onChange={(e) => setEditText(e.target.value.slice(0, 280))}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
-          {editImage && (
+          {editImageUrl && (
             <div className="relative overflow-hidden rounded-xl border border-border">
-              <img src={editImage} alt="" className="block max-h-72 w-full object-cover" />
+              <img src={editImageUrl} alt="" className="block max-h-72 w-full object-cover" />
               <button
-                onClick={() => setEditImage(null)}
+                onClick={() => { setEditImagePath(null); setEditImageUrl(null); }}
                 aria-label="Remove image"
                 className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background"
               >
@@ -219,7 +222,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
               {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-              {uploading ? "Uploading…" : editImage ? "Replace" : "Add photo"}
+              {uploading ? "Uploading…" : editImagePath ? "Replace" : "Add photo"}
             </button>
             <span className="text-[10px] text-muted-foreground">{editText.length}/280</span>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />

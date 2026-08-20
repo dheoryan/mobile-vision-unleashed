@@ -19,6 +19,8 @@ import { rowToProfile, useProfileRow, useUpdateProfile, profileToPatch } from "@
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AgeVerification } from "@/components/mutuals/AgeVerification";
+import { useSaveMyLocation } from "@/lib/location-store";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -38,6 +40,7 @@ function App() {
   const navigate = useNavigate();
   const profileQuery = useProfileRow();
   const updateProfile = useUpdateProfile();
+  const saveLocation = useSaveMyLocation();
 
   const profile = rowToProfile(profileQuery.data ?? null);
 
@@ -142,11 +145,22 @@ function App() {
   }
   if (!user) return null; // redirecting
 
+  if (profileQuery.data && !profileQuery.data.adult_verified_at) {
+    return <AgeVerification locked={!!profileQuery.data.date_of_birth} />;
+  }
+
   if (!profile) {
     return (
       <Onboarding
-        onDone={(p) =>
+        saving={updateProfile.isPending || saveLocation.isPending}
+        onDone={(p, location) =>
           updateProfile.mutate(profileToPatch(p), {
+            onSuccess: () => {
+              if (!location) return;
+              saveLocation.mutate(location, {
+                onError: (error) => toast.error("Profile saved, but nearby is off", { description: (error as Error).message }),
+              });
+            },
             onError: (err) => toast.error((err as Error).message),
           })
         }

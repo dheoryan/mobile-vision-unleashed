@@ -12,6 +12,8 @@ import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { toast } from "sonner";
 import { uploadTribeChatImage, signTribeChatUrl } from "@/lib/uploads";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
+import { SafetyMenu } from "./SafetyMenu";
+import { TribeMark } from "./TribeMark";
 
 function SwipeReplyRow({
   children,
@@ -156,18 +158,7 @@ function TribeStrip({
               onClick={() => onChange(t.id)}
               className="flex shrink-0 flex-col items-center gap-1.5 active:scale-95"
             >
-              <span
-                className={cn(
-                  "flex h-14 w-14 items-center justify-center rounded-2xl text-2xl transition-all",
-                  isActive ? "" : "opacity-60",
-                )}
-                style={{
-                  backgroundColor: `color-mix(in oklab, ${t.colorVar} 22%, transparent)`,
-                  boxShadow: isActive ? `0 0 0 2px ${t.colorVar}` : undefined,
-                }}
-              >
-                {t.emoji}
-              </span>
+              <TribeMark tribe={t} size="lg" className={cn("transition-all", isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-60")} />
               <span
                 className={cn(
                   "text-[11px] font-medium",
@@ -277,12 +268,7 @@ function TribeBanner({
         style={{ backgroundColor: tribe.colorVar }}
       />
       <div className="relative flex items-start gap-4">
-        <span
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-3xl"
-          style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 30%, var(--card))` }}
-        >
-          {tribe.emoji}
-        </span>
+        <TribeMark tribe={tribe} size="lg" decorative={false} />
         <div className="min-w-0 flex-1">
           <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/40 px-2 py-1 text-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
@@ -448,7 +434,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
         "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at",
       )
       .eq("tribe_id", dbTribeId)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) {
@@ -457,7 +443,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       return;
     }
 
-    const rows = data ?? [];
+    const rows = [...(data ?? [])].reverse();
     const senderIds = [...new Set(rows.map((r: any) => r.sender_id))];
     let profileMap: Record<string, TribeMember> = {};
     if (senderIds.length > 0) {
@@ -704,7 +690,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                   </span>
                 )}
-                <div className="max-w-[78%]">
+                <div className="max-w-[70%]">
                   {!mine && (
                     <p className="mb-0.5 text-[10px] text-muted-foreground">{displayName}</p>
                   )}
@@ -763,6 +749,13 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                   </div>
                 </div>
+                {!mine && (
+                  <SafetyMenu
+                    targetName={displayName}
+                    targetUserId={m.sender_id}
+                    className="self-start -mt-1 shrink-0"
+                  />
+                )}
               </SwipeReplyRow>
             );
           })}

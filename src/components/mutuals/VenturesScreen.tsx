@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Plus,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   UserCheck,
   UserPlus,
@@ -22,6 +23,7 @@ import { toast } from "sonner";
 import { INTENTS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
+import { SafetyMenu } from "./SafetyMenu";
 import { UpsellModal } from "./UpsellModal";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
@@ -314,6 +316,18 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
             body="Accepted members get a shared chat while the Venture is active."
           />
         </div>
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
+        <div className="flex items-center gap-2 text-emerald-300">
+          <ShieldCheck className="h-4 w-4" />
+          <h3 className="text-sm font-semibold">Meet safely</h3>
+        </div>
+        <ul className="mt-2 space-y-1 text-xs leading-relaxed text-muted-foreground">
+          <li>Meet in a public place and arrange your own transport.</li>
+          <li>Keep exact locations and personal contact details in accepted-member chat.</li>
+          <li>Tell someone you trust where you are going. Leave and report anything that feels wrong.</li>
+        </ul>
       </section>
 
       <button
@@ -891,11 +905,14 @@ function HostForm({
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value.slice(0, 280))}
-            placeholder="Where to meet, vibe, or a tiny bit of context."
+            placeholder="Share the vibe and a public area — save exact details for accepted-member chat."
             rows={3}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
-          <p className="mt-1 text-right text-[10px] text-muted-foreground">{note.length}/280</p>
+          <div className="mt-1 flex items-start justify-between gap-3 text-[10px] text-muted-foreground">
+            <span>Don't post a home address, phone number, or exact private location.</span>
+            <span className="shrink-0">{note.length}/280</span>
+          </div>
         </FieldLabel>
       </div>
 
@@ -1383,6 +1400,11 @@ function JoinedVentureCard({
             {isPending ? "Waiting" : "Closed"}
           </span>
         )}
+        <SafetyMenu
+          targetName={displayName(host)}
+          targetUserId={venture.host_id}
+          className="shrink-0"
+        />
       </div>
     </article>
   );
@@ -1413,11 +1435,20 @@ function VentureCardHeader({
           </div>
         )}
       </div>
-      <div className="text-right">
-        <p className="text-sm font-bold">
-          {venture.filled_slots}/{venture.max_slots}
-        </p>
-        <p className="text-[10px] text-muted-foreground">slots</p>
+      <div className="flex items-start gap-1">
+        <div className="text-right">
+          <p className="text-sm font-bold">
+            {venture.filled_slots}/{venture.max_slots}
+          </p>
+          <p className="text-[10px] text-muted-foreground">slots</p>
+        </div>
+        {!hideHost && (
+          <SafetyMenu
+            targetName={displayName(host)}
+            targetUserId={venture.host_id}
+            className="-mt-1 shrink-0"
+          />
+        )}
       </div>
     </div>
   );
@@ -1485,6 +1516,11 @@ function ApplicantRow({
             <p className="mt-0.5 text-xs text-muted-foreground">No note attached.</p>
           )}
         </div>
+        <SafetyMenu
+          targetName={displayName(application.applicant)}
+          targetUserId={application.applicant_id}
+          className="-mt-1 shrink-0"
+        />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button

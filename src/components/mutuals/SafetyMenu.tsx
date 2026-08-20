@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MoreHorizontal, X, Flag, Ban } from "lucide-react";
 import { toast } from "sonner";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useBlockUser } from "@/lib/blocked-store";
 import { useReportContent } from "@/lib/social-store";
 
@@ -14,11 +15,13 @@ const REPORT_REASONS = [
 ];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type SafetyTargetKind = "user" | "post" | "comment";
 
 export function SafetyMenu({
   targetName,
   targetUserId,
   targetPostId,
+  targetCommentId,
   kind = "user",
   className = "",
 }: {
@@ -27,7 +30,9 @@ export function SafetyMenu({
   targetUserId?: string;
   /** Post id when kind === "post". Required to file a post report. */
   targetPostId?: string;
-  kind?: "user" | "post";
+  /** Comment id when kind === "comment". Required to file a comment report. */
+  targetCommentId?: string;
+  kind?: SafetyTargetKind;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -36,10 +41,16 @@ export function SafetyMenu({
 
   return (
     <>
-      <div className={`relative ${className}`}>
+      <div
+        className={`relative ${className}`}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
         <button
+          type="button"
           onClick={() => setOpen((o) => !o)}
-          aria-label="More options"
+          aria-label={`Safety options for ${targetName}`}
+          aria-expanded={open}
           className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -52,9 +63,9 @@ export function SafetyMenu({
                 onClick={() => { setOpen(false); setReportOpen(true); }}
                 className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
               >
-                <Flag className="h-3.5 w-3.5" /> Report {kind === "post" ? "post" : "user"}
+                <Flag className="h-3.5 w-3.5" /> Report {kind}
               </button>
-              {kind === "user" && (
+              {targetUserId && (
                 <button
                   onClick={() => {
                     setOpen(false);
@@ -85,7 +96,9 @@ export function SafetyMenu({
         onClose={() => setReportOpen(false)}
         targetName={targetName}
         kind={kind}
-        targetId={kind === "post" ? targetPostId : targetUserId}
+        targetId={
+          kind === "post" ? targetPostId : kind === "comment" ? targetCommentId : targetUserId
+        }
       />
     </>
   );
@@ -93,12 +106,10 @@ export function SafetyMenu({
 
 function ReportModal({
   open, onClose, targetName, kind, targetId,
-}: { open: boolean; onClose: () => void; targetName: string; kind: "user" | "post"; targetId?: string }) {
+}: { open: boolean; onClose: () => void; targetName: string; kind: SafetyTargetKind; targetId?: string }) {
   const [reason, setReason] = useState(REPORT_REASONS[0]);
   const [details, setDetails] = useState("");
   const reportContent = useReportContent();
-  if (!open) return null;
-
   const submit = () => {
     if (!targetId) {
       toast.error("Can't submit a report for this item.");
@@ -119,13 +130,20 @@ function ReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-auto w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 animate-rise">
+    <AnimatedModal
+      open={open}
+      onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}
+      title={`Report ${kind}`}
+      preventClose={reportContent.isPending}
+      contentClassName="p-6"
+    >
+      <div>
         <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
-        <h2 className="font-display text-xl font-bold">Report {kind === "post" ? "post" : `@${targetName}`}</h2>
+        <h2 className="font-display text-xl font-bold">
+          Report {kind === "user" ? `@${targetName}` : kind}
+        </h2>
         <p className="mt-1 text-xs text-muted-foreground">Reports are reviewed by the MEUTUALS team. They're confidential.</p>
 
         <label className="mt-4 block">
@@ -163,6 +181,6 @@ function ReportModal({
           </button>
         </div>
       </div>
-    </div>
+    </AnimatedModal>
   );
 }

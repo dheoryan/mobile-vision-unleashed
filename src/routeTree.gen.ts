@@ -22,6 +22,8 @@ import { Route as HostRouteImport } from './routes/host'
 import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
+import { Route as PPostIdRouteImport } from './routes/p.$postId'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push.dispatch'
 
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -89,6 +91,16 @@ const UHandleRoute = UHandleRouteImport.update({
   path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PPostIdRoute = PPostIdRouteImport.update({
+  id: '/p/$postId',
+  path: '/p/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
   id: '/api/public/push/dispatch',
   path: '/api/public/push/dispatch',
@@ -108,6 +120,8 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/p/$postId': typeof PPostIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
 }
@@ -124,6 +138,8 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/p/$postId': typeof PPostIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
 }
@@ -141,6 +157,8 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/p/$postId': typeof PPostIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
 }
@@ -159,6 +177,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tiers'
     | '/upgrade'
+    | '/admin/reports'
+    | '/p/$postId'
     | '/u/$handle'
     | '/api/public/push/dispatch'
   fileRoutesByTo: FileRoutesByTo
@@ -175,6 +195,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tiers'
     | '/upgrade'
+    | '/admin/reports'
+    | '/p/$postId'
     | '/u/$handle'
     | '/api/public/push/dispatch'
   id:
@@ -191,6 +213,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tiers'
     | '/upgrade'
+    | '/admin/reports'
+    | '/p/$postId'
     | '/u/$handle'
     | '/api/public/push/dispatch'
   fileRoutesById: FileRoutesById
@@ -208,6 +232,8 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
   UpgradeRoute: typeof UpgradeRoute
+  AdminReportsRoute: typeof AdminReportsRoute
+  PPostIdRoute: typeof PPostIdRoute
   UHandleRoute: typeof UHandleRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
 }
@@ -305,6 +331,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$postId': {
+      id: '/p/$postId'
+      path: '/p/$postId'
+      fullPath: '/p/$postId'
+      preLoaderRoute: typeof PPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/push/dispatch': {
       id: '/api/public/push/dispatch'
       path: '/api/public/push/dispatch'
@@ -328,6 +368,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,
   UpgradeRoute: UpgradeRoute,
+  AdminReportsRoute: AdminReportsRoute,
+  PPostIdRoute: PPostIdRoute,
   UHandleRoute: UHandleRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
 }

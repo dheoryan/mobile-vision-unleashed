@@ -30,6 +30,7 @@ import {
   requestPushPrompt,
   type PushPromptTrigger,
 } from "@/lib/push-prompt-events";
+import { useProfileRow } from "@/lib/profile-store";
 
 const COPY: Record<PushPromptTrigger, { title: string; body: string }> = {
   session: {
@@ -57,12 +58,18 @@ export function PushPromptModal() {
   const [busy, setBusy] = useState(false);
   const [installable, setInstallable] = useState(canInstallNow());
   const save = useServerFn(saveSubscription);
+  const profileQuery = useProfileRow();
+  const profileReady = !!(
+    profileQuery.data?.adult_verified_at &&
+    profileQuery.data.display_name &&
+    profileQuery.data.tribe_ids?.length
+  );
 
   useEffect(() => onInstallAvailabilityChange(setInstallable), []);
 
   // Subscribe to high-intent trigger requests.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profileReady) return;
     const off = onPushPromptRequest((t) => {
       tryOpen(t);
     });
@@ -70,11 +77,11 @@ export function PushPromptModal() {
       off();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, profileReady]);
 
   // Session prompt on app open.
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading || !user || !profileReady) return;
     if (!isPushSupported()) return;
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -87,10 +94,10 @@ export function PushPromptModal() {
     }, 1500);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, authLoading]);
+  }, [user?.id, authLoading, profileReady]);
 
   function tryOpen(t: PushPromptTrigger) {
-    if (!user) return;
+    if (!user || !profileReady) return;
     if (!isPushSupported()) return;
     if (getPushPermission() === "denied") return;
     if (!shouldShowPrompt(user.id, t)) return;

@@ -11,9 +11,12 @@ import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PostCard } from "@/components/mutuals/PostCard";
 import { TribeBadge } from "@/components/mutuals/Shared";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
+import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { intentStore } from "@/lib/intent-store";
 import { toast } from "sonner";
+import { INTEREST_OPTIONS, SOCIAL_INTENT_OPTIONS, optionLabel } from "@/lib/profile-options";
+import { TribeMark } from "@/components/mutuals/TribeMark";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
@@ -86,7 +89,14 @@ function PublicProfilePage() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <p className="font-display text-sm font-bold">@{profile.handle ?? "user"}</p>
-          <span className="w-10" />
+          {isMe ? (
+            <span className="w-10" />
+          ) : (
+            <SafetyMenu
+              targetName={profile.display_name || profile.handle || "this user"}
+              targetUserId={profile.id}
+            />
+          )}
         </div>
       </header>
 
@@ -111,19 +121,26 @@ function PublicProfilePage() {
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <TribeBadge name={tribe.name} color={tribe.colorVar} hosted={tribe.hosted} />
                 {otherTribes.map((t) => (
-                  <span
-                    key={t.id}
-                    title={t.name}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-sm"
-                    style={{ backgroundColor: `color-mix(in oklab, ${t.colorVar} 28%, transparent)` }}
-                  >
-                    {t.emoji}
-                  </span>
+                  <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
                 ))}
               </div>
             </div>
           </div>
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
+          {(profile.social_intents.length > 0 || profile.interests.length > 0) && (
+            <div className="mt-4 space-y-2">
+              {profile.social_intents.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.social_intents.map((intent) => <SignalTag key={intent} label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)} accent />)}
+                </div>
+              )}
+              {profile.interests.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.interests.slice(0, 5).map((interest) => <SignalTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />)}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <Stat label="Following" value={String(countsQ.data?.following ?? 0)} />
@@ -183,4 +200,8 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="label-mono text-muted-foreground">{label}</p>
     </div>
   );
+}
+
+function SignalTag({ label, accent = false }: { label: string; accent?: boolean }) {
+  return <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${accent ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-background/50 text-muted-foreground"}`}>{label}</span>;
 }

@@ -1,18 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { AVAILABILITY_IDS, INTEREST_IDS, SOCIAL_INTENT_IDS } from "@/lib/profile-options";
 
 const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
 
 const updateSchema = z.object({
   display_name: z.string().min(1).max(60).optional(),
   handle: z.string().max(30).nullable().optional(),
-  age: z.number().int().min(21).max(120).nullable().optional(),
   city: z.string().max(80).optional(),
   bio: z.string().max(280).optional(),
   avatar_emoji: z.string().max(8).optional(),
   avatar_url: z.string().nullable().optional(),
   tribe_ids: z.array(z.string().min(1).max(40)).max(3).optional(),
+  interests: z.array(z.enum(INTEREST_IDS)).max(8).optional(),
+  social_intents: z.array(z.enum(SOCIAL_INTENT_IDS)).max(3).optional(),
+  availability: z.array(z.enum(AVAILABILITY_IDS)).max(4).optional(),
   // plan is intentionally NOT user-editable. Plan upgrades must go through a
   // trusted server flow (payment verification) — not the profile update endpoint.
 });
@@ -22,17 +25,25 @@ export type ProfileRow = {
   display_name: string;
   handle: string | null;
   age: number | null;
+  date_of_birth: string | null;
+  adult_verified_at: string | null;
+  age_verification_locked_at: string | null;
   city: string;
   bio: string;
   avatar_emoji: string;
   avatar_url: string | null;
   tribe_ids: string[];
+  interests: string[];
+  social_intents: string[];
+  availability: string[];
   plan: "free" | "plus";
   venture_count: number;
 };
 
 const PROFILE_COLS =
-  "id, display_name, handle, age, city, bio, avatar_emoji, avatar_url, tribe_ids, plan, venture_count";
+  "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan, venture_count";
+const MY_PROFILE_COLS =
+  `${PROFILE_COLS}, age, date_of_birth, adult_verified_at, age_verification_locked_at`;
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -40,7 +51,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("profiles")
-      .select(PROFILE_COLS)
+      .select(MY_PROFILE_COLS)
       .eq("id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -88,10 +99,31 @@ export const updateMyProfile = createServerFn({ method: "POST" })
       .from("profiles")
       .update(data)
       .eq("id", userId)
-      .select(PROFILE_COLS)
+      .select(MY_PROFILE_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as ProfileRow;
+  });
+
+export const verifyMyAge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("profiles")
+      .update({ date_of_birth: data.date_of_birth })
+      .eq("id", userId)
+      .select(MY_PROFILE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    const profile = row as ProfileRow;
+    if (!profile.adult_verified_at) {
+      throw new Error("This account does not meet the age requirement.");
+    }
+    return profile;
   });
 
 export const joinTribe = createServerFn({ method: "POST" })
@@ -136,6 +168,9 @@ export type VentureMatch = {
   avatar_emoji: string;
   avatar_url: string | null;
   tribe_ids: string[];
+  interests: string[];
+  social_intents: string[];
+  availability: string[];
   plan: "free" | "plus";
 };
 
@@ -153,7 +188,7 @@ export const listVentureMatches = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     let q = supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
+      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
       .neq("id", userId)
       .limit(120);
     if (data.scope === "mine" && data.tribe_ids && data.tribe_ids.length) {
@@ -192,7 +227,7 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
 
     let q = supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, plan")
+      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
       .neq("id", userId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);

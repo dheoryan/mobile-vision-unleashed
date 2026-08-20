@@ -63,6 +63,9 @@ export function AnimatedModal({
             )}
           >
             <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Description className="sr-only">
+              {title} dialog
+            </DialogPrimitive.Description>
             {children}
           </DialogPrimitive.Content>
         </div>

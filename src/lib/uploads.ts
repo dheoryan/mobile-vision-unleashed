@@ -27,8 +27,8 @@ async function uploadTo(
     contentType: file.type,
   });
   if (error) throw new Error(error.message);
-  // Private bucket: store the object path, resolve a signed URL at render time.
-  if (bucket === "tribe-chat-attachments") return path;
+  // Private buckets store an object path; authorized callers resolve a signed URL at render time.
+  if (bucket === "tribe-chat-attachments" || bucket === "post-images") return path;
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
@@ -57,4 +57,3 @@ export async function signTribeChatUrl(value: string): Promise<string | null> {
   if (error) return null;
   return data?.signedUrl ?? null;
 }
-

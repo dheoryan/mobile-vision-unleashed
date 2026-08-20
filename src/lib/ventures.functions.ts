@@ -788,11 +788,11 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       .from("venture_messages")
       .select(MESSAGE_COLS)
       .eq("venture_id", data.venture_id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
 
-    const messages = (rows ?? []) as VentureMessageDbRow[];
+    const messages = ((rows ?? []) as VentureMessageDbRow[]).reverse();
     const senders = await fetchProfiles(
       db,
       messages.map((m) => m.sender_id),

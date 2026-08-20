@@ -14,6 +14,7 @@ export type NotificationKind =
   | "message"
   | "new_post"
   | "venture_apply"
+  | "venture_invite"
   | "venture_accept"
   | "venture_message"
   | "tribe_join";

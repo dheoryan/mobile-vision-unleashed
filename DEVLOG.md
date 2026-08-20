@@ -29,8 +29,8 @@ are already assessed there.
 | Phase | Status |
 |---|---|
 | Week 1 — critical security, store blockers, scale | ✅ done (commit `7a25853`) |
-| Week 2 — safety & correctness | ⬜ **next** |
-| Week 3 — compliance & launch prep | ⬜ not started |
+| Week 2 — safety & correctness | ✅ done (2026-08-20) |
+| Week 3 — compliance & launch prep | 🟡 engineering pass complete; external launch work remains |
 | Product: audience-primitive decision | 🟡 recommended, **awaiting user decision** |
 
 ---
@@ -41,7 +41,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| _(none)_ | | | |
+| Claude | Tribe-first Timeline (phase step 1–2): feed derives from joined Tribes; `audience:'all'` rescoped to member Tribes; Follow reframed as saved connections | `src/lib/posts.functions.ts`, `src/lib/posts-store.ts`, `src/components/mutuals/TimelineScreen.tsx`, `src/components/mutuals/DiscoverScreen.tsx` | 2026-08-20 10:20 |
 
 ---
 
@@ -54,6 +54,7 @@ Claim before you start. Remove your row when done and log it below.
 | **Payments** | Free at launch. No processor. When it happens: StoreKit / Play Billing / hosted checkout — **never** an in-app card form (Apple 3.1.1). Entitlement must be granted server-side from the store webhook, since `profiles.plan` is deliberately not user-writable. |
 | **Animation** | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library. |
 | **Modals** | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals. |
+| **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
 | **Pushing to remote** | User-authorised only. Both agents. |
 
 ---
@@ -73,14 +74,16 @@ Claim before you start. Remove your row when done and log it below.
    better business than consumer subscriptions. Needs a user call.
 3. **Launch geography.** Cold start needs concentration in one city / one or
    two tribes. Nobody has picked one.
-
 ---
 
-## Known issues — prioritised, not yet fixed
+## Known issues — prioritised
 
 Full detail and file:line evidence in `MEUTUALS_PRODUCTION_AUDIT.md`.
 
-### Week 2 — safety & correctness (next up)
+### Week 2 — safety & correctness (completed 2026-08-20)
+
+All items in this table are complete. The original findings are retained for
+traceability; implementation and verification evidence is in the Work Log.
 
 | ID | Issue | Why it matters |
 |---|---|---|
@@ -95,24 +98,23 @@ Full detail and file:line evidence in `MEUTUALS_PRODUCTION_AUDIT.md`.
 | **P3** | Chat/comment queries use `ascending: true` + `limit` → they return the **oldest** N rows. | Tribe chat freezes at 100 messages, DMs at 500. A 5-person tribe hits this on day one. |
 | **P4** | Counter triggers do a full `count(*)` recount per like, and lock the post row. | Viral-post death: like latency grows linearly with like count. |
 
-### Week 3 — compliance
+### Week 3 — compliance (engineering pass 2026-08-20)
 
-| ID | Issue |
-|---|---|
-| **L1** | **No moderation surface at all.** Reports insert into a table with no status column, no moderator role, no admin route, no trigger. UI claims "we'll review it shortly." Apple 1.2 requires acting within 24h. **Longest pole — 3–5 days.** |
-| **L2** | No content filtering of any kind — text or image. |
-| **L5** | Privacy policy names Vercel, Stripe, PostHog, Sentry (none are used) and omits Cloudflare, Supabase, Google OAuth, push data, public image storage. Both stores read this URL. |
-| **L8** | Ventures have zero safety layer — no guidance, no report/block on venture surfaces, `listVentureMatches` doesn't filter blocked users. |
-| **L9** | Placeholder contact emails (`privacy@`, `appeals@`, `hello@` — all TODO). Missing Sign in with Apple. Metadata name inconsistency (manifest says `MUTUALS`). |
+| ID | Status | Remaining work |
+|---|---|---|
+| **L1** | 🟡 Queue complete | Moderator roles, 24-hour due timestamps, `/admin/reports`, hide/suspend/dismiss actions, and audit log are implemented and tested. Launch still needs named staff, monitored alerts, and a rehearsed SLA/runbook. |
+| **L2** | 🟡 Text baseline complete | Database triggers reject a narrow high-confidence harmful-text set. Automated image/CSAM/NCII classification and quarantine remain a launch blocker. |
+| **L5** | 🟡 Data map corrected | Privacy page now describes Cloudflare, Supabase, OAuth, push, private media, and the data actually collected. Controller identity/address, real contacts, retention/legal basis detail, and counsel/store review remain. |
+| **L8** | ✅ Complete | Venture surfaces now carry report/block controls, two-way block filtering, meet-safely guidance, and accepted-chat location guidance. |
+| **L9** | 🟡 Code complete | Apple entry points and consistent MEUTUALS manifest/title/push metadata are present. Production Apple credentials and working contact inboxes remain external blockers. |
 
 ### Deferred / lower priority
 
 - **P5** push fan-out is one Worker invocation per recipient (5k followers = 5k invocations from one post).
-- **P7** inbox rebuilt from last 500 raw messages (heavy users lose threads; unread badge counts every inbound message ever); no feed pagination; unbounded `.in()` lists → HTTP 414; full-resolution avatars (`compressImage` exists but is called from one place); failed queries render "No posts yet".
+- **P7** inbox is still rebuilt from the newest 500 raw messages (heavy users can lose older threads); durable `read_at` now fixes unread counts. Feed pagination and bounded large ID filters remain; Timeline query failures now render a retry state.
 - **M1** `profiles.venture_count` is a read-modify-write race; venture slot acceptance is check-then-act (two simultaneous accepts can over-subscribe).
-- Dead code: `joinTribe` / `leaveTribe` / `listVentureMatches` have zero call sites. No way to leave a tribe.
-- Venture notification triggers all insert `kind = 'message'`, so three styled notification types are unreachable.
-- `PostCard.tsx` share copies `https://mutuals.app/p/${id}` — **there is no `/p/` route.** Every share is a dead link.
+- `listVentureMatches` remains unused. Tribe join/leave is now reachable through Manage Tribes; the final home Tribe cannot be removed.
+- Shared posts now use the current origin and a real RLS-protected `/p/$postId` route with post-login return.
 - `.env` is tracked in git despite being in `.gitignore` (contents are only the publishable key, so hygiene not leak).
 
 ---
@@ -128,6 +130,380 @@ _(empty)_
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-20 — Codex — MEUTUALS logo in app header
+
+- Replaced the temporary gold `M` monogram in the shared `AppHeader` with the
+  existing MEUTUALS eye mark across Discover, Timeline, Tribe, Ventures, and
+  Profile.
+- Added a tightly cropped 128×128 `logo-mark.webp` optimized specifically for
+  the 36 px header slot (2.7 kB), avoiding the 820 kB full login-logo payload
+  while keeping the exact brand artwork.
+- Preserved semantic `alt="MEUTUALS"` text and the contextual accent outline.
+  `npx tsc --noEmit` and `npm run build` pass with only existing warnings.
+
+### 2026-08-20 — Codex — matching editorial Tribe crests
+
+- Completed the second promised visual tier: five compact editorial crests
+  derived from the new large illustrations. Each uses the same near-black,
+  warm-ivory, dominant Tribe color, secondary accent, and tactile screen-print
+  language as its portrait counterpart.
+- Replaced the five stable files in `src/assets/tribes/crests/`; every
+  `TribeMark` consumer updates automatically. Production crests are 256×256
+  WebPs (8.6–11.9 kB), readable across the component's 20–80 px size range.
+- Preserved the prior crests in `_to_delete/previous-tribe-crests/` and the
+  generated PNG sources in
+  `_to_delete/generated-editorial-crest-png-sources/` for sign-off/recovery.
+- Re-ran `npx tsc --noEmit` and `npm run build`; both pass with only the
+  existing chunk-size and third-party bundler warnings.
+
+### 2026-08-20 — Codex — editorial Tribe illustration system
+
+- Completed the approved five-piece editorial illustration family for Iron
+  Wolf, Mindful Koi, Studio Cat, Night Owl, and Honeybee. Each portrait centers
+  a real social behavior, uses black/ivory screen-print linework, and carries a
+  distinct dominant/secondary Tribe palette.
+- Replaced the five existing large card assets in `src/assets/tribes/` under
+  their stable filenames, so onboarding and Discover update without component
+  or data-model changes. Production files are 900×1200 WebPs (108–147 kB).
+- Moved the previous tarot artwork recoverably to
+  `_to_delete/previous-tribe-art/`. Preserved named PNG sources for the new set
+  in `_to_delete/generated-editorial-tribe-png-sources/`; these folders can be
+  binned after visual sign-off.
+- `npx tsc --noEmit` and `npm run build` pass. The build retains only its
+  existing chunk-size and third-party bundler warnings.
+
+### 2026-08-20 — Codex — Mindful Koi rename
+
+- Renamed the Koi Tribe's user-facing label to `Mindful Koi` in the shared
+  Tribe catalog while preserving the stable internal `koi` key, asset paths,
+  memberships, and database relationships.
+- Added and applied migration
+  `20260820001500_rename_koi_tribe.sql`; the local catalog now returns
+  `koi:Mindful Koi`.
+- `npx tsc --noEmit` and `npm run build` pass. The build retains only its
+  existing chunk-size and third-party bundler warnings.
+
+### 2026-08-20 — Codex — coherent Tribe crest system
+
+- Generated five compact illustrated crests from the approved semi-tarot Tribe
+  artwork and optimized them to 256 px WebP assets (13–33 kB each). The full
+  tarot illustrations remain the storytelling layer; crests are now the
+  identification layer for small UI surfaces.
+- Added the reusable `TribeMark` component with consistent sizing, color-aware
+  rings, decorative/semantic alt behavior, and a strong silhouette down to
+  20 px.
+- Replaced Tribe identity emojis across Discover, Timeline, profile history,
+  Manage Tribes, Tribe chat/switching, public profiles, and host dashboard.
+  Discover cards now use the full illustration with crest/name/member-count
+  overlays. Native host selects use text because native options cannot render
+  images reliably.
+- Removed the obsolete `emoji` field from the shared Tribe model. Emoji that
+  remains in chat copy, quick reactions, or the generic avatar picker is user
+  expression rather than Tribe identity.
+- Preserved the generated PNG sources recoverably in
+  `_to_delete/generated-tribe-crest-png-sources/`; production imports use only
+  the optimized WebPs under `src/assets/tribes/crests/`.
+- Verified the onboarding flow at 390×844 through location and profile signals
+  with zero application console errors before the browser harness became
+  unreliable. Removed the disposable local account afterward (`DELETE 1`).
+  `npx tsc --noEmit` and `npm run build` both pass; the build emits only the
+  existing chunk-size and third-party bundler warnings.
+
+### 2026-08-20 — Codex — illustrated Tribe flip cards
+
+- Replaced the oversized horizontal onboarding cards with one focused,
+  accessible collectible card. Arrow/dot controls browse, tapping the card
+  flips it, and the primary action alone selects/continues, avoiding ambiguous
+  swipe-versus-select behavior.
+- Generated a cohesive five-image “modern social tarot” set with OpenAI's
+  built-in image generator: Iron Wolf, Koi, Studio Cat, Night Owl, and
+  Honeybee. Optimized the ~12 MB PNG sources to five 102–131 kB WebP assets in
+  `src/assets/tribes/`; original PNGs were moved recoverably to
+  `_to_delete/generated-tribe-png-sources/`.
+- Added real card-back content for every Tribe: motto, general purpose, three
+  representative activities, and whom the community suits. The CSS-only flip
+  respects reduced-motion preferences and exposes useful pressed/label states.
+- Validation: clean `tsc --noEmit`, successful Cloudflare production build,
+  and real-browser 390×844 checks of artwork, flip, selection, and responsive
+  layout with zero application console errors. The exact disposable local test
+  account was deleted afterward.
+
+### 2026-08-20 — Codex — interactive onboarding and essential Settings
+
+- Added one reusable accessible password field to login, signup, and password
+  recovery. The 48px reveal control exposes pressed state and swaps its label
+  between Show/Hide without changing submission or autocomplete behavior.
+- Reworked home-Tribe selection into a one-card-per-view CSS scroll-snap deck
+  with adjacent-card affordance, stronger selected state, and no JS animation
+  dependency. Replaced dense onboarding chips with icon-backed, 44px+ choice
+  tiles and clearer immediate selection feedback.
+- Changed home location from one combined global list to progressive Country →
+  City selection. Values remain standardized and local; nearby remains a
+  separate explicit device-location step because browser GPS cannot prove a
+  user has not spoofed their coordinates. Added visible range/confirmation/
+  ready status to that step.
+- Structured Settings into Account, Notifications, Nearby discovery, Safety &
+  privacy, Blocked accounts, and account lifecycle. Added only working routes
+  and actions (edit profile, signed-in email, password reset, Guidelines,
+  Privacy, Terms, logout, deletion), and migrated the sheet to `AnimatedModal`
+  for focus trapping, Escape, and dialog semantics.
+- HCI basis: progressive disclosure, recognition over recall, visibility of
+  system status, Fitts's Law, error prevention, Gestalt proximity/common region,
+  and user control. Validation: clean `tsc --noEmit`; successful Cloudflare
+  production build; real-browser password reveal test with zero console errors.
+
+### 2026-08-20 — Codex — Discover nearby controls and HCI pass
+
+- Added a compact, 44px+ `15 km` / `Paused` status control beside “People
+  near you.” It opens an accessible bottom sheet for the two contextual actions:
+  pause/resume and mutual discovery radius. Refresh/remove and the complete
+  privacy explanation remain in Settings.
+- Removed people already displayed nearby from general discovery. The empty
+  state now truthfully explains when every loaded person is already shown above.
+- Applied progressive disclosure and Hick's Law (two contextual choices),
+  Gestalt proximity/common region (control beside its result set), recognition
+  over recall (visible radius/status), visibility of system status (live labels
+  and pending states), Fitts's Law (44px+ targets), and error prevention
+  (pending controls lock; failed mutations surface feedback).
+- Validation: clean `tsc --noEmit`, successful Cloudflare production build,
+  and a real 390×844 browser walkthrough covering the compact control, modal,
+  pause/resume, list movement, deduplication, and truthful empty state with zero
+  application console errors. The disposable test account was deleted.
+
+### 2026-08-20 — Codex — nearby visibility toggle fix
+
+- Replaced the hand-positioned nearby visibility toggle with the shared Radix
+  switch primitive. The thumb now remains inside its track in both states and
+  the control has correct checked, keyboard, focus, and pending semantics.
+- Added visible mutation-error feedback instead of silently leaving the switch
+  in an uncertain state. Validation: clean `tsc --noEmit`.
+
+### 2026-08-20 — Codex — standardized city, radius, and toast UX
+
+- Replaced free-typed profile cities with a searchable, keyboard-accessible
+  world-city selector. Values are standardized as `City, Country`, grouped by
+  region, and sourced from a local catalog so searches do not leak to a
+  third-party geocoder. The same control is used during onboarding and profile
+  editing.
+- Replaced the three radius buttons with a reusable Radix slider in onboarding
+  and Settings. It retains the privacy-reviewed 5/15/50 km choices while adding
+  clear Close/Local/Wide labels, a live value, touch support, and keyboard
+  Home/End/arrow behavior.
+- Moved Sonner notifications out of the bottom action area and below the
+  safe-area/header zone, tightened stacking, and refined the surface styling.
+- Validation: clean `tsc --noEmit`, successful Cloudflare production build,
+  and a real 390×844 browser walkthrough of city search/selection, required
+  gating, slider touch/keyboard behavior, and toast placement with zero console
+  errors. The disposable account was deleted afterward.
+
+### 2026-08-20 — Codex — rich profiles and privacy-safe nearby discovery
+
+- Rebuilt onboarding as four purposeful steps: home Tribe, identity and unique
+  handle, interests/social intent/availability, then optional nearby consent.
+  Required social signals now prevent empty profiles from entering Discover;
+  city-only continuation remains available.
+- Added `20260820001400_rich_profiles_and_private_nearby.sql`. Rich matching
+  fields are constrained in Postgres. Approximate coordinates live in a
+  separate owner-private table with mutual 5/15/50 km visibility.
+- Added a security-definer nearby RPC that explicitly checks adult status,
+  suspension, mutual radius, and two-way blocks. It returns only profile IDs,
+  distance bands, and 0–100 scores derived from Tribes/interests, intention,
+  availability, and proximity—never coordinates.
+- Added profile signal chips, completion guidance for legacy profiles, complete
+  edit support, and Settings controls to enable, pause, refresh, resize, or
+  delete approximate location. Public profiles show the new social signals.
+- Discover now separates true nearby matches from general discovery and has
+  explicit loading, off, paused, empty, and error states. The privacy page now
+  describes the new optional data and no-background-tracking behavior.
+- Validation: clean fresh migration replay; rollback-only RLS/RPC test proved
+  owner-only coordinate reads, distance/radius filtering, and immediate block
+  exclusion; a real 390×844 browser walkthrough passed signup through nearby
+  onboarding, persistence, pause state, matching presentation, profile edit,
+  and Settings with zero console errors. Clean `tsc --noEmit` and successful
+  Cloudflare production build. Disposable browser/SQL accounts were removed.
+
+### 2026-08-20 — Codex — onboarding avatar action badge
+
+- Split the avatar crop circle from its upload-label wrapper so the camera
+  badge can sit outside the circle without being clipped.
+- Added a contrasting ring/shadow and an accessible upload label while keeping
+  only the profile image itself cropped.
+- Validation: clean `tsc --noEmit`.
+
+### 2026-08-20 — Codex — onboarding viewport bug
+
+- Fixed profile creation on short/mobile viewports: the onboarding root no
+  longer clips vertical overflow, uses dynamic viewport/safe-area sizing, and
+  keeps the final action reachable by scrolling.
+- The final action now exposes a pending state and prevents duplicate submits
+  while the profile or avatar is saving.
+- Validation: clean `tsc --noEmit`.
+
+### 2026-08-20 — Codex — end-to-end flow audit and Week 3 engineering pass
+
+- Wrote `MEUTUALS_FLOW_AUDIT.md`, covering every reachable free-launch flow
+  from authentication through Tribes, Timeline, Discover, DMs, notifications,
+  Ventures, safety, moderation, settings, and account deletion. The essential
+  two-account social and Venture loop passed in a real local browser.
+- Fixed durable DM read receipts, message/Venture notification routing and
+  kinds, relative-time copy, modal descriptions, push-prompt timing, Timeline
+  error state, Tribe leaving, Venture safety copy, and the missing shared-post
+  route with a post-login return path.
+- Added `20260820001100_fix_dm_receipts_and_venture_notifications.sql`,
+  `20260820001200_moderation_queue.sql`, and
+  `20260820001300_baseline_text_safety_filter.sql`. The moderation queue has
+  role gating, 24-hour due timestamps, hide/suspend/dismiss actions, hidden and
+  suspended-content enforcement, and an immutable decision log. A resolved
+  hide-content case passed both SQL and browser validation.
+- Added database-level baseline harmful-text rejection to every user-content
+  surface. Fresh replay and live rejection tests passed after correcting the
+  generic trigger to inspect rows through JSONB.
+- Added Apple OAuth entry points, auth autocomplete hints, consistent MEUTUALS
+  metadata, and corrected the privacy page's service/data map. Apple provider
+  credentials, real legal/contact information, image moderation, moderator
+  operations, and production push/OAuth delivery remain external launch work.
+- Validation: fresh full migration replay through `20260820001300`, live SQL
+  safety/moderation tests, zero-error moderator and auth browser checks, clean
+  `tsc --noEmit`, and successful Cloudflare production build. The only browser
+  warning is the intentional local-dev realtime disable notice.
+
+### 2026-08-20 — Codex — P4 constant-time post counters
+
+- Added `20260820001000_constant_time_post_counters.sql`. Like, comment, and
+  share triggers now adjust their post counter atomically by `+1` or `-1`
+  instead of running a full-table `count(*)` after every interaction.
+- Reconciled all existing counters once during migration and clamped deletes
+  at zero to prevent negative drift.
+- Validation: clean `tsc --noEmit`, production build, fresh migration replay,
+  and live insert/delete tests for two likes, comments, and shares. Function
+  inspection confirms no trigger body still performs a recount.
+
+### 2026-08-20 — Codex — P3 newest conversation windows
+
+- DMs, comments, Tribe chat, and Venture party chat now query newest-first
+  before applying their bounded limits, then reverse the returned window for
+  chronological rendering. Busy conversations no longer freeze permanently on
+  their oldest 100/500 records.
+- Validation: clean TypeScript and a source audit confirming no remaining
+  bounded chat/comment query orders oldest-first.
+
+### 2026-08-20 — Codex — L7 database-enforced adult verification
+
+- Signup now collects a neutral date of birth before email or Google account
+  creation. Eligible email signups carry DOB into the auth trigger; OAuth and
+  legacy accounts receive a dedicated first-session verification screen.
+- Added immutable, server-derived age verification fields. A first ineligible
+  DOB locks that account and cannot be replaced with a more convenient date.
+  The former editable age field was removed from onboarding/profile updates.
+- Added restrictive RLS for profiles, posts, comments, DMs, Tribe chat, and
+  Ventures; unverified accounts can read only their own profile. Database
+  triggers independently reject unverified writes to all high-risk social and
+  meetup tables, and a restrictive Storage policy blocks image uploads.
+- Validation: clean TypeScript, fresh migration replay, and live database tests
+  for adult, underage, and OAuth-incomplete profiles. Tests proved read denial,
+  write denial, successful one-time adult verification, and immutable DOB.
+
+### 2026-08-20 — Codex — L6 complete account deletion
+
+- Account deletion now enumerates and removes every owned avatar and post
+  image, plus current and legacy Tribe-chat attachment path shapes, before any
+  database/auth deletion begins. Storage listing and removal are paginated and
+  batched; a Storage error aborts the deletion instead of leaving orphaned
+  media behind.
+- Added `20260820000800_preserve_reports_on_account_delete.sql`. Reports now
+  survive reporter deletion with `reporter_id` anonymized to `NULL`; reports
+  about a deleted user, post, or comment receive `target_deleted_at` before the
+  underlying profile/content cascades away.
+- Updated generated Supabase report types for the nullable reporter and new
+  deletion markers. Added the missing bounded `undefined` validator to the
+  account server function.
+- Validation: clean `tsc --noEmit`, production build, fresh migration replay,
+  and a rollback-only live database test covering user/post/comment reports.
+  All three reports remained after target deletion, then remained anonymized
+  after reporter deletion.
+
+### 2026-08-20 — Codex — L3 safety controls on essential surfaces
+
+- Added report/block access to direct-message headers, individual comments,
+  Tribe chat messages, Venture party-chat messages, open/joined Venture cards,
+  applicant rows, and public profiles. Own content and own-profile surfaces do
+  not expose self-directed controls.
+- Extended `SafetyMenu` with comment-specific reporting and made blocking
+  available whenever a content author is known, including post/comment/chat
+  surfaces. Its report flow now uses the shared Radix-backed `AnimatedModal`
+  for focus trapping, Escape, and outside-click behavior.
+- Validation: clean `tsc --noEmit` and production build. The first sandboxed
+  build attempt could not spawn esbuild (`EPERM`); the approved build outside
+  that process restriction completed successfully.
+
+### 2026-08-20 — Codex — S6 private Tribe chat attachments
+
+- Added `20260820000700_private_tribe_chat_attachments.sql`, which disables
+  public delivery for the `tribe-chat-attachments` bucket. The existing app
+  already stores object paths and renders one-hour signed URLs.
+- Fresh migration replay and live inspection pass: the bucket is private and
+  SELECT remains restricted to authenticated members of the path's Tribe.
+
+### 2026-08-20 — Codex — S5 Venture scope enforcement
+
+- Added `20260820000600_enforce_venture_scope.sql`. The database now enforces
+  the existing “mine” rule: an open Venture is visible only to users sharing a
+  Tribe with its host. Hosts and applicants retain access.
+- The same scope check is now required to apply, preventing a known UUID from
+  being used to join an out-of-scope Venture and gain access afterward.
+- Fresh migration replay and live policy inspection pass. The helper is
+  `SECURITY DEFINER`, scoped to the current user, and unavailable to `anon`.
+
+### 2026-08-20 — Codex — S4 DM evidence preservation
+
+- Added `20260820000500_preserve_dm_evidence.sql`. It replaces the permissive
+  recipient-or-sender DELETE policy with one that permits only the sender to
+  delete a message. A future “delete for me” feature must use per-user
+  visibility state rather than destroying reportable evidence.
+- Fresh local migration replay succeeded. Direct inspection confirms the final
+  policy is `auth.uid() = sender_id` for authenticated users.
+
+### 2026-08-20 — Codex — S3 private post-image storage
+
+- Added `20260820000400_secure_post_images.sql`: converts legacy public post
+  image URLs to object paths, makes the `post-images` bucket private, and
+  grants authenticated storage reads only to the owner or viewers authorized
+  to read the linked post. A trigger prevents direct clients from attaching
+  another user's object to their post.
+- Post uploads now persist the private object path. Feed responses mint
+  one-hour signed URLs after the post query has passed RLS; composer and editor
+  use local previews while the image has no post to authorize it yet.
+- Validation: clean `tsc --noEmit`, production build, and a fresh
+  user-authorised `supabase db reset`. Direct database inspection confirms
+  `post-images.public = false`, the authenticated storage policy, and the
+  ownership trigger. Repository lint remains pre-existing red due to broad
+  Prettier violations outside this change.
+
+### 2026-08-20 — Codex — S2 migration replay verified
+
+- User-authorised `npx supabase db reset` completed successfully; the fresh
+  local database applied `20260820000300_fix_two_way_blocking.sql`.
+- Read-only inspection confirms the final posts, comments, and DM insert
+  policies call `has_blocked`; the function is `SECURITY DEFINER` and only
+  `authenticated`, `service_role`, and `postgres` have `EXECUTE`.
+
+### 2026-08-20 — Codex — S2 two-way blocking RLS fix
+
+- Added `20260820000300_fix_two_way_blocking.sql`. It restores
+  `public.has_blocked` as a `SECURITY DEFINER STABLE` function with its search
+  path pinned to `public`; `anon` is denied execution and `authenticated` is
+  allowed. The function only evaluates pairs involving the current user, so it
+  cannot be used to probe other users' block relationships.
+- Rebuilt the active post and comment SELECT policies to use the helper, and
+  rebuilt the DM INSERT policy so either participant's block prevents delivery.
+  This fixes the RLS-filtered inline subqueries that made reverse-direction
+  blocks invisible.
+- Validation: `node_modules\\.bin\\tsc.cmd --noEmit` and `npm run build` pass.
+  The local migration replay remains unrun because `npx supabase db reset`
+  destructively recreates the local database and needs user approval. After a
+  reset, test both directions: a block must hide posts/comments and reject a
+  DM from either participant.
 
 ### 2026-08-20 — Claude — Repo reproducibility + agent docs
 

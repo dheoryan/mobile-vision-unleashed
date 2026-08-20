@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, MessageCircle, Reply, Send, X } from "lucide-react";
 import {
-  markThreadRead,
+  useMarkThreadRead,
   useProfileById,
   useSendMessage,
   useThreadMessages,
@@ -21,13 +21,14 @@ import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
-import { timeAgo } from "@/lib/time";
+import { timeAgo, timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
+import { SafetyMenu } from "./SafetyMenu";
 
 type ReplyTarget = { id: string; name: string; snippet: string };
 
@@ -429,7 +430,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                 disabled={pending}
                 onReply={() => startReply(m)}
               >
-                <div className={cn("max-w-[82%]", pending && "opacity-60")}>
+                <div className={cn("flex max-w-[88%] items-start gap-1", pending && "opacity-60")}>
                   {(() => {
                     const { quote, body } = parseQuotedMessage(m.content);
                     return (
@@ -466,6 +467,13 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
                       </div>
                     );
                   })()}
+                  {!mine && !pending && (
+                    <SafetyMenu
+                      targetName={displayVentureName(m.sender)}
+                      targetUserId={m.sender_id}
+                      className="-mt-1 shrink-0"
+                    />
+                  )}
                 </div>
               </MessageSwipeRow>
             );
@@ -510,6 +518,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   const { data: other } = useProfileById(otherId);
   const { data: msgs, isLoading } = useThreadMessages(otherId);
   const send = useSendMessage(otherId);
+  const markRead = useMarkThreadRead(otherId);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const tribe = tribeOf(other?.tribe_ids);
@@ -519,9 +528,11 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   useEffect(() => {
     if (!msgs?.length) return;
     const last = msgs[msgs.length - 1];
-    markThreadRead(otherId, last.created_at);
+    if (last.sender_id !== user?.id && !last.read_at) markRead.mutate();
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [msgs, otherId]);
+    // React only when the final message changes; mutation object identity is irrelevant.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [msgs?.[msgs.length - 1]?.id, otherId, user?.id]);
 
   const submit = () => {
     const body = text.trim();
@@ -553,6 +564,11 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
             {other?.city ? ` · ${other.city}` : ""}
           </p>
         </div>
+        <SafetyMenu
+          targetName={other?.display_name?.trim() || other?.handle || "this user"}
+          targetUserId={otherId}
+          className="shrink-0"
+        />
       </header>
 
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
@@ -606,7 +622,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                   <p
                     className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
                   >
-                    {pending ? "sending…" : `${timeAgo(m.created_at)} ago`}
+                    {pending ? "sending…" : timeAgoLabel(m.created_at)}
                   </p>
                 </div>
               </MessageSwipeRow>

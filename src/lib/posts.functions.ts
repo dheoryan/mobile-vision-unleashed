@@ -17,7 +17,10 @@ export type FeedPost = {
   tribe_id: string;
   audience: "tribe" | "all";
   content: string;
+  /** Short-lived signed URL for rendering. Never persisted. */
   image_url: string | null;
+  /** Private storage object path, used only when the author edits the post. */
+  image_path: string | null;
   tag: string | null;
   likes_count: number;
   replies_count: number;
@@ -40,6 +43,12 @@ export type CommentRow = {
 export type CommentMutationResult = CommentRow & { replies_count: number };
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
+const POST_IMAGE_BUCKET = "post-images";
+const POST_IMAGE_PATH = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\/[A-Za-z0-9._-]+$/i;
+
+function isPostImagePath(value: string | null): value is string {
+  return !!value && POST_IMAGE_PATH.test(value);
+}
 
 async function attachAuthors<T extends { author_id: string }>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +65,41 @@ async function attachAuthors<T extends { author_id: string }>(
   const map = new Map<string, AuthorLite>();
   for (const a of (data ?? []) as AuthorLite[]) map.set(a.id, a);
   return rows.map((r) => ({ ...r, author: map.get(r.author_id) ?? null }));
+}
+
+async function attachPostImageUrls<T extends { image_url: string | null }>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  rows: T[],
+): Promise<(Omit<T, "image_url"> & { image_path: string | null; image_url: string | null })[]> {
+  const paths = Array.from(new Set(rows.map((row) => row.image_url).filter(isPostImagePath)));
+  if (!paths.length) {
+    return rows.map((row) => ({ ...row, image_path: null }));
+  }
+
+  const { data, error } = await supabase.storage.from(POST_IMAGE_BUCKET).createSignedUrls(paths, 3600);
+  if (error) throw new Error(error.message);
+  const urlsByPath = new Map(
+    (data ?? []).map((item: { path: string; signedUrl: string | null }) => [item.path, item.signedUrl]),
+  );
+
+  return rows.map((row) => {
+    if (!isPostImagePath(row.image_url)) return { ...row, image_path: null };
+    return {
+      ...row,
+      image_path: row.image_url,
+      image_url: urlsByPath.get(row.image_url) ?? null,
+    };
+  });
+}
+
+async function hydratePosts(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: any[],
+): Promise<FeedPost[]> {
+  return attachPostImageUrls(supabase, await attachAuthors(supabase, rows)) as Promise<FeedPost[]>;
 }
 
 async function getRepliesCount(
@@ -96,7 +140,22 @@ export const listFeed = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (await attachAuthors(supabase, (rows ?? []) as any)) as FeedPost[];
+    return hydratePosts(supabase, rows ?? []);
+  });
+
+export const getPostById = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ post_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("posts")
+      .select(POST_COLS)
+      .eq("id", data.post_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+    return (await hydratePosts(supabase, [row]))[0];
   });
 
 export const listMyPosts = createServerFn({ method: "GET" })
@@ -110,7 +169,7 @@ export const listMyPosts = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return (await attachAuthors(supabase, (rows ?? []) as any)) as FeedPost[];
+    return hydratePosts(supabase, rows ?? []);
   });
 
 export const listPostsByAuthor = createServerFn({ method: "GET" })
@@ -127,13 +186,13 @@ export const listPostsByAuthor = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return (await attachAuthors(supabase, (rows ?? []) as any)) as FeedPost[];
+    return hydratePosts(supabase, rows ?? []);
   });
 
 const createSchema = z.object({
   tribe_id: z.string().min(1).max(40),
   content: z.string().max(280).default(""),
-  image_url: z.string().url().max(2000).nullable().optional(),
+  image_path: z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200).nullable().optional(),
   tag: z.string().max(40).nullable().optional(),
   audience: z.enum(["tribe", "all"]).default("tribe"),
 });
@@ -143,8 +202,11 @@ export const createPost = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    if (!data.content.trim() && !data.image_url) {
+    if (!data.content.trim() && !data.image_path) {
       throw new Error("Post can't be empty");
+    }
+    if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
+      throw new Error("Post images must belong to the author");
     }
     const { data: row, error } = await supabase
       .from("posts")
@@ -152,30 +214,32 @@ export const createPost = createServerFn({ method: "POST" })
         author_id: userId,
         tribe_id: data.tribe_id,
         content: data.content,
-        image_url: data.image_url ?? null,
+        image_url: data.image_path ?? null,
         tag: data.tag ?? null,
         audience: data.audience,
       })
       .select(POST_COLS)
       .single();
     if (error) throw new Error(error.message);
-    const [withAuthor] = await attachAuthors(supabase, [row as any]);
-    return withAuthor as FeedPost;
+    return (await hydratePosts(supabase, [row]))[0];
   });
 
 const editSchema = z.object({
   id: z.string().uuid(),
   content: z.string().max(280),
-  image_url: z.string().url().max(2000).nullable().optional(),
+  image_path: z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200).nullable().optional(),
 });
 
 export const editPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => editSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
+      throw new Error("Post images must belong to the author");
+    }
     const patch: { content: string; image_url?: string | null } = { content: data.content };
-    if (data.image_url !== undefined) patch.image_url = data.image_url;
+    if (data.image_path !== undefined) patch.image_url = data.image_path;
     const { data: row, error } = await supabase
       .from("posts")
       .update(patch)
@@ -183,8 +247,7 @@ export const editPost = createServerFn({ method: "POST" })
       .select(POST_COLS)
       .single();
     if (error) throw new Error(error.message);
-    const [withAuthor] = await attachAuthors(supabase, [row as any]);
-    return withAuthor as FeedPost;
+    return (await hydratePosts(supabase, [row]))[0];
   });
 
 export const deletePost = createServerFn({ method: "POST" })
@@ -206,10 +269,11 @@ export const listComments = createServerFn({ method: "GET" })
       .from("comments")
       .select(COMMENT_COLS)
       .eq("post_id", data.post_id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    return (await attachAuthors(supabase, (rows ?? []) as any)) as CommentRow[];
+    const newestWindow = [...(rows ?? [])].reverse();
+    return (await attachAuthors(supabase, newestWindow as any)) as CommentRow[];
   });
 
 export const addComment = createServerFn({ method: "POST" })
@@ -275,7 +339,7 @@ export const listMySavedPosts = createServerFn({ method: "GET" })
     const orderedRows = ids
       .map((id) => (rows ?? []).find((r: { id: string }) => r.id === id))
       .filter(Boolean) as { author_id: string }[];
-    return (await attachAuthors(supabase, orderedRows as any)) as FeedPost[];
+    return hydratePosts(supabase, orderedRows);
   });
 
 export const toggleSavePost = createServerFn({ method: "POST" })

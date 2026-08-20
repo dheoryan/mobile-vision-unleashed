@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Check, Loader2, Search, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Check, LocateFixed, Loader2, MapPin, Search, ShieldCheck, SlidersHorizontal, Sparkles, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
 import { useFeedPosts, useTribeMemberCounts, type FeedPost } from "@/lib/posts-store";
@@ -10,11 +10,18 @@ import { PlusBadge } from "./PlusBadge";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSocial, useToggleFollow } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
-import { timeAgo } from "@/lib/time";
+import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
+import { useMyLocationSettings, useNearbyProfiles, useSaveMyLocation, useUpdateMyLocationSettings } from "@/lib/location-store";
+import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
+import type { NearbyProfile } from "@/lib/location.functions";
+import { toast } from "sonner";
+import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
+import { Switch } from "@/components/ui/switch";
+import { TribeMark } from "./TribeMark";
 
-type DiscoverPerson = Person & { allTribeIds: TribeId[] };
+type DiscoverPerson = Person & { allTribeIds: TribeId[]; distanceBand?: string; matchScore?: number };
 
 const VALID_TRIBES = new Set<TribeId>(TRIBES.map((t) => t.id));
 const PAGE_SIZE = 20;
@@ -23,7 +30,7 @@ function toTribeIds(ids: string[] | null | undefined): TribeId[] {
   return (ids ?? []).filter((id): id is TribeId => VALID_TRIBES.has(id as TribeId));
 }
 
-function rowToPerson(row: DiscoverProfile): DiscoverPerson {
+function rowToPerson(row: DiscoverProfile | NearbyProfile): DiscoverPerson {
   const allTribeIds = toTribeIds(row.tribe_ids);
   const tribeId = allTribeIds[0] ?? "wolf";
   return {
@@ -37,6 +44,8 @@ function rowToPerson(row: DiscoverProfile): DiscoverPerson {
     plus: showPlusBadge(row.plan),
     mutuals: 0,
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
+    distanceBand: "distance_band" in row ? row.distance_band : undefined,
+    matchScore: "match_score" in row ? row.match_score : undefined,
   };
 }
 
@@ -44,10 +53,16 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
+  const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
   const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
   const discoverFn = useServerFn(listDiscoverProfiles);
+  const locationQuery = useMyLocationSettings();
+  const saveLocation = useSaveMyLocation();
+  const updateLocation = useUpdateMyLocationSettings();
+  const nearbyQuery = useNearbyProfiles(Boolean(locationQuery.data?.discoverable));
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 250);
@@ -76,6 +91,24 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         .filter((p) => !blocked.has(p.id)),
     [profilesQuery.data, blocked],
   );
+  const nearbyPeople = useMemo(
+    () => (nearbyQuery.data ?? []).map(rowToPerson).filter((person) => !blocked.has(person.id)),
+    [nearbyQuery.data, blocked],
+  );
+  const nearbyIds = useMemo(() => new Set(nearbyPeople.map((person) => person.id)), [nearbyPeople]);
+
+  const enableNearby = async () => {
+    setLocating(true);
+    try {
+      const location = await requestBrowserLocation();
+      await saveLocation.mutateAsync({ ...location, radius_km: 15, discoverable: true });
+      toast.success("Nearby discovery enabled.");
+    } catch (error) {
+      toast.error("Nearby remains off", { description: (error as Error).message });
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const onTribeWheel = (e: WheelEvent<HTMLDivElement>) => {
     const el = tribeScrollRef.current;
@@ -88,8 +121,9 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
   // Server-side search already filters; keep a light client-side pass for tribe-name matches.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q || q === debounced.toLowerCase()) return people;
-    return people.filter((p) => {
+    const generalPeople = people.filter((person) => !nearbyIds.has(person.id));
+    if (!q || q === debounced.toLowerCase()) return generalPeople;
+    return generalPeople.filter((p) => {
       const tribes = p.allTribeIds.map((id) => tribeById(id).name.toLowerCase()).join(" ");
       return (
         p.name.toLowerCase().includes(q) ||
@@ -99,7 +133,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         tribes.includes(q)
       );
     });
-  }, [query, debounced, people]);
+  }, [query, debounced, people, nearbyIds]);
 
   const toggle = (id: string) => toggleFollow.mutate(id);
   const isSearching = query.trim() !== debounced;
@@ -136,14 +170,13 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
                 <button
                   key={t.id}
                   onClick={() => setPreviewTribe(t)}
-                  className="relative h-32 w-44 shrink-0 overflow-hidden rounded-2xl border border-border p-4 text-left transition-transform hover:-translate-y-0.5"
-                  style={{
-                    background: `linear-gradient(155deg, color-mix(in oklab, ${t.colorVar} 50%, var(--card)) 0%, var(--card) 100%)`,
-                  }}
+                  className="group relative h-40 w-44 shrink-0 overflow-hidden rounded-2xl border border-border text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <span className="relative text-3xl">{t.emoji}</span>
-                  <p className="relative mt-3 font-display text-base font-bold">{t.name}</p>
-                  <p className="relative text-[11px] text-muted-foreground">
+                  <img src={t.art} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none" />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
+                  <TribeMark tribe={t} size="sm" className="absolute left-3 top-3" />
+                  <p className="absolute bottom-8 left-4 right-4 font-display text-base font-bold text-white">{t.name}</p>
+                  <p className="absolute bottom-3 left-4 right-4 text-[10px] text-white/65">
                     {memberCount === undefined ? " " : `${memberCount} registered members`}
                   </p>
                 </button>
@@ -152,7 +185,56 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
           </div>
         </div>
 
-        <SectionTitle title="People near you" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`} />
+        <SectionTitle
+          title="People near you"
+          hint={locationQuery.data?.discoverable ? `${nearbyPeople.length} nearby · mutual radius` : locationQuery.data ? "Paused" : "Optional"}
+          action={locationQuery.data ? (
+            <button
+              type="button"
+              onClick={() => setNearbySettingsOpen(true)}
+              aria-label="Adjust nearby preferences"
+              className={cn(
+                "flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                locationQuery.data.discoverable ? "border-primary/35 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground",
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {locationQuery.data.discoverable ? `${locationQuery.data.radius_km} km` : "Paused"}
+            </button>
+          ) : undefined}
+        />
+        {locationQuery.isLoading ? (
+          <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-8 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Checking nearby preferences…</p>
+        ) : !locationQuery.data ? (
+          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"><LocateFixed className="h-5 w-5" /></span>
+              <div><p className="text-sm font-semibold">Discover your part of the city</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Opt in to approximate proximity. Members see distance bands, never your coordinates.</p></div>
+            </div>
+            <button type="button" onClick={enableNearby} disabled={locating || saveLocation.isPending} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground disabled:opacity-50">
+              {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />} Enable nearby
+            </button>
+          </div>
+        ) : !locationQuery.data.discoverable ? (
+          <div className="rounded-2xl border border-dashed border-border p-5 text-center">
+            <p className="text-xs text-muted-foreground">Nearby discovery is paused. Your approximate area is still saved privately.</p>
+            <button type="button" onClick={() => setNearbySettingsOpen(true)} className="mt-3 min-h-11 rounded-full border border-primary/35 bg-primary/10 px-4 text-xs font-semibold text-primary">Review nearby preferences</button>
+          </div>
+        ) : nearbyQuery.isLoading ? (
+          <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-8 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Finding mutual proximity…</p>
+        ) : nearbyQuery.isError ? (
+          <div className="rounded-2xl border border-border bg-card p-5 text-center"><p className="text-xs text-muted-foreground">Couldn't load nearby people.</p><button type="button" onClick={() => nearbyQuery.refetch()} className="mt-3 text-xs font-semibold text-primary underline">Retry</button></div>
+        ) : nearbyPeople.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">No mutually nearby members yet. General discovery is still available below.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {nearbyPeople.map((person) => (
+              <PersonRow key={`nearby-${person.id}`} person={person} following={social.following.has(person.id)} pending={toggleFollow.isPending && toggleFollow.variables === person.id} onToggle={() => toggle(person.id)} />
+            ))}
+          </div>
+        )}
+
+        <SectionTitle title="People to discover" hint={profilesQuery.isLoading ? "Loading" : `${filtered.length} loaded`} />
         <div className="flex flex-col gap-3">
           {profilesQuery.isLoading ? (
             <p className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
@@ -168,7 +250,11 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </div>
           ) : filtered.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              {debounced ? `No one matches "${debounced}". Try another search.` : "No registered users yet."}
+              {debounced
+                ? `No one matches "${debounced}". Try another search.`
+                : nearbyIds.size > 0
+                  ? "Everyone currently loaded is already shown in People near you."
+                  : "No registered users yet."}
             </p>
           ) : (
             <>
@@ -202,7 +288,84 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         posts={feedQuery.data ?? []}
         onClose={() => setPreviewTribe(null)}
       />
+      <NearbyPreferencesSheet
+        open={nearbySettingsOpen}
+        discoverable={locationQuery.data?.discoverable ?? false}
+        radiusKm={(locationQuery.data?.radius_km ?? 15) as LocationRadiusKm}
+        pending={updateLocation.isPending}
+        onClose={() => setNearbySettingsOpen(false)}
+        onUpdate={(discoverable, radiusKm) => updateLocation.mutate(
+          { discoverable, radius_km: radiusKm },
+          { onError: (error) => toast.error("Could not update nearby preferences", { description: (error as Error).message }) },
+        )}
+      />
     </div>
+  );
+}
+
+function NearbyPreferencesSheet({
+  open,
+  discoverable,
+  radiusKm,
+  pending,
+  onClose,
+  onUpdate,
+}: {
+  open: boolean;
+  discoverable: boolean;
+  radiusKm: LocationRadiusKm;
+  pending: boolean;
+  onClose: () => void;
+  onUpdate: (discoverable: boolean, radiusKm: LocationRadiusKm) => void;
+}) {
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}
+      title="Nearby preferences"
+      contentClassName="overflow-hidden"
+      preventClose={pending}
+    >
+      <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-start gap-3 pr-10">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="h-5 w-5" /></span>
+          <div>
+            <h3 className="font-display text-xl font-bold">Nearby preferences</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Tune the people shown here without exposing your coordinates.</p>
+          </div>
+        </div>
+        <button type="button" onClick={onClose} disabled={pending} aria-label="Close nearby preferences" className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"><X className="h-4 w-4" /></button>
+
+        <div className="mt-6 flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-border bg-background/60 px-4">
+          <div>
+            <p className="text-sm font-semibold">Show me in nearby discovery</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{discoverable ? "Active for mutual-radius matches" : "Paused—your area remains private"}</p>
+          </div>
+          <Switch
+            checked={discoverable}
+            disabled={pending}
+            aria-label={discoverable ? "Pause nearby discovery" : "Enable nearby discovery"}
+            onCheckedChange={(nextDiscoverable) => onUpdate(nextDiscoverable, radiusKm)}
+          />
+        </div>
+
+        <div className="mt-4">
+          <DiscoveryRadiusSlider
+            value={radiusKm}
+            disabled={pending}
+            onChange={(nextRadius) => onUpdate(discoverable, nextRadius)}
+          />
+        </div>
+
+        <div className="mt-4 flex items-start gap-2 rounded-xl bg-primary/8 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <p>The radius is mutual: both people must allow the distance. Members only see a broad distance band.</p>
+        </div>
+        <button type="button" onClick={onClose} disabled={pending} className="mt-5 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50">
+          {pending ? "Saving…" : "Done"}
+        </button>
+      </div>
+    </AnimatedModal>
   );
 }
 
@@ -240,9 +403,7 @@ function TribePreviewSheet({
         </button>
         {displayTribe && (
         <div className="p-6">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl" style={{ backgroundColor: `color-mix(in oklab, ${displayTribe.colorVar} 35%, transparent)` }}>
-            {displayTribe.emoji}
-          </span>
+          <TribeMark tribe={displayTribe} size="lg" decorative={false} />
           <h3 className="mt-4 font-display text-2xl font-bold">{displayTribe.name}</h3>
           <p className="text-xs text-muted-foreground">{displayTribe.scene}</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
@@ -254,7 +415,7 @@ function TribePreviewSheet({
           <ul className="mt-2 space-y-2">
             {recentPosts.length ? recentPosts.map((p) => (
               <li key={p.id} className="rounded-xl border border-border bg-background/40 p-3">
-                <p className="text-[11px] text-muted-foreground">{p.author?.display_name || "Someone"} · {timeAgo(p.created_at)} ago</p>
+                <p className="text-[11px] text-muted-foreground">{p.author?.display_name || "Someone"} · {timeAgoLabel(p.created_at)}</p>
                 <p className="mt-0.5 line-clamp-2 text-xs">{p.content}</p>
               </li>
             )) : (
@@ -308,7 +469,11 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
             return <TribeBadge key={id} name={t.name} color={t.colorVar} hosted={t.hosted} />;
           })}
         </div>
-        <p className="text-[11px] text-muted-foreground">{person.city || person.handle || "Registered member"}</p>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span>{person.city || person.handle || "Registered member"}</span>
+          {person.distanceBand && <span className="inline-flex items-center gap-1 text-primary"><MapPin className="h-3 w-3" /> {person.distanceBand}</span>}
+          {person.matchScore !== undefined && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {person.matchScore}% match</span>}
+        </div>
         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{person.bio || "Open to meeting people across Tribes."}</p>
       </div>
       <button

@@ -76,7 +76,7 @@ function HostApplyPage() {
               onChange={(e) => setForm({ ...form, tribe: e.target.value })}
               className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none"
             >
-              {TRIBES.map((t) => (<option key={t.id} value={t.id}>{t.emoji} {t.name} — {t.scene}</option>))}
+              {TRIBES.map((t) => (<option key={t.id} value={t.id}>{t.name} — {t.scene}</option>))}
             </select>
           </label>
           <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} placeholder="San Francisco" required />

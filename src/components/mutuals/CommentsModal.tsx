@@ -3,11 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { X, Send, AlertTriangle, MessageSquare, Trash2, Reply } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
+import { SafetyMenu } from "./SafetyMenu";
 import { useComments, useAddComment, useDeleteComment, type CommentRow } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
-import { timeAgo } from "@/lib/time";
+import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import {
   useMentionPicker,
@@ -404,7 +405,7 @@ function CommentItem({
           </div>
           <p className="text-sm text-foreground">{renderContent(c.content)}</p>
           <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span>{isPending ? "sending…" : `${timeAgo(c.created_at)} ago`}</span>
+            <span>{isPending ? "sending…" : timeAgoLabel(c.created_at)}</span>
             {!isPending && (
               <button onClick={() => onReply(c)} className="inline-flex items-center gap-1 hover:text-foreground">
                 <Reply className="h-3 w-3" /> Reply
@@ -420,6 +421,15 @@ function CommentItem({
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
+        )}
+        {!mine && !isPending && (
+          <SafetyMenu
+            targetName={name}
+            targetUserId={c.author_id}
+            targetCommentId={c.id}
+            kind="comment"
+            className="-mr-2 -mt-1"
+          />
         )}
       </div>
     </div>

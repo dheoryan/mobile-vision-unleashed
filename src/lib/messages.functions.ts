@@ -19,6 +19,7 @@ export type DMMessage = {
   recipient_id: string;
   content: string;
   created_at: string;
+  read_at: string | null;
 };
 
 export type DMThreadSummary = {
@@ -48,7 +49,7 @@ export const listThreads = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("messages")
-      .select("id, sender_id, recipient_id, content, created_at")
+      .select("id, sender_id, recipient_id, content, created_at, read_at")
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -60,8 +61,7 @@ export const listThreads = createServerFn({ method: "GET" })
       const other = m.sender_id === userId ? m.recipient_id : m.sender_id;
       const cur = byOther.get(other);
       if (!cur) byOther.set(other, { last: m, unread: 0 });
-      // unread = messages from other to me (we don't track read state in DB; client does)
-      if (m.sender_id !== userId) {
+      if (m.sender_id !== userId && !m.read_at) {
         const e = byOther.get(other)!;
         e.unread += 1;
       }
@@ -86,14 +86,14 @@ export const listMessages = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data: rows, error } = await supabase
       .from("messages")
-      .select("id, sender_id, recipient_id, content, created_at")
+      .select("id, sender_id, recipient_id, content, created_at, read_at")
       .or(
         `and(sender_id.eq.${userId},recipient_id.eq.${data.other_id}),and(sender_id.eq.${data.other_id},recipient_id.eq.${userId})`,
       )
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as DMMessage[];
+    return ((rows ?? []) as DMMessage[]).reverse();
   });
 
 export const sendMessage = createServerFn({ method: "POST" })
@@ -114,10 +114,25 @@ export const sendMessage = createServerFn({ method: "POST" })
         recipient_id: data.recipient_id,
         content: data.content,
       })
-      .select("id, sender_id, recipient_id, content, created_at")
+      .select("id, sender_id, recipient_id, content, created_at, read_at")
       .single();
     if (error) throw new Error(error.message);
     return row as DMMessage;
+  });
+
+export const markThreadRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ other_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("recipient_id", userId)
+      .eq("sender_id", data.other_id)
+      .is("read_at", null);
+    if (error) throw new Error(error.message);
+    return { other_id: data.other_id };
   });
 
 export const getProfileById = createServerFn({ method: "GET" })

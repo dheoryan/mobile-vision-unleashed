@@ -3,6 +3,7 @@ import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
 import { ArrowLeft, Users, MessageSquare, Zap, TrendingUp, Pin, Megaphone } from "lucide-react";
 import { PEOPLE, POSTS, tribeById } from "@/lib/mutuals-data";
+import { TribeMark } from "@/components/mutuals/TribeMark";
 
 export const Route = createFileRoute("/host-dashboard")({
   // 100% fabricated analytics (hardcoded member counts, invented growth chart,
@@ -35,7 +36,7 @@ function HostDashboard() {
             <ArrowLeft className="h-3.5 w-3.5" /> Back to app
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{tribe.emoji}</span>
+            <TribeMark tribe={tribe} size="sm" />
             <div className="leading-tight">
               <p className="font-display text-sm font-bold">{tribe.name}</p>
               <p className="label-mono text-muted-foreground">{tribe.hostOrg}</p>

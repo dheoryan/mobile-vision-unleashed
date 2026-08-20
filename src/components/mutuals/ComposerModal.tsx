@@ -18,7 +18,8 @@ export function ComposerModal({
 }: { open: boolean; onClose: () => void; tribeId: TribeId; initialAudience?: Audience }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imagePath, setImagePath] = useState<string | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -27,17 +28,18 @@ export function ComposerModal({
   const tribe = tribeById(tribeId);
   const effectiveAudience: Audience = initialAudience;
 
-  const reset = () => { setText(""); setImageUrl(null); };
+  const reset = () => { setText(""); setImagePath(null); setImagePreviewUrl(null); };
 
   const submit = () => {
     const t = text.trim();
-    if (!t && !imageUrl) return;
+    if (!t && !imagePath) return;
     if (uploading) return;
     createPost.mutate(
       {
         tribe_id: tribeId,
         content: t,
-        image_url: imageUrl ?? null,
+        image_path: imagePath ?? null,
+        image_preview_url: imagePreviewUrl ?? null,
         audience: effectiveAudience,
       },
       {
@@ -63,8 +65,9 @@ export function ComposerModal({
     setUploading(true);
     try {
       const compressed = await compressImage(f, { maxDimension: 2048, quality: 0.85 });
-      const url = await uploadPostImage(user.id, compressed);
-      setImageUrl(url);
+      const path = await uploadPostImage(user.id, compressed);
+      setImagePath(path);
+      setImagePreviewUrl(URL.createObjectURL(compressed));
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
     } finally {
@@ -99,11 +102,11 @@ export function ComposerModal({
           className="mt-4 w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
         />
 
-        {imageUrl && (
+        {imagePreviewUrl && (
           <div className="relative mt-3 overflow-hidden rounded-xl border border-border">
-            <img src={imageUrl} alt="Attached preview" className="block max-h-72 w-full object-cover" />
+            <img src={imagePreviewUrl} alt="Attached preview" className="block max-h-72 w-full object-cover" />
             <button
-              onClick={() => setImageUrl(null)}
+              onClick={() => { setImagePath(null); setImagePreviewUrl(null); }}
               aria-label="Remove image"
               className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background"
             >
@@ -121,7 +124,7 @@ export function ComposerModal({
               className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-              {uploading ? "Uploading…" : imageUrl ? "Replace" : "Gallery"}
+              {uploading ? "Uploading…" : imagePath ? "Replace" : "Gallery"}
             </button>
             <button
               type="button"
@@ -154,7 +157,7 @@ export function ComposerModal({
 
         <button
           onClick={submit}
-          disabled={!text.trim() && !imageUrl}
+          disabled={!text.trim() && !imagePath}
           className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           style={{ backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar }}
         >

@@ -1,4 +1,5 @@
 import { MessageCircle } from "lucide-react";
+import logoMark from "@/assets/logo-mark.webp";
 import { NotificationBell } from "./NotificationBell";
 
 export function AppHeader({
@@ -18,12 +19,12 @@ export function AppHeader({
     <header className="glass sticky top-0 z-20 border-b border-border">
       <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2.5">
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl font-display text-base font-extrabold"
-            style={{ backgroundColor: accent, color: "var(--background)" }}
-          >
-            M
-          </span>
+          <img
+            src={logoMark}
+            alt="MEUTUALS"
+            className="h-9 w-9 rounded-xl object-cover"
+            style={{ boxShadow: `0 0 0 1px color-mix(in oklab, ${accent} 35%, transparent)` }}
+          />
           <div className="leading-tight">
             <p className="label-mono text-muted-foreground">{subtitle ?? "Meutuals"}</p>
             <p className="font-display text-sm font-semibold">{title}</p>

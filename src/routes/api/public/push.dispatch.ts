@@ -12,6 +12,7 @@ type NotificationKind =
   | "message"
   | "new_post"
   | "venture_apply"
+  | "venture_invite"
   | "venture_accept"
   | "venture_message"
   | "tribe_join";
@@ -25,6 +26,7 @@ const KIND_TEXT: Record<NotificationKind, string> = {
   message: "sent you a message",
   new_post: "shared a new signal",
   venture_apply: "asked to join your Venture",
+  venture_invite: "invited you to a Venture",
   venture_accept: "accepted you into a Venture",
   venture_message: "sent a Venture message",
   tribe_join: "joined your Tribe",

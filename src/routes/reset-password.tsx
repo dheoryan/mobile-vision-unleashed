@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PasswordField } from "@/components/mutuals/PasswordField";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPage,
@@ -48,16 +49,14 @@ function ResetPage() {
         </h1>
         {recovery ? (
           <form onSubmit={updatePw} className="mt-6 space-y-3">
-            <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="New password"
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none" />
+            <PasswordField value={password} onChange={setPassword} placeholder="New password" autoComplete="new-password" minLength={8} />
             <button disabled={busy} type="submit" className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
               {busy ? "Saving…" : "Update password"}
             </button>
           </form>
         ) : (
           <form onSubmit={sendLink} className="mt-6 space-y-3">
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none" />
             <button disabled={busy} type="submit" className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">

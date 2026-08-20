@@ -132,8 +132,16 @@ export function useCreatePost() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: (input: { tribe_id: string; content: string; image_url?: string | null; audience?: "tribe" | "all" }) =>
-      fn({ data: input }),
+    mutationFn: (input: {
+      tribe_id: string;
+      content: string;
+      image_path?: string | null;
+      image_preview_url?: string | null;
+      audience?: "tribe" | "all";
+    }) => {
+      const { image_preview_url: _preview, ...data } = input;
+      return fn({ data });
+    },
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["posts"] });
       const tempId = `tmp-${Date.now()}`;
@@ -143,7 +151,8 @@ export function useCreatePost() {
         tribe_id: input.tribe_id,
         audience: input.audience ?? "tribe",
         content: input.content,
-        image_url: input.image_url ?? null,
+        image_url: input.image_preview_url ?? null,
+        image_path: input.image_path ?? null,
         tag: null,
         likes_count: 0,
         replies_count: 0,
@@ -185,7 +194,7 @@ export function useEditPost() {
   const fn = useServerFn(editPost);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: string; content: string; image_url?: string | null }) =>
+    mutationFn: (input: { id: string; content: string; image_path?: string | null }) =>
       fn({ data: input }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["posts"] });
@@ -197,7 +206,8 @@ export function useEditPost() {
           return {
             ...p,
             content: input.content,
-            image_url: input.image_url === undefined ? p.image_url : input.image_url,
+            image_path: input.image_path === undefined ? p.image_path : input.image_path,
+            image_url: input.image_path === undefined ? p.image_url : null,
           };
         }),
       );
