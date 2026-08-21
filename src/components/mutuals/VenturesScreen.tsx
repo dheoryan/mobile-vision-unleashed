@@ -34,7 +34,8 @@ import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureSwipeDeck } from "./VentureSwipeDeck";
 import { VentureCardShell } from "./VentureImage";
 import { VentureSearching } from "./VentureSearching";
-import { Layers, List } from "lucide-react";
+import { ChevronLeft, Layers, List } from "lucide-react";
+import { readStoredVentureMode, saveStoredVentureMode } from "@/lib/ventures-mode";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { uploadVentureImage, signVentureImageUrl } from "@/lib/uploads";
@@ -65,22 +66,6 @@ import {
   type VentureInviteCandidate,
 } from "@/lib/ventures.functions";
 
-type Mode = "look" | "host";
-type VentureStage = "intro" | "role" | "feature";
-
-// Kept "This week evenings" and "This weekend" verbatim so Ventures created
-// before this list grew still match a chip when their host opens the editor.
-// Free text in the database, so this can grow again without a migration.
-const TIME_WINDOWS = [
-  "Tonight",
-  "Tomorrow",
-  "This week daytime",
-  "This week evenings",
-  "This weekend",
-  "Next weekend",
-  "Next week",
-  "Flexible",
-];
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 const VENTURES_MODE_KEY = "mutuals:ventures:last-mode";
 
@@ -101,14 +86,22 @@ function markVentureIntroSeen() {
   safeLocalStorage()?.setItem(VENTURES_INTRO_KEY, "1");
 }
 
-function readStoredMode(): Mode {
-  const value = safeLocalStorage()?.getItem(VENTURES_MODE_KEY);
-  return value === "host" ? "host" : "look";
-}
+type Mode = "look" | "host";
+type VentureStage = "intro" | "role" | "feature";
 
-function saveStoredMode(mode: Mode) {
-  safeLocalStorage()?.setItem(VENTURES_MODE_KEY, mode);
-}
+// Kept "This week evenings" and "This weekend" verbatim so Ventures created
+// before this list grew still match a chip when their host opens the editor.
+// Free text in the database, so this can grow again without a migration.
+const TIME_WINDOWS = [
+  "Tonight",
+  "Tomorrow",
+  "This week daytime",
+  "This week evenings",
+  "This weekend",
+  "Next weekend",
+  "Next week",
+  "Flexible",
+];
 
 export function VenturesScreen({
   profile,
@@ -135,7 +128,7 @@ export function VenturesScreen({
   const joinedQuery = useMyJoinedVentures();
 
   useEffect(() => {
-    persistMode(readStoredMode());
+    persistMode(readStoredVentureMode());
     if (hasSeenVentureIntro()) {
       setStage("feature");
     }
@@ -158,7 +151,7 @@ export function VenturesScreen({
 
   const persistMode = (nextMode: Mode) => {
     setModeState(nextMode);
-    saveStoredMode(nextMode);
+    saveStoredVentureMode(nextMode);
   };
 
   const switchMode = (nextMode: Mode) => {
@@ -213,12 +206,43 @@ export function VenturesScreen({
   return (
     <div className="bg-habitat min-h-screen pb-32">
       <AppHeader
-        title="Ventures"
+        title={stage === "feature" && mode === "host" ? "Hosting" : "Ventures"}
         subtitle={
           stage === "intro" ? "Optional" : stage === "role" ? "Choose mode" : "Open party board"
         }
         accent="var(--color-primary)"
       />
+
+      {/* Hosting is its own surface now, reached from an action rather than a
+          board toggle. Two stacked full-width segmented controls — Looking /
+          Hosting above All Tribes / My Tribe — put two unrelated decisions in
+          front of the deck. Only one of them filters what is below it. */}
+      {stage === "feature" && (
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-5 pt-3">
+          {mode === "host" ? (
+            <button
+              type="button"
+              onClick={() => switchMode("look")}
+              className="flex min-h-11 items-center gap-1.5 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Ventures
+            </button>
+          ) : (
+            <span />
+          )}
+          {mode === "look" && (
+            <button
+              type="button"
+              onClick={startHosting}
+              className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground"
+            >
+              <Plus className="h-4 w-4" />
+              Host
+            </button>
+          )}
+        </div>
+      )}
 
       <main className="mx-auto max-w-md px-5">
         {stage === "intro" ? (
@@ -230,8 +254,6 @@ export function VenturesScreen({
           />
         ) : (
           <>
-            <FeatureHero mode={mode} onModeChange={switchMode} />
-
             {mode === "look" ? (
               <LookView
                 profile={profile}
@@ -450,35 +472,6 @@ function RoleChoiceCard({
         </span>
       </span>
     </button>
-  );
-}
-
-function FeatureHero({ mode, onModeChange }: { mode: Mode; onModeChange: (mode: Mode) => void }) {
-  return (
-    <section className="mt-4">
-      {/* This used to carry a 2xl headline, a paragraph explaining what a
-          Venture is, and an icon — about 180px of onboarding copy rendered
-          above the deck on every visit, forever. The "intro" stage already
-          explains the feature once, to people who have never seen it, and
-          hasSeenVentureIntro() makes sure that happens exactly once.
-          Explanation belongs there; this is the working surface. */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-secondary/70 p-1">
-        <RoleButton
-          active={mode === "look"}
-          icon={<Search className="h-4 w-4" />}
-          onClick={() => onModeChange("look")}
-        >
-          Looking
-        </RoleButton>
-        <RoleButton
-          active={mode === "host"}
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => onModeChange("host")}
-        >
-          Hosting
-        </RoleButton>
-      </div>
-    </section>
   );
 }
 

@@ -1,5 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings, Edit3, Grid, Bookmark, Zap, Trash2, LogOut, X, Camera, Ban, Loader2, Check, LocateFixed, MapPinOff, RefreshCw, ShieldCheck, UserRound, KeyRound, ChevronRight, Scale, BookOpenCheck, LifeBuoy, Mail } from "lucide-react";
+import {
+  Settings,
+  Edit3,
+  Grid,
+  Bookmark,
+  Zap,
+  Trash2,
+  LogOut,
+  X,
+  Camera,
+  Ban,
+  Loader2,
+  Check,
+  LocateFixed,
+  MapPinOff,
+  RefreshCw,
+  ShieldCheck,
+  UserRound,
+  KeyRound,
+  ChevronRight,
+  Scale,
+  BookOpenCheck,
+  LifeBuoy,
+  Mail,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
@@ -14,6 +38,7 @@ import { PostCard } from "./PostCard";
 import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
 import { intentStore } from "@/lib/intent-store";
+import { preferVentureHostingOnNextOpen } from "@/lib/ventures-mode";
 import { useBlockedProfiles, useUnblockUser } from "@/lib/blocked-store";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
@@ -32,7 +57,12 @@ import {
   type SocialIntentId,
 } from "@/lib/profile-options";
 import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
-import { useDeleteMyLocation, useMyLocationSettings, useSaveMyLocation, useUpdateMyLocationSettings } from "@/lib/location-store";
+import {
+  useDeleteMyLocation,
+  useMyLocationSettings,
+  useSaveMyLocation,
+  useUpdateMyLocationSettings,
+} from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
 import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
 import { Switch } from "@/components/ui/switch";
@@ -83,7 +113,9 @@ export function ProfileScreen({
       <main className="mx-auto max-w-md px-5">
         <section
           className="relative mt-4 overflow-hidden rounded-2xl border border-border p-5"
-          style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 35%, var(--card)) 0%, var(--card) 100%)` }}
+          style={{
+            background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 35%, var(--card)) 0%, var(--card) 100%)`,
+          }}
         >
           <button
             aria-label="Settings"
@@ -108,7 +140,9 @@ export function ProfileScreen({
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-2xl font-bold leading-tight">{profile.name || "You"}</h2>
+                <h2 className="font-display text-2xl font-bold leading-tight">
+                  {profile.name || "You"}
+                </h2>
                 {showPlusBadge(profile.plan) && (
                   <span className="label-mono inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-primary">
                     <Zap className="h-3 w-3" fill="currentColor" /> PLUS
@@ -130,21 +164,41 @@ export function ProfileScreen({
             <div className="mt-4 space-y-2">
               {profile.socialIntents.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {profile.socialIntents.map((intent) => <ProfileTag key={intent} label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)} accent />)}
+                  {profile.socialIntents.map((intent) => (
+                    <ProfileTag
+                      key={intent}
+                      label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
+                      accent
+                    />
+                  ))}
                 </div>
               )}
               {profile.interests.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {profile.interests.slice(0, 5).map((interest) => <ProfileTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />)}
+                  {profile.interests.slice(0, 5).map((interest) => (
+                    <ProfileTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />
+                  ))}
                 </div>
               )}
             </div>
           )}
 
           {profileCompletion < 6 && (
-            <button type="button" onClick={() => setEditOpen(true)} className="mt-4 w-full rounded-xl border border-dashed border-primary/40 bg-primary/5 p-3 text-left">
-              <div className="flex items-center justify-between text-xs"><span className="font-semibold">Complete your social signal</span><span className="text-primary">{Math.round((profileCompletion / 6) * 100)}%</span></div>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary"><span className="block h-full rounded-full bg-primary" style={{ width: `${(profileCompletion / 6) * 100}%` }} /></div>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="mt-4 w-full rounded-xl border border-dashed border-primary/40 bg-primary/5 p-3 text-left"
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold">Complete your social signal</span>
+                <span className="text-primary">{Math.round((profileCompletion / 6) * 100)}%</span>
+              </div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
+                <span
+                  className="block h-full rounded-full bg-primary"
+                  style={{ width: `${(profileCompletion / 6) * 100}%` }}
+                />
+              </div>
             </button>
           )}
 
@@ -163,44 +217,69 @@ export function ProfileScreen({
         </section>
 
         {showPlanCard && (
-        <section className="mt-4 rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="label-mono text-muted-foreground">Plan</p>
-              <p className="font-display text-lg font-bold">
-                {isPlus ? (<><span className="text-primary">MEUTUALS+</span></>) : "Free"}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {isPlus
-                  ? "Unlimited Ventures, unlimited Hellos, full match visibility."
-                  : `${Math.max(0, 3 - profile.ventureCount)} of 3 free Ventures left this month.`}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {isPlus ? (
-                  <>
-                    You're in <span className="text-foreground font-semibold">{profile.tribeIds.length}</span> of 3 Tribes.
-                  </>
-                ) : (
-                  <>You're in 1 Tribe. Upgrade to join up to 3.</>
-                )}
-              </p>
+          <section className="mt-4 rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="label-mono text-muted-foreground">Plan</p>
+                <p className="font-display text-lg font-bold">
+                  {isPlus ? (
+                    <>
+                      <span className="text-primary">MEUTUALS+</span>
+                    </>
+                  ) : (
+                    "Free"
+                  )}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {isPlus
+                    ? "Unlimited Ventures, unlimited Hellos, full match visibility."
+                    : `${Math.max(0, 3 - profile.ventureCount)} of 3 free Ventures left this month.`}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {isPlus ? (
+                    <>
+                      You're in{" "}
+                      <span className="text-foreground font-semibold">
+                        {profile.tribeIds.length}
+                      </span>{" "}
+                      of 3 Tribes.
+                    </>
+                  ) : (
+                    <>You're in 1 Tribe. Upgrade to join up to 3.</>
+                  )}
+                </p>
+              </div>
+              {!isPlus && (
+                <Link
+                  to="/upgrade"
+                  className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground"
+                >
+                  <Zap className="h-3.5 w-3.5" fill="currentColor" /> Upgrade
+                </Link>
+              )}
             </div>
-            {!isPlus && (
-              <Link to="/upgrade" className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground">
-                <Zap className="h-3.5 w-3.5" fill="currentColor" /> Upgrade
-              </Link>
-            )}
-          </div>
 
-          {setProfile && (
-            <button
-              onClick={() => setProfile((p) => p ? { ...p, plan: isPlus ? "free" : "plus", tribeIds: isPlus ? [p.tribeIds[0]] : Array.from(new Set([...p.tribeIds, "owl" as const])).slice(0, 3) } : p)}
-              className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              Demo: toggle plan to {isPlus ? "Free" : "Plus"}
-            </button>
-          )}
-        </section>
+            {setProfile && (
+              <button
+                onClick={() =>
+                  setProfile((p) =>
+                    p
+                      ? {
+                          ...p,
+                          plan: isPlus ? "free" : "plus",
+                          tribeIds: isPlus
+                            ? [p.tribeIds[0]]
+                            : Array.from(new Set([...p.tribeIds, "owl" as const])).slice(0, 3),
+                        }
+                      : p,
+                  )
+                }
+                className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Demo: toggle plan to {isPlus ? "Free" : "Plus"}
+              </button>
+            )}
+          </section>
         )}
 
         {/* Both destinations advertise paid plans, so they stay behind the
@@ -208,10 +287,16 @@ export function ProfileScreen({
             which left a live pricing page reachable while monetization was off. */}
         {MONETIZATION_ENABLED && (
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link to="/tiers" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+            <Link
+              to="/tiers"
+              className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary"
+            >
               Compare tiers
             </Link>
-            <Link to="/host" className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary">
+            <Link
+              to="/host"
+              className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary"
+            >
               Apply to host a Tribe
             </Link>
           </div>
@@ -221,16 +306,24 @@ export function ProfileScreen({
           title={gridTab === "posts" ? "Your posts" : gridTab === "saved" ? "Saved" : "Ventures"}
           action={
             <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
-              <TabBtn active={gridTab === "posts"} onClick={() => setGridTab("posts")}><Grid className="h-3.5 w-3.5" /></TabBtn>
-              <TabBtn active={gridTab === "saved"} onClick={() => setGridTab("saved")}><Bookmark className="h-3.5 w-3.5" /></TabBtn>
-              <TabBtn active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}><Zap className="h-3.5 w-3.5" /></TabBtn>
+              <TabBtn active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
+                <Grid className="h-3.5 w-3.5" />
+              </TabBtn>
+              <TabBtn active={gridTab === "saved"} onClick={() => setGridTab("saved")}>
+                <Bookmark className="h-3.5 w-3.5" />
+              </TabBtn>
+              <TabBtn active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
+                <Zap className="h-3.5 w-3.5" />
+              </TabBtn>
             </div>
           }
         />
 
-        {gridTab === "posts" && (
-          myPostsQuery.isLoading ? (
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">Loading…</p>
+        {gridTab === "posts" &&
+          (myPostsQuery.isLoading ? (
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              Loading…
+            </p>
           ) : myPostsQuery.isError ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center">
               <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
@@ -250,13 +343,14 @@ export function ProfileScreen({
             </p>
           ) : (
             <ProfilePostHistory posts={myPosts} />
-          )
-        )}
+          ))}
 
-        {gridTab === "saved" && (
-          savedPosts.length === 0 ? (
+        {gridTab === "saved" &&
+          (savedPosts.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              {savedQuery.isLoading ? "Loading…" : "No saved posts yet. Tap the bookmark on any post to save it."}
+              {savedQuery.isLoading
+                ? "Loading…"
+                : "No saved posts yet. Tap the bookmark on any post to save it."}
             </p>
           ) : (
             /* A list, not a square grid.
@@ -300,31 +394,47 @@ export function ProfileScreen({
                         {p.content || (p.image_url ? "Photo" : "")}
                       </span>
                     </span>
-                    <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" />
+                    <Bookmark
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
+                      fill="currentColor"
+                    />
                   </button>
                 );
               })}
             </div>
-          )
-        )}
+          ))}
 
         {gridTab === "ventures" && (
           <div className="space-y-2">
             {ventures.length === 0 ? (
               <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                {venturesQuery.isLoading ? "Loading…" : "You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person."}
+                {venturesQuery.isLoading
+                  ? "Loading…"
+                  : "You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person."}
               </div>
             ) : (
               ventures.map((v) => (
-                <div key={v.id} className="rounded-2xl border border-border bg-card p-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">{v.title || v.intents.slice(0, 3).join(" · ") || "Open to anything"}</p>
-                    <span className="label-mono text-muted-foreground">{v.status}</span>
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    preferVentureHostingOnNextOpen();
+                    intentStore.push({ kind: "openTab", tab: "ventures" });
+                  }}
+                  className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm transition-colors hover:border-primary/40"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-semibold">
+                      {v.title || v.intents.slice(0, 3).join(" · ") || "Open to anything"}
+                    </p>
+                    <span className="label-mono shrink-0 text-muted-foreground">{v.status}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} · {v.time_window || "Any time"} · {v.filled_slots}/{v.max_slots} joined · {timeAgo(v.created_at)}
+                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} ·{" "}
+                    {v.time_window || "Any time"} · {v.filled_slots}/{v.max_slots} joined ·{" "}
+                    {timeAgo(v.created_at)}
                   </p>
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -347,13 +457,19 @@ export function ProfileScreen({
       <SettingsSheet
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onEditProfile={() => { setSettingsOpen(false); setEditOpen(true); }}
+        onEditProfile={() => {
+          setSettingsOpen(false);
+          setEditOpen(true);
+        }}
         onLogout={() => {
           setSettingsOpen(false);
           setProfile?.(() => null);
           toast.success("Signed out.");
         }}
-        onDelete={() => { setSettingsOpen(false); setDeleteOpen(true); }}
+        onDelete={() => {
+          setSettingsOpen(false);
+          setDeleteOpen(true);
+        }}
       />
 
       <DeleteAccountModal
@@ -368,11 +484,22 @@ export function ProfileScreen({
   );
 }
 
-function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
-      className={cn("rounded-full px-2 py-1 transition-colors", active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground")}
+      className={cn(
+        "rounded-full px-2 py-1 transition-colors",
+        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
     >
       {children}
     </button>
@@ -448,22 +575,37 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
         </button>
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-        Follows your location, so it stays right when you move. Turn off nearby in
-        Settings to set it yourself.
+        Follows your location, so it stays right when you move. Turn off nearby in Settings to set
+        it yourself.
       </p>
     </div>
   );
 }
 
 function ProfileTag({ label, accent = false }: { label: string; accent?: boolean }) {
-  return <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold", accent ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-background/50 text-muted-foreground")}>{label}</span>;
+  return (
+    <span
+      className={cn(
+        "rounded-full border px-2.5 py-1 text-[10px] font-semibold",
+        accent
+          ? "border-primary/30 bg-primary/10 text-primary"
+          : "border-border bg-background/50 text-muted-foreground",
+      )}
+    >
+      {label}
+    </span>
+  );
 }
 
-
 function EditProfileModal({
-  open, profile, onClose, onSave,
+  open,
+  profile,
+  onClose,
+  onSave,
 }: {
-  open: boolean; profile: Profile; onClose: () => void;
+  open: boolean;
+  profile: Profile;
+  onClose: () => void;
   onSave: (patch: Partial<Profile>) => void;
 }) {
   const { user } = useAuth();
@@ -479,7 +621,11 @@ function EditProfileModal({
   const [cropFile, setCropFile] = useState<File | null>(null);
 
   const sanitizeHandle = (v: string) =>
-    v.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_]/g, "").slice(0, 30);
+    v
+      .toLowerCase()
+      .replace(/^@/, "")
+      .replace(/[^a-z0-9_]/g, "")
+      .slice(0, 30);
   const handleValid = handle.length >= 3 && handle.length <= 30;
 
   if (!open) return null;
@@ -518,7 +664,11 @@ function EditProfileModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto scroll-panel rounded-t-3xl border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:rounded-3xl animate-rise">
-        <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+        >
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">Edit profile</h2>
@@ -533,7 +683,11 @@ function EditProfileModal({
               )}
             </span>
             <span className="absolute -bottom-1 -right-1 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-card">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
             </span>
             <input
               type="file"
@@ -561,21 +715,68 @@ function EditProfileModal({
             hint={handleValid ? `@${handle}` : "3–30 chars · a–z, 0–9, _"}
           />
           <CityField value={city} onChange={setCity} />
-          <Input label="Bio" value={bio} onChange={(v) => setBio(v.slice(0, 140))} multiline hint={`${bio.length}/140`} />
-          <ProfileChoiceGroup label="Interests" options={INTEREST_OPTIONS} selected={interests} onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))} />
-          <ProfileChoiceGroup label="Here for" options={SOCIAL_INTENT_OPTIONS} selected={socialIntents} onToggle={(id) => setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))} />
-          <ProfileChoiceGroup label="Usually free" options={AVAILABILITY_OPTIONS} selected={availability} onToggle={(id) => setAvailability(toggleSelection(availability, id as AvailabilityId, 4))} />
+          <Input
+            label="Bio"
+            value={bio}
+            onChange={(v) => setBio(v.slice(0, 140))}
+            multiline
+            hint={`${bio.length}/140`}
+          />
+          <ProfileChoiceGroup
+            label="Interests"
+            options={INTEREST_OPTIONS}
+            selected={interests}
+            onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))}
+          />
+          <ProfileChoiceGroup
+            label="Here for"
+            options={SOCIAL_INTENT_OPTIONS}
+            selected={socialIntents}
+            onToggle={(id) =>
+              setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))
+            }
+          />
+          <ProfileChoiceGroup
+            label="Usually free"
+            options={AVAILABILITY_OPTIONS}
+            selected={availability}
+            onToggle={(id) =>
+              setAvailability(toggleSelection(availability, id as AvailabilityId, 4))
+            }
+          />
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
           <button
-            disabled={!name.trim() || !city.trim() || !handleValid || interests.length < 2 || socialIntents.length < 1 || availability.length < 1 || uploading}
-            onClick={() => onSave({ name: name.trim(), handle, city: city.trim(), bio, avatar, interests, socialIntents, availability })}
+            disabled={
+              !name.trim() ||
+              !city.trim() ||
+              !handleValid ||
+              interests.length < 2 ||
+              socialIntents.length < 1 ||
+              availability.length < 1 ||
+              uploading
+            }
+            onClick={() =>
+              onSave({
+                name: name.trim(),
+                handle,
+                city: city.trim(),
+                bio,
+                avatar,
+                interests,
+                socialIntents,
+                availability,
+              })
+            }
             className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             {uploading ? "Saving photo…" : "Save changes"}
           </button>
-          <button onClick={onClose} className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
             Cancel
           </button>
         </div>
@@ -591,7 +792,6 @@ function EditProfileModal({
   );
 }
 
-
 function AvatarCropModal({
   file,
   saving,
@@ -605,7 +805,13 @@ function AvatarCropModal({
 }) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1.15);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -661,10 +867,12 @@ function AvatarCropModal({
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    setOffset(clampOffset({
-      x: drag.originX + event.clientX - drag.startX,
-      y: drag.originY + event.clientY - drag.startY,
-    }));
+    setOffset(
+      clampOffset({
+        x: drag.originX + event.clientX - drag.startX,
+        y: drag.originY + event.clientY - drag.startY,
+      }),
+    );
   };
 
   const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -725,7 +933,10 @@ function AvatarCropModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={saving ? undefined : onClose} />
+      <div
+        className="absolute inset-0 bg-background/80 backdrop-blur-md"
+        onClick={saving ? undefined : onClose}
+      />
       <div className="relative mx-auto w-full max-w-md rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-3xl animate-rise">
         <button
           onClick={onClose}
@@ -737,7 +948,9 @@ function AvatarCropModal({
         </button>
 
         <h3 className="font-display text-xl font-bold">Adjust profile photo</h3>
-        <p className="mt-1 text-xs text-muted-foreground">Drag to reposition. Use the slider to zoom before saving.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Drag to reposition. Use the slider to zoom before saving.
+        </p>
 
         <div className="mt-5 flex justify-center">
           <div
@@ -815,8 +1028,18 @@ function AvatarCropModal({
 }
 
 function Input({
-  label, value, onChange, multiline, hint,
-}: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean; hint?: string }) {
+  label,
+  value,
+  onChange,
+  multiline,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+  hint?: string;
+}) {
   return (
     <label className="block">
       <div className="mb-1 flex items-center justify-between">
@@ -842,7 +1065,10 @@ function Input({
 }
 
 function ProfileChoiceGroup({
-  label, options, selected, onToggle,
+  label,
+  options,
+  selected,
+  onToggle,
 }: {
   label: string;
   options: ReadonlyArray<{ id: string; label: string }>;
@@ -863,10 +1089,13 @@ function ProfileChoiceGroup({
               onClick={() => onToggle(option.id)}
               className={cn(
                 "min-h-10 rounded-full border px-3 py-2 text-[11px] font-semibold",
-                active ? "border-primary bg-primary/15 text-primary" : "border-border bg-background text-muted-foreground",
+                active
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-background text-muted-foreground",
               )}
             >
-              {active && <Check className="mr-1 inline h-3 w-3" />}{option.label}
+              {active && <Check className="mr-1 inline h-3 w-3" />}
+              {option.label}
             </button>
           );
         })}
@@ -876,8 +1105,18 @@ function ProfileChoiceGroup({
 }
 
 function SettingsSheet({
-  open, onClose, onEditProfile, onLogout, onDelete,
-}: { open: boolean; onClose: () => void; onEditProfile: () => void; onLogout: () => void; onDelete: () => void }) {
+  open,
+  onClose,
+  onEditProfile,
+  onLogout,
+  onDelete,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onEditProfile: () => void;
+  onLogout: () => void;
+  onDelete: () => void;
+}) {
   const { user } = useAuth();
   const blockedProfilesQuery = useBlockedProfiles();
   const unblockUser = useUnblockUser();
@@ -907,23 +1146,55 @@ function SettingsSheet({
   };
 
   return (
-    <AnimatedModal open={open} onOpenChange={(next) => !next && onClose()} title="Settings" contentClassName="max-h-[92dvh] overflow-y-auto scroll-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <AnimatedModal
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
+      title="Settings"
+      contentClassName="max-h-[92dvh] overflow-y-auto scroll-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+    >
       <div>
-        <button onClick={onClose} aria-label="Close settings" className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
+        <button
+          onClick={onClose}
+          aria-label="Close settings"
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">Settings</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Your account, privacy, safety, and preferences.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your account, privacy, safety, and preferences.
+        </p>
 
         <div className="mt-5">
           <p className="label-mono text-muted-foreground">Account</p>
           <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
-            <SettingsAction icon={UserRound} title="Edit profile" detail="Photo, bio, home city, and social signals" onClick={onEditProfile} />
+            <SettingsAction
+              icon={UserRound}
+              title="Edit profile"
+              detail="Photo, bio, home city, and social signals"
+              onClick={onEditProfile}
+            />
             <div className="border-t border-border px-4 py-3">
-              <div className="flex items-center gap-3"><Mail className="h-4 w-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="text-sm font-semibold">Email</p><p className="truncate text-[11px] text-muted-foreground">{user?.email ?? "Signed-in account"}</p></div></div>
+              <div className="flex items-center gap-3">
+                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Email</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {user?.email ?? "Signed-in account"}
+                  </p>
+                </div>
+              </div>
             </div>
-            <Link to="/reset-password" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60">
-              <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Change password</p><p className="text-[11px] text-muted-foreground">Send a secure reset link</p></div><ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <Link
+              to="/reset-password"
+              className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"
+            >
+              <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Change password</p>
+                <p className="text-[11px] text-muted-foreground">Send a secure reset link</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
           </div>
         </div>
@@ -939,41 +1210,98 @@ function SettingsSheet({
           <p className="label-mono text-muted-foreground">Nearby discovery</p>
           <div className="mt-2 rounded-2xl border border-border bg-background p-4">
             {locationQuery.isLoading ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading location settings…</p>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading location settings…
+              </p>
             ) : !location ? (
               <>
                 <div className="flex items-start gap-3">
                   <MapPinOff className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                  <div><p className="text-sm font-semibold">City-only discovery</p><p className="mt-1 text-xs text-muted-foreground">Add an approximate location to see mutually nearby members.</p></div>
+                  <div>
+                    <p className="text-sm font-semibold">City-only discovery</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Add an approximate location to see mutually nearby members.
+                    </p>
+                  </div>
                 </div>
-                <button type="button" onClick={refreshLocation} disabled={locating || saveLocation.isPending} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground disabled:opacity-50">
-                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />} Enable nearby
+                <button
+                  type="button"
+                  onClick={refreshLocation}
+                  disabled={locating || saveLocation.isPending}
+                  className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {locating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LocateFixed className="h-4 w-4" />
+                  )}{" "}
+                  Enable nearby
                 </button>
               </>
             ) : (
               <>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 text-primary" /><div><p className="text-sm font-semibold">Approximate area saved</p><p className="mt-1 text-xs text-muted-foreground">Coordinates remain private. Only distance bands are shared.</p></div></div>
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-semibold">Approximate area saved</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Coordinates remain private. Only distance bands are shared.
+                      </p>
+                    </div>
+                  </div>
                   <Switch
                     checked={location.discoverable}
                     disabled={updateLocation.isPending}
-                    aria-label={location.discoverable ? "Pause nearby discovery" : "Enable nearby discovery"}
-                    onCheckedChange={(discoverable) => updateLocation.mutate(
-                      { discoverable, radius_km: location.radius_km as LocationRadiusKm },
-                      { onError: (error) => toast.error("Could not update nearby discovery", { description: (error as Error).message }) },
-                    )}
+                    aria-label={
+                      location.discoverable ? "Pause nearby discovery" : "Enable nearby discovery"
+                    }
+                    onCheckedChange={(discoverable) =>
+                      updateLocation.mutate(
+                        { discoverable, radius_km: location.radius_km as LocationRadiusKm },
+                        {
+                          onError: (error) =>
+                            toast.error("Could not update nearby discovery", {
+                              description: (error as Error).message,
+                            }),
+                        },
+                      )
+                    }
                   />
                 </div>
                 <div className="mt-4">
                   <DiscoveryRadiusSlider
                     value={location.radius_km as LocationRadiusKm}
                     disabled={updateLocation.isPending}
-                    onChange={(radiusKm) => updateLocation.mutate({ discoverable: location.discoverable, radius_km: radiusKm })}
+                    onChange={(radiusKm) =>
+                      updateLocation.mutate({
+                        discoverable: location.discoverable,
+                        radius_km: radiusKm,
+                      })
+                    }
                   />
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={refreshLocation} disabled={locating} className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold"><RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Refresh area</button>
-                  <button type="button" onClick={() => deleteLocation.mutate(undefined, { onSuccess: () => toast.success("Approximate location removed.") })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold text-muted-foreground"><MapPinOff className="h-3.5 w-3.5" /> Remove</button>
+                  <button
+                    type="button"
+                    onClick={refreshLocation}
+                    disabled={locating}
+                    className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Refresh
+                    area
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      deleteLocation.mutate(undefined, {
+                        onSuccess: () => toast.success("Approximate location removed."),
+                      })
+                    }
+                    className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold text-muted-foreground"
+                  >
+                    <MapPinOff className="h-3.5 w-3.5" /> Remove
+                  </button>
                 </div>
               </>
             )}
@@ -994,9 +1322,30 @@ function SettingsSheet({
             </p>
           </div>
           <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
-            <Link to="/community-guidelines" className="flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-secondary/60"><BookOpenCheck className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Community Guidelines</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
-            <Link to="/privacy" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"><ShieldCheck className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Privacy Policy</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
-            <Link to="/terms" className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"><Scale className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-sm font-semibold">Terms of Service</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></Link>
+            <Link
+              to="/community-guidelines"
+              className="flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-secondary/60"
+            >
+              <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1 text-sm font-semibold">Community Guidelines</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link
+              to="/privacy"
+              className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"
+            >
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1 text-sm font-semibold">Privacy Policy</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link
+              to="/terms"
+              className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"
+            >
+              <Scale className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1 text-sm font-semibold">Terms of Service</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
           </div>
         </div>
 
@@ -1013,21 +1362,30 @@ function SettingsSheet({
           ) : (
             <ul className="mt-2 space-y-2">
               {blockedPeople.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                <li
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
+                >
                   {p.avatar_url ? (
                     <img src={p.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
                   ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">{p.avatar_emoji || "🙂"}</span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">
+                      {p.avatar_emoji || "🙂"}
+                    </span>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.display_name || "Unnamed"}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{p.handle ? `@${p.handle}` : ""}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {p.handle ? `@${p.handle}` : ""}
+                    </p>
                   </div>
                   <button
-                    onClick={() => unblockUser.mutate(p.id, {
-                      onSuccess: () => toast.success(`Unblocked ${p.display_name || "user"}.`),
-                      onError: (e) => toast.error((e as Error).message),
-                    })}
+                    onClick={() =>
+                      unblockUser.mutate(p.id, {
+                        onSuccess: () => toast.success(`Unblocked ${p.display_name || "user"}.`),
+                        onError: (e) => toast.error((e as Error).message),
+                      })
+                    }
                     className="flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
                   >
                     <Ban className="h-3 w-3" /> Unblock
@@ -1057,6 +1415,29 @@ function SettingsSheet({
   );
 }
 
-function SettingsAction({ icon: Icon, title, detail, onClick }: { icon: typeof LifeBuoy; title: string; detail: string; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/60"><Icon className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{title}</span><span className="block truncate text-[11px] text-muted-foreground">{detail}</span></span><ChevronRight className="h-4 w-4 text-muted-foreground" /></button>;
+function SettingsAction({
+  icon: Icon,
+  title,
+  detail,
+  onClick,
+}: {
+  icon: typeof LifeBuoy;
+  title: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/60"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block truncate text-[11px] text-muted-foreground">{detail}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </button>
+  );
 }
