@@ -250,9 +250,7 @@ function PublicProfilePage() {
           )}
         </section>
 
-        <h3 className="mt-6 mb-3 font-display text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          Posts
-        </h3>
+        <h3 className="label-mono mb-5 mt-8">Posts</h3>
         {postsQ.isLoading ? (
           <p className="py-8 text-center text-xs text-muted-foreground">Loading…</p>
         ) : (postsQ.data?.length ?? 0) === 0 ? (

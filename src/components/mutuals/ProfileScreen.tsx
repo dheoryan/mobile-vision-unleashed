@@ -316,7 +316,7 @@ export function ProfileScreen({
             icon-only pills — which both said the same thing twice and left the
             icons undecipherable until you tapped one. Words, underlined, no
             separate heading. */}
-        <div className="mt-7 flex items-center gap-6 border-b border-border">
+        <div className="mb-5 mt-8 flex items-center gap-6 border-b border-border">
           <TabBtn active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
             Posts
           </TabBtn>
@@ -506,7 +506,7 @@ function TabBtn({
     <button
       onClick={onClick}
       className={cn(
-        "min-h-11 pb-1.5 text-xs transition-colors",
+        "min-h-11 pb-2.5 text-xs transition-colors",
         active
           ? "font-bold text-primary shadow-[inset_0_-2px_0_var(--color-primary)]"
           : "text-muted-foreground hover:text-foreground",
