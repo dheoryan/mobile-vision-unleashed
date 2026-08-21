@@ -7,6 +7,7 @@ import { TimelineScreen } from "@/components/mutuals/TimelineScreen";
 import { DiscoverScreen } from "@/components/mutuals/DiscoverScreen";
 import { VenturesScreen } from "@/components/mutuals/VenturesScreen";
 import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
+import { ChatsScreen } from "@/components/mutuals/ChatsScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import type { VentureParty } from "@/lib/ventures-store";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
@@ -29,10 +30,25 @@ export const Route = createFileRoute("/")({
 const TAB_KEY = "mutuals.tab";
 const LEGACY_PROFILE_KEY = "mutuals.profile";
 
+const VALID_TABS: TabKey[] = ["feed", "discover", "ventures", "chats", "profile"];
+
+/** Existing installs have a tab name in localStorage that no longer exists.
+ *  Without this they land on the fallback and silently lose their place.
+ *
+ *  "timeline" was the feed and keeps being the feed. "tribe" was the Tribe
+ *  room, which was almost entirely the group chat — so its readers belong in
+ *  Chats, not in Feed. */
+const LEGACY_TABS: Record<string, TabKey> = {
+  timeline: "feed",
+  tribe: "chats",
+};
+
 function loadTab(): TabKey {
-  if (typeof window === "undefined") return "tribe";
-  const v = window.localStorage.getItem(TAB_KEY) as TabKey | null;
-  return v && ["tribe", "timeline", "discover", "ventures", "profile"].includes(v) ? v : "tribe";
+  if (typeof window === "undefined") return "feed";
+  const v = window.localStorage.getItem(TAB_KEY);
+  if (!v) return "feed";
+  if ((VALID_TABS as string[]).includes(v)) return v as TabKey;
+  return LEGACY_TABS[v] ?? "feed";
 }
 
 function App() {
@@ -52,6 +68,9 @@ function App() {
   const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
   const [scrollToPostId, setScrollToPostId] = useState<string | null>(null);
   const [initialTribe, setInitialTribe] = useState<TribeId | undefined>(undefined);
+  // The Tribe room is no longer a root tab. It is a full-screen view pushed
+  // from Chats, which is where its group chat now lives.
+  const [tribeChatOpen, setTribeChatOpen] = useState(false);
   const intent = useIntent();
   const threadsQuery = useThreads();
   const sendDM = useServerFn(sendMessageFn);
@@ -109,13 +128,14 @@ function App() {
       setHighlightCommentId(i.commentId ?? null);
       setOpenPostId(i.postId);
     } else if (i.kind === "scrollToPost") {
-      setTab("timeline");
+      setTab("feed");
       setScrollToPostId(i.postId);
     } else if (i.kind === "openTab") {
       setTab(i.tab);
     } else if (i.kind === "openTribe") {
-      setTab("tribe");
+      setTab("chats");
       setInitialTribe(i.tribeId);
+      setTribeChatOpen(true);
     }
   }, [intent, profile]);
 
@@ -206,16 +226,15 @@ function App() {
   };
 
   const screens: Record<TabKey, React.ReactNode> = {
-    tribe: (
-      <TribeScreen
+    feed: (
+      <TimelineScreen
         profile={profile}
-        setProfile={setProfile}
         onOpenMessages={openMessages}
         unread={unread}
-        initialTribe={initialTribe}
+        scrollToPostId={scrollToPostId}
+        onScrolledToPost={() => setScrollToPostId(null)}
       />
     ),
-    timeline: <TimelineScreen profile={profile} onOpenMessages={openMessages} unread={unread} scrollToPostId={scrollToPostId} onScrolledToPost={() => setScrollToPostId(null)} />,
     discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
     ventures: (
       <VenturesScreen
@@ -228,6 +247,20 @@ function App() {
         unread={unread}
       />
     ),
+    chats: (
+      <ChatsScreen
+        profile={profile}
+        onOpenMessages={openMessages}
+        unread={unread}
+        onOpenTribeChat={() => setTribeChatOpen(true)}
+        onOpenVentureChat={openVentureMessages}
+        onOpenThread={(userId) => {
+          setOpenVentureChat(null);
+          setOpenThreadUser(userId);
+          setMessagesOpen(true);
+        }}
+      />
+    ),
     profile: (
       <ProfileScreen
         profile={profile}
@@ -237,6 +270,36 @@ function App() {
       />
     ),
   };
+
+  // The Tribe room takes over the whole screen when open, nav included — it is
+  // a room you are inside, not a tab you are on.
+  if (tribeChatOpen) {
+    return (
+      <>
+        <TribeScreen
+          profile={profile}
+          setProfile={setProfile}
+          onOpenMessages={openMessages}
+          unread={unread}
+          initialTribe={initialTribe}
+          onBack={() => {
+            setTribeChatOpen(false);
+            setInitialTribe(undefined);
+          }}
+        />
+        <MessagesPanel
+          open={messagesOpen}
+          onClose={() => {
+            setMessagesOpen(false);
+            setOpenThreadUser(null);
+            setOpenVentureChat(null);
+          }}
+          openWithUserId={openThreadUser}
+          openWithVenture={openVentureChat}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -251,7 +314,7 @@ function App() {
           render those, rather than reverting to rendering all five. */}
       {screens[tab]}
 
-      <BottomNav active={tab} onChange={setTab} />
+      <BottomNav active={tab} onChange={setTab} chatsBadge={unread} />
       <MessagesPanel
         open={messagesOpen}
         onClose={() => {

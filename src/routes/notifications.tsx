@@ -138,7 +138,7 @@ function NotificationsPage() {
       if (isTribeId(n.tribe_id)) {
         intentStore.push({ kind: "openTribe", tribeId: n.tribe_id });
       } else {
-        intentStore.push({ kind: "openTab", tab: "tribe" });
+        intentStore.push({ kind: "openTab", tab: "chats" });
       }
       navigate({ to: "/" });
     } else if (n.kind === "message") {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, AtSign, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
+import { ArrowLeftRight, AtSign, ChevronLeft, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -69,12 +69,17 @@ export function TribeScreen({
   onOpenMessages,
   unread,
   initialTribe,
+  onBack,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
   onOpenMessages: () => void;
   unread?: number;
   initialTribe?: TribeId;
+  /** Present when the room was pushed from Chats rather than mounted as a tab.
+   *  Without it there is no way out, because the bottom nav is not rendered
+   *  over a room you are inside. */
+  onBack?: () => void;
 }) {
   const isPlus = isPlusEffective(profile.plan);
   const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
@@ -99,13 +104,34 @@ export function TribeScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader
-        title={tribe.name}
-        subtitle="Chat"
-        accent={tribe.colorVar}
-        onOpenMessages={onOpenMessages}
-        unread={unread}
-      />
+      {onBack && (
+        <div className="glass sticky top-0 z-30 border-b border-border">
+          <div className="mx-auto flex max-w-md items-center gap-2 px-3 py-2">
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to Chats"
+              className="flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Chats
+            </button>
+            <span className="flex items-center gap-1.5 truncate">
+              <TribeMark tribe={tribe} size="xs" />
+              <span className="truncate font-display text-sm font-semibold">{tribe.name}</span>
+            </span>
+          </div>
+        </div>
+      )}
+      {!onBack && (
+        <AppHeader
+          title={tribe.name}
+          subtitle="Chat"
+          accent={tribe.colorVar}
+          onOpenMessages={onOpenMessages}
+          unread={unread}
+        />
+      )}
       <main className="mx-auto max-w-md px-5 pt-3">
         <TribeBanner
           tribe={tribe}
