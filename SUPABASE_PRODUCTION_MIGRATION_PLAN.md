@@ -1,3 +1,24 @@
+# ⚠️ SUPERSEDED — kept for history only
+
+**This plan was executed on 2026-08-20 and is no longer the current state.**
+
+Lovable applied all of these migrations to production itself, squashed into
+three files (`20260820190349`, `190504`, `190650`). A byte-level comparison of
+every table, column, function body, policy expression, trigger, constraint and
+index confirmed that replay was faithful. Production is fully migrated.
+
+Do not follow the steps below — they describe a migration that has already
+happened, and re-running parts of it would rewrite live rows a second time.
+
+- Current process: **`CHANGE_PROTOCOL.md`**
+- Remaining launch work: **`LAUNCH_CHECKLIST.md`**
+- Verification queries: **`LOVABLE_SQL_EDITOR_PASTE.sql`**
+
+---
+
+<details>
+<summary>Original plan, as written on 2026-08-20 (historical)</summary>
+
 # Taking local → production (`ppdfglcpsnllziotfiso`)
 
 **28** migrations are unapplied on production, not 23 — corrected after looking
@@ -330,3 +351,5 @@ can fail quietly.
   a local Supabase stack. **None has been run against production.** The reset
   path in §1 is safer than this whole document; prefer it if the data is
   disposable.
+
+</details>
