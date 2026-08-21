@@ -111,23 +111,21 @@ export function ProfileScreen({
     <div className="bg-habitat min-h-screen pb-28">
       <AppHeader title="Profile" subtitle="You" accent={tribe.colorVar} />
       <main className="mx-auto max-w-md px-5">
-        <section
-          className="relative mt-4 overflow-hidden rounded-2xl border border-border p-5"
-          style={{
-            background: `linear-gradient(135deg, color-mix(in oklab, ${tribe.colorVar} 35%, var(--card)) 0%, var(--card) 100%)`,
-          }}
-        >
+        {/* No card. Identity sits directly on the ground — the gradient panel
+            was the softest, most generic element on the screen, and a card
+            around the thing that IS the page adds a frame around a frame. */}
+        <section className="relative mt-5">
           <button
             aria-label="Settings"
             onClick={() => setSettingsOpen(true)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-background/40 text-muted-foreground hover:text-foreground"
+            className="absolute -top-1 right-0 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
           >
             <Settings className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-4">
             <span className="relative">
               <span
-                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
+                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-card text-4xl ring-2"
                 style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
               >
                 {profile.avatar?.startsWith("data:") || profile.avatar?.startsWith("http") ? (
@@ -149,13 +147,17 @@ export function ProfileScreen({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">{profile.city || "Somewhere"}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <TribeBadge tribe={tribe} />
+              {/* One mono line instead of a location paragraph plus a pill.
+                  Space Mono was already the strongest thing in the type stack;
+                  this gives it structural work rather than decoration. */}
+              <p className="label-mono mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">
+                <span>{profile.city || "Somewhere"}</span>
+                <span aria-hidden>·</span>
+                <span style={{ color: tribe.colorVar }}>{tribe.name}</span>
                 {otherTribes.map((t) => (
                   <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
                 ))}
-              </div>
+              </p>
             </div>
           </div>
           {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
@@ -187,11 +189,13 @@ export function ProfileScreen({
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="mt-4 w-full rounded-xl border border-dashed border-primary/40 bg-primary/5 p-3 text-left"
+              className="mt-5 w-full rounded-md border border-primary/40 bg-primary/5 p-3 text-left"
             >
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold">Complete your social signal</span>
-                <span className="text-primary">{Math.round((profileCompletion / 6) * 100)}%</span>
+                {/* A percentage is a number with no verb — it nags without
+                    telling you what to do. The bar still shows progress. */}
+                <span className="font-semibold">Finish your profile</span>
+                <span className="text-primary">{6 - profileCompletion} left</span>
               </div>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
                 <span
@@ -202,15 +206,21 @@ export function ProfileScreen({
             </button>
           )}
 
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          {/* Three numbers in three identical rounded boxes was the most
+              generic element left. Hairline rules carry the same grouping with
+              none of the packaging. Content is unchanged on purpose — which
+              three numbers belong here is still open. */}
+          <div className="mt-5 flex items-stretch border-y border-border">
             <Stat label="Following" value={String(followCounts.data?.following ?? 0)} />
+            <span aria-hidden className="w-px bg-border" />
             <Stat label="Followers" value={String(followCounts.data?.followers ?? 0)} />
+            <span aria-hidden className="w-px bg-border" />
             <Stat label="Ventures" value={String(profile.ventureCount)} />
           </div>
 
           <button
             onClick={() => setEditOpen(true)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold hover:bg-background/60"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold hover:bg-card"
           >
             <Edit3 className="h-3.5 w-3.5" /> Edit profile
           </button>
@@ -497,8 +507,10 @@ function TabBtn({
     <button
       onClick={onClick}
       className={cn(
-        "rounded-full px-2 py-1 transition-colors",
-        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+        "min-h-11 pb-1.5 text-xs transition-colors",
+        active
+          ? "font-bold text-primary shadow-[inset_0_-2px_0_var(--color-primary)]"
+          : "text-muted-foreground hover:text-foreground",
       )}
     >
       {children}
@@ -508,9 +520,11 @@ function TabBtn({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-background/40 py-2.5">
-      <p className="font-display text-lg font-bold">{value}</p>
-      <p className="label-mono text-muted-foreground">{label}</p>
+    <div className="flex-1 py-3.5 pl-4 first:pl-0">
+      <p className="font-display text-[22px] font-bold leading-none tracking-tight tabular-nums">
+        {value}
+      </p>
+      <p className="label-mono mt-1.5 text-muted-foreground">{label}</p>
     </div>
   );
 }
