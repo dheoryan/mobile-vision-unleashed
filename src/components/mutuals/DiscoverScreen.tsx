@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Check, LocateFixed, Loader2, MapPin, Search, ShieldCheck, SlidersHorizontal, Sparkles, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Check, LocateFixed, Loader2, MapPin, Search, ShieldCheck, Sparkles, UserPlus, X } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
 import { useFeedPosts, useTribeMemberCounts, type FeedPost } from "@/lib/posts-store";
@@ -13,7 +13,7 @@ import { useBlocked } from "@/lib/blocked-store";
 import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
-import { useMyLocationSettings, useNearbyProfiles, useSaveMyLocation, useUpdateMyLocationSettings } from "@/lib/location-store";
+import { useMyLocationSettings, useSaveMyLocation, useUpdateMyLocationSettings } from "@/lib/location-store";
 import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
 import type { NearbyProfile } from "@/lib/location.functions";
 import { toast } from "sonner";
@@ -97,7 +97,6 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
   const locationQuery = useMyLocationSettings();
   const saveLocation = useSaveMyLocation();
   const updateLocation = useUpdateMyLocationSettings();
-  const nearbyQuery = useNearbyProfiles(Boolean(locationQuery.data?.discoverable));
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 250);
@@ -137,11 +136,6 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         .filter((p) => !blocked.has(p.id)),
     [activeQuery.data, blocked],
   );
-  const nearbyPeople = useMemo(
-    () => (nearbyQuery.data ?? []).map(rowToPerson).filter((person) => !blocked.has(person.id)),
-    [nearbyQuery.data, blocked],
-  );
-  const nearbyIds = useMemo(() => new Set(nearbyPeople.map((person) => person.id)), [nearbyPeople]);
 
   const enableNearby = async () => {
     setLocating(true);
@@ -165,11 +159,14 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
   };
 
   // Server-side search already filters; keep a light client-side pass for tribe-name matches.
+  //
+  // There is deliberately no second list to exclude here any more. Proximity is
+  // a signal inside list_explore_matches, not a separate query, so a nearby
+  // person is simply a person who ranked well and carries a distance band.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const generalPeople = people.filter((person) => !nearbyIds.has(person.id));
-    if (!q || q === debounced.toLowerCase()) return generalPeople;
-    return generalPeople.filter((p) => {
+    if (!q || q === debounced.toLowerCase()) return people;
+    return people.filter((p) => {
       const tribes = p.allTribeIds.map((id) => tribeById(id).name.toLowerCase()).join(" ");
       return (
         p.name.toLowerCase().includes(q) ||
@@ -179,7 +176,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
         tribes.includes(q)
       );
     });
-  }, [query, debounced, people, nearbyIds]);
+  }, [query, debounced, people]);
 
   const toggle = (id: string) => toggleFollow.mutate(id);
   const isSearching = query.trim() !== debounced;
@@ -238,53 +235,27 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
           </div>
         </div>
 
-        <SectionTitle
-          title="People near you"
-          hint={locationQuery.data?.discoverable ? `${nearbyPeople.length} nearby · mutual radius` : locationQuery.data ? "Paused" : "Optional"}
-          action={locationQuery.data ? (
-            <button
-              type="button"
-              onClick={() => setNearbySettingsOpen(true)}
-              aria-label="Adjust nearby preferences"
-              className={cn(
-                "flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                locationQuery.data.discoverable ? "border-primary/35 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground",
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              {locationQuery.data.discoverable ? `${locationQuery.data.radius_km} km` : "Paused"}
-            </button>
-          ) : undefined}
-        />
-        {locationQuery.isLoading ? (
-          <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-8 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Checking nearby preferences…</p>
-        ) : !locationQuery.data ? (
-          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"><LocateFixed className="h-5 w-5" /></span>
-              <div><p className="text-sm font-semibold">Discover your part of the city</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Opt in to approximate proximity. Members see distance bands, never your coordinates.</p></div>
-            </div>
-            <button type="button" onClick={enableNearby} disabled={locating || saveLocation.isPending} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground disabled:opacity-50">
-              {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />} Enable nearby
-            </button>
-          </div>
-        ) : !locationQuery.data.discoverable ? (
-          <div className="rounded-2xl border border-dashed border-border p-5 text-center">
-            <p className="text-xs text-muted-foreground">Nearby discovery is paused. Your approximate area is still saved privately.</p>
-            <button type="button" onClick={() => setNearbySettingsOpen(true)} className="mt-3 min-h-11 rounded-full border border-primary/35 bg-primary/10 px-4 text-xs font-semibold text-primary">Review nearby preferences</button>
-          </div>
-        ) : nearbyQuery.isLoading ? (
-          <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-8 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Finding mutual proximity…</p>
-        ) : nearbyQuery.isError ? (
-          <div className="rounded-2xl border border-border bg-card p-5 text-center"><p className="text-xs text-muted-foreground">Couldn't load nearby people.</p><button type="button" onClick={() => nearbyQuery.refetch()} className="mt-3 text-xs font-semibold text-primary underline">Retry</button></div>
-        ) : nearbyPeople.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">No mutually nearby members yet. General discovery is still available below.</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {nearbyPeople.map((person) => (
-              <PersonRow key={`nearby-${person.id}`} person={person} following={social.following.has(person.id)} pending={toggleFollow.isPending && toggleFollow.variables === person.id} onToggle={() => toggle(person.id)} />
-            ))}
-          </div>
+        {/* Proximity is a signal inside list_explore_matches, not a list of its
+            own. What survives here is the CONSENT control: without a saved
+            location no candidate carries a distance band at all, so the opt-in
+            has to stay reachable — it just no longer owns a section. */}
+        {!locationQuery.isLoading && !locationQuery.data && (
+          <button
+            type="button"
+            onClick={enableNearby}
+            disabled={locating || saveLocation.isPending}
+            className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left disabled:opacity-50"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xs font-semibold">Show who is near you</span>
+              <span className="block text-[11px] leading-snug text-muted-foreground">
+                Members see distance bands, never coordinates.
+              </span>
+            </span>
+          </button>
         )}
 
         <SectionTitle
@@ -297,6 +268,23 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
                 : `${filtered.length} ranked for you`
           }
           action={
+            <div className="flex items-center gap-1.5">
+              {locationQuery.data && (
+                <button
+                  type="button"
+                  onClick={() => setNearbySettingsOpen(true)}
+                  aria-label="Adjust nearby preferences"
+                  className={cn(
+                    "flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    locationQuery.data.discoverable
+                      ? "border-primary/35 bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground",
+                  )}
+                >
+                  <MapPin className="h-3 w-3" />
+                  {locationQuery.data.discoverable ? `${locationQuery.data.radius_km} km` : "Paused"}
+                </button>
+              )}
             <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
               <button
                 onClick={() => setView("deck")}
@@ -314,6 +302,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
               >
                 <List className="h-3.5 w-3.5" />
               </button>
+            </div>
             </div>
           }
         />
@@ -353,17 +342,13 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-              {/* Only for a genuinely empty result — not when the optional
-                  nearby list is empty, and never implying location is required
-                  for general discovery. A live search that found nothing keeps
-                  the plain message so the query stays the focus. */}
-              {!debounced && nearbyIds.size === 0 && <FeatureIllustration src={discoverArt} />}
-              <p className={cn("text-sm text-muted-foreground", !debounced && nearbyIds.size === 0 && "mt-4")}>
+              {/* One list now, so an empty result means genuinely nobody —
+                  there is no second list that might be holding everyone. */}
+              {!debounced && <FeatureIllustration src={discoverArt} />}
+              <p className={cn("text-sm text-muted-foreground", !debounced && "mt-4")}>
                 {debounced
                   ? `No one matches "${debounced}". Try another search.`
-                  : nearbyIds.size > 0
-                    ? "Everyone currently loaded is already shown in People near you."
-                    : "No registered users yet."}
+                  : "No registered users yet."}
               </p>
             </div>
           ) : (
