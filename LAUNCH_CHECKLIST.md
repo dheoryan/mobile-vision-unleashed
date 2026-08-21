@@ -71,10 +71,11 @@ switching something on.
 
 ## Should do — not blocking, but cheap
 
-- [ ] **Fix the dependency mismatch.** `@lovable.dev/vite-tanstack-config` is
-      2.9.1 on your machine, 2.13.1 in `package.json`. Your dev server and
-      production build with different configs. Prefer `bun install` — the
-      deploy resolves from `bun.lock`, not `package-lock.json`.
+- [x] **Fix the dependency mismatch.** ~~`@lovable.dev/vite-tanstack-config`
+      2.9.1 vs 2.13.1.~~ Resolved 2026-08-21 with `npm install` (no bun on the
+      machine), which is also what cleared the "Invalid server function ID"
+      errors. Note this rewrote `package-lock.json` — see the lockfile item
+      below, still open.
 
 - [ ] **Settle on one lockfile.** Both `bun.lock` and `package-lock.json` are
       tracked and they disagree (707 packages vs 507). Confirm how Lovable
