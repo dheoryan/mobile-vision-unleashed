@@ -27,7 +27,7 @@ export function AppHeader({
           <img
             src={logoMark}
             alt="MEUTUALS"
-            className="h-9 w-9 rounded-xl object-cover"
+            className="h-9 w-9 rounded-md object-contain"
             style={{ boxShadow: `0 0 0 1px color-mix(in oklab, ${accent} 35%, transparent)` }}
           />
           <div className="leading-tight">
@@ -43,7 +43,15 @@ export function AppHeader({
   );
 }
 
-export function SectionTitle({ title, hint, action }: { title: string; hint?: string; action?: React.ReactNode }) {
+export function SectionTitle({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="mb-3 mt-6 flex items-end justify-between gap-3">
       <div>
