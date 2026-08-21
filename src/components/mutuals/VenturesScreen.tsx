@@ -113,19 +113,15 @@ function saveStoredMode(mode: Mode) {
 export function VenturesScreen({
   profile,
   setProfile,
-  onOpenMessages,
   onOpenVentureChat,
   onSendHello: _onSendHello,
   onLaunchVenture,
-  unread,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
-  onOpenMessages: () => void;
   onOpenVentureChat: (venture: VentureParty) => void;
   onSendHello?: (person: Person, message: string) => void;
   onLaunchVenture?: () => void;
-  unread?: number;
 }) {
   const [stage, setStage] = useState<VentureStage>("intro");
   const [mode, setModeState] = useState<Mode>("look");
@@ -222,8 +218,6 @@ export function VenturesScreen({
           stage === "intro" ? "Optional" : stage === "role" ? "Choose mode" : "Open party board"
         }
         accent="var(--color-primary)"
-        onOpenMessages={onOpenMessages}
-        unread={unread}
       />
 
       <main className="mx-auto max-w-md px-5">

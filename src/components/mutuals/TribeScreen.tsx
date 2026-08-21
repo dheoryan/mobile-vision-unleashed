@@ -66,15 +66,11 @@ const isLocalSupabaseRealtimeDisabled =
 export function TribeScreen({
   profile,
   setProfile,
-  onOpenMessages,
-  unread,
   initialTribe,
   onBack,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
-  onOpenMessages: () => void;
-  unread?: number;
   initialTribe?: TribeId;
   /** Present when the room was pushed from Chats rather than mounted as a tab.
    *  Without it there is no way out, because the bottom nav is not rendered
@@ -128,8 +124,6 @@ export function TribeScreen({
           title={tribe.name}
           subtitle="Chat"
           accent={tribe.colorVar}
-          onOpenMessages={onOpenMessages}
-          unread={unread}
         />
       )}
       <main className="mx-auto max-w-md px-5 pt-3">

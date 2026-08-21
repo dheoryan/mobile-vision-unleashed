@@ -45,13 +45,9 @@ type GridTab = "posts" | "saved" | "ventures";
 
 export function ProfileScreen({
   profile,
-  onOpenMessages,
-  unread,
   setProfile,
 }: {
   profile: Profile;
-  onOpenMessages: () => void;
-  unread?: number;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -83,7 +79,7 @@ export function ProfileScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title="Profile" subtitle="You" accent={tribe.colorVar} onOpenMessages={onOpenMessages} unread={unread} />
+      <AppHeader title="Profile" subtitle="You" accent={tribe.colorVar} />
       <main className="mx-auto max-w-md px-5">
         <section
           className="relative mt-4 overflow-hidden rounded-2xl border border-border p-5"

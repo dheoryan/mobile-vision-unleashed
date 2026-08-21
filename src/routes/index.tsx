@@ -214,11 +214,6 @@ function App() {
     // Nothing else to do here.
   };
 
-  const openMessages = () => {
-    setOpenThreadUser(null);
-    setOpenVentureChat(null);
-    setMessagesOpen(true);
-  };
   const openVentureMessages = (venture: VentureParty) => {
     setOpenThreadUser(null);
     setOpenVentureChat(venture);
@@ -229,29 +224,23 @@ function App() {
     feed: (
       <TimelineScreen
         profile={profile}
-        onOpenMessages={openMessages}
-        unread={unread}
         scrollToPostId={scrollToPostId}
         onScrolledToPost={() => setScrollToPostId(null)}
       />
     ),
-    discover: <DiscoverScreen onOpenMessages={openMessages} unread={unread} />,
+    discover: <DiscoverScreen />,
     ventures: (
       <VenturesScreen
         profile={profile}
         setProfile={setProfile}
-        onOpenMessages={openMessages}
         onOpenVentureChat={openVentureMessages}
         onSendHello={handleSendHello}
         onLaunchVenture={handleLaunchVenture}
-        unread={unread}
       />
     ),
     chats: (
       <ChatsScreen
         profile={profile}
-        onOpenMessages={openMessages}
-        unread={unread}
         onOpenTribeChat={() => setTribeChatOpen(true)}
         onOpenVentureChat={openVentureMessages}
         onOpenThread={(userId) => {
@@ -264,8 +253,6 @@ function App() {
     profile: (
       <ProfileScreen
         profile={profile}
-        onOpenMessages={openMessages}
-        unread={unread}
         setProfile={setProfile}
       />
     ),
@@ -279,8 +266,6 @@ function App() {
         <TribeScreen
           profile={profile}
           setProfile={setProfile}
-          onOpenMessages={openMessages}
-          unread={unread}
           initialTribe={initialTribe}
           onBack={() => {
             setTribeChatOpen(false);

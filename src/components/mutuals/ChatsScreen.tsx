@@ -172,15 +172,11 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 
 export function ChatsScreen({
   profile,
-  onOpenMessages,
-  unread,
   onOpenTribeChat,
   onOpenVentureChat,
   onOpenThread,
 }: {
   profile: Profile;
-  onOpenMessages: () => void;
-  unread?: number;
   onOpenTribeChat: () => void;
   onOpenVentureChat: (venture: VentureParty) => void;
   onOpenThread: (userId: string) => void;
@@ -239,8 +235,6 @@ export function ChatsScreen({
         title="Chats"
         subtitle="Rooms"
         accent="var(--color-primary)"
-        onOpenMessages={onOpenMessages}
-        unread={unread}
       />
 
       <main className="mx-auto max-w-md px-5">

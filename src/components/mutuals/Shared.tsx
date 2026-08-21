@@ -4,18 +4,21 @@ import { NotificationBell } from "./NotificationBell";
 import { TribeMark } from "./TribeMark";
 import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
 
+/**
+ * The messages button used to live here because conversations had no tab —
+ * every screen carried a shortcut into a panel that rendered its own thread
+ * list. Chats is that list now, and a second entrance to it (a worse one, in
+ * an overlay) is exactly the duplication this restructure is removing. The
+ * panel survives, but only ever opens to a specific thread or party.
+ */
 export function AppHeader({
   title,
   subtitle,
   accent,
-  onOpenMessages,
-  unread,
 }: {
   title: string;
   subtitle?: string;
   accent: string;
-  onOpenMessages: () => void;
-  unread?: number;
 }) {
   return (
     <header className="glass sticky top-0 z-20 border-b border-border">
@@ -33,18 +36,6 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={onOpenMessages}
-            aria-label="Messages"
-            className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            <MessageCircle className="h-5 w-5" />
-            {unread ? (
-              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                {unread}
-              </span>
-            ) : null}
-          </button>
           <NotificationBell />
         </div>
       </div>

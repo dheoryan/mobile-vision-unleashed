@@ -14,14 +14,10 @@ import { TribeMark } from "./TribeMark";
 
 export function TimelineScreen({
   profile,
-  onOpenMessages,
-  unread,
   scrollToPostId,
   onScrolledToPost,
 }: {
   profile: Profile;
-  onOpenMessages: () => void;
-  unread?: number;
   scrollToPostId?: string | null;
   onScrolledToPost?: () => void;
 }) {
@@ -73,7 +69,7 @@ export function TimelineScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" onOpenMessages={onOpenMessages} unread={unread} />
+      <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" />
       <main className="mx-auto max-w-md px-5">
 
 

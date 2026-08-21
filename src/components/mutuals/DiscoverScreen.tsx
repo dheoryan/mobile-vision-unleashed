@@ -80,7 +80,7 @@ function rowToPerson(row: DiscoverProfile | NearbyProfile | ExploreMatch): Disco
   };
 }
 
-export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () => void; unread?: number }) {
+export function DiscoverScreen() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
@@ -190,7 +190,7 @@ export function DiscoverScreen({ onOpenMessages, unread }: { onOpenMessages: () 
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title="Discover" subtitle="Beyond your Tribe" accent="var(--color-primary)" onOpenMessages={onOpenMessages} unread={unread} />
+      <AppHeader title="Discover" subtitle="Beyond your Tribe" accent="var(--color-primary)" />
       <main className="mx-auto max-w-md px-5">
         <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
           <Search className="h-4 w-4 text-muted-foreground" />
