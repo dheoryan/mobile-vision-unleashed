@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Settings,
   Edit3,
-  Grid,
   Bookmark,
   Zap,
   Trash2,
@@ -27,7 +26,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
-import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
+import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
@@ -312,22 +311,22 @@ export function ProfileScreen({
           </div>
         )}
 
-        <SectionTitle
-          title={gridTab === "posts" ? "Your posts" : gridTab === "saved" ? "Saved" : "Ventures"}
-          action={
-            <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
-              <TabBtn active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
-                <Grid className="h-3.5 w-3.5" />
-              </TabBtn>
-              <TabBtn active={gridTab === "saved"} onClick={() => setGridTab("saved")}>
-                <Bookmark className="h-3.5 w-3.5" />
-              </TabBtn>
-              <TabBtn active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
-                <Zap className="h-3.5 w-3.5" />
-              </TabBtn>
-            </div>
-          }
-        />
+        {/* The tab row IS the section header. It used to be a dynamic
+            SectionTitle ("Your posts" / "Saved" / "Ventures") next to three
+            icon-only pills — which both said the same thing twice and left the
+            icons undecipherable until you tapped one. Words, underlined, no
+            separate heading. */}
+        <div className="mt-7 flex items-center gap-6 border-b border-border">
+          <TabBtn active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
+            Posts
+          </TabBtn>
+          <TabBtn active={gridTab === "saved"} onClick={() => setGridTab("saved")}>
+            Saved
+          </TabBtn>
+          <TabBtn active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
+            Ventures
+          </TabBtn>
+        </div>
 
         {gridTab === "posts" &&
           (myPostsQuery.isLoading ? (
