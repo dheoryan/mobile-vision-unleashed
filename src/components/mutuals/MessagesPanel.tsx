@@ -121,7 +121,7 @@ export function MessagesPanel({
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl">
         {ventureThread ? (
-          <VenturePartyThread venture={ventureThread} onBack={() => setVentureThread(null)} />
+          <VenturePartyThread venture={ventureThread} onBack={onClose} />
         ) : !threadId ? (
           <Inbox
             onOpen={(id) => setThreadId(id)}
@@ -132,7 +132,7 @@ export function MessagesPanel({
             onClose={onClose}
           />
         ) : (
-          <Thread otherId={threadId} onBack={() => setThreadId(null)} />
+          <Thread otherId={threadId} onBack={onClose} />
         )}
       </div>
     </div>
@@ -232,7 +232,8 @@ function Inbox({
           <div className="p-10 text-center">
             <FeatureIllustration src={messagesArt} />
             <p className="mt-4 text-sm text-muted-foreground">
-              No messages yet. Active Venture party chats will appear here after you host or join one.
+              No messages yet. Active Venture party chats will appear here after you host or join
+              one.
             </p>
           </div>
         ) : (
@@ -589,9 +590,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
           msgs.map((m) => {
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
-            const senderName = mine
-              ? "yourself"
-              : other?.display_name?.trim() || "Them";
+            const senderName = mine ? "yourself" : other?.display_name?.trim() || "Them";
             return (
               <MessageSwipeRow
                 key={m.id}
@@ -702,7 +701,11 @@ function IncomingHellos() {
             <li key={h.id} className="rounded-2xl border border-border bg-card p-3">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
-                  {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
+                  {isImg ? (
+                    <img src={avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    avatar
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{name}</p>
@@ -734,7 +737,8 @@ function IncomingHellos() {
                     answer.mutate(
                       { hello_id: h.id, status: "declined" },
                       {
-                        onSuccess: () => toast("Hello declined.", { description: "They can't send another." }),
+                        onSuccess: () =>
+                          toast("Hello declined.", { description: "They can't send another." }),
                         onError: (e) => toast.error((e as Error).message),
                       },
                     )

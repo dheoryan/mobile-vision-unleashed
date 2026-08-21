@@ -54,6 +54,7 @@ export function VentureSwipeDeck({
   if (!venture) return null;
 
   const tribe = tribeById((venture.host?.tribe_ids?.[0] as TribeId) ?? "wolf");
+  const hasPhoto = Boolean(venture.image_url);
   const spotsLeft = Math.max(0, (venture.max_slots ?? 4) - (venture.filled_slots ?? 1));
   const hostName = venture.host?.display_name?.trim() || "Someone";
 
@@ -102,24 +103,38 @@ export function VentureSwipeDeck({
        * row still fit one screen on a short phone. A deck you have to scroll
        * to act on is not a deck.
        */}
+      {/* Poster geometry is for photos. A 3:4 frame with nothing in it is
+          ~400px of empty gradient with the words pinned to the floor, which is
+          what most of these cards look like today — hardly any Venture has a
+          thumbnail yet. So the aspect ratio only applies when there is an
+          image to fill it; otherwise the card sizes to its own content and the
+          title sits where the eye already is. */}
       <div
-        className="relative aspect-[3/4] max-h-[58vh] w-full overflow-hidden rounded-3xl border border-border"
-        style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${tribe.colorVar} 30%, var(--card)) 0%, var(--card) 62%)` }}
+        className={cn(
+          "relative w-full overflow-hidden rounded-3xl border border-border",
+          hasPhoto ? "aspect-[3/4] max-h-[58vh]" : "min-h-[200px]",
+        )}
+        style={{
+          background: `linear-gradient(160deg, color-mix(in oklab, ${tribe.colorVar} 30%, var(--card)) 0%, var(--card) 62%)`,
+        }}
       >
-        <VentureImage
-          path={venture.image_url}
-          rounded="rounded-none"
-          className="absolute inset-0 h-full w-full"
-        />
+        {hasPhoto && (
+          <>
+            <VentureImage
+              path={venture.image_url}
+              rounded="rounded-none"
+              className="absolute inset-0 h-full w-full"
+            />
+            {/* Opaque exactly where the text lands, clear where the photo
+                should be seen. Same principle as the list cards. */}
+            <span
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"
+            />
+          </>
+        )}
 
-        {/* Opaque exactly where the text lands, clear where the photo should
-            be seen. Same principle as the list cards. */}
-        <span
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"
-        />
-
-        <div className="absolute inset-x-0 bottom-0 p-5">
+        <div className={cn(hasPhoto ? "absolute inset-x-0 bottom-0 p-5" : "p-5")}>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <TribeMark tribe={tribe} size="xs" />
             <span className="truncate">{hostName}</span>
@@ -175,11 +190,15 @@ export function VentureSwipeDeck({
           className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-40"
         >
           {apply.isPending ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Requesting…</>
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Requesting…
+            </>
           ) : spotsLeft === 0 ? (
             "Full"
           ) : (
-            <><Check className="h-4 w-4" /> I'm in</>
+            <>
+              <Check className="h-4 w-4" /> I'm in
+            </>
           )}
         </button>
       </div>
@@ -199,6 +218,8 @@ export function VentureSwipeDeck({
           {queue.length} open · passed ones come back
         </span>
       </div>
+      {/* The bottom nav is fixed; without this the hint row sits behind it. */}
+      <div aria-hidden className="h-4" />
     </div>
   );
 }

@@ -211,7 +211,7 @@ export function VenturesScreen({
   };
 
   return (
-    <div className="bg-habitat min-h-screen pb-28">
+    <div className="bg-habitat min-h-screen pb-32">
       <AppHeader
         title="Ventures"
         subtitle={
