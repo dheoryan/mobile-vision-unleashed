@@ -39,8 +39,11 @@
   --color-tribe-owl: var(--tribe-owl);
   --color-tribe-bee: var(--tribe-bee);
 
-  --font-display: "Playfair Display", ui-serif, Georgia, serif;
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  /* One family for display and body. The typographic character now comes
+     from Space Mono in the label treatment, the palette and the layout —
+     Inter is deliberately the quiet part. */
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Space Mono", ui-monospace, monospace;
 }
 
@@ -97,7 +100,14 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
   }
-  h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    /* Inter is drawn for UI sizes; at display sizes its default tracking
+       reads loose and untouched. Negative tracking is what makes it look
+       chosen rather than inherited. */
+    letter-spacing: -0.022em;
+    font-weight: 700;
+  }
   .font-mono, .label-mono { font-family: var(--font-mono); }
 }
 
