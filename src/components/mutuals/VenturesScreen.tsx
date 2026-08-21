@@ -194,7 +194,11 @@ export function VenturesScreen({
     markVentureIntroSeen();
     persistMode("host");
     setStage("feature");
-    setHostFormOpen(true);
+    // Land on your Ventures, not on a blank form. listMyHostedVentures filters
+    // only on user_id — every Venture you have ever hosted is in there, closed
+    // ones included — so this surface is the history and the edit path. Opening
+    // the form on arrival hid all of it behind a field you had not asked for.
+    setHostFormOpen(false);
   };
 
   const handleCreated = (venture: VentureParty) => {
@@ -802,8 +806,12 @@ function HostView({
   return (
     <>
       <SectionTitle
-        title="Hosted Ventures"
-        hint={isLoading ? "Loading" : `${hostedVentures.length} total`}
+        title="Your Ventures"
+        hint={
+          isLoading
+            ? "Loading"
+            : `${hostedVentures.filter((v) => v.status !== "closed").length} live · ${hostedVentures.length} all time`
+        }
         action={
           <button
             type="button"
