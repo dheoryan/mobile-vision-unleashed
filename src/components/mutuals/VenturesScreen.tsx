@@ -208,7 +208,7 @@ export function VenturesScreen({
   };
 
   return (
-    <div className="bg-habitat min-h-screen pb-40">
+    <div className="bg-habitat min-h-screen pb-32">
       <AppHeader
         title={stage === "feature" && mode === "host" ? "Hosting" : "Ventures"}
         subtitle={
@@ -277,21 +277,24 @@ export function VenturesScreen({
       </main>
 
       <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} />
-      {/* Floating action rather than a header pill. It sits above the bottom
-          nav on the right; the deck's own accept/pass row is in normal flow
-          below the card, so give the screen enough bottom padding that the two
-          never stack on a short phone. Look mode only — while hosting, "new"
-          lives inside the surface you are already on. */}
+      {/* Same shape and anchoring as the Timeline composer: wrapped in a
+          fixed max-w-md column rather than pinned with right-5, so it tracks
+          the content instead of the viewport edge — on a wide window right-5
+          throws it far off to the side of a max-w-md layout.
+
+          pointer-events-none on the wrapper so the invisible full-width strip
+          does not eat taps meant for the card underneath. */}
       {stage === "feature" && mode === "look" && (
-        <button
-          type="button"
-          onClick={startHosting}
-          aria-label="Host a Venture"
-          className="fixed bottom-[86px] right-5 z-40 inline-flex min-h-14 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_10px_30px_rgba(0,0,0,0.55)] transition-transform active:scale-95"
-        >
-          <Plus className="h-5 w-5" strokeWidth={2.6} />
-          Host
-        </button>
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-md justify-end px-5">
+          <button
+            type="button"
+            onClick={startHosting}
+            aria-label="Host a Venture"
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
+          >
+            <Plus className="h-4 w-4" /> Host
+          </button>
+        </div>
       )}
     </div>
   );
