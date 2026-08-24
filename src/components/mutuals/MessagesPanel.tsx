@@ -537,15 +537,23 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   const tribe = tribeOf(other?.tribe_ids);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const unreadIncomingIds = (msgs ?? [])
+    .filter((message) => message.sender_id !== user?.id && !message.read_at)
+    .map((message) => message.id)
+    .join("|");
+  const lastMessageId = msgs?.[msgs.length - 1]?.id;
 
   useEffect(() => {
-    if (!msgs?.length) return;
-    const last = msgs[msgs.length - 1];
-    if (last.sender_id !== user?.id && !last.read_at) markRead.mutate();
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-    // React only when the final message changes; mutation object identity is irrelevant.
+    if (unreadIncomingIds) markRead.mutate();
+    // The unread id signature changes only when the server returns a new set.
+    // The mutation object itself is deliberately not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [msgs?.[msgs.length - 1]?.id, otherId, user?.id]);
+  }, [unreadIncomingIds, otherId]);
+
+  useEffect(() => {
+    if (!lastMessageId) return;
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [lastMessageId, otherId]);
 
   const submit = () => {
     const body = text.trim();

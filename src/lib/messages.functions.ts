@@ -99,10 +99,12 @@ export const listMessages = createServerFn({ method: "GET" })
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({
-      recipient_id: z.string().uuid(),
-      content: z.string().min(1).max(2000),
-    }).parse(input),
+    z
+      .object({
+        recipient_id: z.string().uuid(),
+        content: z.string().min(1).max(2000),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -125,13 +127,31 @@ export const markThreadRead = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ other_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const readAt = new Date().toISOString();
     const { error } = await supabase
       .from("messages")
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: readAt })
       .eq("recipient_id", userId)
       .eq("sender_id", data.other_id)
       .is("read_at", null);
     if (error) throw new Error(error.message);
+
+    // A DM produces two durable unread records: the message receipt used by
+    // Chats and a notification used by the header bell. Reading the thread is
+    // the user's acknowledgement of both; leaving the notification unread made
+    // the app immediately claim there was still something new to inspect.
+    // `message_id is not null` excludes legacy Venture notifications that were
+    // once also stored with kind = 'message'.
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .update({ read_at: readAt })
+      .eq("user_id", userId)
+      .eq("actor_id", data.other_id)
+      .eq("kind", "message")
+      .not("message_id", "is", null)
+      .is("read_at", null);
+    if (notificationError) throw new Error(notificationError.message);
+
     return { other_id: data.other_id };
   });
 

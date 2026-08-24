@@ -10,10 +10,12 @@ import {
   type DMThreadSummary,
 } from "@/lib/messages.functions";
 import { useAuth } from "@/lib/auth-context";
+import type { NotificationRow } from "@/lib/notifications.functions";
 
 const THREADS_KEY = ["messages", "threads"] as const;
-const THREAD_KEY = (id: string) => ["messages", "thread", id] as const;
+const THREAD_KEY = (userId: string, id: string) => ["messages", "thread", userId, id] as const;
 const PROFILE_KEY = (id: string) => ["profile-by-id", id] as const;
+const NOTIFICATIONS_KEY = ["notifications"] as const;
 
 export function useThreads() {
   const fn = useServerFn(listThreads);
@@ -29,8 +31,9 @@ export function useThreads() {
 
 export function useThreadMessages(otherId: string | null) {
   const fn = useServerFn(listMessages);
+  const { user } = useAuth();
   return useQuery({
-    queryKey: THREAD_KEY(otherId ?? "none"),
+    queryKey: THREAD_KEY(user?.id ?? "anonymous", otherId ?? "none"),
     queryFn: () => fn({ data: { other_id: otherId! } }),
     enabled: !!otherId,
     staleTime: 5_000,
@@ -52,11 +55,11 @@ export function useSendMessage(otherId: string) {
   const fn = useServerFn(sendMessage);
   const qc = useQueryClient();
   const { user } = useAuth();
+  const threadKey = THREAD_KEY(user?.id ?? "anonymous", otherId);
   return useMutation({
-    mutationFn: (content: string) =>
-      fn({ data: { recipient_id: otherId, content } }),
+    mutationFn: (content: string) => fn({ data: { recipient_id: otherId, content } }),
     onMutate: async (content) => {
-      await qc.cancelQueries({ queryKey: THREAD_KEY(otherId) });
+      await qc.cancelQueries({ queryKey: threadKey });
       const tempId = `tmp-${Date.now()}`;
       const optimistic: DMMessage = {
         id: tempId,
@@ -66,19 +69,16 @@ export function useSendMessage(otherId: string) {
         created_at: new Date().toISOString(),
         read_at: null,
       };
-      qc.setQueryData<DMMessage[]>(THREAD_KEY(otherId), (cur) => [
-        ...(cur ?? []),
-        optimistic,
-      ]);
+      qc.setQueryData<DMMessage[]>(threadKey, (cur) => [...(cur ?? []), optimistic]);
       return { tempId };
     },
     onSuccess: (saved, _v, ctx) => {
-      qc.setQueryData<DMMessage[]>(THREAD_KEY(otherId), (cur) =>
+      qc.setQueryData<DMMessage[]>(threadKey, (cur) =>
         (cur ?? []).map((m) => (m.id === ctx?.tempId ? saved : m)),
       );
     },
     onError: (_e, _v, ctx) => {
-      qc.setQueryData<DMMessage[]>(THREAD_KEY(otherId), (cur) =>
+      qc.setQueryData<DMMessage[]>(threadKey, (cur) =>
         (cur ?? []).filter((m) => m.id !== ctx?.tempId),
       );
     },
@@ -100,15 +100,59 @@ export function unreadFromThreads(threads: DMThreadSummary[] | undefined): numbe
 export function useMarkThreadRead(otherId: string) {
   const fn = useServerFn(markThreadRead);
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const threadKey = THREAD_KEY(user?.id ?? "anonymous", otherId);
   return useMutation({
     mutationFn: () => fn({ data: { other_id: otherId } }),
-    onSuccess: () => {
+    onMutate: async () => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: THREADS_KEY }),
+        qc.cancelQueries({ queryKey: threadKey }),
+        qc.cancelQueries({ queryKey: NOTIFICATIONS_KEY }),
+      ]);
+      const threadSnapshots = qc.getQueriesData<DMThreadSummary[]>({ queryKey: THREADS_KEY });
+      const messageSnapshot = qc.getQueryData<DMMessage[]>(threadKey);
+      const notificationSnapshots = qc.getQueriesData<NotificationRow[]>({
+        queryKey: NOTIFICATIONS_KEY,
+      });
+      const readAt = new Date().toISOString();
+
       qc.setQueriesData<DMThreadSummary[]>({ queryKey: THREADS_KEY }, (threads) =>
         threads?.map((thread) =>
           thread.other_id === otherId ? { ...thread, unread_count: 0 } : thread,
         ),
       );
+      qc.setQueryData<DMMessage[]>(threadKey, (messages) =>
+        messages?.map((message) =>
+          message.sender_id === otherId && !message.read_at
+            ? { ...message, read_at: readAt }
+            : message,
+        ),
+      );
+      qc.setQueriesData<NotificationRow[]>({ queryKey: NOTIFICATIONS_KEY }, (notifications) =>
+        notifications?.map((notification) =>
+          notification.kind === "message" &&
+          notification.actor_id === otherId &&
+          notification.message_id &&
+          !notification.read_at
+            ? { ...notification, read_at: readAt }
+            : notification,
+        ),
+      );
+
+      return { threadSnapshots, messageSnapshot, notificationSnapshots };
+    },
+    onError: (_error, _variables, context) => {
+      for (const [key, value] of context?.threadSnapshots ?? []) qc.setQueryData(key, value);
+      qc.setQueryData(threadKey, context?.messageSnapshot);
+      for (const [key, value] of context?.notificationSnapshots ?? []) {
+        qc.setQueryData(key, value);
+      }
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: THREADS_KEY });
+      qc.invalidateQueries({ queryKey: threadKey });
+      qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
     },
   });
 }

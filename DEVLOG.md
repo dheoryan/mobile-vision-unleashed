@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **19 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **21 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Chat unread-state audit and repair | `src/lib/messages.functions.ts`, `src/lib/messages-store.ts`, `src/components/mutuals/MessagesPanel.tsx`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -142,6 +142,10 @@ traceability; implementation and verification evidence is in the Work Log.
 
 - **P5** push fan-out is one Worker invocation per recipient (5k followers = 5k invocations from one post).
 - **P7** inbox is still rebuilt from the newest 500 raw messages (heavy users can lose older threads); durable `read_at` now fixes unread counts. Feed pagination and bounded large ID filters remain; Timeline query failures now render a retry state.
+- Tribe and Venture rooms still have no per-user read pointer, so accurate
+  unread badges for group chat are impossible with the current schema. The UI
+  deliberately shows durable DM unread only rather than fabricating group
+  counts.
 - **M1** `profiles.venture_count` is a read-modify-write race; venture slot acceptance is check-then-act (two simultaneous accepts can over-subscribe).
 - `listVentureMatches` remains unused. Tribe join/leave is now reachable through Manage Tribes; the final home Tribe cannot be removed.
 - Shared posts now use the current origin and a real RLS-protected `/p/$postId` route with post-login return.
@@ -164,6 +168,28 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Chat unread-state audit and repair
+
+- Fixed the reported stale DM badge. Opening a thread now marks **every** unread
+  incoming message from that person, even when the newest message was sent by
+  the current user; the old effect inspected only the final row.
+- Reading a DM now also marks its matching `message` notification read. Thread
+  rows, the bottom Chats indicator, and the header bell therefore acknowledge
+  the same action instead of maintaining two conflicting unread records.
+- Added optimistic updates with full rollback for thread summaries, open
+  message rows, and notifications, followed by authoritative invalidation. The
+  badge clears immediately without hiding genuine server failures.
+- Scoped active-thread cache keys by authenticated user. Previously, switching
+  accounts in one browser could briefly reuse the prior account's cached
+  conversation until refetch.
+- Audit follow-ups retained under Known Issues: the inbox summary still reads
+  only the newest 500 raw messages, and Tribe/Venture rooms need per-user read
+  pointers before they can offer accurate unread badges.
+- Validation: targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  Cloudflare production build pass; existing chunk-size and third-party
+  bundler warnings remain.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Centered header identity and branded splash
 
