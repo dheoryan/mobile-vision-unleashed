@@ -5,7 +5,7 @@
 --   2. supabase/migrations/20260824050000_venture_private_venues.sql
 --   3. supabase/migrations/20260824060000_rotate_exposed_push_dispatch_secret.sql
 --
--- Then run this file. Do not share the decrypted push secret in a screenshot.
+-- Then run this file. It returns booleans only and is safe to screenshot.
 
 select
   to_regclass('public.venue_places') is not null as venue_places_ready,
@@ -59,10 +59,3 @@ select
     where name = 'push_dispatch_secret'
       and updated_at >= now() - interval '15 minutes'
   ) as push_secret_rotated_recently;
-
--- Run this final query privately, copy the single value directly into the
--- Lovable secret PUSH_DISPATCH_SECRET, then clear the SQL result panel. Never
--- include this query's result in a screenshot or message.
-select decrypted_secret
-from vault.decrypted_secrets
-where name = 'push_dispatch_secret';

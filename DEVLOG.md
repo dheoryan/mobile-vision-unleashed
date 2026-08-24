@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **34 commits ahead of `origin/main` after reconciling seven
+**Branch:** `main`. **35 commits ahead of `origin/main` after reconciling seven
 new Lovable commits.** The user authorised a production push on 2026-08-24, but
 the push is paused until the approved Red venue migrations and credential
 rotations are manually applied and verified. Never force-push.
@@ -184,9 +184,10 @@ Newest first. Append; don't edit past entries.
 - Found a server Google key and an active push-dispatch secret committed by the
   remote changes. Removed Google credentials from the tracked release `.env`
   and corrected the runtime guidance to use `.env.local`/Lovable Secrets.
-- Added a database-generated push-secret rotation migration plus
-  `LOVABLE_VENUE_RELEASE_VERIFY.sql`. Kila approved all three Red production
-  actions; manual application and verification are still pending.
+- Added a database-generated push-secret rotation migration,
+  `LOVABLE_VENUE_RELEASE_VERIFY.sql`, and a separate private secret-copy query.
+  Kila approved all three Red production actions; manual application and
+  verification are still pending.
 - Targeted ESLint, `tsc --noEmit`, `git diff --check`, the production build, and
   the unauthenticated browser smoke test pass. Full-project lint remains a
   pre-existing baseline of 2,339 findings and is not release-clean.
