@@ -220,28 +220,28 @@ export function VenturesScreen({
   return (
     <div className="bg-habitat min-h-screen pb-32">
       <AppHeader
-        title={stage === "feature" && mode === "host" ? "Hosting" : "Ventures"}
+        title={
+          stage !== "feature"
+            ? "Ventures"
+            : mode === "look"
+              ? "Venture board"
+              : mode === "yours"
+                ? "My tickets"
+                : "Hosting"
+        }
         subtitle={
-          stage === "intro" ? "Optional" : stage === "role" ? "Choose mode" : "Open party board"
+          stage === "intro"
+            ? "Optional"
+            : stage === "role"
+              ? "Choose mode"
+              : mode === "look"
+                ? "Find one plan"
+                : mode === "yours"
+                  ? "Plans in motion"
+                  : "Plans you run"
         }
         accent="var(--color-primary)"
       />
-
-      {/* Hosting is its own surface, reached from the floating action below.
-          The strip that used to hold a "Host" pill is gone in look mode — one
-          pill alone in a full-width bar was a row of chrome earning nothing. */}
-      {stage === "feature" && mode === "host" && (
-        <div className="mx-auto flex max-w-md items-center px-5 pt-3">
-          <button
-            type="button"
-            onClick={() => switchMode("look")}
-            className="flex min-h-11 items-center gap-1.5 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Ventures
-          </button>
-        </div>
-      )}
 
       <main className="mx-auto max-w-md px-5">
         {stage === "intro" ? (
@@ -253,24 +253,40 @@ export function VenturesScreen({
           />
         ) : (
           <>
-            {/* Three modes, in the order a Venture moves through them: what is
-                out there, what you are holding, what you run. */}
-            <div className="mt-5 flex items-center gap-4 border-b border-border pb-2.5">
-              {(["look", "yours", "host"] as const).map((key) => (
+            {/* Ventures is a focused surface, not a three-column dashboard.
+                Discovery owns the main screen. Tickets are one contextual
+                destination and Hosting is reached through the creation action.
+                On either secondary screen the only navigation choice is Back. */}
+            <div
+              className={cn(
+                "flex min-h-14 items-center pt-2",
+                mode === "look" ? "justify-end" : "justify-start",
+              )}
+            >
+              {mode === "look" ? (
                 <button
-                  key={key}
                   type="button"
-                  onClick={() => switchMode(key)}
-                  className={cn(
-                    "label-mono -mb-[13px] border-b-2 pb-2.5 transition-colors",
-                    mode === key
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground",
-                  )}
+                  onClick={() => switchMode("yours")}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                 >
-                  {key === "look" ? "Looking" : key === "yours" ? "Yours" : "Hosting"}
+                  <Ticket className="h-3.5 w-3.5 text-primary" />
+                  My tickets
+                  {joinedVentures.length > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-mono text-[9px] font-bold text-primary-foreground">
+                      {joinedVentures.length}
+                    </span>
+                  )}
                 </button>
-              ))}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => switchMode("look")}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to Venture board
+                </button>
+              )}
             </div>
 
             {mode === "yours" ? (

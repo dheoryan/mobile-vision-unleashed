@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **5 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **7 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -25,7 +25,7 @@ users can see. There is no local database in play any more.
 
 **Three migrations are written and NOT RUN** — see the 2026-08-24 entries.
 Until
-`20260824040000_venue_places` runs, all three Ventures tabs fail with
+`20260824040000_venue_places` runs, all three Ventures views fail with
 `Could not find the table 'public.venue_places'`, because the venue loader runs
 on every list. `20260824034000` and both venue migrations are **Red** under
 `CHANGE_PROTOCOL.md`; none may be applied without explicit user approval.
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Focused Ventures navigation | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Ventures navigation became task-focused
+
+- Removed the persistent Looking / Yours / Hosting tab strip. It competed with
+  the content and made Ventures read like a dashboard rather than one focused
+  activity.
+- The Venture board is now the primary surface. My Tickets is one quiet,
+  contextual action with an activity count; Hosting remains behind the Host
+  creation action. My Tickets and Hosting each receive their own page title and
+  one explicit Back to Venture board control.
+- Preserved stored-mode and deep-entry behavior, including Profile → Hosting,
+  while keeping all existing request, ticket, and host flows intact.
+- Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
+  --check` clean, and the Cloudflare production build succeeds with only the
+  existing chunk-size and third-party bundler warnings. Production visual E2E
+  remains blocked by the intentionally unrun Red venue migrations.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Ventures board became a public ticket rack
 
