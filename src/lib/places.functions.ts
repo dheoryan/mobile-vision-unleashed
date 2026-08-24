@@ -54,7 +54,7 @@ function requireKey(): string {
     // Loud on purpose. The alternative is a picker that silently returns nothing
     // and looks like Jakarta has no cafés in it.
     throw new Error(
-      "GOOGLE_MAPS_SERVER_KEY is not set. Add it to .env and to the Lovable Cloud environment — Lovable builds from its own copy.",
+      "GOOGLE_MAPS_SERVER_KEY is not set. Add it to .env.local for local development and to Lovable Secrets for production.",
     );
   }
   return key;
