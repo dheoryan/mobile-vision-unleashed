@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, MessageCircle, Reply, Send, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Handshake,
+  Loader2,
+  MessageCircle,
+  Reply,
+  Send,
+  UserPlus,
+  UsersRound,
+  X,
+} from "lucide-react";
 import {
   useMarkThreadRead,
   useProfileById,
@@ -29,7 +40,12 @@ import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
 import { FeatureIllustration } from "./FeatureIllustration";
-import { useAnswerHello, useIncomingHellos } from "@/lib/social-store";
+import {
+  useAnswerHello,
+  useContactStatus,
+  useIncomingHellos,
+  useSendHello,
+} from "@/lib/social-store";
 import messagesArt from "@/assets/app-illustrations/messages.webp";
 import { SafetyMenu } from "./SafetyMenu";
 import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
@@ -193,11 +209,12 @@ function Inbox({
     const all = [...(hostedVentures ?? []), ...(joinedVentures ?? [])];
 
     for (const venture of all) {
-      const isActive = venture.status !== "closed" && !venture.closed_at && !venture.ended_at;
       const isHost = venture.host_id === user?.id;
       const isAcceptedMember = venture.my_application?.status === "accepted";
 
-      if (isActive && (isHost || isAcceptedMember)) {
+      // Completed rooms remain available as read-only memories. That is where
+      // the post-Venture participant recap and Moot actions live.
+      if (isHost || isAcceptedMember) {
         map.set(venture.id, venture);
       }
     }
@@ -279,9 +296,12 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
   const last = msgs?.[msgs.length - 1];
   const isMine = last?.sender_id === user?.id;
   const lastSenderName = displayVentureName(last?.sender);
+  const isComplete = venture.status === "closed" || !!venture.closed_at || !!venture.ended_at;
   const preview = last
     ? `${isMine ? "You" : lastSenderName}: ${last.content}`
-    : `${Math.max(venture.filled_slots, 1)}/${venture.max_slots} slots · No messages yet`;
+    : isComplete
+      ? "Venture complete · reconnect with your party"
+      : `${Math.max(venture.filled_slots, 1)}/${venture.max_slots} slots · No messages yet`;
 
   return (
     <li>
@@ -296,7 +316,7 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold">{venture.title}</p>
             <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-primary">
-              Party
+              {isComplete ? "Memory" : "Party"}
             </span>
           </div>
           <p className="truncate text-xs text-muted-foreground">{preview}</p>
@@ -364,6 +384,183 @@ function shortTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function useVentureComplete(venture: VentureParty) {
+  const lifecycleComplete =
+    venture.status === "closed" || !!venture.closed_at || !!venture.ended_at;
+  const [scheduledComplete, setScheduledComplete] = useState(false);
+
+  useEffect(() => {
+    if (lifecycleComplete || !venture.ends_at) {
+      setScheduledComplete(false);
+      return;
+    }
+
+    const end = Date.parse(venture.ends_at);
+    if (!Number.isFinite(end)) return;
+    let timer: number | undefined;
+    const schedule = () => {
+      const delay = end - Date.now();
+      if (delay <= 0) {
+        setScheduledComplete(true);
+        return;
+      }
+      timer = window.setTimeout(schedule, Math.min(delay + 250, 2_147_000_000));
+    };
+    schedule();
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [lifecycleComplete, venture.ends_at]);
+
+  return lifecycleComplete || scheduledComplete;
+}
+
+function VentureMootPerson({
+  person,
+  ventureTitle,
+}: {
+  person: VentureProfileLite;
+  ventureTitle: string;
+}) {
+  const tribe = tribeOf(person.tribe_ids);
+  const contact = useContactStatus(person.id);
+  const send = useSendHello();
+  const answer = useAnswerHello();
+  const status = contact.data?.hello_status ?? null;
+  const accepting = answer.isPending && answer.variables?.hello_id === contact.data?.hello_id;
+  const requesting = send.isPending && send.variables?.recipient_id === person.id;
+  const busy = accepting || requesting;
+
+  const requestMoot = () => {
+    const safeTitle = ventureTitle.trim().slice(0, 100) || "our Venture";
+    send.mutate(
+      {
+        recipient_id: person.id,
+        message: `We completed “${safeTitle}” together. Want to stay connected as Moots?`,
+      },
+      {
+        onSuccess: () => toast.success(`Moot request sent to ${displayVentureName(person)}.`),
+        onError: (error) => toast.error((error as Error).message),
+      },
+    );
+  };
+
+  const acceptMoot = () => {
+    if (!contact.data?.hello_id) return;
+    answer.mutate(
+      { hello_id: contact.data.hello_id, status: "accepted" },
+      {
+        onSuccess: () => toast.success(`${displayVentureName(person)} is now your Moot.`),
+        onError: (error) => toast.error((error as Error).message),
+      },
+    );
+  };
+
+  let action: React.ReactNode;
+  if (contact.isLoading) {
+    action = <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+  } else if (status === "accepted") {
+    action = (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500">
+        <Check className="h-3.5 w-3.5" /> Moots
+      </span>
+    );
+  } else if (status === "pending" && contact.data?.awaiting_my_answer) {
+    action = (
+      <button
+        type="button"
+        onClick={acceptMoot}
+        disabled={busy}
+        className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        {accepting ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Handshake className="h-3.5 w-3.5" />
+        )}
+        Accept
+      </button>
+    );
+  } else if (status === "pending") {
+    action = <span className="text-[11px] font-semibold text-primary">Requested</span>;
+  } else if (status === "declined") {
+    action = <span className="text-[11px] text-muted-foreground">Unavailable</span>;
+  } else {
+    const noRequestsLeft = contact.data?.hellos_left_this_month === 0;
+    action = (
+      <button
+        type="button"
+        onClick={requestMoot}
+        disabled={busy || noRequestsLeft}
+        title={noRequestsLeft ? "Your Hello allowance resets next month." : undefined}
+        className="inline-flex min-h-8 items-center gap-1 rounded-full border border-primary/50 px-3 text-[11px] font-semibold text-primary disabled:opacity-40"
+      >
+        {requesting ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <UserPlus className="h-3.5 w-3.5" />
+        )}
+        Add as Moot
+      </button>
+    );
+  }
+
+  return (
+    <li className="flex items-center gap-2.5 rounded-xl border border-border/70 bg-background/45 p-2.5">
+      <Avatar value={avatarOf(person)} size={9} tribeColor={tribe.colorVar} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold">{displayVentureName(person)}</p>
+        <p className="truncate text-[10px] text-muted-foreground">{tribe.name}</p>
+      </div>
+      <div className="shrink-0">{action}</div>
+    </li>
+  );
+}
+
+function VentureMootRecap({ venture }: { venture: VentureParty }) {
+  const { user } = useAuth();
+  const participants = useMemo(() => {
+    const map = new Map<string, VentureProfileLite>();
+    if (venture.host) map.set(venture.host.id, venture.host);
+    for (const application of venture.applications) {
+      if (application.status === "accepted" && application.applicant) {
+        map.set(application.applicant.id, application.applicant);
+      }
+    }
+    return Array.from(map.values()).filter((person) => person.id !== user?.id);
+  }, [user?.id, venture.applications, venture.host]);
+
+  return (
+    <section className="my-4 rounded-2xl border border-primary/35 bg-primary/[0.07] p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <UsersRound className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="label-mono text-primary">Venture complete</p>
+          <h3 className="mt-1 font-display text-lg font-bold">Keep the good people.</h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            You finished this Venture together. Moot requests are mutual—nobody is added until they
+            accept.
+          </p>
+        </div>
+      </div>
+
+      {participants.length ? (
+        <ul className="mt-4 space-y-2">
+          {participants.map((person) => (
+            <VentureMootPerson key={person.id} person={person} ventureTitle={venture.title} />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+          No other completed participants to reconnect with.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack: () => void }) {
   const { user } = useAuth();
   const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
@@ -372,11 +569,12 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isComplete = useVentureComplete(venture);
 
   useEffect(() => {
     if (!msgs?.length) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [msgs]);
+  }, [msgs, isComplete]);
 
   const submit = () => {
     const body = text.trim();
@@ -419,7 +617,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{venture.title}</p>
           <p className="text-[11px] text-muted-foreground">
-            Party chat · {memberCount}/{venture.max_slots} slots
+            {isComplete ? "Venture memory" : "Party chat"} · {memberCount}/{venture.max_slots} slots
           </p>
         </div>
       </header>
@@ -492,35 +690,47 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
             );
           })
         )}
+        {isComplete && <VentureMootRecap venture={venture} />}
       </div>
 
       <div className="border-t border-border p-3">
-        {replyTo && (
-          <ReplyPreview
-            name={replyTo.name}
-            snippet={replyTo.snippet}
-            accentColor="var(--color-primary)"
-            onCancel={() => setReplyTo(null)}
-          />
+        {isComplete ? (
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-xs font-semibold">This party chat is now a memory.</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Add someone as a Moot above to keep talking one-to-one.
+            </p>
+          </div>
+        ) : (
+          <>
+            {replyTo && (
+              <ReplyPreview
+                name={replyTo.name}
+                snippet={replyTo.snippet}
+                accentColor="var(--color-primary)"
+                onCancel={() => setReplyTo(null)}
+              />
+            )}
+            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
+              <input
+                ref={inputRef}
+                value={text}
+                onChange={(e) => setText(e.target.value.slice(0, 2000))}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                placeholder={replyTo ? "Write a reply…" : "Message the party"}
+                className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
+              />
+              <button
+                onClick={submit}
+                disabled={!text.trim() || send.isPending}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+                aria-label="Send party message"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </>
         )}
-        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => setText(e.target.value.slice(0, 2000))}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={replyTo ? "Write a reply…" : "Message the party"}
-            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-          />
-          <button
-            onClick={submit}
-            disabled={!text.trim() || send.isPending}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
-            aria-label="Send party message"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, Zap } from "lucide-react";
+import { MessageCircle, UsersRound, Zap } from "lucide-react";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
 import { tribeById } from "@/lib/mutuals-data";
@@ -225,6 +225,12 @@ export function ChatsScreen({
       return at < bt ? 1 : -1;
     });
   }, [ventureChats, previewsQuery.data]);
+  const activeVentures = sortedVentures.filter(
+    (venture) => venture.status !== "closed" && !venture.closed_at && !venture.ended_at,
+  );
+  const ventureMemories = sortedVentures.filter(
+    (venture) => venture.status === "closed" || !!venture.closed_at || !!venture.ended_at,
+  );
 
   const showTribe = filter === "all" || filter === "tribe";
   const showVentures = filter === "all" || filter === "ventures";
@@ -305,11 +311,11 @@ export function ChatsScreen({
           </>
         )}
 
-        {!isLoading && showVentures && sortedVentures.length > 0 && (
+        {!isLoading && showVentures && activeVentures.length > 0 && (
           <>
-            <GroupLabel>Your Ventures</GroupLabel>
+            <GroupLabel>Active Ventures</GroupLabel>
             <div className="flex flex-col gap-1">
-              {sortedVentures.map((venture) => {
+              {activeVentures.map((venture) => {
                 const preview = previewsQuery.data?.get(venture.id);
                 return (
                   <Row
@@ -325,6 +331,33 @@ export function ChatsScreen({
                     hint={[timingLabel(venture), `${venture.filled_slots} going`]
                       .filter(Boolean)
                       .join(" · ")}
+                    unread={unreadFor("venture", venture.id)}
+                    onClick={() => onOpenVentureChat(venture)}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {!isLoading && showVentures && ventureMemories.length > 0 && (
+          <>
+            <GroupLabel>Venture Memories</GroupLabel>
+            <div className="flex flex-col gap-1">
+              {ventureMemories.map((venture) => {
+                const preview = previewsQuery.data?.get(venture.id);
+                return (
+                  <Row
+                    key={venture.id}
+                    leading={
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
+                        <UsersRound className="h-4.5 w-4.5 text-primary" />
+                      </span>
+                    }
+                    title={venture.title}
+                    subtitle={preview?.content ?? "Venture complete — reconnect with your party."}
+                    meta={preview ? timeAgoLabel(preview.created_at) : null}
+                    hint="Completed · find your Moots"
                     unread={unreadFor("venture", venture.id)}
                     onClick={() => onOpenVentureChat(venture)}
                   />

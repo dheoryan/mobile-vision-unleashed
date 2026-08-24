@@ -34,10 +34,7 @@ export const listMyLikes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data, error } = await supabase
-      .from("likes")
-      .select("post_id")
-      .eq("user_id", userId);
+    const { data, error } = await supabase.from("likes").select("post_id").eq("user_id", userId);
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: { post_id: string }) => r.post_id);
   });
@@ -60,13 +57,21 @@ export const toggleLike = createServerFn({ method: "POST" })
         .eq("post_id", data.post_id)
         .eq("user_id", userId);
       if (error) throw new Error(error.message);
-      return { post_id: data.post_id, liked: false, likes_count: await getPostCount(supabase, "likes", data.post_id) };
+      return {
+        post_id: data.post_id,
+        liked: false,
+        likes_count: await getPostCount(supabase, "likes", data.post_id),
+      };
     }
     const { error } = await supabase
       .from("likes")
       .insert({ post_id: data.post_id, user_id: userId });
     if (error) throw new Error(error.message);
-    return { post_id: data.post_id, liked: true, likes_count: await getPostCount(supabase, "likes", data.post_id) };
+    return {
+      post_id: data.post_id,
+      liked: true,
+      likes_count: await getPostCount(supabase, "likes", data.post_id),
+    };
   });
 
 // --- Shares ----------------------------------------------------------------
@@ -75,10 +80,7 @@ export const listMyShares = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data, error } = await supabase
-      .from("shares")
-      .select("post_id")
-      .eq("user_id", userId);
+    const { data, error } = await supabase.from("shares").select("post_id").eq("user_id", userId);
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: { post_id: string }) => r.post_id);
   });
@@ -101,13 +103,21 @@ export const toggleShare = createServerFn({ method: "POST" })
         .eq("post_id", data.post_id)
         .eq("user_id", userId);
       if (error) throw new Error(error.message);
-      return { post_id: data.post_id, shared: false, shares_count: await getPostCount(supabase, "shares", data.post_id) };
+      return {
+        post_id: data.post_id,
+        shared: false,
+        shares_count: await getPostCount(supabase, "shares", data.post_id),
+      };
     }
     const { error } = await supabase
       .from("shares")
       .insert({ post_id: data.post_id, user_id: userId });
     if (error) throw new Error(error.message);
-    return { post_id: data.post_id, shared: true, shares_count: await getPostCount(supabase, "shares", data.post_id) };
+    return {
+      post_id: data.post_id,
+      shared: true,
+      shares_count: await getPostCount(supabase, "shares", data.post_id),
+    };
   });
 
 export const listMyFollowing = createServerFn({ method: "GET" })
@@ -249,12 +259,14 @@ export const unblockUser = createServerFn({ method: "POST" })
 export const reportContent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({
-      target_kind: z.enum(["post", "user", "comment"]),
-      target_id: z.string().min(1).max(200),
-      reason: z.string().min(1).max(80),
-      details: z.string().max(1000).optional(),
-    }).parse(input),
+    z
+      .object({
+        target_kind: z.enum(["post", "user", "comment"]),
+        target_id: z.string().min(1).max(200),
+        reason: z.string().min(1).max(80),
+        details: z.string().max(1000).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -319,6 +331,7 @@ export const sendHello = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     if (data.recipient_id === userId) throw new Error("You can't send yourself a Hello.");
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as unknown as any;
     const { data: row, error } = await db
       .from("hellos")
@@ -348,6 +361,7 @@ export const answerHello = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as unknown as any;
     // RLS restricts UPDATE to the recipient, and the hellos_guard trigger
     // rejects answering something already answered.
@@ -367,6 +381,7 @@ export const listIncomingHellos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<HelloWithProfile[]> => {
     const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as unknown as any;
     const { data: rows, error } = await db
       .from("hellos")
@@ -399,6 +414,8 @@ export const listIncomingHellos = createServerFn({ method: "GET" })
 export type ContactStatus = {
   can_message: boolean;
   hello_status: HelloStatus | null;
+  /** The request to answer when the other person initiated the pending Hello. */
+  hello_id: string | null;
   /** True when the pending Hello is waiting on *this* user to answer. */
   awaiting_my_answer: boolean;
   hellos_left_this_month: number;
@@ -409,6 +426,7 @@ export const getContactStatus = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ other_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<ContactStatus> => {
     const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as unknown as any;
 
     const { data: canMessage, error: cErr } = await db.rpc("can_direct_message", {
@@ -417,25 +435,49 @@ export const getContactStatus = createServerFn({ method: "GET" })
     });
     if (cErr) throw new Error(cErr.message);
 
-    const { data: hello } = await db
+    const { data: helloRows, error: helloError } = await db
       .from("hellos")
-      .select("status, sender_id, recipient_id")
+      .select("id, status, sender_id, recipient_id, created_at")
       .or(
         `and(sender_id.eq.${userId},recipient_id.eq.${data.other_id}),` +
           `and(sender_id.eq.${data.other_id},recipient_id.eq.${userId})`,
       )
-      .maybeSingle();
+      .order("created_at", { ascending: false })
+      .limit(2);
+    if (helloError) throw new Error(helloError.message);
+
+    // The schema is unique per direction, so two rows can exist for the same
+    // pair. Prefer the relationship-bearing accepted row, then a request that
+    // can still be answered, rather than letting maybeSingle() fail on a valid
+    // two-direction history.
+    const hello = (helloRows ?? [])
+      .slice()
+      .sort((a: { status: HelloStatus }, b: { status: HelloStatus }) => {
+        const rank: Record<HelloStatus, number> = { accepted: 0, pending: 1, declined: 2 };
+        return rank[a.status] - rank[b.status];
+      })[0] as
+      | {
+          id: string;
+          status: HelloStatus;
+          sender_id: string;
+          recipient_id: string;
+        }
+      | undefined;
 
     const { count } = await db
       .from("hellos")
       .select("id", { count: "exact", head: true })
       .eq("sender_id", userId)
-      .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+      .gte(
+        "created_at",
+        new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+      );
 
     const MONTHLY_CAP = 5;
     return {
       can_message: !!canMessage,
       hello_status: (hello?.status as HelloStatus | undefined) ?? null,
+      hello_id: hello?.id ?? null,
       awaiting_my_answer: !!hello && hello.status === "pending" && hello.recipient_id === userId,
       hellos_left_this_month: Math.max(0, MONTHLY_CAP - (count ?? 0)),
     };

@@ -1401,6 +1401,17 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
 
+    const venture = await fetchVentureOrThrow(db, data.venture_id);
+    const scheduledEnd = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
+    const isComplete =
+      venture.status === "closed" ||
+      !!venture.closed_at ||
+      !!venture.ended_at ||
+      (Number.isFinite(scheduledEnd) && scheduledEnd <= Date.now());
+    if (isComplete) {
+      throw new Error("This Venture has ended. Its party chat is now a read-only memory.");
+    }
+
     const { data: row, error } = await db
       .from("venture_messages")
       .insert({

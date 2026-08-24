@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **21 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **23 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Post-Venture Moot recap and archived party-chat UX | `DEVLOG.md`, Venture/social server functions + stores, chat UI, Supabase migration/tests as needed | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -81,6 +81,7 @@ and logged below.
 | **Pushing to remote** | User-authorised only. Both agents. |
 | **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
 | **Global vs Tribe timeline** | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`. |
+| **Moots after Ventures** | A Moot is reciprocal and opt-in, never inferred from DM access or created automatically. Completed Venture rooms become read-only **Venture Memories** with a participant recap; an accepted Hello is the current relationship record behind Add as Moot / Accept / Moots states. This does not settle the feed audience/follows decision below. |
 | **Swipe lives on Ventures, not people** | Judging a plan, not a face. Explore uses focused one-at-a-time cards with Next/Back where Next means *later*, not *never*. Reject-forever on people needs a pool of thousands and imports dating semantics; user agreed. |
 | **Illustration masks** | Tribe animals appear as masks **worn up / half-masks with faces visible** — never full face-covering. A masquerade signals anonymity, and this product is built on accountable identity (real handles, adult verification, Hello gating). Full masks would also pull toward the romantic register the Explore deck was designed away from. |
 | **Which art is transparent** | Everything is transparent RGBA now (app illustrations 600x800, Tribe portraits 600x800, crests 256x256) and that is correct — an earlier note here said the Tribe portraits had to stay opaque; testing against the real card colour disproved it. What background-use *does* require is an opaque surface behind the art, which is the container's job: `bg-card` on the Tribe banner and the Discover flip cards. |
@@ -168,6 +169,34 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Completed Ventures become Moot-making memories
+
+- Closed/ended Venture rooms remain accessible in Chats under **Venture
+  Memories**. The normal composer is replaced with a read-only archive notice,
+  so a temporary cross-Tribe party room cannot become a permanent ungated DM.
+- Added a deterministic in-chat **Venture complete** system card. It lists the
+  host and accepted participants, excludes the viewer, and presents explicit
+  Add as Moot / Requested / Accept / Moots / Unavailable states. The card is
+  rendered from Venture state rather than inserted as a bot row, so closing is
+  idempotent and cannot create duplicate recap messages.
+- Reused the existing Hello request/accept safety model as the reciprocal Moot
+  relationship record. No user is connected automatically. Fixed contact
+  lookup for the valid two-direction Hello case, where `maybeSingle()` could
+  previously fail if both users had created a row.
+- `sendVentureMessage` now rejects messages after manual close/end or the
+  scheduled `ends_at` time. Added
+  `20260824050000_archive_completed_venture_chat.sql` for the matching direct-
+  Supabase RLS boundary. It is **RED and NOT RUN**.
+- The full participant recap for non-host members also depends on the existing
+  **RED, NOT RUN** `20260824034000_party_members_see_each_other.sql`; before it
+  lands, RLS intentionally degrades a member's recap to the host plus whichever
+  accepted profiles they can already read.
+- Current attendance limitation: “participant” means host + applications still
+  accepted when the Venture completes. The schema has no check-in/attendance
+  proof yet, so it cannot distinguish attendees from no-shows.
+- Validation: modified-file ESLint and `npx tsc --noEmit` pass; `npm run build`
+  exits 0 (existing chunk-size and dependency directive warnings only).
 
 ### 2026-08-24 — Codex — Chat unread-state audit and repair
 
