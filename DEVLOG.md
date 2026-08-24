@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **11 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **13 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Hosted Venture active/history split | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Hosted Ventures split into Active and History
+
+- Hosting now defaults to an **Active** view containing open and full Ventures;
+  closed Ventures live only under **History**. Each filter carries its own count
+  and the section subtitle reflects the current view rather than mixing live and
+  all-time totals.
+- New Venture always returns the host to Active before opening the creator.
+  Switching filters closes an unfinished inline creator so historical review
+  stays focused.
+- Added distinct empty states for Active and History. Closing a Venture now says
+  it moved to History; reopening says it returned to Active, and both mutations
+  explicitly refresh the hosted collection.
+- The filter controls are 44 px toggle buttons with `aria-pressed` state, so the
+  status split remains keyboard and screen-reader understandable without an
+  incomplete custom ARIA-tab interaction.
+- Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
+  --check` clean, and the Cloudflare production build succeeds with only the
+  existing chunk-size and third-party bundler warnings.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Looking became a thumbnail-first Venture list
 

@@ -871,6 +871,22 @@ function HostView({
   onOpenChat: (venture: VentureParty) => void;
   onChanged: () => void;
 }) {
+  const [hostTab, setHostTab] = useState<"active" | "history">("active");
+  const activeVentures = useMemo(
+    () => hostedVentures.filter((venture) => venture.status !== "closed"),
+    [hostedVentures],
+  );
+  const historicalVentures = useMemo(
+    () => hostedVentures.filter((venture) => venture.status === "closed"),
+    [hostedVentures],
+  );
+  const visibleVentures = hostTab === "active" ? activeVentures : historicalVentures;
+
+  const openCreator = () => {
+    setHostTab("active");
+    setFormOpen(true);
+  };
+
   return (
     <>
       <SectionTitle
@@ -878,13 +894,21 @@ function HostView({
         hint={
           isLoading
             ? "Loading"
-            : `${hostedVentures.filter((v) => v.status !== "closed").length} live · ${hostedVentures.length} all time`
+            : hostTab === "active"
+              ? `${activeVentures.length} active`
+              : `${historicalVentures.length} closed`
         }
         action={
           <button
             type="button"
-            onClick={() => setFormOpen(!formOpen)}
-            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground"
+            onClick={() => {
+              if (formOpen) {
+                setFormOpen(false);
+              } else {
+                openCreator();
+              }
+            }}
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary px-3.5 text-[11px] font-semibold text-primary-foreground"
           >
             {formOpen ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             {formOpen ? "Close" : "New"}
@@ -892,33 +916,80 @@ function HostView({
         }
       />
 
+      <div
+        aria-label="Hosted Ventures"
+        className="mb-4 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-1"
+      >
+        {(["active", "history"] as const).map((tab) => {
+          const selected = hostTab === tab;
+          const count = tab === "active" ? activeVentures.length : historicalVentures.length;
+          return (
+            <button
+              key={tab}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => {
+                setHostTab(tab);
+                setFormOpen(false);
+              }}
+              className={cn(
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors",
+                selected
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab === "active" ? "Active" : "History"}
+              <span
+                className={cn(
+                  "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold",
+                  selected ? "bg-primary text-primary-foreground" : "bg-secondary",
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {formOpen && (
         <HostForm profile={profile} onCancel={() => setFormOpen(false)} onCreated={onCreated} />
       )}
 
-      {isLoading ? (
-        <LoadingBlock label="Loading hosted Ventures" />
-      ) : hostedVentures.length ? (
-        <div className="space-y-3">
-          {hostedVentures.map((venture) => (
-            <HostedVentureCard
-              key={venture.id}
-              venture={venture}
-              profile={profile}
-              onOpenChat={() => onOpenChat(venture)}
-              onInvited={onChanged}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyPanel
-          icon={<Users className="h-6 w-6" />}
-          title="You are not hosting yet."
-          body="Create the first open party and review requests as they come in."
-          actionLabel="Create Venture"
-          onAction={() => setFormOpen(true)}
-        />
-      )}
+      <div>
+        {isLoading ? (
+          <LoadingBlock label="Loading hosted Ventures" />
+        ) : visibleVentures.length ? (
+          <div className="space-y-3">
+            {visibleVentures.map((venture) => (
+              <HostedVentureCard
+                key={venture.id}
+                venture={venture}
+                profile={profile}
+                onOpenChat={() => onOpenChat(venture)}
+                onChanged={onChanged}
+              />
+            ))}
+          </div>
+        ) : hostTab === "active" ? (
+          <EmptyPanel
+            icon={<Users className="h-6 w-6" />}
+            title="No active Ventures."
+            body="Create a new plan and review requests here as they arrive."
+            actionLabel="Create Venture"
+            onAction={openCreator}
+          />
+        ) : (
+          <EmptyPanel
+            icon={<RotateCcw className="h-6 w-6" />}
+            title="No closed Ventures yet."
+            body="Ventures you close will stay here, ready to review or reopen."
+            actionLabel="Back to active"
+            onAction={() => setHostTab("active")}
+          />
+        )}
+      </div>
     </>
   );
 }
@@ -1469,12 +1540,12 @@ function HostedVentureCard({
   venture,
   profile,
   onOpenChat,
-  onInvited,
+  onChanged,
 }: {
   venture: VentureParty;
   profile: Profile;
   onOpenChat: () => void;
-  onInvited: () => void;
+  onChanged: () => void;
 }) {
   const decide = useDecideVentureApplication();
   const close = useCloseHostedVenture();
@@ -1498,7 +1569,10 @@ function HostedVentureCard({
 
   const closeVenture = () => {
     close.mutate(venture.id, {
-      onSuccess: () => toast.success("Venture closed."),
+      onSuccess: () => {
+        toast.success("Venture moved to History.");
+        onChanged();
+      },
       onError: (err) => toast.error((err as Error).message),
     });
   };
@@ -1518,7 +1592,10 @@ function HostedVentureCard({
           type="button"
           onClick={() =>
             reopen.mutate(venture.id, {
-              onSuccess: () => toast.success("Venture reopened."),
+              onSuccess: () => {
+                toast.success("Venture returned to Active.");
+                onChanged();
+              },
               onError: (err) => toast.error((err as Error).message),
             })
           }
@@ -1583,7 +1660,7 @@ function HostedVentureCard({
       </div>
 
       {inviteOpen && !isClosed && (
-        <InviteConnectedUsersPanel venture={venture} onInvited={onInvited} />
+        <InviteConnectedUsersPanel venture={venture} onInvited={onChanged} />
       )}
 
       <div className="mt-4 space-y-3">
