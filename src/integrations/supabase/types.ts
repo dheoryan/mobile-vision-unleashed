@@ -917,11 +917,41 @@ export type Database = {
           },
         ]
       }
+      venture_venues: {
+        Row: {
+          arrival_details: string
+          created_at: string
+          updated_at: string
+          venture_id: string
+        }
+        Insert: {
+          arrival_details: string
+          created_at?: string
+          updated_at?: string
+          venture_id: string
+        }
+        Update: {
+          arrival_details?: string
+          created_at?: string
+          updated_at?: string
+          venture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venture_venues_venture_id_fkey"
+            columns: ["venture_id"]
+            isOneToOne: true
+            referencedRelation: "ventures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ventures: {
         Row: {
           closed_at: string | null
           created_at: string
           ended_at: string | null
+          ends_at: string | null
           filled_slots: number
           id: string
           image_url: string | null
@@ -929,15 +959,19 @@ export type Database = {
           max_slots: number
           note: string
           scope: string
+          starts_at: string | null
           status: string
           time_window: string
           title: string
           user_id: string
+          venue_place_id: string | null
+          venue_tz: string | null
         }
         Insert: {
           closed_at?: string | null
           created_at?: string
           ended_at?: string | null
+          ends_at?: string | null
           filled_slots?: number
           id?: string
           image_url?: string | null
@@ -945,15 +979,19 @@ export type Database = {
           max_slots?: number
           note?: string
           scope?: string
+          starts_at?: string | null
           status?: string
           time_window?: string
           title?: string
           user_id: string
+          venue_place_id?: string | null
+          venue_tz?: string | null
         }
         Update: {
           closed_at?: string | null
           created_at?: string
           ended_at?: string | null
+          ends_at?: string | null
           filled_slots?: number
           id?: string
           image_url?: string | null
@@ -961,10 +999,77 @@ export type Database = {
           max_slots?: number
           note?: string
           scope?: string
+          starts_at?: string | null
           status?: string
           time_window?: string
           title?: string
           user_id?: string
+          venue_place_id?: string | null
+          venue_tz?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventures_venue_place_id_fkey"
+            columns: ["venue_place_id"]
+            isOneToOne: false
+            referencedRelation: "venue_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_place_coordinates: {
+        Row: {
+          fetched_at: string
+          latitude: number
+          longitude: number
+          venue_place_id: string
+        }
+        Insert: {
+          fetched_at?: string
+          latitude: number
+          longitude: number
+          venue_place_id: string
+        }
+        Update: {
+          fetched_at?: string
+          latitude?: number
+          longitude?: number
+          venue_place_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_place_coordinates_venue_place_id_fkey"
+            columns: ["venue_place_id"]
+            isOneToOne: true
+            referencedRelation: "venue_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_places: {
+        Row: {
+          area: string
+          created_at: string
+          created_by: string
+          google_place_id: string | null
+          host_label: string
+          id: string
+        }
+        Insert: {
+          area?: string
+          created_at?: string
+          created_by?: string
+          google_place_id?: string | null
+          host_label: string
+          id?: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          created_by?: string
+          google_place_id?: string | null
+          host_label?: string
+          id?: string
         }
         Relationships: []
       }
@@ -978,6 +1083,7 @@ export type Database = {
       can_direct_message: { Args: { _a: string; _b: string }; Returns: boolean }
       content_is_blocked: { Args: { value: string }; Returns: boolean }
       current_user_is_moderator: { Args: never; Returns: boolean }
+      expire_venue_coordinates: { Args: never; Returns: number }
       has_blocked: {
         Args: { _target: string; _viewer: string }
         Returns: boolean
@@ -989,6 +1095,7 @@ export type Database = {
       is_tribe_member:
         | { Args: { p_tribe_id: string; p_user_id: string }; Returns: boolean }
         | { Args: { p_tribe_key: string; p_user_id: string }; Returns: boolean }
+      is_venture_chat_open: { Args: { _venture_id: string }; Returns: boolean }
       is_venture_host: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
@@ -1023,6 +1130,13 @@ export type Database = {
           distance_band: string
           match_score: number
           profile_id: string
+        }[]
+      }
+      list_venture_distance_bands: {
+        Args: { _venture_ids: string[] }
+        Returns: {
+          distance_band: string
+          venture_id: string
         }[]
       }
       moderate_report: {

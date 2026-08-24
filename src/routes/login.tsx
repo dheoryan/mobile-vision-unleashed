@@ -40,7 +40,15 @@ function LoginPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      if (/confirm/i.test(error.message)) {
+        toast.error("Email not verified yet");
+        navigate({ to: "/verify-email", search: { email } });
+        return;
+      }
+      toast.error(error.message);
+      return;
+    }
     finishSignIn();
   };
 
@@ -83,6 +91,9 @@ function LoginPage() {
         </p>
         <p className="mt-1 text-center text-xs text-muted-foreground">
           <Link to="/reset-password" className="underline">Forgot password?</Link>
+        </p>
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          <Link to="/verify-email" className="underline">Need a new verification email?</Link>
         </p>
         <LegalFooter className="mt-6" />
       </div>
