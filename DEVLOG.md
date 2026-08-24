@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **15 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **17 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Transparent, centered app-header logo mark | `src/assets/logo-mark.webp`, `src/components/mutuals/Shared.tsx`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Transparent, centered app-header mark
+
+- Rebuilt the MEUTUALS eye mark as a true transparent SVG after the raster
+  extraction tool baked its preview checkerboard into the pixels. The shipped
+  vector preserves the pink-to-orange eye, five rays, black pupil, and the
+  distinctive four-point spark while centering the full composition in its
+  square canvas.
+- AppHeader now imports the transparent vector and no longer adds rounded
+  corners or an accent-coloured box-shadow outline. The old WebP remains
+  unreferenced for rollback rather than being destructively removed.
+- Validation: targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  Cloudflare production build pass; only the existing chunk-size and
+  third-party bundler warnings remain.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — App-wide loading system and screen map
 

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="meutuals-mark" x1="8" y1="64" x2="120" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff00b8" />
+      <stop offset="0.52" stop-color="#ff006e" />
+      <stop offset="1" stop-color="#ff7a00" />
+    </linearGradient>
+  </defs>
+
+  <g stroke="url(#meutuals-mark)" stroke-width="7" stroke-linecap="round">
+    <path d="M64 27V14" />
+    <path d="M41 31L35 19" />
+    <path d="M23 45L12 36" />
+    <path d="M87 31L93 19" />
+    <path d="M105 45L116 36" />
+  </g>
+
+  <path d="M10 78C24 56 42 40 64 40C86 40 104 56 118 78C104 98 86 112 64 112C42 112 24 98 10 78Z" fill="url(#meutuals-mark)" />
+  <circle cx="64" cy="78" r="20" fill="#090909" />
+  <path d="M64 63C66 71 70 76 79 78C70 80 66 85 64 93C62 85 58 80 49 78C58 76 62 71 64 63Z" fill="url(#meutuals-mark)" />
+</svg>

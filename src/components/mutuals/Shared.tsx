@@ -1,5 +1,5 @@
 import { MessageCircle } from "lucide-react";
-import logoMark from "@/assets/logo-mark.webp";
+import logoMark from "@/assets/logo-mark.svg";
 import { NotificationBell } from "./NotificationBell";
 import { TribeMark } from "./TribeMark";
 import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
@@ -14,7 +14,6 @@ import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
 export function AppHeader({
   title,
   subtitle,
-  accent,
 }: {
   title: string;
   subtitle?: string;
@@ -24,12 +23,7 @@ export function AppHeader({
     <header className="glass sticky top-0 z-20 border-b border-border">
       <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2.5">
-          <img
-            src={logoMark}
-            alt="MEUTUALS"
-            className="h-9 w-9 rounded-md object-contain"
-            style={{ boxShadow: `0 0 0 1px color-mix(in oklab, ${accent} 35%, transparent)` }}
-          />
+          <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
           <div className="leading-tight">
             <p className="label-mono text-muted-foreground">{subtitle ?? "Meutuals"}</p>
             <p className="font-display text-sm font-semibold">{title}</p>
