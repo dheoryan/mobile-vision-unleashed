@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **3 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **5 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Ventures board ticket redesign | `src/components/mutuals/VentureBoard.tsx`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Ventures board became a public ticket rack
+
+- Replaced the administrative departure rows with compact available-ticket
+  cards: a date/time stub, dashed tear seam and notches, remaining-seat stamp,
+  venue verification, distance band, attendance, and vibe metadata.
+- Kept the product states distinct. Board tickets read as available, sold out,
+  pending, declined, or accepted; held tickets in Yours retain the stronger
+  ownership treatment. Expanding one ticket reveals the host note and the
+  relevant request, withdrawal, or party-chat action without opening a modal.
+- Preserved one-open-at-a-time disclosure, added explicit `aria-expanded` /
+  `aria-controls` wiring and an input label, kept action targets at least 44 px,
+  and respected reduced-motion preferences for the chevron transition.
+- Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
+  --check` clean, and the Cloudflare production build succeeds with only the
+  existing chunk-size and third-party bundler warnings. Production visual E2E
+  remains blocked by the intentionally unrun Red venue migrations.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Ventures handoff completed: distance and private venue
 
