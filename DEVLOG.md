@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| _(none)_ | | | |
+| Codex | Approve and hand off Venture recap Red migrations | `DEVLOG.md`, Venture recap migration/manual Lovable SQL handoff | 2026-08-24 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
