@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **25 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **27 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Splash-screen brand promise | `DEVLOG.md`, `src/components/mutuals/Skeleton.tsx` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -171,6 +171,16 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Splash states the MEUTUALS mission
+
+- Replaced the internal-sounding `OPEN PARTY BOARD` eyebrow on the branded
+  bootstrap screen with `REINVENTING HOW WE SOCIALIZE`.
+- The line deliberately uses the grammatical verb phrase “how we socialize”
+  while preserving the user's intended objective and the existing poster-like
+  logo → promise → wordmark hierarchy. No new motion or layout chrome added.
+- Validation: targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  Cloudflare production build pass; existing bundler warnings remain.
 
 ### 2026-08-24 — Codex — Venture recap Red migrations approved and prepared
 

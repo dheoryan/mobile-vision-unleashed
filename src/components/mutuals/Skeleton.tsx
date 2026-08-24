@@ -167,7 +167,7 @@ export function AppBootstrapSkeleton() {
       <div className="flex -translate-y-6 flex-col items-center">
         <img src={logoMark} alt="" className="h-24 w-24 object-contain" />
         <div className="mt-5 text-center">
-          <p className="label-mono text-primary">OPEN PARTY BOARD</p>
+          <p className="label-mono text-primary">REINVENTING HOW WE SOCIALIZE</p>
           <p className="mt-1 font-display text-2xl font-bold tracking-tight">MEUTUALS</p>
         </div>
         <Skeleton className="mt-6 h-1 w-20 rounded-full" />
