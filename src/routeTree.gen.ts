@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as TiersRouteImport } from './routes/tiers'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -26,6 +27,11 @@ import { Route as PPostIdRouteImport } from './routes/p.$postId'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push.dispatch'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
   path: '/upgrade',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin/reports': typeof AdminReportsRoute
   '/p/$postId': typeof PPostIdRoute
   '/u/$handle': typeof UHandleRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin/reports': typeof AdminReportsRoute
   '/p/$postId': typeof PPostIdRoute
   '/u/$handle': typeof UHandleRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
   '/upgrade': typeof UpgradeRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin/reports': typeof AdminReportsRoute
   '/p/$postId': typeof PPostIdRoute
   '/u/$handle': typeof UHandleRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tiers'
     | '/upgrade'
+    | '/verify-email'
     | '/admin/reports'
     | '/p/$postId'
     | '/u/$handle'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tiers'
     | '/upgrade'
+    | '/verify-email'
     | '/admin/reports'
     | '/p/$postId'
     | '/u/$handle'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tiers'
     | '/upgrade'
+    | '/verify-email'
     | '/admin/reports'
     | '/p/$postId'
     | '/u/$handle'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
   UpgradeRoute: typeof UpgradeRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   AdminReportsRoute: typeof AdminReportsRoute
   PPostIdRoute: typeof PPostIdRoute
   UHandleRoute: typeof UHandleRoute
@@ -240,6 +253,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upgrade': {
       id: '/upgrade'
       path: '/upgrade'
@@ -368,6 +388,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,
   UpgradeRoute: UpgradeRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   AdminReportsRoute: AdminReportsRoute,
   PPostIdRoute: PPostIdRoute,
   UHandleRoute: UHandleRoute,

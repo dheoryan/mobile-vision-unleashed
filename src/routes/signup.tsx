@@ -59,6 +59,7 @@ function SignupPage() {
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Check your email", { description: "Confirm your address to finish signup." });
+    navigate({ to: "/verify-email", search: { email } });
   };
 
   const oauth = async (provider: "google" | "apple") => {
