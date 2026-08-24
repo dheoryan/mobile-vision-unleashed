@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **23 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **25 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -23,12 +23,14 @@ without asking.
 project. Creating a Venture there makes a real row on a real board that 34 real
 users can see. There is no local database in play any more.
 
-**Three migrations are written and NOT RUN** — see the 2026-08-24 entries.
+**Four migrations are written and NOT RUN** — see the 2026-08-24 entries.
 Ventures now detects the absent venue schema and serves the pre-venue experience
 instead of failing every list. Venue labels, distance bands, and private arrival
 details remain unavailable until `20260824040000` and `20260824050000` run.
-`20260824034000` and both venue migrations are **Red** under
-`CHANGE_PROTOCOL.md`; none may be applied without explicit user approval.
+Kila approved `20260824034000` and `20260824051000` on 2026-08-24; they are
+prepared in `LOVABLE_VENTURE_RECAP_SQL_EDITOR.sql` and await manual Lovable SQL
+Editor execution + verification. Both venue migrations remain unapproved Red
+changes under `CHANGE_PROTOCOL.md`.
 
 **Agents do not edit the user's repo directly.** The working copy is
 `D:\Dheoryans\Meutuals\mobile-vision-unleashed` on the user's Windows machine.
@@ -61,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Approve and hand off Venture recap Red migrations | `DEVLOG.md`, Venture recap migration/manual Lovable SQL handoff | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -170,6 +172,23 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-24 — Codex — Venture recap Red migrations approved and prepared
+
+- Kila explicitly approved the two access changes for manual production
+  execution: `20260824034000_party_members_see_each_other.sql` and
+  `20260824051000_archive_completed_venture_chat.sql`.
+- Corrected a migration identity collision: the archive policy originally used
+  `20260824050000`, already occupied by `venture_private_venues`; it is now
+  `20260824051000`.
+- Added `LOVABLE_VENTURE_RECAP_SQL_EDITOR.sql`, an atomic, idempotent Lovable
+  SQL Editor paste containing a dependency preflight, both approved policies,
+  least-privilege function grants, and two boolean verification results.
+- **Not executed by Codex.** Localhost uses production and the user requested
+  manual Lovable execution. Do not mark either migration applied until the SQL
+  Editor returns both verification columns as `true`.
+- The separate venue migrations `20260824040000` and `20260824050000` were not
+  included and remain unapproved.
+
 ### 2026-08-24 — Codex — Completed Ventures become Moot-making memories
 
 - Closed/ended Venture rooms remain accessible in Chats under **Venture
@@ -186,10 +205,11 @@ Newest first. Append; don't edit past entries.
   previously fail if both users had created a row.
 - `sendVentureMessage` now rejects messages after manual close/end or the
   scheduled `ends_at` time. Added
-  `20260824050000_archive_completed_venture_chat.sql` for the matching direct-
-  Supabase RLS boundary. It is **RED and NOT RUN**.
+  `20260824051000_archive_completed_venture_chat.sql` for the matching direct-
+  Supabase RLS boundary. It is **RED, approved, and awaiting manual execution**.
 - The full participant recap for non-host members also depends on the existing
-  **RED, NOT RUN** `20260824034000_party_members_see_each_other.sql`; before it
+  **RED, approved, awaiting manual execution**
+  `20260824034000_party_members_see_each_other.sql`; before it
   lands, RLS intentionally degrades a member's recap to the host plus whichever
   accepted profiles they can already read.
 - Current attendance limitation: “participant” means host + applications still
@@ -406,7 +426,8 @@ Eleven commits, `2de573d`..`a026890`. Two migrations, one of them still unrun.
 - `20260824012500_venture_start_and_end_times` — **applied to production.**
   `starts_at`, `ends_at`, `venue_tz` on `ventures`, three shape CHECKs, and a
   partial index for the new ordering. Replayed twice on PG16 for idempotency.
-- `20260824034000_party_members_see_each_other` — **RED, NOT RUN.** Lets an
+- `20260824034000_party_members_see_each_other` — **RED, approved 2026-08-24,
+  awaiting manual execution.** Lets an
   accepted member read the other *accepted* applications of the same Venture.
   Declined and pending applicants stay the host's business. Verified on a local
   RLS harness across six roles before delivery.
