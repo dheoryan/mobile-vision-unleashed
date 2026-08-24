@@ -92,6 +92,9 @@ function LoginPage() {
         <p className="mt-1 text-center text-xs text-muted-foreground">
           <Link to="/reset-password" className="underline">Forgot password?</Link>
         </p>
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          <Link to="/verify-email" className="underline">Need a new verification email?</Link>
+        </p>
         <LegalFooter className="mt-6" />
       </div>
     </div>
