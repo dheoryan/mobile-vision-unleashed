@@ -21,15 +21,13 @@ export function AppHeader({
 }) {
   return (
     <header className="glass sticky top-0 z-20 border-b border-border">
-      <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
-          <div className="leading-tight">
-            <p className="label-mono text-muted-foreground">{subtitle ?? "Meutuals"}</p>
-            <p className="font-display text-sm font-semibold">{title}</p>
-          </div>
+      <div className="mx-auto grid max-w-md grid-cols-[1fr_auto_1fr] items-center px-5 py-3">
+        <div className="min-w-0 justify-self-start leading-tight">
+          <p className="label-mono truncate text-muted-foreground">{subtitle ?? "Meutuals"}</p>
+          <p className="truncate font-display text-sm font-semibold">{title}</p>
         </div>
-        <div className="flex items-center gap-1">
+        <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
+        <div className="flex items-center gap-1 justify-self-end">
           <NotificationBell />
         </div>
       </div>

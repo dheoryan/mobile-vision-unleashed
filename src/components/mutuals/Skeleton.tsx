@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import logoMark from "@/assets/logo-mark.svg";
 
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("shimmer rounded-md bg-muted/40", className)} {...props} />;
@@ -159,30 +160,17 @@ export function MessageThreadSkeleton() {
 
 export function AppBootstrapSkeleton() {
   return (
-    <LoadingRegion label="Loading MEUTUALS" className="min-h-screen bg-habitat">
-      <div className="mx-auto max-w-md px-5 pb-28 pt-5">
-        <div className="flex items-center gap-3 border-b border-border pb-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-2.5 w-24" />
-            <Skeleton className="h-5 w-28" />
-          </div>
+    <LoadingRegion
+      label="Loading MEUTUALS"
+      className="flex min-h-screen items-center justify-center bg-habitat px-6"
+    >
+      <div className="flex -translate-y-6 flex-col items-center">
+        <img src={logoMark} alt="" className="h-24 w-24 object-contain" />
+        <div className="mt-5 text-center">
+          <p className="label-mono text-primary">OPEN PARTY BOARD</p>
+          <p className="mt-1 font-display text-2xl font-bold tracking-tight">MEUTUALS</p>
         </div>
-        <div className="mt-5 flex gap-2">
-          <Skeleton className="h-10 flex-1 rounded-full" />
-          <Skeleton className="h-10 flex-1 rounded-full" />
-        </div>
-        <div className="mt-4 space-y-3">
-          <PostCardSkeleton />
-          <PostCardSkeleton />
-        </div>
-      </div>
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/95 px-5 py-3">
-        <div className="mx-auto flex max-w-md justify-between">
-          {Array.from({ length: 5 }, (_, index) => (
-            <Skeleton key={index} className="h-8 w-10 rounded-lg" />
-          ))}
-        </div>
+        <Skeleton className="mt-6 h-1 w-20 rounded-full" />
       </div>
     </LoadingRegion>
   );

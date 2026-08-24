@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **17 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **19 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Centered header identity + logo splash | `src/components/mutuals/Shared.tsx`, `src/components/mutuals/Skeleton.tsx`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Centered header identity and branded splash
+
+- AppHeader is now a three-column grid: screen identity remains left,
+  notification action remains right, and equal outer tracks keep the MEUTUALS
+  mark geometrically centered regardless of title width.
+- The authentication/profile bootstrap surface is now a focused branded splash
+  using the same transparent SVG, MEUTUALS wordmark, and a restrained shimmer
+  progress line instead of a simulated feed shell.
+- Installed PWA launch metadata already uses a dark background and the same eye
+  geometry through the manifest icons; no icon-platform migration was needed.
+- Validation: targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  Cloudflare production build pass; existing chunk-size and third-party
+  bundler warnings remain.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Transparent, centered app-header mark
 
