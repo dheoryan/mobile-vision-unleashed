@@ -32,6 +32,93 @@ create table if not exists public.venue_place_coordinates (
   fetched_at     timestamptz not null default now()
 );
 
+-- Production briefly received an earlier Venue shape from Lovable. That table
+-- kept coordinates on the authenticated-readable row, had no insert owner, and
+-- made google_place_id globally unique. Reconcile that drift in-place before
+-- installing the final policies. Fresh databases skip the guarded legacy path.
+alter table public.venue_places
+  add column if not exists created_by uuid default auth.uid();
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'venue_places'
+      and column_name = 'latitude'
+  ) and exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'venue_places'
+      and column_name = 'longitude'
+  ) then
+    execute $move_coordinates$
+      insert into public.venue_place_coordinates (
+        venue_place_id,
+        latitude,
+        longitude,
+        fetched_at
+      )
+      select
+        id,
+        latitude,
+        longitude,
+        coalesce(coords_fetched_at, created_at, now())
+      from public.venue_places
+      where latitude is not null
+        and longitude is not null
+      on conflict (venue_place_id) do update
+        set latitude = excluded.latitude,
+            longitude = excluded.longitude,
+            fetched_at = excluded.fetched_at
+    $move_coordinates$;
+  end if;
+
+  -- A legacy row may already be attached to a Venture. Its host is the only
+  -- defensible ownership source; unreferenced leftovers remain NULL and cannot
+  -- pass the new insert or coordinate policies.
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'ventures'
+      and column_name = 'venue_place_id'
+  ) then
+    execute $backfill_owner$
+      update public.venue_places vp
+      set created_by = owners.user_id
+      from (
+        select
+          venue_place_id,
+          min(user_id::text)::uuid as user_id
+        from public.ventures
+        where venue_place_id is not null
+        group by venue_place_id
+      ) owners
+      where owners.venue_place_id = vp.id
+        and vp.created_by is null
+    $backfill_owner$;
+  end if;
+
+  if not exists (
+    select 1 from public.venue_places where created_by is null
+  ) then
+    alter table public.venue_places alter column created_by set not null;
+  end if;
+end $$;
+
+-- Coordinates have been copied into the owner-private table above. Keeping
+-- these legacy columns would still expose exact pins through PostgREST.
+alter table public.venue_places
+  drop constraint if exists venue_places_coords_dated,
+  drop constraint if exists venue_places_coords_paired,
+  drop constraint if exists venue_places_google_place_id_key,
+  drop column if exists latitude,
+  drop column if exists longitude,
+  drop column if exists coords_fetched_at;
+
 create index if not exists venue_places_google_idx
   on public.venue_places (google_place_id, created_at desc)
   where google_place_id is not null;

@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **35 commits ahead of `origin/main` after reconciling seven
+**Branch:** `main`. **36 commits ahead of `origin/main` after reconciling seven
 new Lovable commits.** The user authorised a production push on 2026-08-24, but
 the push is paused until the approved Red venue migrations and credential
 rotations are manually applied and verified. Never force-push.
@@ -188,6 +188,13 @@ Newest first. Append; don't edit past entries.
   `LOVABLE_VENUE_RELEASE_VERIFY.sql`, and a separate private secret-copy query.
   Kila approved all three Red production actions; manual application and
   verification are still pending.
+- The first production venue run exposed an older one-row `venue_places` shape:
+  coordinates were public columns, `created_by` was absent, and
+  `google_place_id` was globally unique. Kila explicitly approved the Red drift
+  repair. The repaired migration copies coordinates into the private table,
+  backfills ownership from linked Venture hosts, then removes the legacy public
+  coordinate columns and obsolete uniqueness constraint without deleting the
+  venue row.
 - Targeted ESLint, `tsc --noEmit`, `git diff --check`, the production build, and
   the unauthenticated browser smoke test pass. Full-project lint remains a
   pre-existing baseline of 2,339 findings and is not release-clean.

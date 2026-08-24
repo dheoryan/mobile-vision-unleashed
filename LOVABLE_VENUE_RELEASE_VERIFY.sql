@@ -18,6 +18,29 @@ select
       and table_name = 'ventures'
       and column_name = 'venue_place_id'
   ) as venture_link_ready,
+  exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'venue_places'
+      and column_name = 'created_by'
+  ) as venue_owner_ready,
+  not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'venue_places'
+      and column_name in ('latitude', 'longitude', 'coords_fetched_at')
+  ) as public_coordinates_removed,
+  not exists (
+    select 1
+    from pg_constraint con
+    join pg_class c on c.oid = con.conrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname = 'venue_places'
+      and con.conname = 'venue_places_google_place_id_key'
+  ) as per_venture_places_ready,
   to_regprocedure('public.list_venture_distance_bands(uuid[])') is not null
     as distance_bands_ready,
   to_regprocedure('public.expire_venue_coordinates()') is not null
