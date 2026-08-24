@@ -41,7 +41,7 @@ export type PickedVenue = {
   longitude: number | null;
 };
 
-type Stage = "search" | "label";
+type Stage = "manual" | "search" | "label";
 
 export function VenuePicker({
   value,
@@ -57,7 +57,10 @@ export function VenuePicker({
   const search = useServerFn(searchPlaces);
   const resolve = useServerFn(resolvePlace);
 
-  const [stage, setStage] = useState<Stage>("search");
+  // Human language is the default. Google is an optional precision upgrade,
+  // so opening this sheet never starts a Places session or implies that a
+  // venue needs a map listing to be legitimate.
+  const [stage, setStage] = useState<Stage>("manual");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
@@ -144,33 +147,20 @@ export function VenuePicker({
   };
 
   /**
-   * Enter a place by hand.
-   *
-   * Available from the moment the sheet opens, not only once a search has
-   * failed. Hiding it behind two typed characters meant a host who already knew
-   * they were meeting on their own rooftop had to search Google first to be
-   * told Google had never heard of it — which reads as though searching is
-   * compulsory and the app only tolerates real answers.
+   * Return from optional Google search to the primary manual path.
    *
    * Whatever is in the search box carries over as a starting point, because if
    * someone has typed "Bloo" and given up, that is still what they call it.
    */
   const useFreeText = () => {
-    setChosen({
-      place_id: null,
-      suggestion: query.trim(),
-      area: "",
-      latitude: null,
-      longitude: null,
-    });
-    setLabel(query.trim());
-    setArea("");
-    setStage("label");
+    setChosen(null);
+    if (query.trim()) setLabel(query.trim());
+    setStage("manual");
   };
 
-  const ready = Boolean(chosen && label.trim() && area.trim());
+  const ready = Boolean(label.trim() && area.trim());
 
-  const confirm = () => {
+  const confirmGoogle = () => {
     if (!chosen || !ready) return;
     onChange({
       google_place_id: chosen.place_id,
@@ -178,6 +168,17 @@ export function VenuePicker({
       area: area.trim(),
       latitude: chosen.latitude,
       longitude: chosen.longitude,
+    });
+  };
+
+  const confirmManual = () => {
+    if (!ready) return;
+    onChange({
+      google_place_id: null,
+      host_label: label.trim(),
+      area: area.trim(),
+      latitude: null,
+      longitude: null,
     });
   };
 
@@ -198,14 +199,16 @@ export function VenuePicker({
           </p>
           <p className="truncate text-[11px] text-muted-foreground">{value.area}</p>
           {!value.google_place_id && (
-            <p className="mt-0.5 text-[10px] text-muted-foreground">Unlisted place — no map pin</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              Host-named place · map optional
+            </p>
           )}
         </div>
         <button
           type="button"
           onClick={() => {
             onChange(null);
-            setStage("search");
+            setStage("manual");
             setQuery("");
             setResults([]);
             setChosen(null);
@@ -215,6 +218,78 @@ export function VenuePicker({
         >
           <X className="h-4 w-4" />
         </button>
+      </div>
+    );
+  }
+
+  if (stage === "manual") {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] p-3">
+          <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <div>
+            <p className="text-xs font-semibold">Name the place your way</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              Add the place and its area exactly how you would tell a friend. A map pin is optional.
+            </p>
+          </div>
+        </div>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="label-mono text-muted-foreground">What do you call it?</span>
+          <input
+            autoFocus
+            value={label}
+            onChange={(event) => setLabel(event.target.value.slice(0, 120))}
+            placeholder="Kopi Kalyan"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="label-mono text-muted-foreground">Which area?</span>
+          <input
+            value={area}
+            onChange={(event) => setArea(event.target.value.slice(0, 160))}
+            placeholder="Kemang, Jakarta Selatan"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <span className="text-[10px] leading-relaxed text-muted-foreground">
+            This is what people use to decide whether the trip works for them.
+          </span>
+        </label>
+
+        <button
+          type="button"
+          onClick={confirmManual}
+          disabled={!ready}
+          className="rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          Use this place
+        </button>
+
+        <div className="flex items-center gap-3 py-1" aria-hidden="true">
+          <span className="h-px flex-1 bg-border" />
+          <span className="label-mono text-muted-foreground">Optional precision</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setQuery(label.trim());
+            setResults([]);
+            setError(null);
+            setStage("search");
+          }}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          Find a verified pin with Google Maps
+        </button>
+        <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+          Adds distance guidance and an optional map for accepted participants.
+        </p>
       </div>
     );
   }
@@ -290,7 +365,7 @@ export function VenuePicker({
           </button>
           <button
             type="button"
-            onClick={confirm}
+            onClick={confirmGoogle}
             disabled={!ready}
             className="flex-[1.4] rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
           >
@@ -303,6 +378,21 @@ export function VenuePicker({
 
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3 pb-1">
+        <div>
+          <p className="text-xs font-semibold">Find a verified pin</p>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
+            Optional—use this when distance and map guidance will help the group.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={useFreeText}
+          className="min-h-9 shrink-0 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+        >
+          Enter manually
+        </button>
+      </div>
       <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:border-primary">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
@@ -343,18 +433,6 @@ export function VenuePicker({
           ))}
         </div>
       )}
-
-      {/* Always here, below the real results. Somebody's rooftop is a real place
-          Google has never heard of, and a picker that only accepts Google's
-          answers would push exactly those Ventures off the app. */}
-      <button
-        type="button"
-        onClick={useFreeText}
-        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
-      >
-        <PenLine className="h-3.5 w-3.5" />
-        {query.trim().length >= 2 ? `Use “${query.trim()}” instead` : "Enter a place myself"}
-      </button>
 
       <p className="text-right text-[10px] text-muted-foreground">Places by Google</p>
     </div>
