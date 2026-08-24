@@ -152,6 +152,8 @@ const PROFILE_COLS =
   "id, display_name, handle, avatar_emoji, avatar_url, plan, city, bio, tribe_ids";
 const VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, venue_place_id, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
+const LEGACY_VENTURE_COLS =
+  "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS = "id, venture_id, sender_id, content, created_at";
 
@@ -213,6 +215,41 @@ const respondToVentureInviteSchema = z.object({
   status: z.enum(["accepted", "declined"]),
 });
 
+/**
+ * Venue support ships behind Red migrations. Production must continue serving
+ * the pre-venue Venture experience until those migrations are approved, while
+ * permission failures and unrelated database errors must still fail loudly.
+ */
+function isVenueSchemaUnavailable(error: any): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  const text = [error.message, error.details, error.hint].filter(Boolean).join(" ").toLowerCase();
+  const missingSchemaCodes = new Set([
+    "PGRST202",
+    "PGRST204",
+    "PGRST205",
+    "42P01",
+    "42703",
+    "42883",
+  ]);
+  const venueIdentifiers = [
+    "venue_place_id",
+    "venue_places",
+    "venue_place_coordinates",
+    "venture_venues",
+    "list_venture_distance_bands",
+  ];
+  return missingSchemaCodes.has(code) && venueIdentifiers.some((name) => text.includes(name));
+}
+
+async function selectVenturesWithFallback(buildQuery: (columns: string) => any) {
+  let result = await buildQuery(VENTURE_COLS);
+  if (result.error && isVenueSchemaUnavailable(result.error)) {
+    result = await buildQuery(LEGACY_VENTURE_COLS);
+  }
+  return result;
+}
+
 /** Loads the venue rows for a batch of Ventures in one query. */
 async function fetchVenues(db: any, ids: Array<string | null>): Promise<Map<string, VenuePlace>> {
   const wanted = uniq(ids);
@@ -223,6 +260,7 @@ async function fetchVenues(db: any, ids: Array<string | null>): Promise<Map<stri
     // band from list_venture_distance_bands instead.
     .select("id, host_label, area, google_place_id")
     .in("id", wanted);
+  if (isVenueSchemaUnavailable(error)) return new Map();
   if (error) throw new Error(error.message);
   return new Map(((data ?? []) as VenuePlace[]).map((row) => [row.id, row]));
 }
@@ -236,6 +274,7 @@ async function fetchVentureDistanceBands(
   const { data, error } = await db.rpc("list_venture_distance_bands", {
     _venture_ids: wanted,
   });
+  if (isVenueSchemaUnavailable(error)) return new Map();
   if (error) throw new Error(error.message);
   return new Map(
     ((data ?? []) as Array<{ venture_id: string; distance_band: string }>).map((row) => [
@@ -255,6 +294,7 @@ async function fetchPrivateVenues(
     .from("venture_venues")
     .select("venture_id, arrival_details, updated_at")
     .in("venture_id", wanted);
+  if (isVenueSchemaUnavailable(error)) return new Map();
   if (error) throw new Error(error.message);
   return new Map(((data ?? []) as VenturePrivateVenue[]).map((row) => [row.venture_id, row]));
 }
@@ -378,11 +418,9 @@ async function fetchMyApplications(
 }
 
 async function fetchVentureOrThrow(db: any, ventureId: string): Promise<VentureDbRow> {
-  const { data, error } = await db
-    .from("ventures")
-    .select(VENTURE_COLS)
-    .eq("id", ventureId)
-    .maybeSingle();
+  const { data, error } = await selectVenturesWithFallback((columns) =>
+    db.from("ventures").select(columns).eq("id", ventureId).maybeSingle(),
+  );
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Venture not found.");
   return data as VentureDbRow;
@@ -439,15 +477,17 @@ export const listOpenVentures = createServerFn({ method: "GET" })
     // legacy rows say "This weekend", and no honest reading of that tells you
     // when it stopped.
     const nowIso = new Date().toISOString();
-    const { data: rows, error } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .eq("status", "open")
-      .neq("user_id", userId)
-      .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
-      .order("starts_at", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(80);
+    const { data: rows, error } = await selectVenturesWithFallback((columns) =>
+      db
+        .from("ventures")
+        .select(columns)
+        .eq("status", "open")
+        .neq("user_id", userId)
+        .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
+        .order("starts_at", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(80),
+    );
     if (error) throw new Error(error.message);
 
     const allRows = (rows ?? []) as VentureDbRow[];
@@ -501,12 +541,14 @@ export const listMyHostedVentures = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
 
-    const { data: rows, error } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const { data: rows, error } = await selectVenturesWithFallback((columns) =>
+      db
+        .from("ventures")
+        .select(columns)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    );
     if (error) throw new Error(error.message);
 
     const ventures = (rows ?? []) as VentureDbRow[];
@@ -580,10 +622,9 @@ export const listMyJoinedVentures = createServerFn({ method: "GET" })
     if (!appRows.length) return [];
 
     const ventureIds = uniq(appRows.map((a) => a.venture_id));
-    const { data: ventureRowsRaw, error: ventureError } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .in("id", ventureIds);
+    const { data: ventureRowsRaw, error: ventureError } = await selectVenturesWithFallback(
+      (columns) => db.from("ventures").select(columns).in("id", ventureIds),
+    );
     if (ventureError) throw new Error(ventureError.message);
 
     const ventureRows = (ventureRowsRaw ?? []) as VentureDbRow[];
@@ -789,14 +830,7 @@ export const respondToVentureInvite = createServerFn({ method: "POST" })
       return mapApplication(app, applicantMap);
     }
 
-    const { data: ventureRow, error: ventureError } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .eq("id", app.venture_id)
-      .maybeSingle();
-    if (ventureError) throw new Error(ventureError.message);
-    if (!ventureRow) throw new Error("Venture not found.");
-    const venture = ventureRow as VentureDbRow;
+    const venture = await fetchVentureOrThrow(db, app.venture_id);
 
     if (data.status === "accepted") {
       if (venture.status === "closed") throw new Error("This Venture is closed.");
@@ -1050,14 +1084,7 @@ export const applyToVenture = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
 
-    const { data: venture, error: ventureError } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .eq("id", data.venture_id)
-      .maybeSingle();
-    if (ventureError) throw new Error(ventureError.message);
-    if (!venture) throw new Error("Venture not found.");
-    const row = venture as VentureDbRow;
+    const row = await fetchVentureOrThrow(db, data.venture_id);
     if (row.user_id === userId) throw new Error("You are already hosting this Venture.");
     if (row.status !== "open" || (row.filled_slots ?? 1) >= (row.max_slots ?? 4)) {
       throw new Error("This Venture is already full.");
@@ -1114,15 +1141,7 @@ export const decideVentureApplication = createServerFn({ method: "POST" })
     if (!appRow) throw new Error("Application not found.");
 
     const app = appRow as VentureApplicationDbRow;
-    const { data: ventureRow, error: ventureError } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .eq("id", app.venture_id)
-      .maybeSingle();
-    if (ventureError) throw new Error(ventureError.message);
-    if (!ventureRow) throw new Error("Venture not found.");
-
-    const venture = ventureRow as VentureDbRow;
+    const venture = await fetchVentureOrThrow(db, app.venture_id);
     if (venture.user_id !== userId) throw new Error("Only the host can review requests.");
 
     if (data.status === "accepted") {
@@ -1201,15 +1220,8 @@ export const updateHostedVenture = createServerFn({ method: "POST" })
     const db = supabase as unknown as any;
     const { venture_id, ...rest } = data;
 
-    const { data: currentRaw, error: currentError } = await db
-      .from("ventures")
-      .select(VENTURE_COLS)
-      .eq("id", venture_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (currentError) throw new Error(currentError.message);
-    if (!currentRaw) throw new Error("Venture not found or you are not its host.");
-    const current = currentRaw as VentureDbRow;
+    const current = await fetchVentureOrThrow(db, venture_id);
+    if (current.user_id !== userId) throw new Error("Venture not found or you are not its host.");
 
     // Only send keys the caller actually supplied. Spreading the whole partial
     // would write `undefined` over untouched columns on some clients.

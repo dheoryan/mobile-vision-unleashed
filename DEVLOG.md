@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **7 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **9 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -24,10 +24,10 @@ project. Creating a Venture there makes a real row on a real board that 34 real
 users can see. There is no local database in play any more.
 
 **Three migrations are written and NOT RUN** — see the 2026-08-24 entries.
-Until
-`20260824040000_venue_places` runs, all three Ventures views fail with
-`Could not find the table 'public.venue_places'`, because the venue loader runs
-on every list. `20260824034000` and both venue migrations are **Red** under
+Ventures now detects the absent venue schema and serves the pre-venue experience
+instead of failing every list. Venue labels, distance bands, and private arrival
+details remain unavailable until `20260824040000` and `20260824050000` run.
+`20260824034000` and both venue migrations are **Red** under
 `CHANGE_PROTOCOL.md`; none may be applied without explicit user approval.
 
 **Agents do not edit the user's repo directly.** The working copy is
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Ventures pre-migration fallback | `src/lib/ventures.functions.ts`, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,25 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Ventures load before venue rollout
+
+- Fixed all three Venture queries failing while the Red venue migrations are
+  intentionally unrun. Reads now retry without `venue_place_id` when PostgREST
+  reports that optional column missing; missing venue tables and distance RPCs
+  return empty enrichment maps.
+- The fallback is deliberately narrow: only known missing-schema codes combined
+  with known venue identifiers degrade. RLS, permission, connectivity, and
+  unrelated database failures still surface normally.
+- Reused the compatible Venture lookup for applying, responding to invites,
+  reviewing applicants, and opening the host editor so the pre-migration board
+  remains usable after it renders.
+- Venue labels, distance bands, and accepted-member arrival details remain
+  unavailable until the Red migrations are explicitly approved and applied.
+- Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
+  --check` clean, and the Cloudflare production build succeeds with only the
+  existing chunk-size and third-party bundler warnings.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Ventures navigation became task-focused
 
