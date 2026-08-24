@@ -13,11 +13,11 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **38 commits ahead of `origin/main` after reconciling seven
-new Lovable commits.** The user authorised a production push on 2026-08-24, but
-the push is paused until the rotated Google server key and its restrictions are
-confirmed. The approved Red Venue changes and push-secret rotation are applied
-and verified. Never force-push.
+**Branch:** `main`. **Production release pushed through Git on 2026-08-24 after
+reconciling seven newer Lovable commits with a normal merge.** The approved Red
+Venue changes and push-secret rotation are applied and verified. Google Venue
+precision is intentionally feature-flagged off pending a team decision. Never
+force-push.
 
 **Local dev talks to PRODUCTION.** `localhost:8082` uses the production Supabase
 project. Creating a Venture there makes a real row on a real board that 34 real
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Manual-first venue picker + production push audit | `DEVLOG.md`, `src/components/mutuals/VenuePicker.tsx`, deployment/migration handoff as needed | 2026-08-24 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -170,6 +170,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Manual-first Venue release shipped through Git
+
+- Production verification returned all 15 Venue, coordinate privacy, RLS,
+  function, private-arrival, and push-secret checks `true`.
+- Shipped manual host-authored place + area as the complete production flow.
+  Google Places is gated at the picker, both server endpoints, verified badge,
+  and map surfaces by `GOOGLE_PLACES_ENABLED = false` while the team evaluates
+  API terms, restrictions, and quota.
+- Reconciled the seven newer Lovable commits normally, fetched immediately
+  before release, and confirmed the branch was zero commits behind. No rebase,
+  force-push, or history rewrite.
+- Targeted ESLint, `tsc --noEmit`, `git diff --check`, and the Cloudflare
+  production build passed on the release configuration. The known full-project
+  lint baseline remains 2,339 findings.
+- Preserved the user's uncommitted local `.env` and `package-lock.json`; neither
+  file's local changes entered the release commit.
 
 ### 2026-08-24 — Codex — Manual-first venue release prepared, production push gated
 
