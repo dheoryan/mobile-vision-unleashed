@@ -32,6 +32,7 @@ import { FeatureIllustration } from "./FeatureIllustration";
 import { useAnswerHello, useIncomingHellos } from "@/lib/social-store";
 import messagesArt from "@/assets/app-illustrations/messages.webp";
 import { SafetyMenu } from "./SafetyMenu";
+import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
 
 type ReplyTarget = { id: string; name: string; snippet: string };
 
@@ -225,7 +226,9 @@ function Inbox({
       <div className="scroll-panel flex-1 overflow-y-auto">
         <IncomingHellos />
         {isLoading ? (
-          <p className="p-10 text-center text-xs text-muted-foreground">Loading…</p>
+          <div className="px-3 py-2">
+            <ConversationListSkeleton />
+          </div>
         ) : !hasDirectThreads && !hasPartyThreads ? (
           /* Top-level empty inbox only. Inside an open conversation the
              composer stays the visual priority — no artwork there. */
@@ -423,7 +426,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
 
       <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
-          <p className="py-10 text-center text-xs text-muted-foreground">Loading party chat…</p>
+          <MessageThreadSkeleton />
         ) : !msgs?.length ? (
           <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
             No messages yet.
@@ -583,7 +586,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
 
       <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
-          <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
+          <MessageThreadSkeleton />
         ) : !msgs?.length ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Say hi 👋</p>
         ) : (

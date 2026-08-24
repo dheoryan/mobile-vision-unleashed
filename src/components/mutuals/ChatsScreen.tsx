@@ -14,6 +14,7 @@ import { useBlocked } from "@/lib/blocked-store";
 import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { timingLabel } from "@/lib/venture-time";
+import { ConversationListSkeleton } from "./Skeleton";
 
 type Filter = "all" | "tribe" | "ventures" | "direct";
 
@@ -152,7 +153,9 @@ function Row({
       <span className="shrink-0">{leading}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
-          <span className={cn("truncate text-sm", unread ? "font-bold" : "font-semibold")}>{title}</span>
+          <span className={cn("truncate text-sm", unread ? "font-bold" : "font-semibold")}>
+            {title}
+          </span>
           {meta && <span className="label-mono shrink-0 text-muted-foreground">{meta}</span>}
         </span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">{subtitle}</span>
@@ -226,17 +229,14 @@ export function ChatsScreen({
   const showTribe = filter === "all" || filter === "tribe";
   const showVentures = filter === "all" || filter === "ventures";
   const showDirect = filter === "all" || filter === "direct";
+  const isLoading = joinedQuery.isLoading || hostedQuery.isLoading || threadsQuery.isLoading;
 
   const nothingAtAll =
     !tribe && ventureChats.length === 0 && threads.length === 0 && !threadsQuery.isLoading;
 
   return (
     <div className="min-h-screen bg-habitat pb-24">
-      <AppHeader
-        title="Chats"
-        subtitle="Rooms"
-        accent="var(--color-primary)"
-      />
+      <AppHeader title="Chats" subtitle="Rooms" accent="var(--color-primary)" />
 
       <main className="mx-auto max-w-md px-5">
         {/* Ordered by permanence, not recency: the Tribe room is singular and
@@ -269,7 +269,9 @@ export function ChatsScreen({
           ))}
         </div>
 
-        {showTribe && tribe && (
+        {isLoading && <ConversationListSkeleton />}
+
+        {!isLoading && showTribe && tribe && (
           <>
             <GroupLabel>Your Tribe</GroupLabel>
             <Row
@@ -303,7 +305,7 @@ export function ChatsScreen({
           </>
         )}
 
-        {showVentures && sortedVentures.length > 0 && (
+        {!isLoading && showVentures && sortedVentures.length > 0 && (
           <>
             <GroupLabel>Your Ventures</GroupLabel>
             <div className="flex flex-col gap-1">
@@ -332,7 +334,7 @@ export function ChatsScreen({
           </>
         )}
 
-        {showDirect && threads.length > 0 && (
+        {!isLoading && showDirect && threads.length > 0 && (
           <>
             <GroupLabel>Direct</GroupLabel>
             <div className="flex flex-col gap-1">
@@ -364,7 +366,7 @@ export function ChatsScreen({
           </>
         )}
 
-        {nothingAtAll && (
+        {!isLoading && nothingAtAll && (
           <div className="mt-10 rounded-2xl border border-dashed border-border p-8 text-center">
             <MessageCircle className="mx-auto h-6 w-6 text-muted-foreground" />
             <p className="mt-3 text-sm font-semibold">No conversations yet</p>

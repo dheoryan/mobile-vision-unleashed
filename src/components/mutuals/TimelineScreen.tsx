@@ -11,6 +11,7 @@ import { tribeById, TRIBES, type TribeId } from "@/lib/mutuals-data";
 import { ComposerModal } from "./ComposerModal";
 import { Compass, Plus } from "lucide-react";
 import { TribeMark } from "./TribeMark";
+import { FeedSkeleton } from "./Skeleton";
 
 export function TimelineScreen({
   profile,
@@ -71,8 +72,6 @@ export function TimelineScreen({
     <div className="bg-habitat min-h-screen pb-28">
       <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" />
       <main className="mx-auto max-w-md px-5">
-
-
         {/* ── Tab switcher ── */}
         <div className="mt-4 flex gap-2 rounded-full bg-card p-1">
           {/* inline-flex + items-center on the button itself. The crest was a
@@ -82,7 +81,7 @@ export function TimelineScreen({
             onClick={() => setTab("tribe")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors",
-              tab === "tribe" ? "text-primary-foreground" : "text-muted-foreground"
+              tab === "tribe" ? "text-primary-foreground" : "text-muted-foreground",
             )}
             style={tab === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
           >
@@ -93,7 +92,7 @@ export function TimelineScreen({
             onClick={() => setTab("global")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors",
-              tab === "global" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              tab === "global" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
             )}
           >
             <Compass className="h-3.5 w-3.5" />
@@ -113,7 +112,7 @@ export function TimelineScreen({
                     onClick={() => setActiveTribe(t.id)}
                     className={cn(
                       "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                      isActive ? "text-primary-foreground" : "bg-secondary text-muted-foreground"
+                      isActive ? "text-primary-foreground" : "bg-secondary text-muted-foreground",
                     )}
                     style={isActive ? { backgroundColor: t.colorVar } : undefined}
                   >
@@ -136,7 +135,7 @@ export function TimelineScreen({
         {/* ── Feed ── */}
         <div className="mt-3 flex flex-col gap-3">
           {isLoadingCurrent ? (
-            <p className="py-10 text-center text-xs text-muted-foreground">Loading…</p>
+            <FeedSkeleton />
           ) : isErrorCurrent ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center">
               <p className="text-xs text-muted-foreground">Couldn't load these signals.</p>
@@ -160,9 +159,7 @@ export function TimelineScreen({
               </p>
             </div>
           ) : (
-            currentPosts.map((p) => (
-              <PostCard key={p.id} post={p} showTribe={tab === "global"} />
-            ))
+            currentPosts.map((p) => <PostCard key={p.id} post={p} showTribe={tab === "global"} />)
           )}
         </div>
       </main>
@@ -183,7 +180,8 @@ export function TimelineScreen({
           style={{ backgroundColor: tab === "global" ? "var(--primary)" : tribe.colorVar }}
           aria-label={tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
         >
-          <Plus className="h-4 w-4" /> {tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
+          <Plus className="h-4 w-4" />{" "}
+          {tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
         </button>
       </div>
     </div>

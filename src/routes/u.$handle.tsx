@@ -22,6 +22,7 @@ import { intentStore } from "@/lib/intent-store";
 import { toast } from "sonner";
 import { INTEREST_OPTIONS, SOCIAL_INTENT_OPTIONS, optionLabel } from "@/lib/profile-options";
 import { TribeMark } from "@/components/mutuals/TribeMark";
+import { AppBootstrapSkeleton, FeedSkeleton } from "@/components/mutuals/Skeleton";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
@@ -66,11 +67,7 @@ function PublicProfilePage() {
   const [helloOpen, setHelloOpen] = useState(false);
 
   if (profileQ.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-habitat">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <AppBootstrapSkeleton />;
   }
 
   if (!profile) {
@@ -252,7 +249,7 @@ function PublicProfilePage() {
 
         <h3 className="label-mono mb-5 mt-8">Posts</h3>
         {postsQ.isLoading ? (
-          <p className="py-8 text-center text-xs text-muted-foreground">Loading…</p>
+          <FeedSkeleton count={2} />
         ) : (postsQ.data?.length ?? 0) === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
             No posts yet.

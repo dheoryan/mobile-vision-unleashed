@@ -36,7 +36,7 @@ import { AnimatedModal } from "@/components/ui/animated-modal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureCardShell } from "./VentureImage";
-import { VentureSearching } from "./VentureSearching";
+import { VentureListSkeleton } from "./Skeleton";
 import { readStoredVentureMode, saveStoredVentureMode } from "@/lib/ventures-mode";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
@@ -410,7 +410,7 @@ function YoursView({
     { key: "pending", label: "Waiting on a host", ventures: byStatus("pending") },
   ].filter((g) => g.ventures.length > 0);
 
-  if (isLoading) return <LoadingBlock label="Loading your Ventures" />;
+  if (isLoading) return <VentureListSkeleton />;
 
   if (!groups.length) {
     return (
@@ -819,7 +819,7 @@ function LookView({
       />
 
       {isLoading ? (
-        <VentureSearching />
+        <VentureListSkeleton />
       ) : isError ? (
         <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
       ) : joinableVentures.length ? (
@@ -959,7 +959,7 @@ function HostView({
 
       <div>
         {isLoading ? (
-          <LoadingBlock label="Loading hosted Ventures" />
+          <VentureListSkeleton />
         ) : visibleVentures.length ? (
           <div className="space-y-3">
             {visibleVentures.map((venture) => (
@@ -2284,20 +2284,6 @@ function ChoiceButton({
       <p className="text-xs font-semibold">{title}</p>
       {body && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{body}</p>}
     </button>
-  );
-}
-
-function LoadingBlock({ label, compact = false }: { label: string; compact?: boolean }) {
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-center gap-2 text-sm text-muted-foreground",
-        compact ? "py-4" : "py-10",
-      )}
-    >
-      <Loader2 className="h-4 w-4 animate-spin" />
-      {label}
-    </div>
   );
 }
 

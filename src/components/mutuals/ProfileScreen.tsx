@@ -28,7 +28,6 @@ import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
-import { LegalFooter } from "./LegalFooter";
 import { DeleteAccountModal } from "./DeleteAccountModal";
 import { useMyPosts, useMySavedPosts } from "@/lib/posts-store";
 import { useMyHostedVentures } from "@/lib/ventures-store";
@@ -43,6 +42,7 @@ import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { CompactListSkeleton, PeopleSkeleton, Skeleton } from "./Skeleton";
 import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 import { PushSettingsRow } from "./EnablePushBanner";
 import {
@@ -331,9 +331,7 @@ export function ProfileScreen({
 
         {gridTab === "posts" &&
           (myPostsQuery.isLoading ? (
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              Loading…
-            </p>
+            <CompactListSkeleton label="Loading your posts" />
           ) : myPostsQuery.isError ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center">
               <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
@@ -356,11 +354,11 @@ export function ProfileScreen({
           ))}
 
         {gridTab === "saved" &&
-          (savedPosts.length === 0 ? (
+          (savedQuery.isLoading ? (
+            <CompactListSkeleton label="Loading saved posts" />
+          ) : savedPosts.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              {savedQuery.isLoading
-                ? "Loading…"
-                : "No saved posts yet. Tap the bookmark on any post to save it."}
+              No saved posts yet. Tap the bookmark on any post to save it.
             </p>
           ) : (
             /* A list, not a square grid.
@@ -416,11 +414,12 @@ export function ProfileScreen({
 
         {gridTab === "ventures" && (
           <div className="space-y-2">
-            {ventures.length === 0 ? (
+            {venturesQuery.isLoading ? (
+              <CompactListSkeleton label="Loading your Ventures" />
+            ) : ventures.length === 0 ? (
               <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                {venturesQuery.isLoading
-                  ? "Loading…"
-                  : "You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet someone in person."}
+                You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet
+                someone in person.
               </div>
             ) : (
               ventures.map((v) => (
@@ -449,8 +448,6 @@ export function ProfileScreen({
             )}
           </div>
         )}
-
-        <LegalFooter className="mt-6" />
       </main>
 
       <EditProfileModal
@@ -1224,9 +1221,12 @@ function SettingsSheet({
           <p className="label-mono text-muted-foreground">Nearby discovery</p>
           <div className="mt-2 rounded-2xl border border-border bg-background p-4">
             {locationQuery.isLoading ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading location settings…
-              </p>
+              <div role="status" aria-label="Loading location settings" className="space-y-3">
+                <span className="sr-only">Loading location settings</span>
+                <Skeleton className="h-4 w-44" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
             ) : !location ? (
               <>
                 <div className="flex items-start gap-3">
@@ -1366,9 +1366,9 @@ function SettingsSheet({
         <div className="mt-5">
           <p className="label-mono text-muted-foreground">Blocked accounts</p>
           {blockedProfilesQuery.isLoading ? (
-            <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-              Loading…
-            </p>
+            <div className="mt-2">
+              <PeopleSkeleton count={2} />
+            </div>
           ) : blockedPeople.length === 0 ? (
             <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
               You haven't blocked anyone.

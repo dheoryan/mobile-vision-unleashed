@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AgeVerification } from "@/components/mutuals/AgeVerification";
 import { useSaveMyLocation } from "@/lib/location-store";
+import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -157,11 +158,7 @@ function App() {
   };
 
   if (authLoading || (user && profileQuery.isLoading)) {
-    return (
-      <div className="bg-habitat flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        Loading…
-      </div>
-    );
+    return <AppBootstrapSkeleton />;
   }
   if (!user) return null; // redirecting
 
@@ -178,7 +175,10 @@ function App() {
             onSuccess: () => {
               if (!location) return;
               saveLocation.mutate(location, {
-                onError: (error) => toast.error("Profile saved, but nearby is off", { description: (error as Error).message }),
+                onError: (error) =>
+                  toast.error("Profile saved, but nearby is off", {
+                    description: (error as Error).message,
+                  }),
               });
             },
             onError: (err) => toast.error((err as Error).message),
@@ -250,12 +250,7 @@ function App() {
         }}
       />
     ),
-    profile: (
-      <ProfileScreen
-        profile={profile}
-        setProfile={setProfile}
-      />
-    ),
+    profile: <ProfileScreen profile={profile} setProfile={setProfile} />,
   };
 
   // The Tribe room takes over the whole screen when open, nav included — it is

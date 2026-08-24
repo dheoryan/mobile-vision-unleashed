@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { PostCard } from "@/components/mutuals/PostCard";
 import { useAuth } from "@/lib/auth-context";
 import { getPostById } from "@/lib/posts.functions";
+import { AppBootstrapSkeleton, PostCardSkeleton } from "@/components/mutuals/Skeleton";
 
 export const Route = createFileRoute("/p/$postId")({
   component: SharedPostPage,
@@ -22,7 +23,7 @@ function SharedPostPage() {
   });
 
   if (authLoading) {
-    return <CenteredMessage text="Loading…" />;
+    return <AppBootstrapSkeleton />;
   }
 
   if (!user) {
@@ -36,7 +37,9 @@ function SharedPostPage() {
           </p>
           <Link
             to="/login"
-            onClick={() => window.sessionStorage.setItem("meutuals:post-login-path", `/p/${postId}`)}
+            onClick={() =>
+              window.sessionStorage.setItem("meutuals:post-login-path", `/p/${postId}`)
+            }
             className="mt-5 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
           >
             Sign in
@@ -50,7 +53,10 @@ function SharedPostPage() {
     <div className="bg-habitat min-h-screen pb-12">
       <header className="glass sticky top-0 z-20 border-b border-border">
         <div className="mx-auto flex max-w-md items-center px-5 py-3">
-          <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <p className="ml-auto font-display text-sm font-bold">Shared signal</p>
@@ -58,11 +64,14 @@ function SharedPostPage() {
       </header>
       <main className="mx-auto max-w-md px-5 pt-4">
         {postQuery.isLoading ? (
-          <CenteredMessage text="Loading signal…" />
+          <PostCardSkeleton />
         ) : postQuery.isError ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-center">
             <p className="text-sm">This signal couldn't be loaded.</p>
-            <button onClick={() => postQuery.refetch()} className="mt-3 text-xs font-semibold text-primary underline">
+            <button
+              onClick={() => postQuery.refetch()}
+              className="mt-3 text-xs font-semibold text-primary underline"
+            >
               Try again
             </button>
           </div>

@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, AtSign, ChevronLeft, Image as ImageIcon, Reply, Send, Smile, X } from "lucide-react";
+import {
+  ArrowLeftRight,
+  AtSign,
+  ChevronLeft,
+  Image as ImageIcon,
+  Reply,
+  Send,
+  Smile,
+  X,
+} from "lucide-react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -15,6 +24,7 @@ import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { SafetyMenu } from "./SafetyMenu";
 import { TribeMark } from "./TribeMark";
 import { QuotedBlock } from "./ReplyPreview";
+import { MessageThreadSkeleton } from "./Skeleton";
 
 function SwipeReplyRow({
   children,
@@ -119,13 +129,7 @@ export function TribeScreen({
           </div>
         </div>
       )}
-      {!onBack && (
-        <AppHeader
-          title={tribe.name}
-          subtitle="Chat"
-          accent={tribe.colorVar}
-        />
-      )}
+      {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
       <main className="mx-auto max-w-md px-5 pt-3">
         <TribeBanner
           tribe={tribe}
@@ -282,7 +286,9 @@ function TribeBanner({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-2xl font-bold leading-tight drop-shadow-sm">{tribe.name}</h2>
+            <h2 className="font-display text-2xl font-bold leading-tight drop-shadow-sm">
+              {tribe.name}
+            </h2>
           </div>
           <p className="text-sm text-muted-foreground">{tribe.scene}</p>
           <p className="mt-2 text-xs text-muted-foreground">
@@ -653,7 +659,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
     <div className="mt-4">
       <div className="rounded-2xl border border-border bg-card p-3">
         <div className="scroll-panel flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
-          {loading && <p className="py-6 text-center text-xs text-muted-foreground">Loading...</p>}
+          {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
               No messages yet. Say hello! 👋

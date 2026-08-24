@@ -26,6 +26,7 @@ import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { timeAgoLabel } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { TRIBES, type TribeId } from "@/lib/mutuals-data";
+import { NotifRowSkeleton } from "@/components/mutuals/Skeleton";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
@@ -106,10 +107,7 @@ function NotificationsPage() {
       intentStore.push({ kind: "scrollToPost", postId: n.post_id });
       navigate({ to: "/" });
     } else if (
-      (n.kind === "like" ||
-        n.kind === "comment" ||
-        n.kind === "reply" ||
-        n.kind === "mention") &&
+      (n.kind === "like" || n.kind === "comment" || n.kind === "reply" || n.kind === "mention") &&
       n.post_id
     ) {
       intentStore.push({
@@ -189,16 +187,7 @@ function NotificationsPage() {
         {isLoading ? (
           <div className="space-y-2 py-4">
             {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex animate-pulse items-center gap-3 rounded-xl bg-card/40 px-3 py-3"
-              >
-                <div className="h-10 w-10 rounded-full bg-secondary" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-2/3 rounded bg-secondary" />
-                  <div className="h-2 w-1/3 rounded bg-secondary/70" />
-                </div>
-              </div>
+              <NotifRowSkeleton key={i} />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -301,9 +290,7 @@ function NotificationRowItem({
               "{n.preview}"
             </p>
           )}
-          <p className="mt-1 text-[11px] text-muted-foreground/80">
-            {timeAgoLabel(n.created_at)}
-          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground/80">{timeAgoLabel(n.created_at)}</p>
         </div>
         {isUnread && (
           <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-primary)_20%,transparent)]" />

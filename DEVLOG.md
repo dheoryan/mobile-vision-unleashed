@@ -13,7 +13,7 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **13 Windows commits unpushed after the Codex takeover** —
+**Branch:** `main`. **15 Windows commits unpushed after the Codex takeover** —
 the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
 in this working copy as uncommitted files rather than the eleven commits
 described below; Codex consolidated that handoff with steps 4–5. Do not push
@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | App-wide skeleton loading pass + Profile legal-link cleanup | `APP_STRUCTURE.md`, shared skeletons, main/nested screen components, `DEVLOG.md` | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -164,6 +164,28 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — App-wide loading system and screen map
+
+- Added `APP_STRUCTURE.md`, mapping the authenticated shell, its five primary
+  destinations, nested Tribe/message paths, standalone routes, and the owner of
+  each remote-data loading state.
+- Expanded the shared skeleton vocabulary to cover app bootstrap, feeds,
+  people, Venture thumbnail cards, conversation rows, compact Profile lists,
+  notifications, and message threads. Regions announce loading accessibly while
+  their decorative shapes stay hidden from assistive technology.
+- Replaced plain loading copy/spinners across Timeline, Discover, all Venture
+  modes, Chats, Profile data tabs and Settings queries, Tribe chat, DMs, Venture
+  party chat, notifications, shared posts, and public profiles. Static forms
+  and policy pages remain immediate because they do not wait on remote data.
+- Removed the duplicated Terms · Privacy · Guidelines footer from Profile.
+  Those destinations remain grouped under Settings → Safety & privacy.
+- Validation: `npx tsc --noEmit`, `git diff --check`, and the Cloudflare
+  production build all pass. Targeted ESLint reports only pre-existing issues
+  in `TribeScreen.tsx` and `routes/index.tsx`; edited skeleton and screen files
+  introduced no new lint diagnostics. Existing chunk-size and third-party
+  bundler warnings remain unchanged.
+- `.env` and `package-lock.json` remain dirty and unstaged.
 
 ### 2026-08-24 — Codex — Hosted Ventures split into Active and History
 

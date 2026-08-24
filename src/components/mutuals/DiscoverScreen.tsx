@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Check, LocateFixed, Loader2, MapPin, Search, ShieldCheck, Sparkles, UserPlus, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  LocateFixed,
+  Loader2,
+  MapPin,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
 import { useFeedPosts, useTribeMemberCounts, type FeedPost } from "@/lib/posts-store";
@@ -13,7 +24,11 @@ import { useBlocked } from "@/lib/blocked-store";
 import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
-import { useMyLocationSettings, useSaveMyLocation, useUpdateMyLocationSettings } from "@/lib/location-store";
+import {
+  useMyLocationSettings,
+  useSaveMyLocation,
+  useUpdateMyLocationSettings,
+} from "@/lib/location-store";
 import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
 import type { NearbyProfile } from "@/lib/location.functions";
 import { toast } from "sonner";
@@ -29,6 +44,7 @@ import type { ExploreMatch } from "@/lib/explore.functions";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
 import { useMyProfile } from "@/lib/profile-store";
 import { intentStore } from "@/lib/intent-store";
+import { PeopleSkeleton } from "./Skeleton";
 
 type DiscoverPerson = Person & {
   allTribeIds: TribeId[];
@@ -222,10 +238,16 @@ export function DiscoverScreen() {
                   onClick={() => setPreviewTribe(t)}
                   className="group relative h-40 w-44 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <img src={t.art} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none" />
+                  <img
+                    src={t.art}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                  />
                   <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
                   <TribeMark tribe={t} size="sm" className="absolute left-3 top-3" />
-                  <p className="absolute bottom-8 left-4 right-4 font-display text-base font-bold text-white">{t.name}</p>
+                  <p className="absolute bottom-8 left-4 right-4 font-display text-base font-bold text-white">
+                    {t.name}
+                  </p>
                   <p className="absolute bottom-3 left-4 right-4 text-[10px] text-white/65">
                     {memberCount === undefined ? " " : `${memberCount} registered members`}
                   </p>
@@ -247,7 +269,11 @@ export function DiscoverScreen() {
             className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left disabled:opacity-50"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+              {locating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LocateFixed className="h-4 w-4" />
+              )}
             </span>
             <span className="min-w-0">
               <span className="block text-xs font-semibold">Show who is near you</span>
@@ -282,27 +308,35 @@ export function DiscoverScreen() {
                   )}
                 >
                   <MapPin className="h-3 w-3" />
-                  {locationQuery.data.discoverable ? `${locationQuery.data.radius_km} km` : "Paused"}
+                  {locationQuery.data.discoverable
+                    ? `${locationQuery.data.radius_km} km`
+                    : "Paused"}
                 </button>
               )}
-            <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
-              <button
-                onClick={() => setView("deck")}
-                aria-label="One at a time"
-                aria-pressed={view === "deck"}
-                className={cn("rounded-full p-1.5", view === "deck" && "bg-primary text-primary-foreground")}
-              >
-                <Layers className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setView("list")}
-                aria-label="List"
-                aria-pressed={view === "list"}
-                className={cn("rounded-full p-1.5", view === "list" && "bg-primary text-primary-foreground")}
-              >
-                <List className="h-3.5 w-3.5" />
-              </button>
-            </div>
+              <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
+                <button
+                  onClick={() => setView("deck")}
+                  aria-label="One at a time"
+                  aria-pressed={view === "deck"}
+                  className={cn(
+                    "rounded-full p-1.5",
+                    view === "deck" && "bg-primary text-primary-foreground",
+                  )}
+                >
+                  <Layers className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setView("list")}
+                  aria-label="List"
+                  aria-pressed={view === "list"}
+                  className={cn(
+                    "rounded-full p-1.5",
+                    view === "list" && "bg-primary text-primary-foreground",
+                  )}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           }
         />
@@ -318,10 +352,12 @@ export function DiscoverScreen() {
           >
             <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span className="min-w-0">
-              <span className="block text-xs font-semibold">Add your interests to get real matches</span>
+              <span className="block text-xs font-semibold">
+                Add your interests to get real matches
+              </span>
               <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
-                Right now there's nothing to match you on, so this list is close to random.
-                Two minutes fixes it.
+                Right now there's nothing to match you on, so this list is close to random. Two
+                minutes fixes it.
               </span>
             </span>
           </button>
@@ -329,14 +365,15 @@ export function DiscoverScreen() {
 
         <div className="flex flex-col gap-3">
           {activeQuery.isLoading ? (
-            <p className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading people…
-            </p>
+            <PeopleSkeleton />
           ) : activeQuery.isError ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
               <AlertTriangle className="h-9 w-9 text-destructive" />
               <p className="text-sm font-semibold">Couldn't load registered users.</p>
-              <button onClick={() => activeQuery.refetch()} className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
+              <button
+                onClick={() => activeQuery.refetch()}
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+              >
                 Retry
               </button>
             </div>
@@ -382,7 +419,9 @@ export function DiscoverScreen() {
                   disabled={activeQuery.isFetchingNextPage}
                   className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold disabled:opacity-60"
                 >
-                  {activeQuery.isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {activeQuery.isFetchingNextPage ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
                   Load more
                 </button>
               )}
@@ -403,10 +442,17 @@ export function DiscoverScreen() {
         radiusKm={(locationQuery.data?.radius_km ?? 15) as LocationRadiusKm}
         pending={updateLocation.isPending}
         onClose={() => setNearbySettingsOpen(false)}
-        onUpdate={(discoverable, radiusKm) => updateLocation.mutate(
-          { discoverable, radius_km: radiusKm },
-          { onError: (error) => toast.error("Could not update nearby preferences", { description: (error as Error).message }) },
-        )}
+        onUpdate={(discoverable, radiusKm) =>
+          updateLocation.mutate(
+            { discoverable, radius_km: radiusKm },
+            {
+              onError: (error) =>
+                toast.error("Could not update nearby preferences", {
+                  description: (error as Error).message,
+                }),
+            },
+          )
+        }
       />
     </div>
   );
@@ -430,25 +476,43 @@ function NearbyPreferencesSheet({
   return (
     <AnimatedModal
       open={open}
-      onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
       title="Nearby preferences"
       contentClassName="overflow-hidden"
       preventClose={pending}
     >
       <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-start gap-3 pr-10">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="h-5 w-5" /></span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
           <div>
             <h3 className="font-display text-xl font-bold">Nearby preferences</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Tune the people shown here without exposing your coordinates.</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Tune the people shown here without exposing your coordinates.
+            </p>
           </div>
         </div>
-        <button type="button" onClick={onClose} disabled={pending} aria-label="Close nearby preferences" className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"><X className="h-4 w-4" /></button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+          aria-label="Close nearby preferences"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
+        >
+          <X className="h-4 w-4" />
+        </button>
 
         <div className="mt-6 flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-border bg-background/60 px-4">
           <div>
             <p className="text-sm font-semibold">Show me in nearby discovery</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{discoverable ? "Active for mutual-radius matches" : "Paused—your area remains private"}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {discoverable
+                ? "Active for mutual-radius matches"
+                : "Paused—your area remains private"}
+            </p>
           </div>
           <Switch
             checked={discoverable}
@@ -468,9 +532,17 @@ function NearbyPreferencesSheet({
 
         <div className="mt-4 flex items-start gap-2 rounded-xl bg-primary/8 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <p>The radius is mutual: both people must allow the distance. Members only see a broad distance band.</p>
+          <p>
+            The radius is mutual: both people must allow the distance. Members only see a broad
+            distance band.
+          </p>
         </div>
-        <button type="button" onClick={onClose} disabled={pending} className="mt-5 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+          className="mt-5 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
           {pending ? "Saving…" : "Done"}
         </button>
       </div>
@@ -492,77 +564,126 @@ function TribePreviewSheet({
   // Keep rendering the last previewed tribe's content while the modal plays its
   // exit animation, even after the parent has already cleared `tribe` to null.
   const [lastTribe, setLastTribe] = useState<Tribe | null>(tribe);
-  useEffect(() => { if (tribe) setLastTribe(tribe); }, [tribe]);
+  useEffect(() => {
+    if (tribe) setLastTribe(tribe);
+  }, [tribe]);
   const displayTribe = tribe ?? lastTribe;
 
-  const members = displayTribe ? people.filter((p) => p.allTribeIds.includes(displayTribe.id)).slice(0, 4) : [];
-  const recentPosts = displayTribe ? posts.filter((p) => p.tribe_id === displayTribe.id).slice(0, 3) : [];
+  const members = displayTribe
+    ? people.filter((p) => p.allTribeIds.includes(displayTribe.id)).slice(0, 4)
+    : [];
+  const recentPosts = displayTribe
+    ? posts.filter((p) => p.tribe_id === displayTribe.id).slice(0, 3)
+    : [];
   return (
     <AnimatedModal
       open={!!tribe}
-      onOpenChange={(o) => { if (!o) onClose(); }}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
       title={displayTribe ? `${displayTribe.name} preview` : "Tribe preview"}
       contentClassName="overflow-hidden"
     >
       <div
-        style={displayTribe ? { background: `linear-gradient(180deg, color-mix(in oklab, ${displayTribe.colorVar} 28%, var(--card)) 0%, var(--card) 60%)` } : undefined}
+        style={
+          displayTribe
+            ? {
+                background: `linear-gradient(180deg, color-mix(in oklab, ${displayTribe.colorVar} 28%, var(--card)) 0%, var(--card) 60%)`,
+              }
+            : undefined
+        }
       >
-        <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/40 text-muted-foreground hover:text-foreground">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/40 text-muted-foreground hover:text-foreground"
+        >
           <X className="h-4 w-4" />
         </button>
         {displayTribe && (
-        <div className="p-6">
-          <TribeMark tribe={displayTribe} size="lg" decorative={false} />
-          <h3 className="mt-4 font-display text-2xl font-bold">{displayTribe.name}</h3>
-          <p className="text-xs text-muted-foreground">{displayTribe.scene}</p>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            {members.length} visible registered members
+          <div className="p-6">
+            <TribeMark tribe={displayTribe} size="lg" decorative={false} />
+            <h3 className="mt-4 font-display text-2xl font-bold">{displayTribe.name}</h3>
+            <p className="text-xs text-muted-foreground">{displayTribe.scene}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {members.length} visible registered members
+            </p>
 
-          </p>
+            <p className="mt-5 label-mono text-muted-foreground">Recent signals</p>
+            <ul className="mt-2 space-y-2">
+              {recentPosts.length ? (
+                recentPosts.map((p) => (
+                  <li key={p.id} className="rounded-xl border border-border bg-background/40 p-3">
+                    <p className="text-[11px] text-muted-foreground">
+                      {p.author?.display_name || "Someone"} · {timeAgoLabel(p.created_at)}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-xs">{p.content}</p>
+                  </li>
+                ))
+              ) : (
+                <li className="rounded-xl border border-dashed border-border bg-background/30 p-3 text-xs text-muted-foreground">
+                  No recent posts in this Tribe yet.
+                </li>
+              )}
+            </ul>
 
-          <p className="mt-5 label-mono text-muted-foreground">Recent signals</p>
-          <ul className="mt-2 space-y-2">
-            {recentPosts.length ? recentPosts.map((p) => (
-              <li key={p.id} className="rounded-xl border border-border bg-background/40 p-3">
-                <p className="text-[11px] text-muted-foreground">{p.author?.display_name || "Someone"} · {timeAgoLabel(p.created_at)}</p>
-                <p className="mt-0.5 line-clamp-2 text-xs">{p.content}</p>
-              </li>
-            )) : (
-              <li className="rounded-xl border border-dashed border-border bg-background/30 p-3 text-xs text-muted-foreground">
-                No recent posts in this Tribe yet.
-              </li>
-            )}
-          </ul>
+            <p className="mt-5 label-mono text-muted-foreground">A few members</p>
+            <div className="mt-2 flex gap-2">
+              {members.length ? (
+                members.map((m) => (
+                  <AvatarBubble key={m.id} person={m} color={displayTribe.colorVar} />
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">No registered members visible yet.</p>
+              )}
+            </div>
 
-          <p className="mt-5 label-mono text-muted-foreground">A few members</p>
-          <div className="mt-2 flex gap-2">
-            {members.length ? members.map((m) => (
-              <AvatarBubble key={m.id} person={m} color={displayTribe.colorVar} />
-            )) : (
-              <p className="text-xs text-muted-foreground">No registered members visible yet.</p>
-            )}
+            <button
+              onClick={onClose}
+              className="mt-6 w-full rounded-2xl border border-border bg-background/40 py-3 text-sm font-semibold"
+            >
+              Close preview
+            </button>
           </div>
-
-          <button onClick={onClose} className="mt-6 w-full rounded-2xl border border-border bg-background/40 py-3 text-sm font-semibold">
-            Close preview
-          </button>
-        </div>
         )}
       </div>
     </AnimatedModal>
   );
 }
 
-function AvatarBubble({ person, color }: { person: Pick<Person, "avatar" | "name">; color: string }) {
+function AvatarBubble({
+  person,
+  color,
+}: {
+  person: Pick<Person, "avatar" | "name">;
+  color: string;
+}) {
   const isImg = person.avatar.startsWith("data:") || person.avatar.startsWith("http");
   return (
-    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-lg" style={{ backgroundColor: `color-mix(in oklab, ${color} 28%, transparent)` }}>
-      {isImg ? <img src={person.avatar} alt={person.name} className="h-full w-full object-cover" /> : person.avatar}
+    <span
+      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-lg"
+      style={{ backgroundColor: `color-mix(in oklab, ${color} 28%, transparent)` }}
+    >
+      {isImg ? (
+        <img src={person.avatar} alt={person.name} className="h-full w-full object-cover" />
+      ) : (
+        person.avatar
+      )}
     </span>
   );
 }
 
-function PersonRow({ person, following, pending, onToggle }: { person: DiscoverPerson; following: boolean; pending: boolean; onToggle: () => void }) {
+function PersonRow({
+  person,
+  following,
+  pending,
+  onToggle,
+}: {
+  person: DiscoverPerson;
+  following: boolean;
+  pending: boolean;
+  onToggle: () => void;
+}) {
   const tribe = tribeById(person.tribeId);
   // The list is the scanning surface, so one reason rather than the deck's
   // three — enough to justify a tap, not so much that rows stop being scannable.
@@ -583,25 +704,47 @@ function PersonRow({ person, following, pending, onToggle }: { person: DiscoverP
         </div>
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span>{person.city || person.handle || "Registered member"}</span>
-          {person.distanceBand && <span className="inline-flex items-center gap-1 text-primary"><MapPin className="h-3 w-3" /> {person.distanceBand}</span>}
-          {person.matchScore !== undefined && person.matchScore > 0 && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {person.matchScore}% match</span>}
+          {person.distanceBand && (
+            <span className="inline-flex items-center gap-1 text-primary">
+              <MapPin className="h-3 w-3" /> {person.distanceBand}
+            </span>
+          )}
+          {person.matchScore !== undefined && person.matchScore > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> {person.matchScore}% match
+            </span>
+          )}
         </div>
         {reason && (
           <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             {reason.label}
           </p>
         )}
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{person.bio || "Open to meeting people across Tribes."}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          {person.bio || "Open to meeting people across Tribes."}
+        </p>
       </div>
       <button
         onClick={onToggle}
         disabled={pending}
         className={cn(
           "flex min-w-24 shrink-0 items-center justify-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60",
-          following ? "border-accent bg-accent/15 text-accent" : "border-primary bg-primary/15 text-primary",
+          following
+            ? "border-accent bg-accent/15 text-accent"
+            : "border-primary bg-primary/15 text-primary",
         )}
       >
-        {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><Check className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+        {pending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : following ? (
+          <>
+            <Check className="h-3.5 w-3.5" /> Following
+          </>
+        ) : (
+          <>
+            <UserPlus className="h-3.5 w-3.5" /> Follow
+          </>
+        )}
       </button>
     </div>
   );
