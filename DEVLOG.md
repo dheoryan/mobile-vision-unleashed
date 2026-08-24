@@ -13,11 +13,28 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **19 commits unpushed** — the user has not authorised a push.
-Do not push without asking.
+**Branch:** `main`. **3 Windows commits unpushed after the Codex takeover** —
+the user has not authorised a push. Claude's 2026-08-24 Ventures work arrived
+in this working copy as uncommitted files rather than the eleven commits
+described below; Codex consolidated that handoff with steps 4–5. Do not push
+without asking.
 
-**Local dev works.** Docker Supabase + dev server run on the user's machine.
-Migration replay from scratch is fixed in-repo as of 2026-08-20.
+**Local dev talks to PRODUCTION.** `localhost:8082` uses the production Supabase
+project. Creating a Venture there makes a real row on a real board that 34 real
+users can see. There is no local database in play any more.
+
+**Three migrations are written and NOT RUN** — see the 2026-08-24 entries.
+Until
+`20260824040000_venue_places` runs, all three Ventures tabs fail with
+`Could not find the table 'public.venue_places'`, because the venue loader runs
+on every list. `20260824034000` and both venue migrations are **Red** under
+`CHANGE_PROTOCOL.md`; none may be applied without explicit user approval.
+
+**Agents do not edit the user's repo directly.** The working copy is
+`D:\Dheoryans\Meutuals\mobile-vision-unleashed` on the user's Windows machine.
+Anything built elsewhere must be hash-compared against that copy before writing
+and re-hashed after. A whole step was once built, tested and reported done in a
+clone the user could not run.
 
 **The reference document is `MEUTUALS_PRODUCTION_AUDIT.md`.** It contains the
 full findings: security, legal/store compliance, scale, and the product
@@ -32,6 +49,9 @@ are already assessed there.
 | Week 2 — safety & correctness | ✅ done (2026-08-20) |
 | Week 3 — compliance & launch prep | 🟡 engineering pass complete; external launch work remains |
 | Product: audience-primitive decision | 🟡 recommended, **awaiting user decision** |
+| Ventures: times + board + tickets | ✅ done (2026-08-24) |
+| Ventures: venue picker + distance bands | 🟡 built; Red migration unrun, quota cap unset |
+| Ventures: accepted-member venue + map | 🟡 built; Red migration unrun |
 
 ---
 
@@ -41,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Ventures venue steps 4–5 | `VenturesScreen`, `VentureBoard`, `VentureSwipeDeck`, `VentureTicket`, `ventures.*`, venue migrations | 2026-08-24 |
+| _(none)_ | | | |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -133,13 +153,204 @@ traceability; implementation and verification evidence is in the Work Log.
 
 Leave messages for the other agent here.
 
-_(empty)_
+### 2026-08-21 — Codex → Claude — Chats launch creative ready
+
+The approved square announcement thumbnail is available as a full PNG and an
+optimized 1200×1200 WebP under `output/announcements/`. It is a publishing
+artifact only and is not imported into the application.
 
 ---
 
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Ventures handoff completed: distance and private venue
+
+- Took over Claude's uncommitted Windows handoff and completed venue steps 4–5.
+  The board and deck now show server-derived coarse distance bands. If a member
+  has no saved location, Ventures offers an explicit approximate-location
+  action that keeps people discovery paused rather than silently opting them in.
+- Corrected the venue privacy model before rollout. Google coordinates moved
+  out of the signed-in-readable place row into `venue_place_coordinates`, which
+  has no client SELECT policy. `list_venture_distance_bands(uuid[])` returns
+  only `Within 2/5/15/50 km` or `50+ km away`, is capped at 80 ids, and repeats
+  the Venture visibility rule so a guessed UUID cannot disclose a hidden plan.
+- Added `venture_venues`, an accepted-member tier containing only the host's
+  own arrival instructions. Pending/declined users cannot read it. Hosts can add
+  exact entrance/table guidance in the existing Where sheet; accepted tickets
+  show it under an explicit privacy label.
+- Added a consent-gated Google Maps embed to the back of accepted tickets. The
+  iframe does not load until tapped, discloses that Google receives the member's
+  IP, and retains an external-Maps fallback when the embed key is absent.
+- Corrected `20260824040000_venue_places.sql` from **Green** to **Red**: it
+  creates policies, grants, and security-definer functions, so the change
+  protocol requires explicit approval. Added the separate Red
+  `20260824050000_venture_private_venues.sql`. Neither was applied.
+- Preserved Google storage constraints: Google names/addresses are not stored;
+  place ids are retained; coordinate cache rows are deleted after 30 days.
+- Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
+  --check` clean, and the Cloudflare production build succeeds with only the
+  existing chunk-size and third-party bundler warnings. Production E2E is
+  intentionally pending because localhost uses the live database and the Red
+  migrations are not applied.
+- Handoff hygiene: `.env` and `package-lock.json` remain dirty and unstaged.
+  The server key currently present in `.env` must move to ignored `.env.local`
+  and Lovable secrets before any push; the Places API quota cap is still unset.
+
+### 2026-08-24 — Claude — Ventures: venue, clock, and the ticket
+
+Eleven commits, `2de573d`..`a026890`. Two migrations, one of them still unrun.
+
+**Migrations**
+
+- `20260824012500_venture_start_and_end_times` — **applied to production.**
+  `starts_at`, `ends_at`, `venue_tz` on `ventures`, three shape CHECKs, and a
+  partial index for the new ordering. Replayed twice on PG16 for idempotency.
+- `20260824034000_party_members_see_each_other` — **RED, NOT RUN.** Lets an
+  accepted member read the other *accepted* applications of the same Venture.
+  Declined and pending applicants stay the host's business. Verified on a local
+  RLS harness across six roles before delivery.
+- `20260824040000_venue_places` — **GREEN, NOT RUN.** Blocks all three Ventures
+  tabs once the app code is live, because `fetchVenues` runs on every list.
+
+**A Venture has a clock.** `time_window` stays — nine live Ventures use it, and
+rewriting their timing would be inventing data. New Ventures fill in real
+timestamps and old ones fall back. `venture-time.ts` is the single formatter;
+four screens used to read `time_window` directly, which was fine with one way to
+express timing and four chances to disagree with two. Ordering flipped to
+soonest-first, and finished Ventures leave the query rather than the page.
+"Not in the past" lives in the server function, because a CHECK must be
+immutable and `now()` is not.
+
+**The board replaced the card stack.** Rows grouped by day, led by a mono clock.
+Eight bordered cards fit three Ventures on a phone; hairline rows fit ten. The
+clock is the biggest thing on the row because it is also what sorts the list.
+Undated legacy rows drop the clock column entirely rather than printing a dash.
+
+**Hosting became four rows and four sheets**, plus a fifth for the venue. The
+old form stacked eight labelled field groups down one scroll — the same "bunch
+of actions in one screen" problem already fixed on Discover, reproduced
+elsewhere. Field internals moved verbatim.
+
+**Accepted Ventures became tickets**, and Ventures gained a third mode:
+Looking · Yours · Hosting. Invites and pending requests moved off the board pill
+into Yours; `JoinedVentureCard` and the requests modal are gone rather than left
+as duplicates.
+
+**Bug Kila found:** an accepted member could see *that* they were in and nothing
+about what they had joined. Two layers — `listMyJoinedVentures` passed a
+hardcoded `[]` for applications (fixed), and RLS would have blocked it anyway
+(the unrun Red migration). Degrades to a count until that runs.
+
+**Venue, step 2–3.** `venue_places` holds the host's own label and area plus a
+coarse pin; `places.functions.ts` proxies both Google calls server-side. Two
+one-line details keep it free: a session token spanning the whole picker
+interaction, and a field mask of `id,location,formattedAddress` — asking for
+`displayName` moves the same call from Essentials to Pro at $17/1000.
+
+**Google terms, the part that shapes the schema.** `place_id` may be kept
+forever; coordinates 30 days; **name and address never**. So both strings on a
+Venture are the host's words, and `expire_venue_coordinates()` sweeps pins past
+30 days. That window is longer than a Venture's own lifespan, so nothing
+user-facing depends on it. The verified tick keys off `google_place_id` being
+non-null — the name proves nothing.
+
+**Two mistakes of mine worth recording.**
+
+1. I built and "delivered" step 1 into a clone on the cloud container's own
+   disk, not this repo, and reported it done. Kila found out by looking at
+   localhost. Every delivery since hashes each touched file against the copy on
+   `D:\Dheoryans\Meutuals\mobile-vision-unleashed` *before* writing and
+   re-hashes after.
+2. The picker asked the host to type the name — carefully, because storing
+   `displayName` is forbidden — and then saved Google's formatted address as the
+   area one line later. Same rule, same paragraph. Both fields are the host's
+   now.
+
+**Also corrected:** I told Kila to IP-restrict the Places key. Lovable deploys as
+a Cloudflare Worker, which has no fixed egress IP, so a Websites restriction
+rejects every server call (`referer <empty> are blocked`) and an IP allowlist is
+meaningless. That key runs with API restriction plus a quota cap, and the cap is
+therefore not optional.
+
+**Still open**
+
+- Both unrun migrations above.
+- Quota cap on Places API (New) — the only hard ceiling that key has.
+- `GOOGLE_MAPS_SERVER_KEY` belongs in `.env.local` + the Lovable secret store,
+  never the tracked `.env`; `VITE_GOOGLE_MAPS_EMBED_KEY` belongs in `.env`.
+- Nothing pushed. Eleven commits sit local on `main`.
+- Step 4 (distance chip + location prompt) and step 5 (private tier, the
+  embedded map on the back of the ticket) not started.
+
+### 2026-08-22 to 2026-08-23 — Claude — Design and planning, no commits
+
+Two days with no repo activity, recorded so the gap is not read as lost work.
+
+- **The moots proposal.** Written against the live schema rather than memory.
+  The finding that matters: `hellos_one_per_pair` is a unique constraint on
+  `(sender_id, recipient_id)`, so a declined Hello is permanent — there is no
+  retry, ever. That is what makes removing the monthly cap of 5 defensible:
+  volume rises, persistence against a "no" stays impossible.
+  `can_direct_message()` cannot define "moot" because it returns true on four
+  branches, including same-Tribe and shared-live-Venture.
+- **The venue-and-clock spec** that became 2026-08-24's work, including the
+  Google terms research and the decision that Where/When lead the host form.
+- **The Ventures scratch** — board-then-ticket, drawn in the app's own tokens.
+  Two rounds; the first laid the right information out as a web form and was
+  rejected for exactly that.
+- **Marketing assets** for the Chats launch: post caption, and a prompt for a
+  notification sound. Codex produced the thumbnail — see its 08-21 entry.
+
+None of this is in git. The specs live as published documents, not in-repo.
+
+### 2026-08-21 — Claude — Five tabs, one job each (`09f166e`..`3d8b5d0`)
+
+Fifteen commits. The brief was Kila's: Discover and Ventures were "a bunch of
+actions in 1 screen", not friendly enough, not memorable. The fix was structural
+rather than cosmetic — every tab got one job.
+
+- **`CHANGE_PROTOCOL.md` and `LAUNCH_CHECKLIST.md`** (`09f166e`, 291 lines).
+  The protocol's core: *additive changes fail loudly, access changes fail
+  silently*. Green work proceeds; Red — RLS, triggers, grants, updates on live
+  rows, `app_settings`, storage flags — stops for Kila. Lovable's scanner will
+  keep flagging the venture self-accept policy as Critical; **"Try to fix all"
+  must never be clicked** on a Red finding. `SUPABASE_PRODUCTION_MIGRATION_PLAN`
+  retired in the same commit.
+- **Five tabs** (`2a8648f`, 527 insertions). New `ChatsScreen` aggregates the
+  Tribe room, Venture party chats and DMs, ordered by permanence. `TribeScreen`
+  became a pushed full-screen view with `onBack`. `timeline`→`feed` and
+  `tribe`→`chats` kept as legacy redirects.
+- **Discover** (`241ce64`) dropped `useNearbyProfiles` and the second list —
+  one ranked list, distance as a chip on the card.
+- **Messages button removed from every header** (`012ce9c`, −62). Chats has a
+  tab now; a header shortcut to it was a second door to one room.
+- **Hosting moved off the board into an action** (`be6ac03`, 600 insertions).
+  Three inbox sections and `FeatureHero` came out; invites and pending went to a
+  pill. Host became a FAB — twice, because the first attempt argued for it and
+  did not build it, and the second anchored it to the viewport instead of the
+  content column on a `max-w-md` layout.
+- **Inter** (`e2b23b2`). Playfair's hairlines were thinning to nothing on the
+  dark ground. Space Mono kept for labels, doing the structural work.
+- **Profile styling pass** (`91059bd`, `89afbea`, `3d8b5d0`) — card→ground,
+  radii down, stats as a rule-separated row, tabs as underlined words. Both
+  `Stat` helpers verified identical by md5.
+
+**Lesson recorded at the time:** `89afbea` exists because a `.replace()` without
+an assertion silently no-opped on the second occurrence, and the tab swap only
+half-applied. Every substitution in that commit asserts its anchor. This is the
+second time that failure appeared; it is why the 08-24 work asserts every anchor
+before writing.
+
+### 2026-08-21 — Codex — Chats launch announcement thumbnail
+
+- Created a square editorial screen-print announcement visual with exact copy
+  `NEW UPDATE` and `CHATS IS HERE`.
+- Represented Tribe rooms, Venture planning, and DMs as three conversation
+  streams converging into one hub, with one person wearing each Tribe mask.
+- Saved the full PNG plus an optimized 1200×1200 WebP in
+  `output/announcements/`. No application files or imports changed.
 
 ### 2026-08-20 — Claude — SPEC FOR CODEX: Tribe masks in the illustrations
 

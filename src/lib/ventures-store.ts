@@ -80,7 +80,22 @@ export function useCreateHostedVenture() {
       title: string;
       intents: string[];
       scope: VentureScope;
+      /** Legacy free-text timing. Derived from the day the host picked. */
       time_window: string;
+      starts_at?: string | null;
+      ends_at?: string | null;
+      /** IANA zone the Venture happens in, e.g. Asia/Jakarta. */
+      venue_tz?: string | null;
+      /** Becomes a venue_places row server-side; the caller has no id to send. */
+      venue?: {
+        google_place_id?: string | null;
+        host_label: string;
+        area?: string;
+        latitude?: number | null;
+        longitude?: number | null;
+      } | null;
+      /** Visible only to the host and accepted members. */
+      private_venue?: { arrival_details: string } | null;
       note?: string;
       max_slots: number;
       /** Object path in the private venture-images bucket, not a URL. */
@@ -131,6 +146,19 @@ export function useUpdateHostedVenture() {
       intents?: string[];
       scope?: VentureScope;
       time_window?: string;
+      starts_at?: string | null;
+      ends_at?: string | null;
+      venue_tz?: string | null;
+      /** Becomes a venue_places row server-side; the caller has no id to send. */
+      venue?: {
+        google_place_id?: string | null;
+        host_label: string;
+        area?: string;
+        latitude?: number | null;
+        longitude?: number | null;
+      } | null;
+      /** Visible only to the host and accepted members. */
+      private_venue?: { arrival_details: string } | null;
       note?: string;
       max_slots?: number;
       image_url?: string | null;

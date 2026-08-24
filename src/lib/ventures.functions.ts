@@ -41,7 +41,19 @@ export type VentureParty = {
   title: string;
   intents: string[];
   scope: VentureScope;
+  /** Legacy free-text timing. Kept for Ventures created before 20260824012500. */
   time_window: string;
+  /** Real timing. Null on legacy rows, which still carry time_window instead. */
+  starts_at: string | null;
+  ends_at: string | null;
+  /** IANA zone the Venture happens in. Times render here, not in the viewer's zone. */
+  venue_tz: string | null;
+  /** Where it happens, or null when the host skipped it. */
+  venue: VenuePlace | null;
+  /** Approximate distance from the current member to the advertised venue. */
+  distance_band: string | null;
+  /** Accepted-member tier: host-authored arrival instructions. */
+  private_venue: VenturePrivateVenue | null;
   note: string;
   max_slots: number;
   filled_slots: number;
@@ -83,6 +95,10 @@ type VentureDbRow = {
   intents: string[] | null;
   scope: VentureScope | null;
   time_window: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  venue_tz: string | null;
+  venue_place_id: string | null;
   note: string | null;
   max_slots: number | null;
   filled_slots: number | null;
@@ -91,6 +107,27 @@ type VentureDbRow = {
   ended_at: string | null;
   closed_at: string | null;
   image_url: string | null;
+};
+
+/**
+ * The public tier of a location: what a host advertises, at the coarseness they
+ * chose. The exact address and precise pin land in venture_venues at step 5,
+ * behind an accepted-members-only policy.
+ */
+export type VenuePlace = {
+  id: string;
+  /** The host's own words. Not Google's displayName, which may not be stored. */
+  host_label: string;
+  area: string;
+  /** Non-null is what earns the verified tick. The name proves nothing. */
+  google_place_id: string | null;
+};
+
+export type VenturePrivateVenue = {
+  venture_id: string;
+  /** The host's own words, never a cached Google address. */
+  arrival_details: string;
+  updated_at: string;
 };
 
 type VentureApplicationDbRow = {
@@ -114,7 +151,7 @@ type VentureMessageDbRow = {
 const PROFILE_COLS =
   "id, display_name, handle, avatar_emoji, avatar_url, plan, city, bio, tribe_ids";
 const VENTURE_COLS =
-  "id, user_id, title, intents, scope, time_window, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
+  "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, venue_place_id, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS = "id, venture_id, sender_id, content, created_at";
 
@@ -124,6 +161,30 @@ const createVentureSchema = z.object({
   intents: z.array(z.string().trim().min(1).max(40)).min(1).max(5),
   scope: scopeSchema,
   time_window: z.string().trim().min(1).max(80),
+  // Nullable rather than optional: a host clearing a time must be able to say
+  // so, and `undefined` means "untouched" to the update patch builder below.
+  starts_at: z.string().datetime({ offset: true }).nullable().optional(),
+  ends_at: z.string().datetime({ offset: true }).nullable().optional(),
+  venue_tz: z.string().trim().min(1).max(64).nullable().optional(),
+  // The venue as the form has it. Turned into a venue_places row by
+  // upsertVenue below; the caller never sends a venue_place_id directly,
+  // because it does not have one until the row exists.
+  venue: z
+    .object({
+      google_place_id: z.string().trim().max(400).nullable().optional(),
+      host_label: z.string().trim().min(1).max(120),
+      area: z.string().trim().max(160).optional().default(""),
+      latitude: z.number().finite().min(-90).max(90).nullable().optional(),
+      longitude: z.number().finite().min(-180).max(180).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  private_venue: z
+    .object({
+      arrival_details: z.string().trim().min(1).max(280),
+    })
+    .nullable()
+    .optional(),
   note: z.string().trim().max(280).optional().default(""),
   max_slots: z.number().int().min(2).max(20),
   // A storage object path, not a URL. Shape is enforced again in the database
@@ -151,6 +212,52 @@ const respondToVentureInviteSchema = z.object({
   application_id: z.string().uuid(),
   status: z.enum(["accepted", "declined"]),
 });
+
+/** Loads the venue rows for a batch of Ventures in one query. */
+async function fetchVenues(db: any, ids: Array<string | null>): Promise<Map<string, VenuePlace>> {
+  const wanted = uniq(ids);
+  if (!wanted.length) return new Map();
+  const { data, error } = await db
+    .from("venue_places")
+    // Coordinates deliberately never leave the database. Discovery receives a
+    // band from list_venture_distance_bands instead.
+    .select("id, host_label, area, google_place_id")
+    .in("id", wanted);
+  if (error) throw new Error(error.message);
+  return new Map(((data ?? []) as VenuePlace[]).map((row) => [row.id, row]));
+}
+
+async function fetchVentureDistanceBands(
+  db: any,
+  ventureIds: string[],
+): Promise<Map<string, string>> {
+  const wanted = uniq(ventureIds).slice(0, 80);
+  if (!wanted.length) return new Map();
+  const { data, error } = await db.rpc("list_venture_distance_bands", {
+    _venture_ids: wanted,
+  });
+  if (error) throw new Error(error.message);
+  return new Map(
+    ((data ?? []) as Array<{ venture_id: string; distance_band: string }>).map((row) => [
+      row.venture_id,
+      row.distance_band,
+    ]),
+  );
+}
+
+async function fetchPrivateVenues(
+  db: any,
+  ventureIds: string[],
+): Promise<Map<string, VenturePrivateVenue>> {
+  const wanted = uniq(ventureIds);
+  if (!wanted.length) return new Map();
+  const { data, error } = await db
+    .from("venture_venues")
+    .select("venture_id, arrival_details, updated_at")
+    .in("venture_id", wanted);
+  if (error) throw new Error(error.message);
+  return new Map(((data ?? []) as VenturePrivateVenue[]).map((row) => [row.venture_id, row]));
+}
 
 function uniq(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.filter(Boolean) as string[]));
@@ -211,6 +318,9 @@ function mapParty(
   host: VentureProfileLite | null,
   applications: VentureApplication[] = [],
   myApplication: VentureApplication | null = null,
+  venue: VenuePlace | null = null,
+  distanceBand: string | null = null,
+  privateVenue: VenturePrivateVenue | null = null,
 ): VentureParty {
   const acceptedCount = applications.filter((a) => a.status === "accepted").length;
   const pendingCount = applications.filter((a) => a.status === "pending").length;
@@ -221,6 +331,12 @@ function mapParty(
     intents: Array.isArray(row.intents) ? row.intents : [],
     scope: row.scope ?? "all",
     time_window: row.time_window ?? "",
+    starts_at: row.starts_at ?? null,
+    ends_at: row.ends_at ?? null,
+    venue_tz: row.venue_tz ?? null,
+    venue,
+    distance_band: distanceBand,
+    private_venue: privateVenue,
     note: row.note ?? "",
     max_slots: row.max_slots ?? 4,
     filled_slots: row.filled_slots ?? Math.min(1 + acceptedCount, row.max_slots ?? 4),
@@ -312,11 +428,24 @@ export const listOpenVentures = createServerFn({ method: "GET" })
     if (meError) throw new Error(meError.message);
     const myTribes = Array.isArray(me?.tribe_ids) ? me.tribe_ids : [];
 
+    // Soonest first, not newest first. Once Ventures carry real start times,
+    // ordering by created_at buries a meetup happening this Friday under one
+    // posted ten minutes ago for next month. Legacy rows have a null starts_at
+    // and sort last rather than dropping out — they are still real Ventures,
+    // they just cannot say when.
+    //
+    // Finished Ventures are excluded in the query rather than filtered after,
+    // so they do not eat the 80-row limit. A null ends_at is never past: the
+    // legacy rows say "This weekend", and no honest reading of that tells you
+    // when it stopped.
+    const nowIso = new Date().toISOString();
     const { data: rows, error } = await db
       .from("ventures")
       .select(VENTURE_COLS)
       .eq("status", "open")
       .neq("user_id", userId)
+      .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
+      .order("starts_at", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(80);
     if (error) throw new Error(error.message);
@@ -334,13 +463,35 @@ export const listOpenVentures = createServerFn({ method: "GET" })
       return ventureAllowsMe && filterAllows;
     });
 
+    const [venues, distanceBands, privateVenues] = await Promise.all([
+      fetchVenues(
+        db,
+        visibleRows.map((r) => r.venue_place_id),
+      ),
+      fetchVentureDistanceBands(
+        db,
+        visibleRows.map((r) => r.id),
+      ),
+      fetchPrivateVenues(
+        db,
+        visibleRows.map((r) => r.id),
+      ),
+    ]);
     const myApps = await fetchMyApplications(
       db,
       userId,
       visibleRows.map((r) => r.id),
     );
     return visibleRows.map((row) =>
-      mapParty(row, hosts.get(row.user_id) ?? null, [], myApps.get(row.id) ?? null),
+      mapParty(
+        row,
+        hosts.get(row.user_id) ?? null,
+        [],
+        myApps.get(row.id) ?? null,
+        venues.get(row.venue_place_id ?? "") ?? null,
+        distanceBands.get(row.id) ?? null,
+        privateVenues.get(row.id) ?? null,
+      ),
     );
   });
 
@@ -377,6 +528,20 @@ export const listMyHostedVentures = createServerFn({ method: "GET" })
       db,
       appRows.map((a) => a.applicant_id),
     );
+    const [venues, distanceBands, privateVenues] = await Promise.all([
+      fetchVenues(
+        db,
+        ventures.map((v) => v.venue_place_id),
+      ),
+      fetchVentureDistanceBands(
+        db,
+        ventures.map((v) => v.id),
+      ),
+      fetchPrivateVenues(
+        db,
+        ventures.map((v) => v.id),
+      ),
+    ]);
     const appsByVenture = new Map<string, VentureApplication[]>();
     for (const app of appRows.map((row) => mapApplication(row, applicantMap))) {
       const list = appsByVenture.get(app.venture_id) ?? [];
@@ -385,7 +550,15 @@ export const listMyHostedVentures = createServerFn({ method: "GET" })
     }
 
     return ventures.map((row) =>
-      mapParty(row, hosts.get(row.user_id) ?? null, appsByVenture.get(row.id) ?? [], null),
+      mapParty(
+        row,
+        hosts.get(row.user_id) ?? null,
+        appsByVenture.get(row.id) ?? [],
+        null,
+        venues.get(row.venue_place_id ?? "") ?? null,
+        distanceBands.get(row.id) ?? null,
+        privateVenues.get(row.id) ?? null,
+      ),
     );
   });
 
@@ -419,14 +592,65 @@ export const listMyJoinedVentures = createServerFn({ method: "GET" })
       db,
       ventureRows.map((v) => v.user_id),
     );
-    const applicants = await fetchProfiles(db, [userId]);
+    // Who else is in the party.
+    //
+    // This used to pass a hardcoded [] and it is why an accepted member could
+    // see that they were in and nothing about who they were meeting. The host
+    // has always had the full applicant list; the people actually turning up to
+    // meet strangers had a stub and a chat button.
+    //
+    // Before the 20260824034000 policy lands this returns only the caller's own
+    // row — RLS narrows it — so the UI degrades to a count rather than erroring.
+    // After it lands, every accepted member of the same Venture appears. Only
+    // 'accepted': declined and pending applicants stay the host's business.
+    const { data: partyRowsRaw, error: partyError } = await db
+      .from("venture_applications")
+      .select(APP_COLS)
+      .in("venture_id", ventureIds)
+      .eq("status", "accepted");
+    if (partyError) throw new Error(partyError.message);
+
+    const partyRows = (partyRowsRaw ?? []) as VentureApplicationDbRow[];
+    const applicants = await fetchProfiles(db, [
+      userId,
+      ...partyRows.map((row) => row.applicant_id),
+    ]);
+
+    const [venues, distanceBands, privateVenues] = await Promise.all([
+      fetchVenues(
+        db,
+        ventureRows.map((v) => v.venue_place_id),
+      ),
+      fetchVentureDistanceBands(
+        db,
+        ventureRows.map((v) => v.id),
+      ),
+      fetchPrivateVenues(
+        db,
+        ventureRows.map((v) => v.id),
+      ),
+    ]);
+    const partyByVenture = new Map<string, VentureApplication[]>();
+    for (const row of partyRows) {
+      const list = partyByVenture.get(row.venture_id) ?? [];
+      list.push(mapApplication(row, applicants));
+      partyByVenture.set(row.venture_id, list);
+    }
 
     return appRows
       .map((appRow) => {
         const venture = ventureMap.get(appRow.venture_id);
         if (!venture) return null;
         const app = mapApplication(appRow, applicants);
-        return mapParty(venture, hosts.get(venture.user_id) ?? null, [], app);
+        return mapParty(
+          venture,
+          hosts.get(venture.user_id) ?? null,
+          partyByVenture.get(venture.id) ?? [],
+          app,
+          venues.get(venture.venue_place_id ?? "") ?? null,
+          distanceBands.get(venture.id) ?? null,
+          privateVenues.get(venture.id) ?? null,
+        );
       })
       .filter(Boolean) as VentureParty[];
   });
@@ -614,12 +838,154 @@ export const respondToVentureInvite = createServerFn({ method: "POST" })
     return mapApplication(updated as VentureApplicationDbRow, applicantMap);
   });
 
+/**
+ * Timing rules the database cannot express.
+ *
+ * The shape rules (end after start, 24-hour cap) exist as CHECK constraints too
+ * — this is here so a host gets a sentence instead of a Postgres error string.
+ * The "not in the past" rule exists ONLY here: a CHECK must be immutable and
+ * now() is not, so Postgres refuses to hold it.
+ *
+ * `allowPast` is true when editing. A host fixing a typo in the title of a
+ * Venture that started an hour ago should not be told their start time is
+ * invalid — the rule is about scheduling something new, not about editing
+ * something underway.
+ */
+const MAX_DURATION_MS = 24 * 60 * 60 * 1000;
+const PAST_GRACE_MS = 10 * 60 * 1000;
+
+function checkTiming<
+  T extends {
+    starts_at?: string | null;
+    ends_at?: string | null;
+    venue_tz?: string | null;
+  },
+>(data: T, { allowPast }: { allowPast: boolean }): T {
+  const { starts_at, ends_at, venue_tz } = data;
+
+  if (venue_tz) {
+    try {
+      new Intl.DateTimeFormat("en", { timeZone: venue_tz });
+    } catch {
+      throw new Error(`Unknown timezone: ${venue_tz}`);
+    }
+  }
+
+  if (ends_at && !starts_at) {
+    throw new Error("A Venture needs a start time before it can have an end time.");
+  }
+  if (!starts_at) return data;
+
+  const start = new Date(starts_at).getTime();
+  if (Number.isNaN(start)) throw new Error("That start time is not a real date.");
+
+  if (!allowPast && start < Date.now() - PAST_GRACE_MS) {
+    throw new Error("That start time has already passed. Pick a time in the future.");
+  }
+
+  if (ends_at) {
+    const end = new Date(ends_at).getTime();
+    if (Number.isNaN(end)) throw new Error("That end time is not a real date.");
+    if (end <= start) throw new Error("A Venture has to end after it starts.");
+    if (end - start > MAX_DURATION_MS) {
+      throw new Error("A Venture can run for at most 24 hours.");
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Turns the form's venue into a venue_places row and returns its id.
+ *
+ * Each Venture gets its own host-authored row. A Google place id identifies the
+ * map destination, but the label and area belong to the host; globally reusing
+ * a row would make the first host's wording silently become everybody's.
+ *
+ * Coordinates are stamped with `coords_fetched_at` because they expire:
+ * expire_venue_coordinates() deletes them after 30 days, per Google's terms.
+ */
+async function upsertVenue(
+  db: any,
+  venue:
+    | {
+        google_place_id?: string | null;
+        host_label: string;
+        area?: string;
+        latitude?: number | null;
+        longitude?: number | null;
+      }
+    | null
+    | undefined,
+): Promise<string | null> {
+  if (!venue) return null;
+
+  const hasCoords = venue.latitude != null && venue.longitude != null;
+  const { data: row, error } = await db
+    .from("venue_places")
+    .insert({
+      google_place_id: venue.google_place_id ?? null,
+      host_label: venue.host_label,
+      area: venue.area ?? "",
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  const venuePlaceId = row.id as string;
+
+  // Coordinates live in a table with no client-readable SELECT policy. The
+  // distance RPC can see them; public venue queries cannot.
+  if (hasCoords) {
+    const { error: coordinateError } = await db.from("venue_place_coordinates").insert({
+      venue_place_id: venuePlaceId,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      fetched_at: new Date().toISOString(),
+    });
+    if (coordinateError) throw new Error(coordinateError.message);
+  }
+
+  return venuePlaceId;
+}
+
+async function upsertPrivateVenue(
+  db: any,
+  ventureId: string,
+  privateVenue: { arrival_details: string } | null | undefined,
+): Promise<VenturePrivateVenue | null> {
+  if (privateVenue === undefined) return null;
+  if (privateVenue === null) {
+    const { error } = await db.from("venture_venues").delete().eq("venture_id", ventureId);
+    if (error) throw new Error(error.message);
+    return null;
+  }
+
+  const { data, error } = await db
+    .from("venture_venues")
+    .upsert(
+      {
+        venture_id: ventureId,
+        arrival_details: privateVenue.arrival_details,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "venture_id" },
+    )
+    .select("venture_id, arrival_details, updated_at")
+    .single();
+  if (error) throw new Error(error.message);
+  return data as VenturePrivateVenue;
+}
+
 export const createHostedVenture = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => createVentureSchema.parse(input))
+  .inputValidator((input: unknown) =>
+    checkTiming(createVentureSchema.parse(input), { allowPast: false }),
+  )
   .handler(async ({ data, context }): Promise<VentureParty> => {
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
+
+    const venuePlaceId = await upsertVenue(db, data.venue);
 
     const { data: row, error } = await db
       .from("ventures")
@@ -629,6 +995,10 @@ export const createHostedVenture = createServerFn({ method: "POST" })
         intents: data.intents,
         scope: data.scope,
         time_window: data.time_window,
+        starts_at: data.starts_at ?? null,
+        ends_at: data.ends_at ?? null,
+        venue_tz: data.venue_tz ?? null,
+        venue_place_id: venuePlaceId,
         note: data.note,
         max_slots: data.max_slots,
         filled_slots: 1,
@@ -645,8 +1015,25 @@ export const createHostedVenture = createServerFn({ method: "POST" })
     // Venture was free. Since that counter is the free-tier quota, the lost
     // increment is a paywall bypass. Do not reintroduce it here.
 
+    const privateVenue = await upsertPrivateVenue(db, (row as VentureDbRow).id, data.private_venue);
     const hosts = await fetchProfiles(db, [userId]);
-    return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
+    const venue = venuePlaceId
+      ? {
+          id: venuePlaceId,
+          host_label: data.venue?.host_label ?? "",
+          area: data.venue?.area ?? "",
+          google_place_id: data.venue?.google_place_id ?? null,
+        }
+      : null;
+    return mapParty(
+      row as VentureDbRow,
+      hosts.get(userId) ?? null,
+      [],
+      null,
+      venue,
+      null,
+      privateVenue,
+    );
   });
 
 export const applyToVenture = createServerFn({ method: "POST" })
@@ -803,34 +1190,72 @@ export const closeHostedVenture = createServerFn({ method: "POST" })
 export const updateHostedVenture = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    createVentureSchema
-      .partial()
-      .extend({ venture_id: z.string().uuid() })
-      .parse(input),
+    checkTiming(
+      createVentureSchema.partial().extend({ venture_id: z.string().uuid() }).parse(input),
+      // Editing, not scheduling: see checkTiming.
+      { allowPast: true },
+    ),
   )
   .handler(async ({ data, context }): Promise<VentureParty> => {
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
     const { venture_id, ...rest } = data;
 
+    const { data: currentRaw, error: currentError } = await db
+      .from("ventures")
+      .select(VENTURE_COLS)
+      .eq("id", venture_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (currentError) throw new Error(currentError.message);
+    if (!currentRaw) throw new Error("Venture not found or you are not its host.");
+    const current = currentRaw as VentureDbRow;
+
     // Only send keys the caller actually supplied. Spreading the whole partial
     // would write `undefined` over untouched columns on some clients.
     const patch: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(rest)) {
+      // `venue` is the form's shape, not a column. It becomes a venue_places
+      // row and lands as venue_place_id instead.
+      if (key === "venue" || key === "private_venue") continue;
       if (value !== undefined) patch[key] = value;
     }
-    if (!Object.keys(patch).length) {
+    if (rest.venue !== undefined) {
+      if (!rest.venue) {
+        patch.venue_place_id = null;
+      } else {
+        const currentVenues = await fetchVenues(db, [current.venue_place_id]);
+        const currentVenue = currentVenues.get(current.venue_place_id ?? "");
+        const unchanged =
+          currentVenue &&
+          currentVenue.google_place_id === (rest.venue.google_place_id ?? null) &&
+          currentVenue.host_label === rest.venue.host_label &&
+          currentVenue.area === (rest.venue.area ?? "");
+        patch.venue_place_id = unchanged
+          ? current.venue_place_id
+          : await upsertVenue(db, rest.venue);
+      }
+    }
+    if (!Object.keys(patch).length && rest.private_venue === undefined) {
       throw new Error("Nothing to update.");
     }
 
-    const { data: row, error } = await db
-      .from("ventures")
-      .update(patch)
-      .eq("id", venture_id)
-      .eq("user_id", userId)
-      .select(VENTURE_COLS)
-      .single();
-    if (error) throw new Error(error.message);
+    let row: VentureDbRow = current;
+    if (Object.keys(patch).length) {
+      const { data: updated, error } = await db
+        .from("ventures")
+        .update(patch)
+        .eq("id", venture_id)
+        .eq("user_id", userId)
+        .select(VENTURE_COLS)
+        .single();
+      if (error) throw new Error(error.message);
+      row = updated as VentureDbRow;
+    }
+
+    if (rest.private_venue !== undefined) {
+      await upsertPrivateVenue(db, venture_id, rest.private_venue);
+    }
 
     // Re-read applications so the returned party carries accurate
     // pending/accepted counts; the card renders them straight after saving.
@@ -845,7 +1270,21 @@ export const updateHostedVenture = createServerFn({ method: "POST" })
     const applications = ((appRows ?? []) as VentureApplicationDbRow[]).map((a) =>
       mapApplication(a, people),
     );
-    return mapParty(row as VentureDbRow, people.get(userId) ?? null, applications);
+    const typedRow = row;
+    const [venues, distanceBands, privateVenues] = await Promise.all([
+      fetchVenues(db, [typedRow.venue_place_id]),
+      fetchVentureDistanceBands(db, [venture_id]),
+      fetchPrivateVenues(db, [venture_id]),
+    ]);
+    return mapParty(
+      typedRow,
+      people.get(userId) ?? null,
+      applications,
+      null,
+      venues.get(typedRow.venue_place_id ?? "") ?? null,
+      distanceBands.get(venture_id) ?? null,
+      privateVenues.get(venture_id) ?? null,
+    );
   });
 
 /**
@@ -863,9 +1302,7 @@ export const updateHostedVenture = createServerFn({ method: "POST" })
  */
 export const withdrawVentureApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ application_id: z.string().uuid() }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ application_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ venture_id: string }> => {
     const { supabase, userId } = context;
     const db = supabase as unknown as any;

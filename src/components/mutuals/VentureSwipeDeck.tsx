@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Clock, Loader2, Users, X, Undo2 } from "lucide-react";
+import { Check, Clock, Loader2, Navigation, Users, X, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
 import { VentureImage } from "./VentureImage";
 import { useApplyToVenture, type VentureParty } from "@/lib/ventures-store";
 import { cn } from "@/lib/utils";
+import { timingLabel } from "@/lib/venture-time";
 
 /**
  * Swipe over open Ventures — in or out.
@@ -139,9 +140,11 @@ export function VentureSwipeDeck({
             <TribeMark tribe={tribe} size="xs" />
             <span className="truncate">{hostName}</span>
             <span aria-hidden>·</span>
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <Clock className="h-3 w-3" /> {venture.time_window}
-            </span>
+            {timingLabel(venture) && (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <Clock className="h-3 w-3" /> {timingLabel(venture)}
+              </span>
+            )}
           </div>
 
           <h3 className="mt-2 font-display text-3xl font-bold leading-[1.1]">{venture.title}</h3>
@@ -163,6 +166,13 @@ export function VentureSwipeDeck({
                 </span>
               ))}
             </div>
+          )}
+
+          {venture.distance_band && (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-primary">
+              <Navigation className="h-3 w-3" aria-hidden />
+              {venture.distance_band}
+            </p>
           )}
 
           <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">

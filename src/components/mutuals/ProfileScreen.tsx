@@ -69,6 +69,7 @@ import { AnimatedModal } from "@/components/ui/animated-modal";
 import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
+import { timingLabel } from "@/lib/venture-time";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -440,7 +441,7 @@ export function ProfileScreen({
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {v.scope === "mine" ? "My Tribes" : "All Tribes"} ·{" "}
-                    {v.time_window || "Any time"} · {v.filled_slots}/{v.max_slots} joined ·{" "}
+                    {timingLabel(v) ?? "Any time"} · {v.filled_slots}/{v.max_slots} joined ·{" "}
                     {timeAgo(v.created_at)}
                   </p>
                 </button>

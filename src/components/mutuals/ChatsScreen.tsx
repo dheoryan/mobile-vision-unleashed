@@ -13,6 +13,7 @@ import type { VentureParty } from "@/lib/ventures.functions";
 import { useBlocked } from "@/lib/blocked-store";
 import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { timingLabel } from "@/lib/venture-time";
 
 type Filter = "all" | "tribe" | "ventures" | "direct";
 
@@ -319,7 +320,9 @@ export function ChatsScreen({
                     title={venture.title}
                     subtitle={preview?.content ?? "No messages yet."}
                     meta={preview ? timeAgoLabel(preview.created_at) : null}
-                    hint={`${venture.time_window} · ${venture.filled_slots} going`}
+                    hint={[timingLabel(venture), `${venture.filled_slots} going`]
+                      .filter(Boolean)
+                      .join(" · ")}
                     unread={unreadFor("venture", venture.id)}
                     onClick={() => onOpenVentureChat(venture)}
                   />

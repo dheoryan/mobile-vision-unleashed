@@ -7,7 +7,7 @@
  * non-component from a component module, which breaks Fast Refresh for the
  * whole screen.
  */
-export type VentureMode = "look" | "host";
+export type VentureMode = "look" | "yours" | "host";
 
 export const VENTURES_MODE_KEY = "mutuals:ventures:last-mode";
 
@@ -20,7 +20,10 @@ function safeLocalStorage(): Storage | null {
 }
 
 export function readStoredVentureMode(): VentureMode {
-  return safeLocalStorage()?.getItem(VENTURES_MODE_KEY) === "host" ? "host" : "look";
+  const stored = safeLocalStorage()?.getItem(VENTURES_MODE_KEY);
+  // Anything unrecognised falls back to looking, which is the mode that works
+  // with no data at all. A stale "yours" from before this existed is harmless.
+  return stored === "host" || stored === "yours" ? stored : "look";
 }
 
 export function saveStoredVentureMode(mode: VentureMode) {
