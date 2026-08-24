@@ -50,7 +50,7 @@ are already assessed there.
 | Week 3 — compliance & launch prep | 🟡 engineering pass complete; external launch work remains |
 | Product: audience-primitive decision | 🟡 recommended, **awaiting user decision** |
 | Ventures: times + board + tickets | ✅ done (2026-08-24) |
-| Ventures: venue picker + distance bands | 🟡 code + DB verified; Google key rotation/quota confirmation pending |
+| Ventures: venue picker + distance bands | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision |
 | Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
 
 ---
@@ -78,6 +78,7 @@ and logged below.
 | **Animation** | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library. |
 | **Modals** | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals. |
 | **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
+| **Google Venue precision** | Manual host-authored place + area is the production Venue flow. Google search, badges, external maps, embeds, and server calls are gated by `GOOGLE_PLACES_ENABLED = false` pending a team decision on API terms, restrictions, and quota. Re-enable through that single flag only after credentials are approved. |
 | **Pushing to remote** | User-authorised only. Both agents. |
 | **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
 | **Global vs Tribe timeline** | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`. |
@@ -195,6 +196,11 @@ Newest first. Append; don't edit past entries.
   database-generated push-secret rotation manually. The consolidated production
   verifier returned all 15 checks `true`; the new push secret was stored in
   Lovable and never shared back into the repo or conversation.
+- At Kila's direction, Google Places remains intentionally off for this release.
+  `GOOGLE_PLACES_ENABLED` gates the picker entry point, verified badges, map
+  links/embeds, and both authenticated server endpoints. Manual venues remain
+  the complete production path; the team can enable precision later with one
+  explicit flag change after approving keys and quota.
 - Targeted ESLint, `tsc --noEmit`, `git diff --check`, the production build, and
   the unauthenticated browser smoke test pass. Full-project lint remains a
   pre-existing baseline of 2,339 findings and is not release-clean.

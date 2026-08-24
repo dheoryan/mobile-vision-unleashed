@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BadgeCheck, Loader2, MapPin, PenLine, Search, X } from "lucide-react";
 import { resolvePlace, searchPlaces, type PlaceSuggestion } from "@/lib/places.functions";
+import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
 /**
@@ -268,28 +269,32 @@ export function VenuePicker({
           Use this place
         </button>
 
-        <div className="flex items-center gap-3 py-1" aria-hidden="true">
-          <span className="h-px flex-1 bg-border" />
-          <span className="label-mono text-muted-foreground">Optional precision</span>
-          <span className="h-px flex-1 bg-border" />
-        </div>
+        {GOOGLE_PLACES_ENABLED && (
+          <>
+            <div className="flex items-center gap-3 py-1" aria-hidden="true">
+              <span className="h-px flex-1 bg-border" />
+              <span className="label-mono text-muted-foreground">Optional precision</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setQuery(label.trim());
-            setResults([]);
-            setError(null);
-            setStage("search");
-          }}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
-        >
-          <MapPin className="h-3.5 w-3.5" />
-          Find a verified pin with Google Maps
-        </button>
-        <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
-          Adds distance guidance and an optional map for accepted participants.
-        </p>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery(label.trim());
+                setResults([]);
+                setError(null);
+                setStage("search");
+              }}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Find a verified pin with Google Maps
+            </button>
+            <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+              Adds distance guidance and an optional map for accepted participants.
+            </p>
+          </>
+        )}
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 
 /**
  * Google Places, proxied.
@@ -49,6 +50,10 @@ export type ResolvedPlace = {
 };
 
 function requireKey(): string {
+  if (!GOOGLE_PLACES_ENABLED) {
+    throw new Error("Verified map search is not available yet. Enter the venue manually.");
+  }
+
   const key = SERVER_KEY();
   if (!key) {
     // Loud on purpose. The alternative is a picker that silently returns nothing

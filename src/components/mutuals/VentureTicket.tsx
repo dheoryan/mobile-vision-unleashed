@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 import type { VentureParty } from "@/lib/ventures.functions";
 import { clock, durationMinutes, timingLabel, ventureTz } from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
@@ -231,7 +232,7 @@ export function VentureTicketDetail({
   const accepted = venture.my_application?.status === "accepted";
   const timing = timingLabel(venture);
   const host = venture.host;
-  const placeId = accepted ? venture.venue?.google_place_id : null;
+  const placeId = GOOGLE_PLACES_ENABLED && accepted ? venture.venue?.google_place_id : null;
   const embedUrl = placeId ? googleMapsEmbedUrl(placeId) : null;
   const externalMapUrl = placeId ? googleMapsSearchUrl(placeId, venture.venue?.host_label) : null;
 
@@ -291,7 +292,7 @@ export function VentureTicketDetail({
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-sm font-semibold">
                   <span className="truncate">{venture.venue.host_label}</span>
-                  {venture.venue.google_place_id && (
+                  {GOOGLE_PLACES_ENABLED && venture.venue.google_place_id && (
                     <BadgeCheck
                       className="h-3.5 w-3.5 shrink-0 text-accent"
                       aria-label="Verified place"
