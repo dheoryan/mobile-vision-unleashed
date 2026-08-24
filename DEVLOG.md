@@ -52,6 +52,7 @@ are already assessed there.
 | Ventures: times + board + tickets | ✅ done (2026-08-24) |
 | Ventures: venue picker + distance bands | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision |
 | Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
+| Installed PWA | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain |
 
 ---
 
@@ -61,7 +62,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Installed PWA completion | `package.json`, `scripts/verify-pwa.mjs`, `public/manifest.webmanifest`, `public/sw.js`, PWA icons/screenshots/offline assets, `src/routes/__root.tsx`, `src/routes/index.tsx`, `src/lib/pwa*.ts`, `src/lib/install-prompt.ts`, `src/lib/auth-context.tsx`, `src/lib/ventures-mode.ts`, `src/components/mutuals/VenturesScreen.tsx`, `src/components/mutuals/ProfileScreen.tsx`, install/update UX, PWA tests/docs | 2026-08-24 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -170,6 +171,32 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-24 — Codex — Installed PWA completed
+
+- Upgraded the Web Push-only worker into a privacy-bounded installed-app
+  worker: it precaches the branded offline fallback and public app identity,
+  caches only same-origin static assets, never caches authenticated navigation
+  or Supabase/user data, and removes obsolete MEUTUALS caches on activation.
+- Added foreground update discovery with an accessible **Update** action,
+  online/offline status, automatic reconnect recovery, stable manifest `id`,
+  install categories/display fallbacks, and Settings installation UX for iOS,
+  Android, desktop, and already-installed states.
+- Scoped Venture onboarding, last Venture mode, and primary-tab state to the
+  authenticated user. Account changes now close nested threads/modals instead
+  of carrying view state across users. Logout detaches Web Push and clears the
+  TanStack Query account cache before the next login.
+- Added `npm run check:pwa` and `PWA_RELEASE_CHECKLIST.md`, including the
+  cache-security boundary and physical-device acceptance matrix.
+- Verification passed: PWA release check, service-worker syntax, focused ESLint
+  with no errors (one pre-existing Fast Refresh warning), `tsc --noEmit`,
+  `git diff --check`, production Cloudflare build, and local Worker HTTP 200s
+  for `/`, manifest, worker, offline fallback, and required icons. Existing
+  bundle-size and third-party bundler warnings remain.
+- No database migration or environment change is required. Production was not
+  pushed; physical iPhone/Android install and Web Push acceptance remain the
+  release gate. The user's `.env` and `package-lock.json` changes remain
+  untouched and unstaged.
 
 ### 2026-08-24 — Codex — Manual-first Venue release shipped through Git
 

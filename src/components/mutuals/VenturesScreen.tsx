@@ -86,7 +86,6 @@ import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { requestBrowserLocation } from "@/lib/location";
 
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
-const VENTURES_MODE_KEY = "mutuals:ventures:last-mode";
 
 function safeLocalStorage() {
   if (typeof window === "undefined") return null;
@@ -97,12 +96,16 @@ function safeLocalStorage() {
   }
 }
 
-function hasSeenVentureIntro() {
-  return safeLocalStorage()?.getItem(VENTURES_INTRO_KEY) === "1";
+function introKey(userId: string) {
+  return `${VENTURES_INTRO_KEY}:${userId}`;
 }
 
-function markVentureIntroSeen() {
-  safeLocalStorage()?.setItem(VENTURES_INTRO_KEY, "1");
+function hasSeenVentureIntro(userId: string) {
+  return safeLocalStorage()?.getItem(introKey(userId)) === "1";
+}
+
+function markVentureIntroSeen(userId: string) {
+  safeLocalStorage()?.setItem(introKey(userId), "1");
 }
 
 type Mode = "look" | "yours" | "host";
@@ -125,6 +128,8 @@ export function VenturesScreen({
   onSendHello?: (person: Person, message: string) => void;
   onLaunchVenture?: () => void;
 }) {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [stage, setStage] = useState<VentureStage>("intro");
   const [mode, setModeState] = useState<Mode>("look");
   const [scope, setScope] = useState<VentureScope>("all");
@@ -137,11 +142,17 @@ export function VenturesScreen({
   const joinedQuery = useMyJoinedVentures();
 
   useEffect(() => {
-    persistMode(readStoredVentureMode());
-    if (hasSeenVentureIntro()) {
+    if (!userId) return;
+    setModeState(readStoredVentureMode(userId));
+    setScope("all");
+    setHostFormOpen(false);
+    setPaywall(false);
+    if (hasSeenVentureIntro(userId)) {
       setStage("feature");
+    } else {
+      setStage("intro");
     }
-  }, []);
+  }, [userId]);
 
   const openVentures = useMemo(
     () => (openQuery.data ?? []).filter((v) => !blocked.has(v.host_id)),
@@ -152,15 +163,15 @@ export function VenturesScreen({
   const hasVentureActivity = hostedVentures.length > 0 || joinedVentures.length > 0;
 
   useEffect(() => {
-    if (stage === "intro" && hasVentureActivity && !hasSeenVentureIntro()) {
-      markVentureIntroSeen();
+    if (userId && stage === "intro" && hasVentureActivity && !hasSeenVentureIntro(userId)) {
+      markVentureIntroSeen(userId);
       setStage("feature");
     }
-  }, [hasVentureActivity, stage]);
+  }, [hasVentureActivity, stage, userId]);
 
   const persistMode = (nextMode: Mode) => {
     setModeState(nextMode);
-    saveStoredVentureMode(nextMode);
+    if (userId) saveStoredVentureMode(userId, nextMode);
   };
 
   const switchMode = (nextMode: Mode) => {
@@ -173,7 +184,7 @@ export function VenturesScreen({
       setPaywall(true);
       return;
     }
-    markVentureIntroSeen();
+    if (userId) markVentureIntroSeen(userId);
     persistMode(nextMode);
     setHostFormOpen(false);
     setStage("feature");
@@ -189,7 +200,7 @@ export function VenturesScreen({
       setPaywall(true);
       return;
     }
-    markVentureIntroSeen();
+    if (userId) markVentureIntroSeen(userId);
     persistMode(nextMode);
     setHostFormOpen(Boolean(options?.openHostForm));
     setStage("feature");
@@ -200,7 +211,7 @@ export function VenturesScreen({
       setPaywall(true);
       return;
     }
-    markVentureIntroSeen();
+    if (userId) markVentureIntroSeen(userId);
     persistMode("host");
     setStage("feature");
     // Land on your Ventures, not on a blank form. listMyHostedVentures filters

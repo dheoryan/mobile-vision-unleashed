@@ -19,7 +19,6 @@ import { intentStore, useIntent } from "@/lib/intent-store";
 import { rowToProfile, useProfileRow, useUpdateProfile, profileToPatch } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { AgeVerification } from "@/components/mutuals/AgeVerification";
 import { useSaveMyLocation } from "@/lib/location-store";
 import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
@@ -44,16 +43,25 @@ const LEGACY_TABS: Record<string, TabKey> = {
   tribe: "chats",
 };
 
-function loadTab(): TabKey {
+function tabKey(userId: string): string {
+  return `${TAB_KEY}:${userId}`;
+}
+
+function loadTab(userId: string): TabKey {
   if (typeof window === "undefined") return "feed";
-  const v = window.localStorage.getItem(TAB_KEY);
-  if (!v) return "feed";
-  if ((VALID_TABS as string[]).includes(v)) return v as TabKey;
-  return LEGACY_TABS[v] ?? "feed";
+  try {
+    const v = window.localStorage.getItem(tabKey(userId));
+    if (!v) return "feed";
+    if ((VALID_TABS as string[]).includes(v)) return v as TabKey;
+    return LEGACY_TABS[v] ?? "feed";
+  } catch {
+    return "feed";
+  }
 }
 
 function App() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const userId = user?.id;
   const navigate = useNavigate();
   const profileQuery = useProfileRow();
   const updateProfile = useUpdateProfile();
@@ -61,7 +69,8 @@ function App() {
 
   const profile = rowToProfile(profileQuery.data ?? null);
 
-  const [tab, setTab] = useState<TabKey>(loadTab);
+  const [tab, setTab] = useState<TabKey>("feed");
+  const [tabOwnerId, setTabOwnerId] = useState<string | null>(null);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
   const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
@@ -81,12 +90,35 @@ function App() {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [user, authLoading, navigate]);
 
-  // Persist tab
+  // Restore and persist navigation per account. Installed PWAs retain browser
+  // storage across sign-outs, so a device-wide key leaks the previous user's
+  // last screen into the next account.
   useEffect(() => {
+    if (!userId) {
+      setTab("feed");
+      setTabOwnerId(null);
+      return;
+    }
+    setTab(loadTab(userId));
+    setTabOwnerId(userId);
+    setMessagesOpen(false);
+    setOpenThreadUser(null);
+    setOpenVentureChat(null);
+    setOpenPostId(null);
+    setHighlightCommentId(null);
+    setScrollToPostId(null);
+    setInitialTribe(undefined);
+    setTribeChatOpen(false);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || tabOwnerId !== userId) return;
     try {
-      window.localStorage.setItem(TAB_KEY, tab);
-    } catch {}
-  }, [tab]);
+      window.localStorage.setItem(tabKey(userId), tab);
+    } catch {
+      /* Storage can be unavailable in privacy modes. */
+    }
+  }, [tab, tabOwnerId, userId]);
 
   // One-shot migration: push legacy localStorage profile into DB
   useEffect(() => {
@@ -94,7 +126,9 @@ function App() {
     if (profile) {
       try {
         window.localStorage.removeItem(LEGACY_PROFILE_KEY);
-      } catch {}
+      } catch {
+        /* Storage can be unavailable in privacy modes. */
+      }
       return;
     }
     try {
@@ -109,11 +143,15 @@ function App() {
         onSuccess: () => {
           try {
             window.localStorage.removeItem(LEGACY_PROFILE_KEY);
-          } catch {}
+          } catch {
+            /* Storage can be unavailable in privacy modes. */
+          }
           toast.success("Welcome back — profile restored");
         },
       });
-    } catch {}
+    } catch {
+      /* Ignore malformed legacy state; the database remains authoritative. */
+    }
   }, [user, profileQuery.isLoading, profile, updateProfile]);
 
   // Consume cross-screen navigation intents
@@ -149,7 +187,7 @@ function App() {
         ? (updater as (p: Profile | null) => Profile | null)(profile)
         : updater;
     if (next === null) {
-      supabase.auth.signOut();
+      void signOut();
       return;
     }
     updateProfile.mutate(profileToPatch(next), {

@@ -19,18 +19,22 @@ function safeLocalStorage(): Storage | null {
   }
 }
 
-export function readStoredVentureMode(): VentureMode {
-  const stored = safeLocalStorage()?.getItem(VENTURES_MODE_KEY);
+function modeKey(userId: string): string {
+  return `${VENTURES_MODE_KEY}:${userId}`;
+}
+
+export function readStoredVentureMode(userId: string): VentureMode {
+  const stored = safeLocalStorage()?.getItem(modeKey(userId));
   // Anything unrecognised falls back to looking, which is the mode that works
   // with no data at all. A stale "yours" from before this existed is harmless.
   return stored === "host" || stored === "yours" ? stored : "look";
 }
 
-export function saveStoredVentureMode(mode: VentureMode) {
-  safeLocalStorage()?.setItem(VENTURES_MODE_KEY, mode);
+export function saveStoredVentureMode(userId: string, mode: VentureMode) {
+  safeLocalStorage()?.setItem(modeKey(userId), mode);
 }
 
 /** Hand the Ventures tab off straight into hosting on its next open. */
-export function preferVentureHostingOnNextOpen() {
-  saveStoredVentureMode("host");
+export function preferVentureHostingOnNextOpen(userId: string) {
+  saveStoredVentureMode(userId, "host");
 }

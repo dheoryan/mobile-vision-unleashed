@@ -70,6 +70,7 @@ import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
 import { timingLabel } from "@/lib/venture-time";
+import { PwaInstallRow } from "./PwaInstallRow";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -80,6 +81,7 @@ export function ProfileScreen({
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
 }) {
+  const { user } = useAuth();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -427,7 +429,7 @@ export function ProfileScreen({
                   key={v.id}
                   type="button"
                   onClick={() => {
-                    preferVentureHostingOnNextOpen();
+                    if (user) preferVentureHostingOnNextOpen(user.id);
                     intentStore.push({ kind: "openTab", tab: "ventures" });
                   }}
                   className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm transition-colors hover:border-primary/40"
@@ -1214,6 +1216,13 @@ function SettingsSheet({
           <p className="label-mono text-muted-foreground">Notifications</p>
           <div className="mt-2">
             <PushSettingsRow />
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="label-mono text-muted-foreground">App installation</p>
+          <div className="mt-2">
+            <PwaInstallRow />
           </div>
         </div>
 

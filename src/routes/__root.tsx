@@ -7,50 +7,22 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
 import { RealtimeBridge } from "@/lib/realtime-bridge";
 import { PushPromptModal } from "@/components/mutuals/PushPromptModal";
+import { PwaLifecycle } from "@/components/mutuals/PwaLifecycle";
 
 import appCss from "../styles.css?url";
-
-function ServiceWorkerRegistrar() {
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator)) return;
-
-    // Don't register inside iframes (Lovable editor preview) or on preview hosts.
-    const inIframe = (() => {
-      try { return window.self !== window.top; } catch { return true; }
-    })();
-    const host = window.location.hostname;
-    const isPreviewHost =
-      host.includes("id-preview--") ||
-      host.includes("lovableproject.com") ||
-      host.includes("-dev.lovable.app");
-
-    if (inIframe || isPreviewHost) {
-      // Clean up any stale SW left from earlier sessions in preview contexts.
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        regs.forEach((r) => r.unregister().catch(() => undefined));
-      }).catch(() => undefined);
-      return;
-    }
-
-    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((err) => {
-      console.warn("[sw] registration failed", err);
-    });
-  }, []);
-  return null;
-}
 
 function NotFoundComponent() {
   return (
     <div className="bg-habitat flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 font-display text-2xl font-bold text-foreground">Lost in the habitat.</h2>
+        <h2 className="mt-4 font-display text-2xl font-bold text-foreground">
+          Lost in the habitat.
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           This page doesn't exist — but your Tribe does.
         </p>
@@ -117,13 +89,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "MEUTUALS — Start with your Tribe" },
       { name: "description", content: "A new social layer for real-life meetups. 21+ only." },
       { property: "og:title", content: "MEUTUALS — Start with your Tribe" },
-      { property: "og:description", content: "A new social layer for real-life meetups. 21+ only." },
+      {
+        property: "og:description",
+        content: "A new social layer for real-life meetups. 21+ only.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "MEUTUALS — Start with your Tribe" },
-      { name: "twitter:description", content: "A new social layer for real-life meetups. 21+ only." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55" },
+      {
+        name: "twitter:description",
+        content: "A new social layer for real-life meetups. 21+ only.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -137,7 +123,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", sizes: "180x180", href: "/icons/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -166,7 +151,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RealtimeBridge />
-        <ServiceWorkerRegistrar />
+        <PwaLifecycle />
         <Outlet />
         <PushPromptModal />
         <Toaster

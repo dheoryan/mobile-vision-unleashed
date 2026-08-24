@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0f0f" />
+    <title>MEUTUALS — Offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+        color: #f4f1eb;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(255, 28, 118, 0.12), transparent 35%),
+          radial-gradient(circle at 85% 80%, rgba(255, 132, 31, 0.1), transparent 38%), #0f0f0f;
+      }
+      main {
+        width: min(100%, 390px);
+        text-align: center;
+      }
+      img {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+      }
+      .label {
+        margin: 24px 0 8px;
+        color: #eab352;
+        font: 700 10px/1.4 monospace;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 9vw, 42px);
+        letter-spacing: -0.04em;
+      }
+      p {
+        margin: 14px auto 0;
+        max-width: 32ch;
+        color: #aaa59d;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 30px;
+      }
+      button,
+      a {
+        min-height: 48px;
+        border-radius: 16px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      button {
+        border: 0;
+        background: #eab352;
+        color: #15120d;
+        cursor: pointer;
+      }
+      a {
+        display: grid;
+        place-items: center;
+        border: 1px solid #34312d;
+        color: #f4f1eb;
+        text-decoration: none;
+      }
+      #status {
+        min-height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="MEUTUALS" />
+      <div class="label">Signal interrupted</div>
+      <h1>You’re offline.</h1>
+      <p id="status">
+        MEUTUALS needs a connection for current posts, chats, people, and Ventures. Your private
+        account data was not cached.
+      </p>
+      <div class="actions">
+        <button type="button" onclick="location.reload()">Try again</button>
+        <a href="/">Return home</a>
+      </div>
+    </main>
+    <script>
+      addEventListener("online", () => {
+        document.getElementById("status").textContent = "Connection restored. Reopening MEUTUALS…";
+        setTimeout(() => location.reload(), 350);
+      });
+    </script>
+  </body>
+</html>
