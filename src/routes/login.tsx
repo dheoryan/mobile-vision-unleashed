@@ -40,7 +40,15 @@ function LoginPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      if (/confirm/i.test(error.message)) {
+        toast.error("Email not verified yet");
+        navigate({ to: "/verify-email", search: { email } });
+        return;
+      }
+      toast.error(error.message);
+      return;
+    }
     finishSignIn();
   };
 
