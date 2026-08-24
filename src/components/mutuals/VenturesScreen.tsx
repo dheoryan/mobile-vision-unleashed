@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
   Check,
+  ChevronLeft,
   Clock,
   Loader2,
   Lock,
@@ -34,10 +35,8 @@ import { UpsellModal } from "./UpsellModal";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
-import { VentureSwipeDeck } from "./VentureSwipeDeck";
 import { VentureCardShell } from "./VentureImage";
 import { VentureSearching } from "./VentureSearching";
-import { ChevronLeft, Layers, List } from "lucide-react";
 import { readStoredVentureMode, saveStoredVentureMode } from "@/lib/ventures-mode";
 import { useBlocked } from "@/lib/blocked-store";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
@@ -226,7 +225,7 @@ export function VenturesScreen({
             : mode === "look"
               ? "Venture board"
               : mode === "yours"
-                ? "My tickets"
+                ? "My Ventures"
                 : "Hosting"
         }
         subtitle={
@@ -257,27 +256,8 @@ export function VenturesScreen({
                 Discovery owns the main screen. Tickets are one contextual
                 destination and Hosting is reached through the creation action.
                 On either secondary screen the only navigation choice is Back. */}
-            <div
-              className={cn(
-                "flex min-h-14 items-center pt-2",
-                mode === "look" ? "justify-end" : "justify-start",
-              )}
-            >
-              {mode === "look" ? (
-                <button
-                  type="button"
-                  onClick={() => switchMode("yours")}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                >
-                  <Ticket className="h-3.5 w-3.5 text-primary" />
-                  My tickets
-                  {joinedVentures.length > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-mono text-[9px] font-bold text-primary-foreground">
-                      {joinedVentures.length}
-                    </span>
-                  )}
-                </button>
-              ) : (
+            {mode !== "look" && (
+              <div className="flex min-h-14 items-center pt-2">
                 <button
                   type="button"
                   onClick={() => switchMode("look")}
@@ -286,8 +266,8 @@ export function VenturesScreen({
                   <ChevronLeft className="h-4 w-4" />
                   Back to Venture board
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {mode === "yours" ? (
               <YoursView
@@ -311,6 +291,7 @@ export function VenturesScreen({
                 isError={openQuery.isError}
                 onRetry={() => openQuery.refetch()}
                 onOpenChat={onOpenVentureChat}
+                onOpenMine={() => switchMode("yours")}
                 onStartHosting={startHosting}
                 onChanged={() => {
                   openQuery.refetch();
@@ -436,8 +417,8 @@ function YoursView({
       <div className="mt-5">
         <EmptyPanel
           icon={<Ticket className="h-6 w-6" />}
-          title="Nothing in your pocket yet."
-          body="Apply to a Venture on the board and it lands here once the host says yes."
+          title="No Ventures yet."
+          body="Your invitations, requests, and joined plans will appear here."
           actionLabel="Browse the board"
           onAction={onBrowse}
         />
@@ -686,6 +667,7 @@ function LookView({
   isError,
   onRetry,
   onOpenChat,
+  onOpenMine,
   onStartHosting,
   onChanged,
 }: {
@@ -698,6 +680,7 @@ function LookView({
   isError: boolean;
   onRetry: () => void;
   onOpenChat: (venture: VentureParty) => void;
+  onOpenMine: () => void;
   onStartHosting: () => void;
   onChanged: () => void;
 }) {
@@ -732,12 +715,6 @@ function LookView({
       onError: (err) => toast.error((err as Error).message),
     });
   const [notes, setNotes] = useState<Record<string, string>>({});
-  // The board by default. It was the deck, back when the alternative was a
-  // stack of eight identical cards and one-at-a-time genuinely read better.
-  // Grouped by day and led by the clock, the board now answers "what is on
-  // tonight" in a glance, which is the question people actually open this tab
-  // with. The deck stays for browsing one plan at a time.
-  const [boardView, setBoardView] = useState<"deck" | "list">("list");
   const mineLabel = profile.tribeIds.length > 1 ? "My Tribes" : "My Tribe";
 
   const activeParties = useMemo(
@@ -818,54 +795,26 @@ function LookView({
         </button>
       )}
 
-      {/* The three inbox sections that used to sit here — Invites, Your Active
-          Ventures, Pending Requests — are gone from the board.
-
-          They were conditionally rendered, so the screen had a different
-          skeleton on every visit depending on how many you happened to have,
-          and they pushed the deck 446px down a ~780px viewport. Discovery
-          started below the fold on the screen whose entire job is discovery.
-
-          Where they went:
-            accepted -> Chats. An accepted Venture is a conversation.
-            invited  -> the pill in the Open Ventures header, below. Accept and
-                        decline must stay reachable, so they moved rather than
-                        disappearing.
-            pending  -> the same pill. Nothing to act on but withdraw.
-
-          The header is always rendered, so the pill appearing or vanishing
-          inside it does not move anything else. That is the point. */}
+      {/* Invitations, requests, and accepted plans live in My Ventures so the
+          discovery list stays focused on plans the member can still join. */}
 
       <SectionTitle
         title="Open Ventures"
         hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
         action={
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
-              <button
-                onClick={() => setBoardView("deck")}
-                aria-label="One at a time"
-                aria-pressed={boardView === "deck"}
-                className={cn(
-                  "rounded-full p-1.5",
-                  boardView === "deck" && "bg-primary text-primary-foreground",
-                )}
-              >
-                <Layers className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setBoardView("list")}
-                aria-label="List"
-                aria-pressed={boardView === "list"}
-                className={cn(
-                  "rounded-full p-1.5",
-                  boardView === "list" && "bg-primary text-primary-foreground",
-                )}
-              >
-                <List className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={onOpenMine}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            <Ticket className="h-3.5 w-3.5 text-primary" />
+            My Ventures
+            {joinedVentures.length > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-mono text-[9px] font-bold text-primary-foreground">
+                {joinedVentures.length}
+              </span>
+            )}
+          </button>
         }
       />
 
@@ -874,28 +823,16 @@ function LookView({
       ) : isError ? (
         <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
       ) : joinableVentures.length ? (
-        boardView === "deck" ? (
-          /* One plan at a time. Judging an activity rather than a person is
-             what makes a swipe deck appropriate here at all. */
-          <VentureSwipeDeck
-            ventures={joinableVentures}
-            onOpenChat={onOpenChat}
-            onChanged={onChanged}
-          />
-        ) : (
-          /* The board. Rows grouped by day, led by the clock — see
-             VentureBoard for why this stopped being a stack of cards. */
-          <VentureBoard
-            ventures={joinableVentures}
-            notes={notes}
-            onNoteChange={(id, value) => setNotes((cur) => ({ ...cur, [id]: value }))}
-            onApply={submitApply}
-            onOpenChat={onOpenChat}
-            applyingId={apply.isPending ? (apply.variables?.venture_id ?? null) : null}
-            onWithdraw={withdrawRequest}
-            withdrawingId={withdraw.isPending ? (withdraw.variables ?? null) : null}
-          />
-        )
+        <VentureBoard
+          ventures={joinableVentures}
+          notes={notes}
+          onNoteChange={(id, value) => setNotes((cur) => ({ ...cur, [id]: value }))}
+          onApply={submitApply}
+          onOpenChat={onOpenChat}
+          applyingId={apply.isPending ? (apply.variables?.venture_id ?? null) : null}
+          onWithdraw={withdrawRequest}
+          withdrawingId={withdraw.isPending ? (withdraw.variables ?? null) : null}
+        />
       ) : (
         <EmptyPanel
           icon={<Search className="h-6 w-6" />}

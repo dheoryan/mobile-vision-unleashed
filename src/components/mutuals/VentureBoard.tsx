@@ -1,25 +1,28 @@
 import { useMemo, useState } from "react";
 import {
   BadgeCheck,
+  CalendarClock,
   ChevronDown,
   Loader2,
   Lock,
+  MapPin,
   MessageCircle,
   Navigation,
+  Ticket,
   Users,
   UserCheck,
 } from "lucide-react";
 import type { VentureParty } from "@/lib/ventures.functions";
-import { clock, dayKey, dayLabel, durationMinutes, ventureTz } from "@/lib/venture-time";
+import { dayKey, dayLabel, timingLabel, ventureTz } from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
+import { VentureImage } from "./VentureImage";
 
 /**
- * The public ticket rack.
+ * The public Venture list.
  *
- * A Venture starts as an available ticket, becomes a pending ticket after an
- * application, and moves into Yours once accepted. The shared silhouette makes
- * that state change legible, while restrained public styling keeps an available
- * ticket from looking like something the member already owns.
+ * Looking is a decision surface, so every row leads with the Venture's photo
+ * and enough context to compare plans. Expanding one row reveals the complete
+ * public detail and request action without leaving the board.
  */
 
 type Props = {
@@ -69,7 +72,7 @@ export function VentureBoard({
   onWithdraw,
   withdrawingId,
 }: Props) {
-  // One open ticket keeps the rack scannable and makes the selected plan the
+  // One open row keeps the list scannable and makes the selected plan the
   // obvious next action without introducing a separate modal.
   const [openId, setOpenId] = useState<string | null>(null);
   const groups = useMemo(() => groupByDay(ventures), [ventures]);
@@ -91,7 +94,7 @@ export function VentureBoard({
 
           <div className="space-y-3">
             {group.ventures.map((venture) => (
-              <BoardTicket
+              <BoardListItem
                 key={venture.id}
                 venture={venture}
                 open={openId === venture.id}
@@ -103,7 +106,6 @@ export function VentureBoard({
                 applying={applyingId === venture.id}
                 onWithdraw={onWithdraw}
                 withdrawing={withdrawingId === venture.my_application?.id}
-                undated={group.key === UNDATED}
               />
             ))}
           </div>
@@ -113,7 +115,7 @@ export function VentureBoard({
   );
 }
 
-function BoardTicket({
+function BoardListItem({
   venture,
   open,
   onToggle,
@@ -124,7 +126,6 @@ function BoardTicket({
   applying,
   onWithdraw,
   withdrawing,
-  undated = false,
 }: {
   venture: VentureParty;
   open: boolean;
@@ -136,21 +137,15 @@ function BoardTicket({
   applying: boolean;
   onWithdraw: (applicationId: string) => void;
   withdrawing: boolean;
-  /** No start time. The clock column is dropped rather than filled with a dash. */
-  undated?: boolean;
 }) {
-  const tz = ventureTz(venture);
   const application = venture.my_application;
   const accepted = application?.status === "accepted";
   const pending = application?.status === "pending";
   const declined = application?.status === "declined";
   const full = venture.filled_slots >= venture.max_slots;
   const remaining = Math.max(venture.max_slots - venture.filled_slots, 0);
-
-  const mins = durationMinutes(venture);
-  const duration = mins ? (mins % 60 === 0 ? `${mins / 60}h` : `${mins}m`) : null;
-  const stub = venture.starts_at ? ticketDateParts(venture.starts_at, tz) : null;
-  const detailsId = `venture-ticket-${venture.id}`;
+  const detailsId = `venture-list-item-${venture.id}`;
+  const timing = timingLabel(venture);
 
   const statusLabel = accepted
     ? "You're in"
@@ -166,202 +161,213 @@ function BoardTicket({
 
   return (
     <article
-      className={cn("relative transition-opacity", full && !accepted && !pending && "opacity-55")}
-    >
-      {stub && (
-        <>
-          <span
-            aria-hidden
-            className="absolute -top-1.5 left-[4.75rem] z-10 h-3 w-3 -translate-x-1/2 rounded-full bg-background"
-          />
-          <span
-            aria-hidden
-            className="absolute -bottom-1.5 left-[4.75rem] z-10 h-3 w-3 -translate-x-1/2 rounded-full bg-background"
-          />
-        </>
+      className={cn(
+        "overflow-hidden rounded-2xl border bg-card transition-colors",
+        open ? "border-primary/60" : "border-border",
+        accepted && "border-accent/60",
+        full && !accepted && !pending && "opacity-55",
       )}
-
-      <div
-        className={cn(
-          "grid overflow-hidden rounded-2xl border bg-card shadow-[0_12px_30px_-24px_rgba(0,0,0,0.9)] transition-colors",
-          stub ? "grid-cols-[4.75rem_1fr]" : "grid-cols-1",
-          open ? "border-primary/60" : "border-border",
-          accepted && "border-accent/60",
-        )}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={detailsId}
+        className="grid min-h-32 w-full grid-cols-[5.5rem_1fr] gap-3 p-3 text-left transition-colors hover:bg-secondary/20 active:bg-secondary/40"
       >
-        {stub && !undated && (
-          <div className="flex flex-col items-center justify-start gap-0.5 border-r border-dashed border-border bg-secondary/20 px-2 py-4 text-center">
-            <span className="label-mono text-muted-foreground">{stub.weekday}</span>
-            <span className="font-mono text-[27px] font-bold leading-none tracking-tighter text-primary">
-              {stub.day}
+        <div className="relative h-[6.5rem] w-[5.5rem] overflow-hidden rounded-xl bg-secondary/50">
+          <span className="absolute inset-0 flex items-center justify-center text-muted-foreground/45">
+            <Ticket className="h-5 w-5" aria-hidden />
+          </span>
+          <VentureImage
+            path={venture.image_url}
+            rounded="rounded-xl"
+            className="absolute inset-0 h-full w-full"
+          />
+          {timing && (
+            <span className="absolute inset-x-1 bottom-1 truncate rounded-md bg-background/90 px-1.5 py-1 text-center font-mono text-[8px] font-bold uppercase tracking-wide backdrop-blur-sm">
+              {timing}
             </span>
-            <span className="label-mono text-muted-foreground">{stub.month}</span>
-            <span className="my-1.5 h-px w-6 bg-border" aria-hidden />
-            <span className="font-mono text-[13px] font-bold">{clock(venture.starts_at!, tz)}</span>
-            {duration && (
-              <span className="font-mono text-[9px] text-muted-foreground">{duration}</span>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={open}
-            aria-controls={detailsId}
-            className="flex min-h-32 w-full flex-col p-3.5 text-left transition-colors hover:bg-secondary/20 active:bg-secondary/40"
-          >
-            <span className="mb-2 flex w-full items-center justify-between gap-2">
-              <span
-                className={cn(
-                  "rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.16em]",
-                  accepted
-                    ? "border-accent text-accent"
-                    : pending
-                      ? "border-primary/50 text-primary"
-                      : "border-border text-muted-foreground",
-                )}
-              >
-                {statusLabel}
-              </span>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
-                  open && "rotate-180",
-                )}
-                aria-hidden
-              />
-            </span>
-
-            <span className="text-[15px] font-bold leading-tight tracking-tight">
-              {venture.title}
-            </span>
-
-            {!stub && venture.time_window && (
-              <span className="mt-1 text-[11px] text-muted-foreground">{venture.time_window}</span>
-            )}
-
-            {venture.venue && (
-              <span className="mt-1 flex min-w-0 items-center gap-1 text-[11.5px] leading-tight text-foreground/80">
-                <span className="truncate">{venture.venue.host_label}</span>
-                {venture.venue.google_place_id && (
-                  <BadgeCheck
-                    className="h-3 w-3 shrink-0 text-accent"
-                    aria-label="Verified place"
-                  />
-                )}
-                {venture.venue.area && (
-                  <>
-                    <span className="opacity-50">·</span>
-                    <span className="truncate text-muted-foreground">{venture.venue.area}</span>
-                  </>
-                )}
-              </span>
-            )}
-
-            <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-3 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-2.5 w-2.5" />
-                {venture.filled_slots}/{venture.max_slots} going
-              </span>
-              {venture.distance_band && (
-                <span className="inline-flex items-center gap-1 text-primary">
-                  <Navigation className="h-2.5 w-2.5" aria-hidden />
-                  {venture.distance_band}
-                </span>
+        <div className="flex min-w-0 flex-col py-0.5">
+          <span className="mb-2 flex w-full items-center justify-between gap-2">
+            <span
+              className={cn(
+                "rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.16em]",
+                accepted
+                  ? "border-accent text-accent"
+                  : pending
+                    ? "border-primary/50 text-primary"
+                    : "border-border text-muted-foreground",
               )}
-              {venture.intents.slice(0, 2).map((intent) => (
-                <span key={intent}>{intent}</span>
-              ))}
-            </span>
-          </button>
-
-          {open && (
-            <div
-              id={detailsId}
-              className="animate-rise space-y-2 border-t border-dashed border-border px-3.5 pb-3.5 pt-3"
             >
-              {venture.note && (
-                <p className="rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-muted-foreground">
-                  {venture.note}
-                </p>
+              {statusLabel}
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
+                open && "rotate-180",
               )}
+              aria-hidden
+            />
+          </span>
 
-              {accepted ? (
+          <span className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight">
+            {venture.title}
+          </span>
+
+          {timing && (
+            <span className="mt-1 truncate text-[11px] text-muted-foreground">{timing}</span>
+          )}
+
+          {venture.venue && (
+            <span className="mt-1 flex min-w-0 items-center gap-1 text-[11px] leading-tight text-foreground/80">
+              <span className="truncate">{venture.venue.host_label}</span>
+              {venture.venue.google_place_id && (
+                <BadgeCheck className="h-3 w-3 shrink-0 text-accent" aria-label="Verified place" />
+              )}
+            </span>
+          )}
+
+          <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-2.5 w-2.5" />
+              {venture.filled_slots}/{venture.max_slots} going
+            </span>
+            {venture.distance_band && (
+              <span className="inline-flex items-center gap-1 text-primary">
+                <Navigation className="h-2.5 w-2.5" aria-hidden />
+                {venture.distance_band}
+              </span>
+            )}
+            {venture.intents[0] && <span>{venture.intents[0]}</span>}
+          </span>
+        </div>
+      </button>
+
+      {open && (
+        <div
+          id={detailsId}
+          className="animate-rise space-y-4 border-t border-border px-4 pb-4 pt-4"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <DetailItem icon={<CalendarClock className="h-3.5 w-3.5" />} label="When">
+              {timing || "Time arranged with host"}
+            </DetailItem>
+            <DetailItem icon={<Users className="h-3.5 w-3.5" />} label="Group">
+              {venture.filled_slots} going · {remaining} open
+            </DetailItem>
+            <DetailItem icon={<UserCheck className="h-3.5 w-3.5" />} label="Hosted by">
+              {venture.host?.display_name || "A Meutuals member"}
+            </DetailItem>
+            <DetailItem icon={<MapPin className="h-3.5 w-3.5" />} label="Area">
+              {venture.venue
+                ? [venture.venue.host_label, venture.venue.area].filter(Boolean).join(" · ")
+                : venture.host?.city || "Shared after acceptance"}
+            </DetailItem>
+          </div>
+
+          {venture.intents.length > 0 && (
+            <div>
+              <p className="label-mono text-muted-foreground">Vibe</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {venture.intents.map((intent) => (
+                  <span
+                    key={intent}
+                    className="rounded-full border border-border px-2.5 py-1 text-[10px] text-muted-foreground"
+                  >
+                    {intent}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {venture.note && (
+            <div>
+              <p className="label-mono text-muted-foreground">From the host</p>
+              <p className="mt-2 rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-muted-foreground">
+                {venture.note}
+              </p>
+            </div>
+          )}
+
+          {accepted ? (
+            <button
+              type="button"
+              onClick={onOpenChat}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+            >
+              <MessageCircle className="h-4 w-4" /> Open party chat
+            </button>
+          ) : pending || declined ? (
+            <div className="space-y-2">
+              <div className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-semibold text-muted-foreground">
+                {pending ? <Users className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {pending ? "Request pending" : "Request declined"}
+              </div>
+              {pending && application && (
                 <button
                   type="button"
-                  onClick={onOpenChat}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+                  onClick={() => onWithdraw(application.id)}
+                  disabled={withdrawing}
+                  className="min-h-11 w-full text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
                 >
-                  <MessageCircle className="h-4 w-4" /> Open party chat
+                  {withdrawing ? "Withdrawing…" : "Withdraw my request"}
                 </button>
-              ) : pending || declined ? (
-                <div className="space-y-2">
-                  <div className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-semibold text-muted-foreground">
-                    {pending ? <Users className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                    {pending ? "Request pending" : "Request declined"}
-                  </div>
-                  {pending && application && (
-                    <button
-                      type="button"
-                      onClick={() => onWithdraw(application.id)}
-                      disabled={withdrawing}
-                      className="min-h-11 w-full text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
-                    >
-                      {withdrawing ? "Withdrawing…" : "Withdraw my request"}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="sr-only" htmlFor={`venture-note-${venture.id}`}>
-                    Optional note to the host
-                  </label>
-                  <input
-                    id={`venture-note-${venture.id}`}
-                    value={note}
-                    onChange={(event) => onNoteChange(event.target.value.slice(0, 180))}
-                    placeholder="Optional note to the host"
-                    className="min-h-11 w-full rounded-xl border border-border bg-background px-3 text-xs outline-none focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={onApply}
-                    disabled={applying || full}
-                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                  >
-                    {applying ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <UserCheck className="h-4 w-4" />
-                    )}
-                    {full ? "This one is full" : "Request this ticket"}
-                  </button>
-                </div>
               )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="sr-only" htmlFor={`venture-note-${venture.id}`}>
+                Optional note to the host
+              </label>
+              <input
+                id={`venture-note-${venture.id}`}
+                value={note}
+                onChange={(event) => onNoteChange(event.target.value.slice(0, 180))}
+                placeholder="Optional note to the host"
+                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 text-xs outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={onApply}
+                disabled={applying || full}
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {applying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserCheck className="h-4 w-4" />
+                )}
+                {full ? "This one is full" : "Request this Venture"}
+              </button>
             </div>
           )}
         </div>
-      </div>
+      )}
     </article>
   );
 }
 
-function ticketDateParts(iso: string, tz: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  const formatter = new Intl.DateTimeFormat("en-GB", {
-    timeZone: tz,
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-  const parts: Record<string, string> = {};
-  for (const part of formatter.formatToParts(date)) parts[part.type] = part.value;
-  return {
-    weekday: (parts.weekday ?? "").toUpperCase(),
-    day: parts.day ?? "",
-    month: (parts.month ?? "").toUpperCase().replace(".", ""),
-  };
+function DetailItem({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl bg-secondary/35 p-3">
+      <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {icon}
+        {label}
+      </p>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-foreground/85">{children}</p>
+    </div>
+  );
 }
