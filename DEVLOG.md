@@ -13,26 +13,22 @@ other agent will trust it.
 **Phase:** pre-launch hardening. Target: App Store + Play + web, **free at
 launch** (no real payments).
 
-**Branch:** `main`. **36 commits ahead of `origin/main` after reconciling seven
+**Branch:** `main`. **38 commits ahead of `origin/main` after reconciling seven
 new Lovable commits.** The user authorised a production push on 2026-08-24, but
-the push is paused until the approved Red venue migrations and credential
-rotations are manually applied and verified. Never force-push.
+the push is paused until the rotated Google server key and its restrictions are
+confirmed. The approved Red Venue changes and push-secret rotation are applied
+and verified. Never force-push.
 
 **Local dev talks to PRODUCTION.** `localhost:8082` uses the production Supabase
 project. Creating a Venture there makes a real row on a real board that 34 real
 users can see. There is no local database in play any more.
 
-**Two venue migrations are written, approved, and NOT RUN** — see the
-2026-08-24 entries.
-Ventures now detects the absent venue schema and serves the pre-venue experience
-instead of failing every list. Venue labels, distance bands, and private arrival
-details remain unavailable until `20260824040000` and `20260824050000` run.
-`20260824034000` and `20260824051000` were manually applied and verified in the
-Lovable SQL Editor on 2026-08-24. Both venue migrations are approved Red changes
-awaiting manual application. A third approved manual action,
-`20260824060000_rotate_exposed_push_dispatch_secret.sql`, must run afterward;
-the resulting secret must be copied directly to Lovable Secrets and never into
-Git or chat.
+**All approved 2026-08-24 Venue migrations are applied and verified.** The
+production drift repair preserved the existing Venue row while moving exact
+coordinates into the private table. `LOVABLE_VENUE_RELEASE_VERIFY.sql` returned
+all 15 checks `true`, including RLS policies, functions, removal of public
+coordinates, and the push-secret rotation. The replacement push secret was
+saved in Lovable without entering Git or chat.
 
 **Agents do not edit the user's repo directly.** The working copy is
 `D:\Dheoryans\Meutuals\mobile-vision-unleashed` on the user's Windows machine.
@@ -54,8 +50,8 @@ are already assessed there.
 | Week 3 — compliance & launch prep | 🟡 engineering pass complete; external launch work remains |
 | Product: audience-primitive decision | 🟡 recommended, **awaiting user decision** |
 | Ventures: times + board + tickets | ✅ done (2026-08-24) |
-| Ventures: venue picker + distance bands | 🟡 manual-first UI built; approved Red migration unrun, quota cap unset |
-| Ventures: accepted-member venue + map | 🟡 built; approved Red migration unrun |
+| Ventures: venue picker + distance bands | 🟡 code + DB verified; Google key rotation/quota confirmation pending |
+| Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
 
 ---
 
@@ -195,6 +191,10 @@ Newest first. Append; don't edit past entries.
   backfills ownership from linked Venture hosts, then removes the legacy public
   coordinate columns and obsolete uniqueness constraint without deleting the
   venue row.
+- Kila ran the repaired Venue migration, private-arrival migration, and
+  database-generated push-secret rotation manually. The consolidated production
+  verifier returned all 15 checks `true`; the new push secret was stored in
+  Lovable and never shared back into the repo or conversation.
 - Targeted ESLint, `tsc --noEmit`, `git diff --check`, the production build, and
   the unauthenticated browser smoke test pass. Full-project lint remains a
   pre-existing baseline of 2,339 findings and is not release-clean.
