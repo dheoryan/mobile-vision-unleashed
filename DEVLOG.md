@@ -61,7 +61,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| _(none)_ | | | |
+| Codex | Centered header identity + logo splash | `src/components/mutuals/Shared.tsx`, `src/components/mutuals/Skeleton.tsx`, `DEVLOG.md` | 2026-08-24 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
