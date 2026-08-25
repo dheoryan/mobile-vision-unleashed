@@ -7,7 +7,6 @@ import {
   Flame,
   Loader2,
   MapPin,
-  MessageCircle,
   RefreshCw,
   Sparkles,
   Ticket,
@@ -34,7 +33,7 @@ import {
 } from "@/lib/tribe-room-store";
 import { cn } from "@/lib/utils";
 
-type RoomView = "room" | "plans";
+export type TribeRoomView = "chat" | "room" | "plans";
 
 export function TribeRoomLayer({
   tribeId,
@@ -42,6 +41,8 @@ export function TribeRoomLayer({
   tribeColor,
   city,
   canParticipate,
+  view,
+  onViewChange,
   onStartVenture,
   onOpenVentures,
   onOpenChats,
@@ -51,12 +52,13 @@ export function TribeRoomLayer({
   tribeColor: string;
   city: string;
   canParticipate: boolean;
+  view: TribeRoomView;
+  onViewChange: (view: TribeRoomView) => void;
   onStartVenture?: (draft: TribeVentureDraft) => void;
   onOpenVentures?: () => void;
   onOpenChats?: () => void;
 }) {
   const { user } = useAuth();
-  const [view, setView] = useState<RoomView>("room");
   const [pulseOpen, setPulseOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const room = useTribeRoom(tribeId, canParticipate);
@@ -92,22 +94,33 @@ export function TribeRoomLayer({
   }, [room.dataUpdatedAt, canParticipate, tribeId]);
 
   return (
-    <section className="mt-4" aria-labelledby="tribe-room-heading">
+    <section
+      className={cn("flex min-h-0 shrink-0 flex-col", view !== "chat" && "flex-1 overflow-hidden")}
+      aria-labelledby="tribe-room-heading"
+    >
       <div className="flex items-center justify-between border-b border-border">
-        <div className="flex min-h-11 items-center gap-5" role="tablist" aria-label="Tribe Room">
-          {(["room", "plans"] as const).map((key) => (
+        <div
+          className="flex min-h-11 flex-1 items-center gap-5"
+          role="tablist"
+          aria-label="Tribe Room"
+        >
+          {(["chat", "room", "plans"] as const).map((key) => (
             <button
               key={key}
               type="button"
               role="tab"
               aria-selected={view === key}
-              onClick={() => setView(key)}
+              onClick={() => onViewChange(key)}
               className={cn(
                 "relative min-h-11 text-xs font-semibold capitalize text-muted-foreground transition-colors",
                 view === key && "text-foreground",
               )}
             >
-              {key === "room" ? "Room" : `Plans${plans.length ? ` · ${plans.length}` : ""}`}
+              {key === "chat"
+                ? "Chat"
+                : key === "room"
+                  ? "Pulse"
+                  : `Plans${plans.length ? ` · ${plans.length}` : ""}`}
               {view === key && (
                 <span
                   className="absolute inset-x-0 bottom-0 h-0.5"
@@ -117,18 +130,20 @@ export function TribeRoomLayer({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setPlanOpen(true)}
-          disabled={!canParticipate}
-          className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold disabled:opacity-40"
-          style={{ color: tribeColor }}
-        >
-          <CalendarPlus className="h-4 w-4" /> Propose
-        </button>
+        {view === "plans" && (
+          <button
+            type="button"
+            onClick={() => setPlanOpen(true)}
+            disabled={!canParticipate}
+            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold disabled:opacity-40"
+            style={{ color: tribeColor }}
+          >
+            <CalendarPlus className="h-4 w-4" /> Propose
+          </button>
+        )}
       </div>
 
-      {room.isError && (
+      {view !== "chat" && room.isError && (
         <div className="mt-4 flex items-center gap-3 border-l-2 border-primary/70 bg-secondary/35 px-4 py-3">
           <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
             Room activities are resting. The live chat below is still open.
@@ -144,7 +159,7 @@ export function TribeRoomLayer({
       )}
 
       {view === "room" ? (
-        <div className="space-y-5 pt-4">
+        <div className="scroll-panel min-h-0 flex-1 space-y-5 overflow-y-auto py-4">
           <DailyPulse
             prompt={prompt}
             answers={pulseAnswers}
@@ -185,17 +200,9 @@ export function TribeRoomLayer({
               />
             </div>
           )}
-
-          <div className="flex items-center gap-3 pt-1">
-            <span className="h-px flex-1 bg-border" />
-            <span id="tribe-room-heading" className="label-mono inline-flex items-center gap-1.5">
-              <MessageCircle className="h-3.5 w-3.5" /> Live room
-            </span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
         </div>
-      ) : (
-        <div className="space-y-3 pt-4">
+      ) : view === "plans" ? (
+        <div className="scroll-panel min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
           {room.isLoading && <RoomLines />}
           {!room.isLoading && plans.length === 0 && (
             <div className="py-9 text-center">
@@ -227,7 +234,11 @@ export function TribeRoomLayer({
             />
           ))}
         </div>
-      )}
+      ) : null}
+
+      <span id="tribe-room-heading" className="sr-only">
+        Tribe Room
+      </span>
 
       <PulseComposer
         open={pulseOpen}

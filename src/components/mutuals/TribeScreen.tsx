@@ -25,7 +25,7 @@ import { SafetyMenu } from "./SafetyMenu";
 import { TribeMark } from "./TribeMark";
 import { QuotedBlock } from "./ReplyPreview";
 import { MessageThreadSkeleton } from "./Skeleton";
-import { TribeRoomLayer } from "./TribeRoomLayer";
+import { TribeRoomLayer, type TribeRoomView } from "./TribeRoomLayer";
 import {
   emptyTribeRoomReactions,
   type TribeRoomReaction,
@@ -103,6 +103,7 @@ export function TribeScreen({
   const initial =
     initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
+  const [roomView, setRoomView] = useState<TribeRoomView>("chat");
 
   useEffect(() => {
     if (!profile.tribeIds.includes(activeTribe)) setActiveTribe(profile.tribeIds[0]);
@@ -119,10 +120,10 @@ export function TribeScreen({
   const liveOnline = useTribeOnlineCount(activeTribe, isJoined);
 
   return (
-    <div className="bg-habitat min-h-screen pb-28">
+    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat overscroll-none">
       {onBack && (
-        <div className="glass sticky top-0 z-30 border-b border-border">
-          <div className="mx-auto flex max-w-md items-center gap-2 px-3 py-2">
+        <div className="glass z-30 shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
+          <div className="mx-auto flex min-h-12 max-w-md items-center gap-2 px-3 py-1">
             <button
               type="button"
               onClick={onBack}
@@ -140,7 +141,7 @@ export function TribeScreen({
         </div>
       )}
       {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
-      <main className="mx-auto max-w-md px-5 pt-3">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-hidden px-5 pb-[env(safe-area-inset-bottom)] pt-2">
         <TribeRoomIdentity tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
 
         <TribeRoomLayer
@@ -149,13 +150,16 @@ export function TribeScreen({
           tribeColor={tribe.colorVar}
           city={profile.city}
           canParticipate={isJoined}
+          view={roomView}
+          onViewChange={setRoomView}
           onStartVenture={onStartVenture}
           onOpenVentures={onOpenVentures}
           onOpenChats={onOpenChats}
         />
 
-        {/* Chat remains the live floor under the room's persistent activities. */}
-        <GroupChat tribeId={activeTribe} canChat={isJoined} />
+        {/* The shell never scrolls. Chat owns the remaining height and only its
+            message pool scrolls; Pulse and Plans are focused sibling views. */}
+        <GroupChat tribeId={activeTribe} canChat={isJoined} hidden={roomView !== "chat"} />
       </main>
     </div>
   );
@@ -290,7 +294,15 @@ const CHAT_REACTIONS = [
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
-function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean }) {
+function GroupChat({
+  tribeId,
+  canChat,
+  hidden = false,
+}: {
+  tribeId: TribeId;
+  canChat: boolean;
+  hidden?: boolean;
+}) {
   const tribe = tribeById(tribeId);
   const { user } = useAuth();
   const [dbTribeId, setDbTribeId] = useState<string | null>(null);
@@ -672,7 +684,12 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       : "Tribe is not ready yet";
 
   return (
-    <div className="relative mt-3 overflow-hidden bg-background">
+    <div
+      className={cn(
+        "relative min-h-0 flex-1 overflow-hidden bg-background",
+        hidden ? "hidden" : "flex flex-col",
+      )}
+    >
       <img
         src={tribe.art}
         alt=""
@@ -682,8 +699,8 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
         className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-contain object-center opacity-[0.07] grayscale"
       />
       <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
-      <div className="relative z-10 pb-3">
-        <div className="scroll-panel flex max-h-[58vh] min-h-72 flex-col gap-2 overflow-y-auto px-3 py-4">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+        <div className="scroll-panel flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-3 py-4">
           {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
@@ -872,7 +889,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
           <div ref={endRef} />
         </div>
 
-        <div className="relative mt-2">
+        <div className="relative shrink-0 border-t border-border/70 bg-background/85 py-2 backdrop-blur-md">
           {mentionSuggestions.length > 0 && (
             <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
               <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">

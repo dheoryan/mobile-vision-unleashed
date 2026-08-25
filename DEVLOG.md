@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Full-height Tribe Chat + native back-stack behavior | `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/TribeRoomLayer.tsx`, `src/routes/index.tsx`, navigation helper/tests, `DEVLOG.md` | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -173,6 +173,27 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Full-height Tribe Chat and native back navigation
+
+- Rebuilt the Tribe Room as a viewport-locked `100dvh` shell. The document no
+  longer scrolls while Chat is active; the identity, `Chat / Pulse / Plans`
+  navigation, and composer remain fixed, and only the message pool owns
+  vertical scrolling. Pulse and Plans are now focused sibling panes instead
+  of permanently consuming the chat viewport.
+- Added an app navigation snapshot to browser history without replacing
+  TanStack Router state. Bottom-tab changes and primary full-screen layers
+  (Tribe room, DM/Venture chat, and post comments) now create real history
+  entries. Android system Back and iOS/browser edge-back therefore restore the
+  previous Meutuals surface before the browser or installed PWA can exit.
+- Added focused tests for valid, layered, and unrelated browser history state.
+  Verification passed: targeted ESLint, `npx tsc --noEmit`, 3/3 navigation
+  tests, and the Cloudflare production build. Both local browser contexts
+  reached the login screen, so signed-in physical-device gesture acceptance
+  remains to be performed by the user.
+- The frontend skill led to the single-active-surface layout rather than
+  squeezing Room activities above a tiny message list; the full-stack skill
+  kept the back behavior in a typed, router-state-preserving helper.
 
 ### 2026-08-25 — User + Codex — Tribe Room production database verified
 

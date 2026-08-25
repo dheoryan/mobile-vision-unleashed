@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
 import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
 import { TribeScreen } from "@/components/mutuals/TribeScreen";
@@ -24,6 +24,12 @@ import { useSaveMyLocation } from "@/lib/location-store";
 import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
 import type { TribeVentureDraft } from "@/lib/tribe-room";
 import { useAnnounceTribeVenture } from "@/lib/tribe-room-store";
+import {
+  currentAppNavigation,
+  readAppNavigation,
+  writeAppNavigation,
+  type AppNavigationSnapshot,
+} from "@/lib/app-navigation";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -89,6 +95,49 @@ function App() {
   const sendDM = useServerFn(sendMessageFn);
   const announceTribeVenture = useAnnounceTribeVenture();
 
+  const restoreNavigation = useCallback((snapshot: AppNavigationSnapshot) => {
+    setTab(snapshot.tab);
+    setTribeChatOpen(snapshot.layer?.kind === "tribe");
+    setInitialTribe(snapshot.layer?.kind === "tribe" ? snapshot.layer.tribeId : undefined);
+    setMessagesOpen(snapshot.layer?.kind === "messages");
+    setOpenThreadUser(snapshot.layer?.kind === "messages" ? (snapshot.layer.userId ?? null) : null);
+    setOpenVentureChat(
+      snapshot.layer?.kind === "messages" ? (snapshot.layer.venture ?? null) : null,
+    );
+    setOpenPostId(snapshot.layer?.kind === "post" ? snapshot.layer.postId : null);
+    setHighlightCommentId(
+      snapshot.layer?.kind === "post" ? (snapshot.layer.commentId ?? null) : null,
+    );
+  }, []);
+
+  const pushNavigation = useCallback(
+    (snapshot: AppNavigationSnapshot) => {
+      writeAppNavigation(snapshot);
+      restoreNavigation(snapshot);
+    },
+    [restoreNavigation],
+  );
+
+  const closeLayer = useCallback(
+    (kind: NonNullable<AppNavigationSnapshot["layer"]>["kind"]) => {
+      if (currentAppNavigation()?.layer?.kind === kind) {
+        window.history.back();
+        return;
+      }
+      restoreNavigation({ tab });
+    },
+    [restoreNavigation, tab],
+  );
+
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const snapshot = readAppNavigation(event.state);
+      if (snapshot) restoreNavigation(snapshot);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [restoreNavigation]);
+
   // Redirect unauthenticated users to login
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -103,7 +152,8 @@ function App() {
       setTabOwnerId(null);
       return;
     }
-    setTab(loadTab(userId));
+    const restoredTab = loadTab(userId);
+    setTab(restoredTab);
     setTabOwnerId(userId);
     setMessagesOpen(false);
     setOpenThreadUser(null);
@@ -114,6 +164,7 @@ function App() {
     setInitialTribe(undefined);
     setTribeChatOpen(false);
     setVentureDraft(null);
+    writeAppNavigation({ tab: restoredTab }, true);
   }, [userId]);
 
   useEffect(() => {
@@ -165,23 +216,21 @@ function App() {
     const i = intentStore.consume();
     if (!i) return;
     if (i.kind === "openThreadWith") {
-      setOpenThreadUser(i.userId);
-      setOpenVentureChat(null);
-      setMessagesOpen(true);
+      pushNavigation({ tab, layer: { kind: "messages", userId: i.userId } });
     } else if (i.kind === "openPost") {
-      setHighlightCommentId(i.commentId ?? null);
-      setOpenPostId(i.postId);
+      pushNavigation({
+        tab,
+        layer: { kind: "post", postId: i.postId, commentId: i.commentId ?? null },
+      });
     } else if (i.kind === "scrollToPost") {
-      setTab("feed");
+      pushNavigation({ tab: "feed" });
       setScrollToPostId(i.postId);
     } else if (i.kind === "openTab") {
-      setTab(i.tab);
+      pushNavigation({ tab: i.tab });
     } else if (i.kind === "openTribe") {
-      setTab("chats");
-      setInitialTribe(i.tribeId);
-      setTribeChatOpen(true);
+      pushNavigation({ tab: "chats", layer: { kind: "tribe", tribeId: i.tribeId } });
     }
-  }, [intent, profile]);
+  }, [intent, profile, pushNavigation, tab]);
 
   const unread = useUnreadCount(threadsQuery.data);
 
@@ -242,9 +291,7 @@ function App() {
     try {
       await sendDM({ data: { recipient_id: person.id, content: message } });
       toast.success(`Hello sent to ${person.name}`);
-      setOpenThreadUser(person.id);
-      setOpenVentureChat(null);
-      setMessagesOpen(true);
+      pushNavigation({ tab, layer: { kind: "messages", userId: person.id } });
       threadsQuery.refetch();
     } catch (e) {
       toast.error((e as Error).message);
@@ -258,9 +305,12 @@ function App() {
   };
 
   const openVentureMessages = (venture: VentureParty) => {
-    setOpenThreadUser(null);
-    setOpenVentureChat(venture);
-    setMessagesOpen(true);
+    pushNavigation({ tab, layer: { kind: "messages", venture } });
+  };
+
+  const changeTab = (nextTab: TabKey) => {
+    if (nextTab === tab && !currentAppNavigation()?.layer) return;
+    pushNavigation({ tab: nextTab });
   };
 
   const screens: Record<TabKey, React.ReactNode> = {
@@ -302,12 +352,10 @@ function App() {
     chats: (
       <ChatsScreen
         profile={profile}
-        onOpenTribeChat={() => setTribeChatOpen(true)}
+        onOpenTribeChat={() => pushNavigation({ tab: "chats", layer: { kind: "tribe" } })}
         onOpenVentureChat={openVentureMessages}
         onOpenThread={(userId) => {
-          setOpenVentureChat(null);
-          setOpenThreadUser(userId);
-          setMessagesOpen(true);
+          pushNavigation({ tab: "chats", layer: { kind: "messages", userId } });
         }}
       />
     ),
@@ -323,34 +371,21 @@ function App() {
           profile={profile}
           setProfile={setProfile}
           initialTribe={initialTribe}
-          onBack={() => {
-            setTribeChatOpen(false);
-            setInitialTribe(undefined);
-          }}
+          onBack={() => closeLayer("tribe")}
           onStartVenture={(draft) => {
             setVentureDraft(draft);
-            setTribeChatOpen(false);
-            setInitialTribe(undefined);
-            setTab("ventures");
+            pushNavigation({ tab: "ventures" });
           }}
           onOpenVentures={() => {
-            setTribeChatOpen(false);
-            setInitialTribe(undefined);
-            setTab("ventures");
+            pushNavigation({ tab: "ventures" });
           }}
           onOpenChats={() => {
-            setTribeChatOpen(false);
-            setInitialTribe(undefined);
-            setTab("chats");
+            pushNavigation({ tab: "chats" });
           }}
         />
         <MessagesPanel
           open={messagesOpen}
-          onClose={() => {
-            setMessagesOpen(false);
-            setOpenThreadUser(null);
-            setOpenVentureChat(null);
-          }}
+          onClose={() => closeLayer("messages")}
           openWithUserId={openThreadUser}
           openWithVenture={openVentureChat}
         />
@@ -371,23 +406,16 @@ function App() {
           render those, rather than reverting to rendering all five. */}
       {screens[tab]}
 
-      <BottomNav active={tab} onChange={setTab} chatsBadge={unread} />
+      <BottomNav active={tab} onChange={changeTab} chatsBadge={unread} />
       <MessagesPanel
         open={messagesOpen}
-        onClose={() => {
-          setMessagesOpen(false);
-          setOpenThreadUser(null);
-          setOpenVentureChat(null);
-        }}
+        onClose={() => closeLayer("messages")}
         openWithUserId={openThreadUser}
         openWithVenture={openVentureChat}
       />
       <CommentsModal
         open={!!openPostId}
-        onClose={() => {
-          setOpenPostId(null);
-          setHighlightCommentId(null);
-        }}
+        onClose={() => closeLayer("post")}
         postId={openPostId}
         highlightCommentId={highlightCommentId}
       />
