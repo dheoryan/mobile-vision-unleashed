@@ -84,6 +84,7 @@ import { VentureTicket, VentureTicketDetail } from "./VentureTicket";
 import { VenuePicker, type PickedVenue } from "./VenuePicker";
 import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { requestBrowserLocation } from "@/lib/location";
+import type { TribeVentureDraft } from "@/lib/tribe-room";
 
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 
@@ -121,12 +122,18 @@ export function VenturesScreen({
   onOpenVentureChat,
   onSendHello: _onSendHello,
   onLaunchVenture,
+  initialTribeDraft,
+  onTribeDraftFinished,
+  onTribeDraftCancelled,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
   onOpenVentureChat: (venture: VentureParty) => void;
   onSendHello?: (person: Person, message: string) => void;
   onLaunchVenture?: () => void;
+  initialTribeDraft?: TribeVentureDraft | null;
+  onTribeDraftFinished?: (draft: TribeVentureDraft, venture: VentureParty) => void;
+  onTribeDraftCancelled?: () => void;
 }) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -135,6 +142,7 @@ export function VenturesScreen({
   const [scope, setScope] = useState<VentureScope>("all");
   const [hostFormOpen, setHostFormOpen] = useState(false);
   const [paywall, setPaywall] = useState(false);
+  const [activeTribeDraft, setActiveTribeDraft] = useState<TribeVentureDraft | null>(null);
 
   const blocked = useBlocked();
   const openQuery = useOpenVentures(scope);
@@ -153,6 +161,16 @@ export function VenturesScreen({
       setStage("intro");
     }
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !initialTribeDraft) return;
+    markVentureIntroSeen(userId);
+    saveStoredVentureMode(userId, "host");
+    setModeState("host");
+    setStage("feature");
+    setActiveTribeDraft(initialTribeDraft);
+    setHostFormOpen(true);
+  }, [initialTribeDraft, userId]);
 
   const openVentures = useMemo(
     () => (openQuery.data ?? []).filter((v) => !blocked.has(v.host_id)),
@@ -224,6 +242,10 @@ export function VenturesScreen({
   const handleCreated = (venture: VentureParty) => {
     onLaunchVenture?.();
     setHostFormOpen(false);
+    if (activeTribeDraft) {
+      onTribeDraftFinished?.(activeTribeDraft, venture);
+      setActiveTribeDraft(null);
+    }
     onOpenVentureChat(venture);
   };
 
@@ -319,6 +341,11 @@ export function VenturesScreen({
                 onCreated={handleCreated}
                 onOpenChat={onOpenVentureChat}
                 onChanged={() => hostedQuery.refetch()}
+                tribeDraft={activeTribeDraft}
+                onDraftCancelled={() => {
+                  setActiveTribeDraft(null);
+                  onTribeDraftCancelled?.();
+                }}
               />
             )}
           </>
@@ -872,6 +899,8 @@ function HostView({
   onCreated,
   onOpenChat,
   onChanged,
+  tribeDraft,
+  onDraftCancelled,
 }: {
   profile: Profile;
   formOpen: boolean;
@@ -881,6 +910,8 @@ function HostView({
   onCreated: (venture: VentureParty) => void;
   onOpenChat: (venture: VentureParty) => void;
   onChanged: () => void;
+  tribeDraft: TribeVentureDraft | null;
+  onDraftCancelled: () => void;
 }) {
   const [hostTab, setHostTab] = useState<"active" | "history">("active");
   const activeVentures = useMemo(
@@ -915,6 +946,7 @@ function HostView({
             onClick={() => {
               if (formOpen) {
                 setFormOpen(false);
+                if (tribeDraft) onDraftCancelled();
               } else {
                 openCreator();
               }
@@ -942,6 +974,7 @@ function HostView({
               onClick={() => {
                 setHostTab(tab);
                 setFormOpen(false);
+                if (tribeDraft) onDraftCancelled();
               }}
               className={cn(
                 "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors",
@@ -965,7 +998,15 @@ function HostView({
       </div>
 
       {formOpen && (
-        <HostForm profile={profile} onCancel={() => setFormOpen(false)} onCreated={onCreated} />
+        <HostForm
+          profile={profile}
+          draft={tribeDraft}
+          onCancel={() => {
+            setFormOpen(false);
+            if (tribeDraft) onDraftCancelled();
+          }}
+          onCreated={onCreated}
+        />
       )}
 
       <div>
@@ -1019,6 +1060,7 @@ function HostForm({
   onCreated,
   editing,
   variant = "inline",
+  draft,
 }: {
   profile: Profile;
   onCancel: () => void;
@@ -1027,13 +1069,14 @@ function HostForm({
   editing?: VentureParty;
   /** "modal" drops the card chrome, because the dialog already provides it. */
   variant?: "inline" | "modal";
+  draft?: TribeVentureDraft | null;
 }) {
   const create = useCreateHostedVenture();
   const update = useUpdateHostedVenture();
   const isEditing = Boolean(editing);
-  const [title, setTitle] = useState(editing?.title ?? "");
+  const [title, setTitle] = useState(editing?.title ?? draft?.title ?? "");
   const [intents, setIntents] = useState<string[]>(editing?.intents ?? []);
-  const [scope, setScope] = useState<VentureScope>(editing?.scope ?? "all");
+  const [scope, setScope] = useState<VentureScope>(editing?.scope ?? (draft ? "mine" : "all"));
   // Timing is three pieces of local state that resolve to two timestamps on
   // submit. `day` and `time` are kept apart because they are picked apart —
   // a chip row and a clock — and joining them earlier would mean re-splitting
@@ -1043,8 +1086,16 @@ function HostForm({
   const [durationMins, setDurationMins] = useState<number>(
     () => durationMinutes(editing ?? {}) ?? 180,
   );
-  const [maxSlots, setMaxSlots] = useState(editing?.max_slots ?? 4);
-  const [note, setNote] = useState(editing?.note ?? "");
+  const [maxSlots, setMaxSlots] = useState(editing?.max_slots ?? draft?.maxSlots ?? 4);
+  const [note, setNote] = useState(
+    editing?.note ??
+      (draft
+        ? [draft.note, `${draft.whenLabel} · ${draft.area}`]
+            .filter(Boolean)
+            .join("\n")
+            .slice(0, 280)
+        : ""),
+  );
   const [venue, setVenue] = useState<PickedVenue | null>(() =>
     editing?.venue
       ? {
@@ -1202,6 +1253,15 @@ function HostForm({
         variant === "inline" && "mb-4 rounded-2xl border border-border bg-card p-4 animate-rise",
       )}
     >
+      {draft && !isEditing && (
+        <div className="mb-5 border-l-2 border-primary bg-primary/5 px-3 py-3">
+          <p className="label-mono text-primary">From your Tribe Room</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            The idea and room size are carried over. Confirm the exact day, time, and public place
+            before it goes live.
+          </p>
+        </div>
+      )}
       <div className="grid gap-3">
         <FieldLabel label="Venture title">
           <input

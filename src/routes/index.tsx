@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { AgeVerification } from "@/components/mutuals/AgeVerification";
 import { useSaveMyLocation } from "@/lib/location-store";
 import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
+import type { TribeVentureDraft } from "@/lib/tribe-room";
+import { useAnnounceTribeVenture } from "@/lib/tribe-room-store";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -81,9 +83,11 @@ function App() {
   // The Tribe room is no longer a root tab. It is a full-screen view pushed
   // from Chats, which is where its group chat now lives.
   const [tribeChatOpen, setTribeChatOpen] = useState(false);
+  const [ventureDraft, setVentureDraft] = useState<TribeVentureDraft | null>(null);
   const intent = useIntent();
   const threadsQuery = useThreads();
   const sendDM = useServerFn(sendMessageFn);
+  const announceTribeVenture = useAnnounceTribeVenture();
 
   // Redirect unauthenticated users to login
   useEffect(() => {
@@ -109,6 +113,7 @@ function App() {
     setScrollToPostId(null);
     setInitialTribe(undefined);
     setTribeChatOpen(false);
+    setVentureDraft(null);
   }, [userId]);
 
   useEffect(() => {
@@ -274,6 +279,24 @@ function App() {
         onOpenVentureChat={openVentureMessages}
         onSendHello={handleSendHello}
         onLaunchVenture={handleLaunchVenture}
+        initialTribeDraft={ventureDraft}
+        onTribeDraftFinished={(draft, venture) => {
+          setVentureDraft(null);
+          announceTribeVenture.mutate(
+            {
+              tribe_key: draft.tribeId,
+              source_message_id: draft.sourceMessageId,
+              venture_id: venture.id,
+            },
+            {
+              onError: (error) =>
+                toast.error("Venture is live, but the Tribe card was not posted", {
+                  description: (error as Error).message,
+                }),
+            },
+          );
+        }}
+        onTribeDraftCancelled={() => setVentureDraft(null)}
       />
     ),
     chats: (
@@ -303,6 +326,22 @@ function App() {
           onBack={() => {
             setTribeChatOpen(false);
             setInitialTribe(undefined);
+          }}
+          onStartVenture={(draft) => {
+            setVentureDraft(draft);
+            setTribeChatOpen(false);
+            setInitialTribe(undefined);
+            setTab("ventures");
+          }}
+          onOpenVentures={() => {
+            setTribeChatOpen(false);
+            setInitialTribe(undefined);
+            setTab("ventures");
+          }}
+          onOpenChats={() => {
+            setTribeChatOpen(false);
+            setInitialTribe(undefined);
+            setTab("chats");
           }}
         />
         <MessagesPanel

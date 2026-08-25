@@ -21,10 +21,9 @@ type Filter = "all" | "tribe" | "ventures" | "direct";
 /**
  * Unread state, and the one thing this screen deliberately cannot do yet.
  *
- * `messages` carries `read_at`, so DM threads have a real unread count.
- * `tribe_messages` and `venture_messages` carry nothing of the kind — there is
- * no per-user read pointer for either, so "unread" is not computable for them
- * against the current schema.
+ * `messages` carries `read_at`, so DM threads have a real unread count. Tribe
+ * rooms now have a per-user pointer too. Venture rooms still do not, so this
+ * intentionally returns no fabricated badge for them.
  *
  * That is fine today and it is why this indirection exists rather than a
  * scattering of `undefined`s: adding a `conversation_reads` table later turns
@@ -33,7 +32,7 @@ type Filter = "all" | "tribe" | "ventures" | "direct";
  * signal, and this app already has notifications doing that job), so it is
  * deliberately not being made here.
  */
-function unreadFor(_kind: "tribe" | "venture", _conversationId: string): number | null {
+function unreadFor(_kind: "venture", _conversationId: string): number | null {
   return null;
 }
 
@@ -43,6 +42,7 @@ type TribeSummary = {
   lastSenderName: string | null;
   lastAt: string | null;
   memberCount: number | null;
+  unreadCount: number;
 };
 
 /** One query for the tribe row: resolve the tribe, take its newest message. */
@@ -84,12 +84,30 @@ function useTribeChatSummary(tribeName: string | null) {
         .select("id", { count: "exact", head: true })
         .eq("tribe_id", tribeRow.id);
 
+      const { data: readPointer } = await supabase
+        .from("tribe_room_reads")
+        .select("last_read_at")
+        .eq("tribe_id", tribeRow.id)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      let unreadCount = 0;
+      if (readPointer?.last_read_at) {
+        const { count: unread } = await supabase
+          .from("tribe_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("tribe_id", tribeRow.id)
+          .neq("sender_id", user!.id)
+          .gt("created_at", readPointer.last_read_at);
+        unreadCount = unread ?? 0;
+      }
+
       return {
         dbTribeId: tribeRow.id,
         lastContent: last?.content ?? null,
         lastSenderName: senderName,
         lastAt: last?.created_at ?? null,
         memberCount: count ?? null,
+        unreadCount,
       };
     },
   });
@@ -305,7 +323,7 @@ export function ChatsScreen({
                   ? `${tribeQuery.data.memberCount} members · everyone in your Tribe`
                   : "Everyone in your Tribe"
               }
-              unread={unreadFor("tribe", tribeQuery.data?.dbTribeId ?? "")}
+              unread={tribeQuery.data?.unreadCount ?? null}
               onClick={onOpenTribeChat}
             />
           </>

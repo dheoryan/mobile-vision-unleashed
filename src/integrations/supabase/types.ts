@@ -777,6 +777,8 @@ export type Database = {
           id: string
           mentions: string[]
           reply_to_id: string | null
+          room_kind: string | null
+          room_metadata: Json
           sender_id: string
           tribe_id: string
         }
@@ -788,6 +790,8 @@ export type Database = {
           id?: string
           mentions?: string[]
           reply_to_id?: string | null
+          room_kind?: string | null
+          room_metadata?: Json
           sender_id: string
           tribe_id: string
         }
@@ -799,6 +803,8 @@ export type Database = {
           id?: string
           mentions?: string[]
           reply_to_id?: string | null
+          room_kind?: string | null
+          room_metadata?: Json
           sender_id?: string
           tribe_id?: string
         }
@@ -808,6 +814,75 @@ export type Database = {
             columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "tribe_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tribe_room_reactions: {
+        Row: {
+          created_at: string
+          message_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          message_id: string
+          reaction: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          message_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tribe_room_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "tribe_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tribe_room_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tribe_room_reads: {
+        Row: {
+          last_read_at: string
+          tribe_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          tribe_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          tribe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tribe_room_reads_tribe_id_fkey"
+            columns: ["tribe_id"]
+            isOneToOne: false
+            referencedRelation: "tribes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tribe_room_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

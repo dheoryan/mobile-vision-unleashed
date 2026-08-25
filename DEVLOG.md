@@ -53,6 +53,7 @@ are already assessed there.
 | Ventures: venue picker + distance bands | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision |
 | Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
 | Installed PWA | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain |
+| Tribe Room participation loop | 🟡 code complete; `20260825010000_tribe_room.sql` and signed-in device acceptance remain |
 
 ---
 
@@ -62,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Tribe Room: Daily Pulse, plan proposals, Venture handoff, reactions, and durable room reads | `DEVLOG.md`; `src/components/mutuals/TribeScreen.tsx`; new Tribe Room components/store/functions; Venture handoff files if required; Supabase types; new `20260825*` migration; focused tests | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -89,6 +90,7 @@ and logged below.
 | **Which art is transparent** | Everything is transparent RGBA now (app illustrations 600x800, Tribe portraits 600x800, crests 256x256) and that is correct — an earlier note here said the Tribe portraits had to stay opaque; testing against the real card colour disproved it. What background-use *does* require is an opaque surface behind the art, which is the container's job: `bg-card` on the Tribe banner and the Discover flip cards. |
 | **Illustration assets** | `src/assets/app-illustrations/*` are **transparent WebP**. `FeatureIllustration` draws no card, border or crop. Any regeneration must preserve transparency, or ship on flat pure #000000 with no vignette/gradient/frame so it can be re-keyed. Black-backed art puts the rectangle back in every empty state. |
 | **Explore ranking** | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius. |
+| **Tribe Room participation loop** | Tribe chat is the live floor, not the whole room. A deterministic Daily Pulse lowers the cost of speaking; loose plan proposals gather explicit interest; only the proposal author can turn one into a real Tribe-scoped Venture; completed Ventures continue into the existing read-only Venture Memory and optional Moot flow. Plans and relationships are never created automatically. |
 
 ---
 
@@ -171,6 +173,48 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Tribe chat became a participation room
+
+- Rebuilt the Tribe surface around the approved **room → plan → Venture →
+  memory** loop. The Tribe artwork header is compact; Daily Pulse, Plans, live
+  Venture announcements, and the chat floor now form one focused vertical
+  workspace rather than another stack of unrelated chat cards.
+- Added a deterministic daily prompt catalog with Tribe-specific prompts,
+  answer composer, answer previews, and lightweight Sparks. Added loose plan
+  proposals with rough timing, public area, capacity, and reciprocal
+  **Interested / I'm in** state. Both composers use the shared accessible
+  `AnimatedModal`; all motion remains CSS-only.
+- Added an explicit handoff from a proposal into the existing Venture creator.
+  Title, context, Tribe-only scope, and room size carry over, while the host
+  must still confirm an exact day/time and a safe public Venue. Once created,
+  the Venture is announced back into the room. Closed announcements direct
+  participants to the existing Venture Memories/Moot recap rather than
+  duplicating that relationship system.
+- Added authenticated server functions and TanStack Query hooks for room
+  listing, Pulse answers, proposals, reaction toggles, durable reads, and
+  Venture announcements. Identity comes only from `context.userId`; inputs are
+  bounded with Zod.
+- Added `20260825010000_tribe_room.sql`: bounded structured fields on
+  `tribe_messages`, normalized reaction and read-pointer tables, membership-
+  aware RLS via a pinned `SECURITY DEFINER` helper, adult-write guards, unique
+  daily-answer/Venture-announcement indexes, and database triggers that stop a
+  client from forging a Venture card or applying a reaction to the wrong item.
+- Chats can now show a real Tribe unread count from the durable pointer. Venture
+  group unread remains deliberately absent because it still has no pointer.
+- The pre-migration app remains safe: enhanced room activities show a retry
+  state and the chat query falls back to the legacy schema instead of failing.
+- Added `LOVABLE_TRIBE_ROOM_RELEASE_VERIFY.sql` for a read-only post-migration
+  check and `npm run check:tribe-room` with three deterministic prompt/metadata
+  tests.
+- Verification: targeted ESLint clean; `npx tsc --noEmit` clean; 3/3 Tribe Room
+  tests pass; production Cloudflare build exits 0. Visual signed-in acceptance
+  could not run because both available localhost browser sessions were at the
+  login screen. The migration has **not** been run against production.
+- Applied the frontend skill's restrained workspace hierarchy and the
+  full-stack skill's explicit authenticated boundary/RLS requirements. Repo
+  decisions override their generic motion guidance: no JS animation library
+  was added.
 
 ### 2026-08-25 — Codex — Device-aware PWA installation guide
 

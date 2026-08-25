@@ -25,6 +25,8 @@ import { SafetyMenu } from "./SafetyMenu";
 import { TribeMark } from "./TribeMark";
 import { QuotedBlock } from "./ReplyPreview";
 import { MessageThreadSkeleton } from "./Skeleton";
+import { TribeRoomLayer } from "./TribeRoomLayer";
+import type { TribeVentureDraft } from "@/lib/tribe-room";
 
 function SwipeReplyRow({
   children,
@@ -78,6 +80,9 @@ export function TribeScreen({
   setProfile,
   initialTribe,
   onBack,
+  onStartVenture,
+  onOpenVentures,
+  onOpenChats,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
@@ -86,6 +91,9 @@ export function TribeScreen({
    *  Without it there is no way out, because the bottom nav is not rendered
    *  over a room you are inside. */
   onBack?: () => void;
+  onStartVenture?: (draft: TribeVentureDraft) => void;
+  onOpenVentures?: () => void;
+  onOpenChats?: () => void;
 }) {
   const isPlus = isPlusEffective(profile.plan);
   const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
@@ -138,7 +146,18 @@ export function TribeScreen({
           onSwitch={() => setAddTribeOpen(true)}
         />
 
-        {/* Group Chat - full screen, no toggle */}
+        <TribeRoomLayer
+          tribeId={activeTribe}
+          tribeName={tribe.name}
+          tribeColor={tribe.colorVar}
+          city={profile.city}
+          canParticipate={isJoined}
+          onStartVenture={onStartVenture}
+          onOpenVentures={onOpenVentures}
+          onOpenChats={onOpenChats}
+        />
+
+        {/* Chat remains the live floor under the room's persistent activities. */}
         <GroupChat tribeId={activeTribe} canChat={isJoined} />
       </main>
 
@@ -230,7 +249,7 @@ function TribeBanner({
     // bg-card matters now that the artwork is transparent: the scrim
     // gradients below were written assuming something opaque behind them, and
     // without a surface they would blend into whatever the page happens to be.
-    <section className="relative mt-5 min-h-44 overflow-hidden rounded-2xl border border-border bg-card">
+    <section className="relative mt-4 min-h-36 overflow-hidden rounded-2xl border border-border bg-card">
       <img
         src={tribe.art}
         alt=""
@@ -256,7 +275,7 @@ function TribeBanner({
         style={{ backgroundColor: tribe.colorVar }}
       />
 
-      <div className="relative flex items-start gap-4 p-5">
+      <div className="relative flex items-start gap-3 p-4">
         {/* The crest is the Move control. It was previously duplicated — once
             standalone above the banner carrying the action, once inside the
             banner as decoration — which is the same mark twice, 20px apart,
@@ -270,7 +289,7 @@ function TribeBanner({
         >
           <TribeMark
             tribe={tribe}
-            size="lg"
+            size="md"
             decorative={false}
             className="transition-transform group-hover:scale-105 motion-reduce:transition-none"
           />
@@ -286,7 +305,7 @@ function TribeBanner({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-2xl font-bold leading-tight drop-shadow-sm">
+            <h2 className="font-display text-xl font-bold leading-tight drop-shadow-sm">
               {tribe.name}
             </h2>
           </div>
@@ -319,12 +338,23 @@ type TribeMessage = {
   attachment_type?: string | null;
   reply_to_id?: string | null;
   mentions?: string[] | null;
+  room_kind?: string | null;
   sender?: TribeMember;
   reply_to?: Pick<
     TribeMessage,
     "id" | "content" | "sender_id" | "attachment_type" | "sender"
   > | null;
 };
+
+type TribeMessageRow = Omit<TribeMessage, "sender" | "reply_to">;
+
+function isTribeRoomSchemaUnavailable(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return (
+    ["PGRST204", "42703"].includes(error.code ?? "") ||
+    (error.message ?? "").toLowerCase().includes("room_kind")
+  );
+}
 
 const QUICK_EMOJIS = [
   "😀",
@@ -442,14 +472,30 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
     }
 
     setLoading(true);
-    const { data, error } = await supabase
+    const enhanced = await supabase
       .from("tribe_messages")
       .select(
-        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at",
+        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind",
       )
       .eq("tribe_id", dbTribeId)
+      .is("room_kind", null)
       .order("created_at", { ascending: false })
       .limit(100);
+
+    let data = enhanced.data as TribeMessageRow[] | null;
+    let error = enhanced.error;
+    if (isTribeRoomSchemaUnavailable(error)) {
+      const legacy = await supabase
+        .from("tribe_messages")
+        .select(
+          "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at",
+        )
+        .eq("tribe_id", dbTribeId)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      data = legacy.data as TribeMessageRow[] | null;
+      error = legacy.error;
+    }
 
     if (error) {
       toast.error("Couldn't load messages");
@@ -458,21 +504,21 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
     }
 
     const rows = [...(data ?? [])].reverse();
-    const senderIds = [...new Set(rows.map((r: any) => r.sender_id))];
-    let profileMap: Record<string, TribeMember> = {};
+    const senderIds = [...new Set(rows.map((row) => row.sender_id))];
+    const profileMap: Record<string, TribeMember> = {};
     if (senderIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, display_name, handle, avatar_emoji, avatar_url")
         .in("id", senderIds);
-      (profiles ?? []).forEach((p: any) => {
-        profileMap[p.id] = p;
+      (profiles ?? []).forEach((profile) => {
+        profileMap[profile.id] = profile;
       });
     }
 
     const mapped: TribeMessage[] = Array.from(
-      new Map(rows.map((row: any) => [row.id, row])).values(),
-    ).map((row: any) => ({
+      new Map(rows.map((row) => [row.id, row])).values(),
+    ).map((row) => ({
       id: row.id,
       tribe_id: row.tribe_id,
       sender_id: row.sender_id,
@@ -482,6 +528,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       attachment_type: row.attachment_type,
       reply_to_id: row.reply_to_id,
       mentions: row.mentions ?? [],
+      room_kind: row.room_kind,
       sender: profileMap[row.sender_id],
     }));
     const byId = new Map(mapped.map((m) => [m.id, m]));
@@ -519,6 +566,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
         },
         async (payload) => {
           const row = payload.new as TribeMessage;
+          if (row.room_kind) return;
           // Fetch sender profile
           const { data: profile } = await supabase
             .from("profiles")
@@ -656,9 +704,9 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       : "Tribe is not ready yet";
 
   return (
-    <div className="mt-4">
-      <div className="rounded-2xl border border-border bg-card p-3">
-        <div className="scroll-panel flex max-h-[55vh] flex-col gap-2 overflow-y-auto px-1 py-1">
+    <div className="mt-3">
+      <div className="border-b border-border pb-3">
+        <div className="scroll-panel flex max-h-[52vh] flex-col gap-2 overflow-y-auto px-1 py-1">
           {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
