@@ -53,7 +53,7 @@ are already assessed there.
 | Ventures: venue picker + distance bands | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision |
 | Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
 | Installed PWA | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain |
-| Tribe Room participation loop | 🟡 code complete; `20260825010000_tribe_room.sql` and signed-in device acceptance remain |
+| Tribe Room participation loop | 🟡 DB migrations applied and all release checks verified; signed-in device acceptance remains |
 
 ---
 
@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Record verified Tribe Room production migrations | `DEVLOG.md` | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -173,6 +173,16 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — User + Codex — Tribe Room production database verified
+
+- The user manually applied `20260825010000_tribe_room.sql` followed by
+  `20260825011000_tribe_chat_reactions.sql` in the Lovable SQL Editor.
+- The updated `LOVABLE_TRIBE_ROOM_RELEASE_VERIFY.sql` completed with every
+  reported check `true`. Structured Room activities, durable Tribe reads, and
+  chat reactions now have their required production schema and policies.
+- No additional database action remains for this release. Signed-in mobile
+  interaction and visual acceptance remain the next validation step.
 
 ### 2026-08-25 — Codex — Corrected Tribe chat visual hierarchy
 
