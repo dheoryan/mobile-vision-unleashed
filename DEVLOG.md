@@ -62,7 +62,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| — | — | — | — |
+| Codex | Nationwide Indonesia GPS coverage ladder | `src/lib/indonesia-location.ts`, focused tests, privacy/DEVLOG if needed | 2026-08-25 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
