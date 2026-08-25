@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Tribe chat atmosphere, reactions, and mobile composer | `DEVLOG.md`, `src/components/mutuals/TribeScreen.tsx`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/lib/tribe-room-store.ts`, `supabase/migrations/20260825011000_tribe_chat_reactions.sql`, `LOVABLE_TRIBE_ROOM_RELEASE_VERIFY.sql`, `tests/tribe-room.test.ts` | 2026-08-25 |
+| Codex | Tribe chat atmosphere, reactions, mobile composer, and Settings relocation | `DEVLOG.md`, `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/ProfileScreen.tsx`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/lib/tribe-room-store.ts`, `supabase/migrations/20260825011000_tribe_chat_reactions.sql`, `LOVABLE_TRIBE_ROOM_RELEASE_VERIFY.sql`, `tests/tribe-room.test.ts` | 2026-08-25 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
