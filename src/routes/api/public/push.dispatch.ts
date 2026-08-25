@@ -87,33 +87,14 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
 
         const actorName = actor?.display_name?.trim() || "Someone";
         const kind = notif.kind as NotificationKind;
-        const verb = notif.venture_id
-          ? "sent a Venture update"
-          : (KIND_TEXT[kind] ?? "sent you an update");
+        const verb = KIND_TEXT[kind] ?? "sent you an update";
 
-        let url = "/";
-        if (
-          (kind === "like" ||
-            kind === "comment" ||
-            kind === "reply" ||
-            kind === "mention" ||
-            kind === "new_post") &&
-          notif.post_id
-        ) {
-          url = `/?openPost=${encodeURIComponent(notif.post_id)}`;
-        } else if (kind === "follow" && actor?.handle) {
-          url = `/u/${encodeURIComponent(actor.handle)}`;
-        } else if (kind === "message") {
-          url = "/";
-        } else if (
-          kind === "venture_apply" ||
-          kind === "venture_accept" ||
-          kind === "venture_message"
-        ) {
-          url = "/";
-        } else if (kind === "tribe_join") {
-          url = "/";
-        }
+        // Route every push through the activity inbox with the source row in
+        // the URL. The screen marks just that row read and applies the same
+        // typed destination logic as an in-app tap. The previous `openPost`
+        // query parameter was never consumed anywhere, while most kinds simply
+        // opened the home tab and lost their context.
+        const url = `/notifications?open=${encodeURIComponent(notif.id)}`;
 
         const payload = {
           title: `${actorName} ${verb}`,
@@ -121,9 +102,10 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
           icon: "/icons/icon-192.png",
           badge: "/icons/icon-192.png",
           url,
-          tag: kind === "tribe_join"
-            ? `${kind}-${notif.id}`
-            : `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
+          tag:
+            kind === "tribe_join"
+              ? `${kind}-${notif.id}`
+              : `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
         };
 
         // Fetch this user's subscriptions

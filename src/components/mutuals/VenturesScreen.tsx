@@ -125,6 +125,8 @@ export function VenturesScreen({
   initialTribeDraft,
   onTribeDraftFinished,
   onTribeDraftCancelled,
+  notificationDestination,
+  onNotificationDestinationConsumed,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
@@ -134,6 +136,11 @@ export function VenturesScreen({
   initialTribeDraft?: TribeVentureDraft | null;
   onTribeDraftFinished?: (draft: TribeVentureDraft, venture: VentureParty) => void;
   onTribeDraftCancelled?: () => void;
+  notificationDestination?: {
+    ventureId: string;
+    mode: "host" | "yours";
+  } | null;
+  onNotificationDestinationConsumed?: () => void;
 }) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -171,6 +178,15 @@ export function VenturesScreen({
     setActiveTribeDraft(initialTribeDraft);
     setHostFormOpen(true);
   }, [initialTribeDraft, userId]);
+
+  useEffect(() => {
+    if (!userId || !notificationDestination) return;
+    markVentureIntroSeen(userId);
+    saveStoredVentureMode(userId, notificationDestination.mode);
+    setModeState(notificationDestination.mode);
+    setStage("feature");
+    setHostFormOpen(false);
+  }, [notificationDestination, userId]);
 
   const openVentures = useMemo(
     () => (openQuery.data ?? []).filter((v) => !blocked.has(v.host_id)),
@@ -312,6 +328,12 @@ export function VenturesScreen({
                   openQuery.refetch();
                   joinedQuery.refetch();
                 }}
+                focusVentureId={
+                  notificationDestination?.mode === "yours"
+                    ? notificationDestination.ventureId
+                    : null
+                }
+                onFocused={onNotificationDestinationConsumed}
               />
             ) : mode === "look" ? (
               <LookView
@@ -346,6 +368,12 @@ export function VenturesScreen({
                   setActiveTribeDraft(null);
                   onTribeDraftCancelled?.();
                 }}
+                focusVentureId={
+                  notificationDestination?.mode === "host"
+                    ? notificationDestination.ventureId
+                    : null
+                }
+                onFocused={onNotificationDestinationConsumed}
               />
             )}
           </>
@@ -394,12 +422,16 @@ function YoursView({
   onOpenChat,
   onBrowse,
   onChanged,
+  focusVentureId,
+  onFocused,
 }: {
   joinedVentures: VentureParty[];
   isLoading: boolean;
   onOpenChat: (venture: VentureParty) => void;
   onBrowse: () => void;
   onChanged: () => void;
+  focusVentureId?: string | null;
+  onFocused?: () => void;
 }) {
   // The store hook already invalidates the venture queries on success, so this
   // only adds the toast and the caller's refetch.
@@ -438,6 +470,14 @@ function YoursView({
   // back is ever showing.
   const [detailId, setDetailId] = useState<string | null>(null);
   const detail = joinedVentures.find((v) => v.id === detailId) ?? null;
+
+  useEffect(() => {
+    if (!focusVentureId || isLoading) return;
+    const focused = joinedVentures.find((venture) => venture.id === focusVentureId);
+    if (focused) setDetailId(focused.id);
+    else toast.error("That Venture is no longer available.");
+    onFocused?.();
+  }, [focusVentureId, isLoading, joinedVentures, onFocused]);
 
   const byStatus = (status: string) =>
     joinedVentures.filter((v) => (v.my_application?.status as string) === status);
@@ -901,6 +941,8 @@ function HostView({
   onChanged,
   tribeDraft,
   onDraftCancelled,
+  focusVentureId,
+  onFocused,
 }: {
   profile: Profile;
   formOpen: boolean;
@@ -912,6 +954,8 @@ function HostView({
   onChanged: () => void;
   tribeDraft: TribeVentureDraft | null;
   onDraftCancelled: () => void;
+  focusVentureId?: string | null;
+  onFocused?: () => void;
 }) {
   const [hostTab, setHostTab] = useState<"active" | "history">("active");
   const activeVentures = useMemo(
@@ -923,6 +967,25 @@ function HostView({
     [hostedVentures],
   );
   const visibleVentures = hostTab === "active" ? activeVentures : historicalVentures;
+
+  useEffect(() => {
+    if (!focusVentureId || isLoading) return;
+    const focused = hostedVentures.find((venture) => venture.id === focusVentureId);
+    if (!focused) {
+      toast.error("That Venture is no longer available.");
+      onFocused?.();
+      return;
+    }
+    setHostTab(focused.status === "closed" ? "history" : "active");
+    setFormOpen(false);
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`hosted-venture-${focused.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      onFocused?.();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusVentureId, hostedVentures, isLoading, onFocused, setFormOpen]);
 
   const openCreator = () => {
     setHostTab("active");
@@ -1015,13 +1078,14 @@ function HostView({
         ) : visibleVentures.length ? (
           <div className="space-y-3">
             {visibleVentures.map((venture) => (
-              <HostedVentureCard
-                key={venture.id}
-                venture={venture}
-                profile={profile}
-                onOpenChat={() => onOpenChat(venture)}
-                onChanged={onChanged}
-              />
+              <div key={venture.id} id={`hosted-venture-${venture.id}`} className="scroll-mt-24">
+                <HostedVentureCard
+                  venture={venture}
+                  profile={profile}
+                  onOpenChat={() => onOpenChat(venture)}
+                  onChanged={onChanged}
+                />
+              </div>
             ))}
           </div>
         ) : hostTab === "active" ? (

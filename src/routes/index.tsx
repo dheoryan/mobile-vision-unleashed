@@ -90,6 +90,11 @@ function App() {
   // from Chats, which is where its group chat now lives.
   const [tribeChatOpen, setTribeChatOpen] = useState(false);
   const [ventureDraft, setVentureDraft] = useState<TribeVentureDraft | null>(null);
+  const [ventureDestination, setVentureDestination] = useState<{
+    ventureId: string;
+    mode: "host" | "yours";
+  } | null>(null);
+  const [pendingVentureChatId, setPendingVentureChatId] = useState<string | null>(null);
   const intent = useIntent();
   const threadsQuery = useThreads();
   const sendDM = useServerFn(sendMessageFn);
@@ -164,6 +169,8 @@ function App() {
     setInitialTribe(undefined);
     setTribeChatOpen(false);
     setVentureDraft(null);
+    setVentureDestination(null);
+    setPendingVentureChatId(null);
     writeAppNavigation({ tab: restoredTab }, true);
   }, [userId]);
 
@@ -217,6 +224,12 @@ function App() {
     if (!i) return;
     if (i.kind === "openThreadWith") {
       pushNavigation({ tab, layer: { kind: "messages", userId: i.userId } });
+    } else if (i.kind === "openVenture") {
+      setVentureDestination({ ventureId: i.ventureId, mode: i.mode });
+      pushNavigation({ tab: "ventures" });
+    } else if (i.kind === "openVentureChat") {
+      setPendingVentureChatId(i.ventureId);
+      pushNavigation({ tab: "chats" });
     } else if (i.kind === "openPost") {
       pushNavigation({
         tab,
@@ -347,6 +360,8 @@ function App() {
           );
         }}
         onTribeDraftCancelled={() => setVentureDraft(null)}
+        notificationDestination={ventureDestination}
+        onNotificationDestinationConsumed={() => setVentureDestination(null)}
       />
     ),
     chats: (
@@ -357,6 +372,8 @@ function App() {
         onOpenThread={(userId) => {
           pushNavigation({ tab: "chats", layer: { kind: "messages", userId } });
         }}
+        initialVentureId={pendingVentureChatId}
+        onInitialVentureConsumed={() => setPendingVentureChatId(null)}
       />
     ),
     profile: <ProfileScreen profile={profile} setProfile={setProfile} />,

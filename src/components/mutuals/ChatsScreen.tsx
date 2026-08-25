@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, UsersRound, Zap } from "lucide-react";
 import { AppHeader } from "./Shared";
@@ -200,11 +200,15 @@ export function ChatsScreen({
   onOpenTribeChat,
   onOpenVentureChat,
   onOpenThread,
+  initialVentureId,
+  onInitialVentureConsumed,
 }: {
   profile: Profile;
   onOpenTribeChat: () => void;
   onOpenVentureChat: (venture: VentureParty) => void;
   onOpenThread: (userId: string) => void;
+  initialVentureId?: string | null;
+  onInitialVentureConsumed?: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const blocked = useBlocked();
@@ -230,6 +234,22 @@ export function ChatsScreen({
       return true;
     });
   }, [hostedQuery.data, joinedQuery.data]);
+
+  useEffect(() => {
+    if (!initialVentureId || joinedQuery.isLoading || hostedQuery.isLoading) return;
+    const venture = ventureChats.find((candidate) => candidate.id === initialVentureId);
+    onInitialVentureConsumed?.();
+    if (!venture) return;
+    setFilter("ventures");
+    onOpenVentureChat(venture);
+  }, [
+    hostedQuery.isLoading,
+    initialVentureId,
+    joinedQuery.isLoading,
+    onInitialVentureConsumed,
+    onOpenVentureChat,
+    ventureChats,
+  ]);
 
   const previewsQuery = useVentureChatPreviews(ventureChats.map((v) => v.id));
 

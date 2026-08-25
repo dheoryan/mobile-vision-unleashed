@@ -6,6 +6,8 @@ export type Intent =
   | { kind: "openPost"; postId: string; commentId?: string }
   | { kind: "scrollToPost"; postId: string }
   | { kind: "openThreadWith"; userId: string }
+  | { kind: "openVenture"; ventureId: string; mode: "host" | "yours" }
+  | { kind: "openVentureChat"; ventureId: string }
   | { kind: "openTab"; tab: TabKey }
   | { kind: "openTribe"; tribeId: TribeId };
 

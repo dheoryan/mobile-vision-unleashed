@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Notification activity inbox | `notifications.tsx`; notification store/functions/tests; intent/navigation plumbing; `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -94,6 +93,7 @@ and logged below.
 | **Explore experience** | The default surface is a daily, focused **Today’s five** deck, not a people grid or a scorecard. A user-selected mood transparently reorders already-authorized candidates; it never changes visibility or rejects anyone. “Maybe later” only advances the deck. Search remains a list because lookup and discovery are different jobs; Tribe previews are secondary to people. Do not restore match percentages or swipe/reject semantics. |
 | **Tribe Room participation loop** | Tribe chat is the live floor, not the whole room. A deterministic Daily Pulse lowers the cost of speaking; loose plan proposals gather explicit interest; only the proposal author can turn one into a real Tribe-scoped Venture; completed Ventures continue into the existing read-only Venture Memory and optional Moot flow. Plans and relationships are never created automatically. |
 | **One live-chat capability set** | Tribe, Venture, and DM chat share the same composer and message actions: text, private photo attachment, direct camera capture, structured reply, and durable Love / Funny / Support reactions. Completed Venture Memories stay read-only. |
+| **Notification read semantics** | Opening the notification screen does **not** mark anything read. A row becomes read when the member selects it; **Read all** is an explicit action. Unread activity stays grouped under New regardless of age. Push and in-app taps share the same typed destination mapping so an attention signal always resolves to its source context. |
 
 ---
 
@@ -186,6 +186,36 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Notification activity inbox
+
+- Replaced the stacked notification-card feed with a restrained activity
+  stream grouped into **New**, **Today**, **This week**, and **Earlier**. The
+  calendar groups use the member's local day, unread state is communicated by
+  structure plus color, and the header exposes a real count with 44 px Back
+  and Read-all controls. Loading, empty, query-error, retry, and visible focus
+  states are all covered.
+- Removed the 1.5-second screen timer that silently marked every row read.
+  Selecting a row now optimistically marks only that notification; Read all is
+  explicit; both mutations restore the cache and surface an error if the
+  authenticated database write fails.
+- Centralized category, action-copy, grouping, and destination decisions in a
+  pure presenter. Likes/comments/replies reach their source, DMs and accepted
+  Hellos open the person, incoming Hellos open the review surface, Venture
+  applications focus Hosting, invites/acceptances focus the relevant ticket,
+  Venture messages open the exact party chat, and Tribe joins open the room.
+- Push payloads now retain the real event verb and deep-link through
+  `/notifications?open=<id>`. The old post query parameter was never consumed,
+  while other push kinds discarded context on the home screen.
+- No database migration or policy change was required. Validation passed:
+  targeted ESLint, `npx tsc --noEmit`, all 4 notification-presenter tests,
+  `git diff --check`, and the complete Cloudflare production build. A real
+  browser pass covered the responsive empty state at desktop and 390×844;
+  both available signed-in sessions had no notification rows, so populated
+  visual acceptance remains for a member with activity.
+- The frontend skill drove the plain-list hierarchy and restrained semantic
+  color; the full-stack skill drove explicit state feedback, typed cross-screen
+  handoffs, optimistic rollback, and testable presentation logic.
 
 ### 2026-08-26 — Codex — Explore “Today’s five” invitation deck
 
