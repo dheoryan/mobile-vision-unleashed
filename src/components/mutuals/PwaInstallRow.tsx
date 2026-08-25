@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
-import { Check, Download, Share, Smartphone } from "lucide-react";
+import {
+  Bell,
+  Check,
+  Download,
+  Menu,
+  MoreVertical,
+  Share,
+  Smartphone,
+  SquarePlus,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import {
   canInstallNow,
   onInstallAvailabilityChange,
@@ -13,6 +25,7 @@ export function PwaInstallRow() {
   const [installable, setInstallable] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "other">("other");
   const [busy, setBusy] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     const syncInstalled = () => setInstalled(isStandalonePwa());
@@ -56,11 +69,7 @@ export function PwaInstallRow() {
       if (outcome === "accepted") {
         toast.success("MEUTUALS is installing.");
       } else if (outcome === "unavailable") {
-        toast.message("Use your browser menu", {
-          description: android
-            ? "Open Chrome’s menu and choose Install app."
-            : "Choose Install app or Add to Home Screen.",
-        });
+        setGuideOpen(true);
       }
     } finally {
       setBusy(false);
@@ -69,49 +78,212 @@ export function PwaInstallRow() {
 
   if (ios) {
     return (
-      <div className="rounded-xl border border-border bg-background p-3">
-        <div className="flex items-start gap-3">
-          <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <div>
-            <p className="text-sm font-semibold">Install on iPhone</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              In Safari, tap Share, choose Add to Home Screen, then open MEUTUALS from its new icon.
-            </p>
+      <>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Install on iPhone</p>
+              <p className="text-[11px] text-muted-foreground">
+                Add MEUTUALS to your Home Screen from Safari.
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            className="min-h-11 shrink-0 rounded-full border border-primary/35 px-3 text-[11px] font-semibold text-primary"
+          >
+            Show steps
+          </button>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-semibold">
-          <span className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-secondary">
-            <Share className="h-3.5 w-3.5 text-primary" /> 1. Share
-          </span>
-          <span className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-secondary">
-            <Download className="h-3.5 w-3.5 text-primary" /> 2. Add to Home
-          </span>
-        </div>
-      </div>
+        <InstallGuide open={guideOpen} platform="ios" onClose={() => setGuideOpen(false)} />
+      </>
     );
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <Smartphone className="h-4 w-4 shrink-0 text-primary" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">Install MEUTUALS</p>
-          <p className="text-[11px] text-muted-foreground">
-            {installable
-              ? "Add the full-screen app to this device."
-              : "Available from your browser menu."}
-          </p>
+    <>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Install MEUTUALS</p>
+            <p className="text-[11px] text-muted-foreground">
+              {installable
+                ? "Add the full-screen app to this device."
+                : "See the steps for your browser and device."}
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={install}
+          disabled={busy}
+          className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {busy ? "Opening…" : installable ? "Install" : "Show steps"}
+        </button>
       </div>
+      <InstallGuide
+        open={guideOpen}
+        platform={android ? "android" : "other"}
+        onClose={() => setGuideOpen(false)}
+      />
+    </>
+  );
+}
+
+interface GuideStep {
+  icon: LucideIcon;
+  title: string;
+  detail: string;
+}
+
+const IOS_STEPS: GuideStep[] = [
+  {
+    icon: Smartphone,
+    title: "Open MEUTUALS in Safari",
+    detail: "If you are viewing this in another browser, copy the address and open it in Safari.",
+  },
+  {
+    icon: Share,
+    title: "Tap the Share button",
+    detail: "It is the square with an upward arrow in Safari's toolbar.",
+  },
+  {
+    icon: SquarePlus,
+    title: "Choose Add to Home Screen",
+    detail: "Scroll down in the Share menu if the option is not immediately visible.",
+  },
+  {
+    icon: Check,
+    title: "Tap Add, then open the icon",
+    detail: "MEUTUALS will launch full-screen from your Home Screen like an installed app.",
+  },
+];
+
+const ANDROID_STEPS: GuideStep[] = [
+  {
+    icon: MoreVertical,
+    title: "Open your browser menu",
+    detail: "In Chrome, tap ⋮ at the top right. In Samsung Internet, tap ≡ at the bottom right.",
+  },
+  {
+    icon: Download,
+    title: "Choose the install option",
+    detail:
+      'Tap "Install app" or "Add to Home screen". Samsung Internet may show "Add page to" first.',
+  },
+  {
+    icon: Check,
+    title: "Confirm Install or Add",
+    detail: "Your browser will create a MEUTUALS icon on the Home Screen or in the app drawer.",
+  },
+  {
+    icon: Smartphone,
+    title: "Open MEUTUALS from its icon",
+    detail: "It will launch without the normal browser controls and feel like a standalone app.",
+  },
+];
+
+const DESKTOP_STEPS: GuideStep[] = [
+  {
+    icon: Menu,
+    title: "Open Chrome or Edge",
+    detail: "MEUTUALS installation is supported best in a Chromium-based desktop browser.",
+  },
+  {
+    icon: Download,
+    title: "Choose Install MEUTUALS",
+    detail:
+      "Use the install icon in the address bar, or open the browser menu and choose Install app.",
+  },
+  {
+    icon: Check,
+    title: "Confirm the installation",
+    detail: "MEUTUALS will open in its own window and can be pinned like another desktop app.",
+  },
+];
+
+function InstallGuide({
+  open,
+  platform,
+  onClose,
+}: {
+  open: boolean;
+  platform: "ios" | "android" | "other";
+  onClose: () => void;
+}) {
+  const steps =
+    platform === "ios" ? IOS_STEPS : platform === "android" ? ANDROID_STEPS : DESKTOP_STEPS;
+  const title =
+    platform === "ios"
+      ? "Install on iPhone"
+      : platform === "android"
+        ? "Install on Android"
+        : "Install on this computer";
+
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
+      title={title}
+      contentClassName="max-h-[88dvh] overflow-y-auto p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+    >
       <button
         type="button"
-        onClick={install}
-        disabled={busy}
-        className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+        onClick={onClose}
+        aria-label="Close installation guide"
+        className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
       >
-        {busy ? "Opening…" : installable ? "Install" : "How"}
+        <X className="h-5 w-5" />
       </button>
-    </div>
+
+      <p className="label-mono text-primary">Install MEUTUALS</p>
+      <h3 className="mt-2 pr-10 font-display text-2xl font-bold">{title}</h3>
+      <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
+        Installation does not create a second account. It adds the same MEUTUALS experience to your
+        device with a full-screen launch and easier access.
+      </p>
+
+      <ol className="mt-6 border-y border-border">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          return (
+            <li key={step.title} className="flex gap-3 border-b border-border py-4 last:border-b-0">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">
+                  <span className="mr-1.5 text-primary">{index + 1}.</span>
+                  {step.title}
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  {step.detail}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="mt-5 flex items-start gap-3 border-l-2 border-primary pl-4">
+        <Bell className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          After opening the installed app, enable notifications in Settings if you want Venture,
+          Chat, and request alerts on this device.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground"
+      >
+        Got it
+      </button>
+    </AnimatedModal>
   );
 }

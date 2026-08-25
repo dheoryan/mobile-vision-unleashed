@@ -62,7 +62,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Device-aware installed-PWA guide | `src/components/mutuals/PwaInstallRow.tsx`, `DEVLOG.md` | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -171,6 +171,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Device-aware PWA installation guide
+
+- Replaced the generic **Use your browser menu** toast with an accessible
+  bottom-sheet installation guide launched from Settings.
+- Added separate numbered instructions for iPhone Safari, Android Chrome,
+  Samsung Internet, and desktop Chrome/Edge, including the exact menu labels
+  users may encounter and what happens after confirmation.
+- The Settings row now says **Show steps** when a native browser prompt is not
+  available. Android keeps the one-tap native **Install** action when the
+  `beforeinstallprompt` event is available; installed mode retains its compact
+  success state.
+- Added a short post-install note directing users to enable Venture, Chat, and
+  request notifications from the installed app. No new permissions are
+  requested by opening the guide.
+- Formatting, targeted ESLint, TypeScript, PWA release checks, diff checks, and
+  the Cloudflare production build pass.
 
 ### 2026-08-25 — Codex — Explicit current-area confirmation UX
 
