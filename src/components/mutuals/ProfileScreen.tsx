@@ -529,11 +529,11 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * City, which follows the person rather than the form.
+ * City derived from the person's last explicit location update.
  *
  * When location is on, the server re-derives the city from the stored
  * coordinates on every save, so typing a different one here would be
- * overwritten the next time the app updates their position. Rather than let
+ * overwritten the next time the person updates their area. Rather than let
  * that fight happen silently, the picker is replaced with the derived value
  * and a way to refresh it.
  *
@@ -588,8 +588,7 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
         </button>
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-        Follows your location, so it stays right when you move. Turn off nearby in Settings to set
-        it yourself.
+        Updates only when you tap Update. MEUTUALS does not track your location in the background.
       </p>
     </div>
   );
@@ -1145,12 +1144,12 @@ function SettingsSheet({
     setLocating(true);
     try {
       const browserLocation = await requestBrowserLocation();
-      await saveLocation.mutateAsync({
+      const saved = await saveLocation.mutateAsync({
         ...browserLocation,
         radius_km: (location?.radius_km ?? 15) as LocationRadiusKm,
         discoverable: location?.discoverable ?? true,
       });
-      toast.success("Approximate location updated.");
+      toast.success(saved.city ? `Current area updated — ${saved.city}` : "Current area updated.");
     } catch (error) {
       toast.error("Location unavailable", { description: (error as Error).message });
     } finally {
@@ -1258,7 +1257,7 @@ function SettingsSheet({
                   ) : (
                     <LocateFixed className="h-4 w-4" />
                   )}{" "}
-                  Enable nearby
+                  Use my current area
                 </button>
               </>
             ) : (
@@ -1269,7 +1268,8 @@ function SettingsSheet({
                     <div>
                       <p className="text-sm font-semibold">Approximate area saved</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Coordinates remain private. Only distance bands are shared.
+                        Coordinates remain private. Only distance bands are shared. Your area
+                        changes only when you update it.
                       </p>
                     </div>
                   </div>
@@ -1311,8 +1311,8 @@ function SettingsSheet({
                     disabled={locating}
                     className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold"
                   >
-                    <RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Refresh
-                    area
+                    <RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Update
+                    current area
                   </button>
                   <button
                     type="button"
@@ -1340,8 +1340,8 @@ function SettingsSheet({
           <div className="mt-2 flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
             <FeatureIllustration src={safetyArt} size="sm" className="shrink-0" />
             <p className="text-xs leading-relaxed text-muted-foreground">
-              You control what you share. Nearby uses an approximate area, never your exact
-              location, and only while you leave it switched on.
+              You control what you share. Nearby uses your last confirmed approximate area, never an
+              exact pin or background tracking.
             </p>
           </div>
           <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">

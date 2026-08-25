@@ -500,39 +500,83 @@ export function Onboarding({
               body="These signals make Discover useful instead of random."
             />
             <div className="mt-6 space-y-6">
-              {/* Detect FIRST, picker second.
-                  The previous order put the manual country/city selects on top
-                  with their own instruction ("Choose a standardized country,
-                  then city"), then the detect button, then a third line saying
-                  the city updates itself from location. Three instructions
-                  stacked, the last two contradicting the first — and the
-                  cheapest, most accurate path was buried at the bottom. The
-                  action people should take is now the first thing they see;
-                  the picker is explicitly the fallback. */}
+              {/* Device location is the primary path. Manual selection is a
+                  recovery path for denied permissions or unavailable GPS, not
+                  a second competing source of truth. */}
               <div>
                 <p className="label-mono mb-1 text-muted-foreground">City or local area</p>
-                <button
-                  type="button"
-                  onClick={locate}
-                  disabled={locating}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary disabled:opacity-60"
-                >
-                  {locating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <LocateFixed className="h-4 w-4" />
-                  )}
-                  {city ? "Detect again" : "Use my location"}
-                </button>
-                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  {city
-                    ? "Your area stays right on its own whenever your location changes."
-                    : "Fastest and stays accurate if you move. Or pick it yourself below."}
-                </p>
-
-                <div className="mt-3">
-                  <CitySelect value={city} onChange={setCity} label="Or choose a city manually" />
-                </div>
+                {location ? (
+                  <div className="rounded-2xl border border-primary/35 bg-primary/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                          Current area confirmed
+                        </p>
+                        <p className="mt-1 truncate text-sm font-semibold">
+                          {city || "Area found"}
+                        </p>
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                          Updates only when you ask. MEUTUALS never tracks location in the
+                          background.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={locate}
+                        disabled={locating}
+                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-primary/35 text-xs font-semibold text-primary disabled:opacity-60"
+                      >
+                        {locating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <LocateFixed className="h-4 w-4" />
+                        )}
+                        Check again
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLocation(null);
+                          setCity("");
+                        }}
+                        className="min-h-11 rounded-xl border border-border px-3 text-xs font-semibold text-muted-foreground"
+                      >
+                        Choose manually
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={locate}
+                      disabled={locating}
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary disabled:opacity-60"
+                    >
+                      {locating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <LocateFixed className="h-4 w-4" />
+                      )}
+                      {locating ? "Finding your area…" : "Use my current area"}
+                    </button>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                      Uses this device once to find your district or city. Your pin is never shown.
+                    </p>
+                    <div className="mt-4 border-t border-border pt-4">
+                      <CitySelect
+                        value={city}
+                        onChange={setCity}
+                        label="Can't use device location? Choose manually"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <Field
@@ -611,7 +655,7 @@ export function Onboarding({
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Approximate location ready</p>
                     <p className="text-[11px] text-muted-foreground">
-                      You can pause or remove it in Settings.
+                      {city ? `${city} · ` : ""}Update, pause, or remove it in Settings.
                     </p>
                   </div>
                 </div>

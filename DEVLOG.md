@@ -62,7 +62,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Bumble-informed explicit location confirmation UX | `src/components/mutuals/Onboarding.tsx`, `src/components/mutuals/ProfileScreen.tsx`, `DEVLOG.md` | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -171,6 +171,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Explicit current-area confirmation UX
+
+- Adapted the useful part of Bumble's current GPS-first pattern without
+  adopting background tracking or virtual location. Onboarding now leads with
+  **Use my current area**, shows the resolved district/city in a confirmed
+  state, and makes manual catalog selection the permission-denied fallback.
+- Removed copy that incorrectly promised the area would stay current on its
+  own. Onboarding, Edit Profile, and Settings now say that the saved area only
+  changes after an explicit user update and that MEUTUALS does not track in the
+  background.
+- Kept spoof-resistant nearby behavior intact: current-area GPS and the
+  nationwide BIG hierarchy drive proximity; a manual city remains a profile
+  fallback and does not create a private coordinate or distance band.
+- No migration, Google API activation, background permission, or Travel Mode
+  was added. TypeScript, targeted ESLint (one pre-existing Fast Refresh
+  warning), formatting, diff checks, and the Cloudflare production build pass.
 
 ### 2026-08-25 — Codex — Nationwide Indonesia GPS coverage completed
 
