@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| — | — | — | — |
+| Codex | Full-height Tribe Chat + native back-stack behavior | `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/TribeRoomLayer.tsx`, `src/routes/index.tsx`, navigation helper/tests, `DEVLOG.md` | 2026-08-25 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
