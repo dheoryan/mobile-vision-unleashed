@@ -62,7 +62,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Indonesia district-level GPS labels | `src/lib/location*`, onboarding/profile location UI, privacy, focused tests | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -78,7 +78,7 @@ and logged below.
 | **Payments** | Free at launch. No processor. When it happens: StoreKit / Play Billing / hosted checkout — **never** an in-app card form (Apple 3.1.1). Entitlement must be granted server-side from the store webhook, since `profiles.plan` is deliberately not user-writable. |
 | **Animation** | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library. |
 | **Modals** | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals. |
-| **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
+| **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. For Indonesia, the same rounded coordinate (without account identity) is resolved against BIG's official district boundary service; failure falls back to the offline world-city catalog. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
 | **Google Venue precision** | Manual host-authored place + area is the production Venue flow. Google search, badges, external maps, embeds, and server calls are gated by `GOOGLE_PLACES_ENABLED = false` pending a team decision on API terms, restrictions, and quota. Re-enable through that single flag only after credentials are approved. |
 | **Pushing to remote** | User-authorised only. Both agents. |
 | **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
@@ -171,6 +171,27 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Indonesia district-level GPS labels
+
+- Replaced Indonesia's major-city-only GPS label with a server-side lookup
+  against Badan Informasi Geospasial's nationwide district boundary layer.
+  Auto-location now returns locality labels such as `Tambun Selatan, Kabupaten
+  Bekasi`, `Cikarang Timur, Kabupaten Bekasi`, and `Cakung, Jakarta Timur`.
+- The provider receives only the same two-decimal coordinate stored by
+  MEUTUALS (roughly 1 km), never the user ID. The request is authenticated at
+  the app boundary, limited to Indonesia, times out after five seconds, and
+  falls back to the existing offline world-city catalog.
+- Explicit auto-location now requests a fresh high-accuracy browser fix instead
+  of accepting a cached network position up to ten minutes old. Onboarding and
+  profile copy now describe a city or local area rather than promising only a
+  major city.
+- Updated Privacy to disclose BIG and the rounded-coordinate boundary lookup.
+  No database migration, API key, or Google Places enablement is required.
+- Added focused parser, privacy-rounding, malformed-response, and label-format
+  tests. Live BIG checks resolved Bekasi, Tambun, Cikarang, and Cakung; focused
+  tests, TypeScript, targeted ESLint (one pre-existing Fast Refresh warning),
+  `git diff --check`, and the Cloudflare production build passed.
 
 ### 2026-08-24 — Codex — Installed PWA completed
 

@@ -574,7 +574,7 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
 
   return (
     <div>
-      <p className="label-mono mb-1 text-muted-foreground">City</p>
+      <p className="label-mono mb-1 text-muted-foreground">City or local area</p>
       <div className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background/60 px-4">
         <LocateFixed className="h-4 w-4 shrink-0 text-primary" />
         <span className="min-w-0 flex-1 truncate text-sm">{value || "Not set yet"}</span>

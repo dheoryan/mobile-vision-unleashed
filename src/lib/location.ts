@@ -14,19 +14,22 @@ export function requestBrowserLocation(): Promise<BrowserLocation> {
 
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      (position) => resolve({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy_m: position.coords.accuracy,
-      }),
+      (position) =>
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy_m: position.coords.accuracy,
+        }),
       (error) => {
-        const message = error.code === error.PERMISSION_DENIED
-          ? "Location permission was denied. You can continue with city-only discovery."
-          : "We couldn't get your location. Try again somewhere with a clearer signal.";
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission was denied. You can continue with city-only discovery."
+            : "We couldn't get your location. Try again somewhere with a clearer signal.";
         reject(new Error(message));
       },
-      { enableHighAccuracy: false, timeout: 12_000, maximumAge: 10 * 60_000 },
+      // This runs only after an explicit tap, so favour a fresh GPS fix over a
+      // cached network estimate that may belong to another part of the metro.
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
   });
 }
-

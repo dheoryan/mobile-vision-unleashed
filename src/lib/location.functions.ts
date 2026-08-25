@@ -2,8 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { cityLabelFor } from "@/lib/city-options";
+import { resolveIndonesiaAdministrativeArea } from "@/lib/indonesia-location";
 
 const radiusSchema = z.union([z.literal(5), z.literal(15), z.literal(50)]);
+const browserLocationSchema = z.object({
+  latitude: z.number().finite().min(-90).max(90),
+  longitude: z.number().finite().min(-180).max(180),
+  accuracy_m: z.number().finite().min(0).max(100_000),
+});
 
 export type LocationSettings = {
   discoverable: boolean;
@@ -17,6 +23,15 @@ export type SavedLocation = LocationSettings & {
    *  a city in the catalog — their existing city is left untouched. */
   city: string | null;
 };
+
+function approximateCoordinate(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+async function resolveLocationLabel(latitude: number, longitude: number): Promise<string | null> {
+  const indonesia = await resolveIndonesiaAdministrativeArea(latitude, longitude);
+  return indonesia?.label ?? cityLabelFor(latitude, longitude);
+}
 
 export type NearbyProfile = {
   id: string;
@@ -49,31 +64,44 @@ export const getMyLocationSettings = createServerFn({ method: "GET" })
     return data as LocationSettings | null;
   });
 
+export const resolveMyLocationLabel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => browserLocationSchema.parse(input))
+  .handler(async ({ data }): Promise<{ city: string | null }> => {
+    const latitude = approximateCoordinate(data.latitude);
+    const longitude = approximateCoordinate(data.longitude);
+    return { city: await resolveLocationLabel(latitude, longitude) };
+  });
+
 export const saveMyLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({
-    latitude: z.number().finite().min(-90).max(90),
-    longitude: z.number().finite().min(-180).max(180),
-    accuracy_m: z.number().finite().min(0).max(100_000),
-    discoverable: z.boolean().default(true),
-    radius_km: radiusSchema.default(15),
-  }).parse(input))
+  .inputValidator((input: unknown) =>
+    browserLocationSchema
+      .extend({
+        discoverable: z.boolean().default(true),
+        radius_km: radiusSchema.default(15),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }): Promise<SavedLocation> => {
     const { supabase, userId } = context;
     // About 1.1 km at the equator: enough for proximity bands, deliberately
     // too coarse to preserve a home/building-level coordinate.
-    const latitude = Math.round(data.latitude * 100) / 100;
-    const longitude = Math.round(data.longitude * 100) / 100;
+    const latitude = approximateCoordinate(data.latitude);
+    const longitude = approximateCoordinate(data.longitude);
     const { data: row, error } = await supabase
       .from("profile_locations")
-      .upsert({
-        user_id: userId,
-        latitude,
-        longitude,
-        accuracy_m: Math.round(data.accuracy_m),
-        discoverable: data.discoverable,
-        radius_km: data.radius_km,
-      }, { onConflict: "user_id" })
+      .upsert(
+        {
+          user_id: userId,
+          latitude,
+          longitude,
+          accuracy_m: Math.round(data.accuracy_m),
+          discoverable: data.discoverable,
+          radius_km: data.radius_km,
+        },
+        { onConflict: "user_id" },
+      )
       .select("discoverable, radius_km, accuracy_m, updated_at")
       .single();
     if (error) throw new Error(error.message);
@@ -85,10 +113,9 @@ export const saveMyLocation = createServerFn({ method: "POST" })
     // means every location save re-derives it, so the city follows the person.
     //
     // Done server-side rather than in the client so it cannot be desynced by a
-    // direct PostgREST write, and skipped entirely when the person is not near
-    // a known city — better to leave whatever they chose than to relabel
-    // someone in rural Java as living in Jakarta.
-    const city = cityLabelFor(latitude, longitude);
+    // direct PostgREST write. Indonesia uses official district boundaries;
+    // everywhere else keeps the privacy-preserving city-catalog fallback.
+    const city = await resolveLocationLabel(latitude, longitude);
     if (city) {
       const { error: cityError } = await supabase
         .from("profiles")
@@ -105,10 +132,14 @@ export const saveMyLocation = createServerFn({ method: "POST" })
 
 export const updateMyLocationSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({
-    discoverable: z.boolean(),
-    radius_km: radiusSchema,
-  }).parse(input))
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        discoverable: z.boolean(),
+        radius_km: radiusSchema,
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }): Promise<LocationSettings> => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
@@ -133,24 +164,37 @@ export const deleteMyLocation = createServerFn({ method: "POST" })
 
 export const listNearbyProfiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ limit: z.number().int().min(1).max(50).default(20) }).parse(input ?? {}))
+  .inputValidator((input: unknown) =>
+    z.object({ limit: z.number().int().min(1).max(50).default(20) }).parse(input ?? {}),
+  )
   .handler(async ({ data, context }): Promise<NearbyProfile[]> => {
     const { supabase } = context;
-    const { data: matches, error: matchError } = await supabase.rpc("list_nearby_profile_matches", { _limit: data.limit });
+    const { data: matches, error: matchError } = await supabase.rpc("list_nearby_profile_matches", {
+      _limit: data.limit,
+    });
     if (matchError) throw new Error(matchError.message);
     if (!matches?.length) return [];
 
     const ids = matches.map((match) => match.profile_id);
     const { data: profiles, error } = await supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
+      .select(
+        "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan",
+      )
       .in("id", ids);
     if (error) throw new Error(error.message);
     const byId = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
 
     return matches.flatMap((match) => {
       const profile = byId.get(match.profile_id);
-      return profile ? [{ ...profile, distance_band: match.distance_band, match_score: match.match_score } as NearbyProfile] : [];
+      return profile
+        ? [
+            {
+              ...profile,
+              distance_band: match.distance_band,
+              match_score: match.match_score,
+            } as NearbyProfile,
+          ]
+        : [];
     });
   });
-
