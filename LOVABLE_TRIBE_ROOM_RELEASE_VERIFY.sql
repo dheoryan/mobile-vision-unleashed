@@ -2,6 +2,7 @@
 --
 -- First run:
 --   supabase/migrations/20260825010000_tribe_room.sql
+--   supabase/migrations/20260825011000_tribe_chat_reactions.sql
 --
 -- Then run this file. It is read-only and returns booleans suitable for a
 -- screenshot. Every row must be true before the Tribe Room code is deployed.
@@ -22,6 +23,15 @@ select 'room_metadata_ready', exists (
 )
 union all
 select 'reactions_ready', to_regclass('public.tribe_room_reactions') is not null
+union all
+select 'chat_reaction_values_ready', exists (
+  select 1
+  from pg_constraint
+  where conname = 'tribe_room_reactions_reaction_check'
+    and pg_get_constraintdef(oid) ilike '%heart%'
+    and pg_get_constraintdef(oid) ilike '%laugh%'
+    and pg_get_constraintdef(oid) ilike '%support%'
+)
 union all
 select 'read_pointer_ready', to_regclass('public.tribe_room_reads') is not null
 union all

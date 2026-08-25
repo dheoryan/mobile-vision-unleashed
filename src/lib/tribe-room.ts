@@ -1,7 +1,15 @@
 import type { TribeId } from "@/lib/mutuals-data";
 
 export type TribeRoomKind = "pulse_answer" | "plan" | "venture";
-export type TribeRoomReaction = "spark" | "interested";
+export type TribeRoomReaction = "spark" | "interested" | "heart" | "laugh" | "support";
+
+export const emptyTribeRoomReactions = (): Record<TribeRoomReaction, number> => ({
+  spark: 0,
+  interested: 0,
+  heart: 0,
+  laugh: 0,
+  support: 0,
+});
 export type TribeRoomMetadataValue =
   | string
   | number

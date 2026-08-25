@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dailyPulse, roomMetadataNumber, roomMetadataString } from "../src/lib/tribe-room.ts";
+import {
+  dailyPulse,
+  emptyTribeRoomReactions,
+  roomMetadataNumber,
+  roomMetadataString,
+} from "../src/lib/tribe-room.ts";
 
 test("Daily Pulse is stable for one Tribe and local date", () => {
   const morning = dailyPulse("cat", new Date(2026, 7, 25, 8, 0));
@@ -26,4 +31,14 @@ test("Room metadata readers reject unexpected values", () => {
   assert.equal(roomMetadataString(metadata, "unsafe", "fallback"), "fallback");
   assert.equal(roomMetadataNumber(metadata, "max_slots", 4), 6);
   assert.equal(roomMetadataNumber(metadata, "area", 4), 4);
+});
+
+test("Structured and chat reaction counters share a complete zero state", () => {
+  assert.deepEqual(emptyTribeRoomReactions(), {
+    spark: 0,
+    interested: 0,
+    heart: 0,
+    laugh: 0,
+    support: 0,
+  });
 });

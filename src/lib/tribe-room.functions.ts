@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { emptyTribeRoomReactions } from "@/lib/tribe-room";
 import type {
   TribeRoomAuthor,
   TribeRoomItem,
@@ -118,7 +119,7 @@ export const listTribeRoom = createServerFn({ method: "GET" })
       user_id: string;
       reaction: TribeRoomReaction;
     }>) {
-      const counts = reactionCounts.get(row.message_id) ?? { spark: 0, interested: 0 };
+      const counts = reactionCounts.get(row.message_id) ?? emptyTribeRoomReactions();
       counts[row.reaction] += 1;
       reactionCounts.set(row.message_id, counts);
       if (row.user_id === userId) {
@@ -146,7 +147,7 @@ export const listTribeRoom = createServerFn({ method: "GET" })
         return venture ? { ...metadata, venture } : metadata;
       })(),
       author: authors.get(row.sender_id) ?? null,
-      reactions: reactionCounts.get(row.id) ?? { spark: 0, interested: 0 },
+      reactions: reactionCounts.get(row.id) ?? emptyTribeRoomReactions(),
       my_reactions: mine.get(row.id) ?? [],
     }));
 
@@ -240,7 +241,7 @@ export const toggleTribeRoomReaction = createServerFn({ method: "POST" })
     z
       .object({
         message_id: z.string().uuid(),
-        reaction: z.enum(["spark", "interested"]),
+        reaction: z.enum(["spark", "interested", "heart", "laugh", "support"]),
       })
       .parse(input),
   )

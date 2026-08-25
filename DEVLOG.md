@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Tribe chat atmosphere, reactions, mobile composer, and Settings relocation | `DEVLOG.md`, `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/ProfileScreen.tsx`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/lib/tribe-room-store.ts`, `supabase/migrations/20260825011000_tribe_chat_reactions.sql`, `LOVABLE_TRIBE_ROOM_RELEASE_VERIFY.sql`, `tests/tribe-room.test.ts` | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -173,6 +173,40 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Tribe chat atmosphere and mobile interactions
+
+- Removed the large standalone Tribe artwork banner and moved the existing
+  transparent Tribe illustration into the chat floor itself. Layered vertical
+  and radial scrims, opaque outgoing bubbles, translucent bordered incoming
+  bubbles, and an opaque blurred composer preserve text contrast while letting
+  each room retain its own visual identity.
+- Moved the cooldown-aware **Your Tribe** control out of chat and into Profile
+  Settings. The same 21-day movement rules and confirmation sheet remain; the
+  local profile now updates immediately after a successful move.
+- Replaced the composer emoji picker and generic image control with right-side
+  **Attach a photo** and **Take a photo** actions. Camera capture uses the
+  mobile browser's rear-camera hint and shares through the existing private
+  Tribe attachment upload path.
+- Added touch-visible message reactions using iconography rather than emoji:
+  Love, Funny, and Support. Counts and the current user's state are read from
+  the normalized reaction table and update optimistically with rollback on
+  failure. Reply remains a visible companion action rather than hover-only UI.
+- Added `20260825011000_tribe_chat_reactions.sql`, which extends the existing
+  reaction constraint and hardens the trigger so chat reactions can only land
+  on ordinary non-system chat messages; Pulse Sparks and plan Interested
+  reactions keep their original type restrictions. This follow-up migration
+  has **not** been applied to production. Run it after
+  `20260825010000_tribe_room.sql`, then rerun the updated
+  `LOVABLE_TRIBE_ROOM_RELEASE_VERIFY.sql`.
+- Verification: targeted ESLint clean; `npx tsc --noEmit` clean; 4/4 Tribe Room
+  tests pass; Cloudflare production build exits 0. The local browser reached a
+  clean login screen with no console errors, but signed-in visual acceptance
+  remains pending because the available browser session had no account.
+- Applied the frontend skill's image-led hierarchy and readable-overlay rules,
+  plus the full-stack skill's typed, authenticated mutation and database-guard
+  requirements. Repo decisions override generic animation guidance: no JS
+  animation library was introduced.
 
 ### 2026-08-25 — Codex — Tribe chat became a participation room
 

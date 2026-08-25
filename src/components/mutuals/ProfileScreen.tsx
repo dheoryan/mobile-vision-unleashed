@@ -71,6 +71,7 @@ import { FeatureIllustration } from "./FeatureIllustration";
 import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
 import { timingLabel } from "@/lib/venture-time";
 import { PwaInstallRow } from "./PwaInstallRow";
+import { AddTribeSheet } from "./AddTribeSheet";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -85,6 +86,7 @@ export function ProfileScreen({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tribeSettingsOpen, setTribeSettingsOpen] = useState(false);
   const [gridTab, setGridTab] = useState<GridTab>("posts");
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
@@ -465,10 +467,15 @@ export function ProfileScreen({
 
       <SettingsSheet
         open={settingsOpen}
+        profile={profile}
         onClose={() => setSettingsOpen(false)}
         onEditProfile={() => {
           setSettingsOpen(false);
           setEditOpen(true);
+        }}
+        onManageTribe={() => {
+          setSettingsOpen(false);
+          setTribeSettingsOpen(true);
         }}
         onLogout={() => {
           setSettingsOpen(false);
@@ -479,6 +486,15 @@ export function ProfileScreen({
           setSettingsOpen(false);
           setDeleteOpen(true);
         }}
+      />
+
+      <AddTribeSheet
+        open={tribeSettingsOpen}
+        onClose={() => setTribeSettingsOpen(false)}
+        profile={profile}
+        onJoined={(tribeId) =>
+          setProfile?.((current) => (current ? { ...current, tribeIds: [tribeId] } : current))
+        }
       />
 
       <DeleteAccountModal
@@ -1118,14 +1134,18 @@ function ProfileChoiceGroup({
 
 function SettingsSheet({
   open,
+  profile,
   onClose,
   onEditProfile,
+  onManageTribe,
   onLogout,
   onDelete,
 }: {
   open: boolean;
+  profile: Profile;
   onClose: () => void;
   onEditProfile: () => void;
+  onManageTribe: () => void;
   onLogout: () => void;
   onDelete: () => void;
 }) {
@@ -1139,6 +1159,7 @@ function SettingsSheet({
   const deleteLocation = useDeleteMyLocation();
   const [locating, setLocating] = useState(false);
   const location = locationQuery.data;
+  const currentTribe = tribeById(profile.tribeIds[0]);
 
   const refreshLocation = async () => {
     setLocating(true);
@@ -1186,6 +1207,20 @@ function SettingsSheet({
               detail="Photo, bio, home city, and social signals"
               onClick={onEditProfile}
             />
+            <button
+              type="button"
+              onClick={onManageTribe}
+              className="flex min-h-16 w-full items-center gap-3 border-t border-border px-4 text-left transition-colors hover:bg-secondary/60"
+            >
+              <TribeMark tribe={currentTribe} size="xs" decorative={false} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Your Tribe</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {currentTribe.name} · View movement timing and choices
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
             <div className="border-t border-border px-4 py-3">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />

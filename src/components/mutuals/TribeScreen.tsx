@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowLeftRight,
   AtSign,
+  Camera,
   ChevronLeft,
-  Image as ImageIcon,
+  HandHeart,
+  Heart,
+  Laugh,
+  Paperclip,
   Reply,
   Send,
-  Smile,
+  SmilePlus,
   X,
 } from "lucide-react";
-import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
+import { type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
-import { AddTribeSheet } from "./AddTribeSheet";
 import { useTribeMemberCounts } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { isPlusEffective, MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { toast } from "sonner";
 import { uploadTribeChatImage, signTribeChatUrl } from "@/lib/uploads";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
@@ -26,7 +27,12 @@ import { TribeMark } from "./TribeMark";
 import { QuotedBlock } from "./ReplyPreview";
 import { MessageThreadSkeleton } from "./Skeleton";
 import { TribeRoomLayer } from "./TribeRoomLayer";
-import type { TribeVentureDraft } from "@/lib/tribe-room";
+import {
+  emptyTribeRoomReactions,
+  type TribeRoomReaction,
+  type TribeVentureDraft,
+} from "@/lib/tribe-room";
+import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
 
 function SwipeReplyRow({
   children,
@@ -95,12 +101,9 @@ export function TribeScreen({
   onOpenVentures?: () => void;
   onOpenChats?: () => void;
 }) {
-  const isPlus = isPlusEffective(profile.plan);
-  const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));
   const initial =
     initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
-  const [addTribeOpen, setAddTribeOpen] = useState(false);
 
   useEffect(() => {
     if (!profile.tribeIds.includes(activeTribe)) setActiveTribe(profile.tribeIds[0]);
@@ -139,12 +142,7 @@ export function TribeScreen({
       )}
       {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
       <main className="mx-auto max-w-md px-5 pt-3">
-        <TribeBanner
-          tribe={tribe}
-          liveMembers={liveMembers}
-          liveOnline={liveOnline}
-          onSwitch={() => setAddTribeOpen(true)}
-        />
+        <TribeRoomIdentity tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
 
         <TribeRoomLayer
           tribeId={activeTribe}
@@ -160,13 +158,6 @@ export function TribeScreen({
         {/* Chat remains the live floor under the room's persistent activities. */}
         <GroupChat tribeId={activeTribe} canChat={isJoined} />
       </main>
-
-      <AddTribeSheet
-        open={addTribeOpen}
-        onClose={() => setAddTribeOpen(false)}
-        profile={profile}
-        onJoined={(id) => setActiveTribe(id)}
-      />
     </div>
   );
 }
@@ -225,97 +216,33 @@ function useTribeOnlineCount(tribeId: TribeId, enabled: boolean) {
   return count;
 }
 
-function TribeBanner({
+function TribeRoomIdentity({
   tribe,
   liveMembers,
   liveOnline,
-  onSwitch,
 }: {
   tribe: ReturnType<typeof tribeById>;
   liveMembers?: number;
   liveOnline: number;
-  onSwitch: () => void;
 }) {
-  // Show nothing until the real count arrives. This used to fall back to
-  // `tribe.members` — a hardcoded five-figure number from the demo data — so a
-  // new user saw "12,480 members" for a beat before it snapped to "1".
   const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
   const onlineLabel = liveOnline.toLocaleString();
   return (
-    // Each Tribe's own artwork instead of a tint of its colour. The flat
-    // gradient made every Tribe the same card in a different hue; the
-    // illustration is the thing that actually distinguishes Night Owl from
-    // Iron Wolf, and it already exists.
-    // bg-card matters now that the artwork is transparent: the scrim
-    // gradients below were written assuming something opaque behind them, and
-    // without a surface they would blend into whatever the page happens to be.
-    <section className="relative mt-4 min-h-36 overflow-hidden rounded-2xl border border-border bg-card">
-      <img
-        src={tribe.art}
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
-      />
-      {/* Two layers doing different jobs: a horizontal wash that keeps the left
-          side legible for text, and a bottom-up scrim for the stats line. The
-          art stays visible on the right, where nothing sits on top of it. */}
-      <span
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/25"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-1"
-        style={{ backgroundColor: tribe.colorVar }}
-      />
-
-      <div className="relative flex items-start gap-3 p-4">
-        {/* The crest is the Move control. It was previously duplicated — once
-            standalone above the banner carrying the action, once inside the
-            banner as decoration — which is the same mark twice, 20px apart,
-            with only one of them doing anything. */}
-        <button
-          type="button"
-          onClick={onSwitch}
-          aria-label={`${tribe.name} — move to another Tribe`}
-          aria-haspopup="dialog"
-          className="group relative shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95"
-        >
-          <TribeMark
-            tribe={tribe}
-            size="md"
-            decorative={false}
-            className="transition-transform group-hover:scale-105 motion-reduce:transition-none"
-          />
-          <span
-            aria-hidden
-            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors group-hover:text-foreground"
-          >
-            <ArrowLeftRight className="h-3 w-3" />
-          </span>
-        </button>
-        <div className="min-w-0 flex-1">
-          <span className="label-mono inline-flex items-center gap-1.5 rounded-full bg-background/60 px-2 py-1 text-foreground backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-xl font-bold leading-tight drop-shadow-sm">
-              {tribe.name}
-            </h2>
-          </div>
-          <p className="text-sm text-muted-foreground">{tribe.scene}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            <span className="text-foreground">{onlineLabel}</span> online
-            {memberLabel !== null && <> · {memberLabel} members</>}
-          </p>
-        </div>
+    <section className="mt-4 flex items-center gap-3 border-b border-border/70 pb-3">
+      <TribeMark tribe={tribe} size="md" decorative={false} />
+      <div className="min-w-0 flex-1">
+        <p className="label-mono flex items-center gap-1.5 text-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
+        </p>
+        <h2 className="truncate font-display text-xl font-bold leading-tight">{tribe.name}</h2>
+        <p className="text-xs text-muted-foreground">
+          <span className="text-foreground">{onlineLabel}</span> online
+          {memberLabel !== null && <> · {memberLabel} members</>}
+        </p>
       </div>
+      <p className="max-w-28 text-right text-[11px] leading-snug text-muted-foreground">
+        Move Tribes in Profile settings
+      </p>
     </section>
   );
 }
@@ -339,6 +266,8 @@ type TribeMessage = {
   reply_to_id?: string | null;
   mentions?: string[] | null;
   room_kind?: string | null;
+  reactions: Record<TribeRoomReaction, number>;
+  my_reactions: TribeRoomReaction[];
   sender?: TribeMember;
   reply_to?: Pick<
     TribeMessage,
@@ -356,23 +285,10 @@ function isTribeRoomSchemaUnavailable(error: { code?: string; message?: string }
   );
 }
 
-const QUICK_EMOJIS = [
-  "😀",
-  "😂",
-  "😍",
-  "🔥",
-  "✨",
-  "👏",
-  "🙏",
-  "😭",
-  "🥹",
-  "😎",
-  "🎵",
-  "☕",
-  "🌙",
-  "🐾",
-  "💬",
-  "✅",
+const CHAT_REACTIONS = [
+  { id: "heart" as const, label: "Love", Icon: Heart },
+  { id: "laugh" as const, label: "Funny", Icon: Laugh },
+  { id: "support" as const, label: "Support", Icon: HandHeart },
 ];
 
 const isUuid = (value: string) =>
@@ -389,12 +305,14 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<TribeMessage | null>(null);
-  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const toggleReaction = useToggleTribeRoomReaction(tribeId);
 
   useEffect(() => {
     let cancelled = false;
@@ -516,6 +434,32 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       });
     }
 
+    const reactionCounts = new Map<string, Record<TribeRoomReaction, number>>();
+    const myReactions = new Map<string, TribeRoomReaction[]>();
+    const messageIds = rows.map((row) => row.id);
+    if (messageIds.length > 0) {
+      const { data: reactionRows } = await supabase
+        .from("tribe_room_reactions")
+        .select("message_id, user_id, reaction")
+        .in("message_id", messageIds);
+      for (const reaction of (reactionRows ?? []) as Array<{
+        message_id: string;
+        user_id: string;
+        reaction: TribeRoomReaction;
+      }>) {
+        if (!CHAT_REACTIONS.some((item) => item.id === reaction.reaction)) continue;
+        const counts = reactionCounts.get(reaction.message_id) ?? emptyTribeRoomReactions();
+        counts[reaction.reaction] += 1;
+        reactionCounts.set(reaction.message_id, counts);
+        if (reaction.user_id === user?.id) {
+          myReactions.set(reaction.message_id, [
+            ...(myReactions.get(reaction.message_id) ?? []),
+            reaction.reaction,
+          ]);
+        }
+      }
+    }
+
     const mapped: TribeMessage[] = Array.from(
       new Map(rows.map((row) => [row.id, row])).values(),
     ).map((row) => ({
@@ -529,6 +473,8 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       reply_to_id: row.reply_to_id,
       mentions: row.mentions ?? [],
       room_kind: row.room_kind,
+      reactions: reactionCounts.get(row.id) ?? emptyTribeRoomReactions(),
+      my_reactions: myReactions.get(row.id) ?? [],
       sender: profileMap[row.sender_id],
     }));
     const byId = new Map(mapped.map((m) => [m.id, m]));
@@ -539,7 +485,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       })),
     );
     setLoading(false);
-  }, [dbTribeId]);
+  }, [dbTribeId, user?.id]);
 
   // Fetch existing messages from the dedicated Tribe chat table.
   useEffect(() => {
@@ -580,6 +526,8 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
               ...prev,
               {
                 ...row,
+                reactions: emptyTribeRoomReactions(),
+                my_reactions: [],
                 sender: (profile as TribeMember | null) ?? undefined,
                 reply_to: row.reply_to_id
                   ? (prev.find((m) => m.id === row.reply_to_id) ?? null)
@@ -616,21 +564,45 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
 
   const clearAttachment = () => {
     setSelectedImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
-  const addEmoji = (emoji: string) => {
-    const input = inputRef.current;
-    const start = input?.selectionStart ?? text.length;
-    const end = input?.selectionEnd ?? text.length;
-    const next = `${text.slice(0, start)}${emoji}${text.slice(end)}`;
-    setText(next);
-    setEmojiOpen(false);
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      const pos = start + emoji.length;
-      inputRef.current?.setSelectionRange(pos, pos);
-    });
+  const selectImage = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    setSelectedImage(file);
+  };
+
+  const reactToMessage = async (message: TribeMessage, reaction: TribeRoomReaction) => {
+    if (!canChat || toggleReaction.isPending) return;
+    const wasActive = message.my_reactions.includes(reaction);
+    setReactionOpenFor(null);
+    setMessages((current) =>
+      current.map((item) =>
+        item.id !== message.id
+          ? item
+          : {
+              ...item,
+              my_reactions: wasActive
+                ? item.my_reactions.filter((value) => value !== reaction)
+                : [...item.my_reactions, reaction],
+              reactions: {
+                ...item.reactions,
+                [reaction]: Math.max(0, item.reactions[reaction] + (wasActive ? -1 : 1)),
+              },
+            },
+      ),
+    );
+    try {
+      await toggleReaction.mutateAsync({ message_id: message.id, reaction });
+    } catch (error) {
+      setMessages((current) => current.map((item) => (item.id === message.id ? message : item)));
+      toast.error(error instanceof Error ? error.message : "Couldn't save reaction");
+    }
   };
 
   const addMention = (member: TribeMember) => {
@@ -704,13 +676,33 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       : "Tribe is not ready yet";
 
   return (
-    <div className="mt-3">
-      <div className="border-b border-border pb-3">
-        <div className="scroll-panel flex max-h-[52vh] flex-col gap-2 overflow-y-auto px-1 py-1">
+    <div className="relative mt-3 overflow-hidden rounded-[28px] border border-border bg-card">
+      <img
+        src={tribe.art}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_28%] opacity-35"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/70 via-background/88 to-background"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 75% 12%, transparent 0%, color-mix(in oklab, var(--background) 38%, transparent) 58%, color-mix(in oklab, var(--background) 82%, transparent) 100%)",
+        }}
+      />
+      <div className="relative z-10 pb-3">
+        <div className="scroll-panel flex max-h-[58vh] min-h-72 flex-col gap-2 overflow-y-auto px-3 py-4">
           {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
-              No messages yet. Say hello! 👋
+              No messages yet. Be the first voice in the room.
             </p>
           )}
           {messages.map((m) => {
@@ -752,7 +744,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     )}
                   </span>
                 )}
-                <div className="max-w-[70%]">
+                <div className="max-w-[74%]">
                   {!mine && (
                     <p className="mb-0.5 text-[10px] text-muted-foreground">{displayName}</p>
                   )}
@@ -761,7 +753,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                       "space-y-2 rounded-xl px-3 py-2 text-sm",
                       mine
                         ? "rounded-br-sm text-primary-foreground"
-                        : "rounded-bl-sm bg-secondary text-foreground",
+                        : "rounded-bl-sm border border-white/10 bg-background/85 text-foreground backdrop-blur-md",
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
                   >
@@ -793,6 +785,56 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
                     )}
                   </div>
+                  {reactionOpenFor === m.id && (
+                    <div
+                      className={cn(
+                        "mt-1 flex w-fit items-center gap-1 rounded-full border border-border bg-popover/95 p-1 shadow-xl backdrop-blur-md",
+                        mine && "ml-auto",
+                      )}
+                      role="toolbar"
+                      aria-label={`React to ${displayName}'s message`}
+                    >
+                      {CHAT_REACTIONS.map(({ id, label, Icon }) => {
+                        const active = m.my_reactions.includes(id);
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => void reactToMessage(m, id)}
+                            aria-label={label}
+                            aria-pressed={active}
+                            className={cn(
+                              "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                              active && "bg-secondary text-foreground",
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {CHAT_REACTIONS.some(({ id }) => m.reactions[id] > 0) && (
+                    <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
+                      {CHAT_REACTIONS.filter(({ id }) => m.reactions[id] > 0).map(
+                        ({ id, label, Icon }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => void reactToMessage(m, id)}
+                            aria-label={`${label}, ${m.reactions[id]}`}
+                            aria-pressed={m.my_reactions.includes(id)}
+                            className={cn(
+                              "inline-flex min-h-7 items-center gap-1 rounded-full border border-border bg-background/85 px-2 text-[10px] text-muted-foreground backdrop-blur-sm",
+                              m.my_reactions.includes(id) && "border-primary/60 text-foreground",
+                            )}
+                          >
+                            <Icon className="h-3 w-3" /> {m.reactions[id]}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  )}
                   <div
                     className={cn(
                       "mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground",
@@ -803,8 +845,21 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                     {canChat && (
                       <button
                         type="button"
+                        onClick={() =>
+                          setReactionOpenFor((current) => (current === m.id ? null : m.id))
+                        }
+                        className="inline-flex min-h-7 items-center gap-1 px-1 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        aria-label="React to message"
+                        aria-expanded={reactionOpenFor === m.id}
+                      >
+                        <SmilePlus className="h-3 w-3" /> React
+                      </button>
+                    )}
+                    {canChat && (
+                      <button
+                        type="button"
                         onClick={() => setReplyTo(m)}
-                        className="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                        className="inline-flex min-h-7 items-center gap-1 px-1 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <Reply className="h-3 w-3" /> Reply
                       </button>
@@ -825,21 +880,6 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
         </div>
 
         <div className="relative mt-2">
-          {emojiOpen && (
-            <div className="absolute bottom-full left-0 z-20 mb-2 grid w-60 grid-cols-8 gap-1 rounded-2xl border border-border bg-popover p-2 shadow-xl">
-              {QUICK_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => addEmoji(emoji)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-base hover:bg-secondary"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-
           {mentionSuggestions.length > 0 && (
             <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
               <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -921,45 +961,26 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2">
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground disabled:opacity-40"
-              disabled={chatDisabled}
-              onClick={() => setEmojiOpen((v) => !v)}
-              aria-label="Add emoji"
-            >
-              <Smile className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground disabled:opacity-40"
-              disabled={chatDisabled}
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Attach image"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </button>
+          <div className="mx-2 flex items-center gap-1 rounded-[24px] border border-border bg-background/95 py-1.5 pl-4 pr-1.5 shadow-2xl backdrop-blur-md">
             <input
-              ref={fileInputRef}
+              ref={attachmentInputRef}
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                if (!file.type.startsWith("image/")) {
-                  toast.error("Please choose an image file");
-                  return;
-                }
-                setSelectedImage(file);
-              }}
+              onChange={(event) => selectImage(event.target.files?.[0])}
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(event) => selectImage(event.target.files?.[0])}
             />
             <input
               ref={inputRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              onFocus={() => setEmojiOpen(false)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -971,9 +992,28 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
               className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-60"
             />
             <button
+              type="button"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+              disabled={chatDisabled}
+              onClick={() => attachmentInputRef.current?.click()}
+              aria-label="Attach a photo"
+            >
+              <Paperclip className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+              disabled={chatDisabled}
+              onClick={() => cameraInputRef.current?.click()}
+              aria-label="Take a photo"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
               onClick={() => void send()}
               disabled={chatDisabled || (!text.trim() && !selectedImage)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-95 disabled:opacity-40"
               style={{ backgroundColor: tribe.colorVar }}
               aria-label="Send"
             >
