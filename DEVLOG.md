@@ -62,7 +62,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Nationwide Indonesia GPS coverage ladder | `src/lib/indonesia-location.ts`, focused tests, privacy/DEVLOG if needed | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -78,7 +78,7 @@ and logged below.
 | **Payments** | Free at launch. No processor. When it happens: StoreKit / Play Billing / hosted checkout — **never** an in-app card form (Apple 3.1.1). Entitlement must be granted server-side from the store webhook, since `profiles.plan` is deliberately not user-writable. |
 | **Animation** | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library. |
 | **Modals** | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals. |
-| **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. For Indonesia, the same rounded coordinate (without account identity) is resolved against BIG's official district boundary service; failure falls back to the offline world-city catalog. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
+| **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. For Indonesia, the same rounded coordinate (without account identity) is resolved through BIG's official village/kelurahan → district → regency/city boundary ladder, then the offline world-city catalog. Village is used only to establish the hierarchy; public labels stop at district plus regency/city. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
 | **Google Venue precision** | Manual host-authored place + area is the production Venue flow. Google search, badges, external maps, embeds, and server calls are gated by `GOOGLE_PLACES_ENABLED = false` pending a team decision on API terms, restrictions, and quota. Re-enable through that single flag only after credentials are approved. |
 | **Pushing to remote** | User-authorised only. Both agents. |
 | **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
@@ -171,6 +171,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Nationwide Indonesia GPS coverage completed
+
+- Extended the Indonesia resolver from one district layer to a complete BIG
+  boundary ladder: village/kelurahan first, district second, and regency/city
+  third, followed by the existing offline world-city fallback.
+- Village/kelurahan is used only to establish the correct administrative
+  hierarchy. It is not returned by the location server functions or written to
+  the public profile; public labels remain district plus regency/city.
+- All BIG calls share one five-second budget and receive only the already
+  rounded coordinate without account identity. Missing or outdated polygons
+  fall through instead of silently turning rural areas into a distant major
+  city.
+- Live checks passed for Greater Jakarta, Denpasar, Medan, Makassar, Jayapura,
+  Pontianak, and Ambon. Focused tests cover all label levels, privacy display,
+  coordinate rounding, malformed responses, and boundary fallback.
 
 ### 2026-08-25 — Codex — Indonesia district-level GPS labels
 
