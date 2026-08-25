@@ -1,5 +1,16 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, CalendarPlus, Hand, Loader2, MapPin, Sparkles, Undo2, UserCheck, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  Bookmark,
+  BookmarkCheck,
+  CalendarPlus,
+  Check,
+  Hand,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  RotateCcw,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
@@ -10,7 +21,7 @@ import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
 import { intentStore } from "@/lib/intent-store";
 import { cn } from "@/lib/utils";
 
-export type DeckPerson = {
+export interface DeckPerson {
   id: string;
   name: string;
   handle: string;
@@ -19,105 +30,104 @@ export type DeckPerson = {
   allTribeIds: TribeId[];
   city: string;
   bio: string;
+  interests: string[];
+  socialIntents: string[];
+  availability: string[];
   plus?: boolean;
   distanceBand?: string | null;
   matchScore?: number;
-  /** Why the ranking put them here. Absent while searching, which is fine —
-      a search result explains itself. */
   signals?: MatchSignals;
   openVentureId?: string | null;
   openVentureTitle?: string | null;
-};
+}
+
+function helloLabel(person: DeckPerson): string {
+  if (person.openVentureTitle) return "Ask about Venture";
+  const interest = person.signals?.shared_interests[0];
+  if (interest === "coffee") return "Hello about coffee";
+  if (interest === "music") return "Hello about music";
+  if (interest === "art") return "Hello about art";
+  return "Say Hello";
+}
 
 /**
- * One person at a time, with room to actually read them.
- *
- * Deliberately NOT a dating-style swipe deck, for two reasons.
- *
- * Culturally, swipe-left/right on a face reads as romantic evaluation no matter
- * what label sits above it. This app is for finding people to do things with;
- * importing that grammar would change who installs it, change what people put
- * in their profiles, and work against the harassment protections the Hello flow
- * exists to provide. (The swipe lives on Ventures, where the judgement is about
- * a plan rather than a person.)
- *
- * Practically, a reject-forever deck needs a pool of thousands. Launch density
- * is deliberately concentrated — one city, one or two Tribes — so a deck that
- * burns a card per tap would be exhausted in a single sitting and then be empty
- * permanently. "Next" here means *later*, not *never*: skipped people cycle back
- * to the end, and Back undoes a skip.
+ * A five-person consideration deck, not a dating swipe stack. “Maybe later”
+ * rotates the queue and never records rejection; Back only changes position.
  */
 export function ExploreDeck({
   people,
+  sessionKey,
   following,
   onToggleFollow,
   followPending,
-  onLoadMore,
-  loadingMore,
-  hasMore,
 }: {
   people: DeckPerson[];
+  sessionKey: string;
   following: Set<string>;
   onToggleFollow: (id: string) => void;
   followPending: string | null;
-  onLoadMore?: () => void;
-  loadingMore?: boolean;
-  hasMore?: boolean;
 }) {
-  const [order, setOrder] = useState<string[]>([]);
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [helloFor, setHelloFor] = useState<DeckPerson | null>(null);
-  const [seenAll, setSeenAll] = useState(false);
+  const [completedRound, setCompletedRound] = useState(false);
 
-  // Keep the queue in step with the loaded page without losing the user's place.
   useEffect(() => {
-    setOrder((prev) => {
-      const ids = people.map((p) => p.id);
-      const kept = prev.filter((id) => ids.includes(id));
-      const added = ids.filter((id) => !kept.includes(id));
-      return [...kept, ...added];
-    });
-  }, [people]);
+    setIndex(0);
+    setDirection("forward");
+    setCompletedRound(false);
+  }, [sessionKey]);
 
-  const byId = new Map(people.map((p) => [p.id, p]));
-  const queue = order.map((id) => byId.get(id)).filter(Boolean) as DeckPerson[];
-  const person = queue[index] ?? null;
+  const person = people[index] ?? null;
   const contact = useContactStatus(person?.id ?? null);
+  const reasons = useMemo(() => (person?.signals ? matchReasons(person.signals, 3) : []), [person]);
 
   if (!person) return null;
 
   const tribe = tribeById(person.tribeId);
   const isFollowing = following.has(person.id);
-  const canMessage = contact.data?.can_message !== false;
+  const canMessage = contact.data?.can_message === true;
   const helloStatus = contact.data?.hello_status ?? null;
-  const reasons = person.signals ? matchReasons(person.signals) : [];
+  const profileParams = { handle: person.handle.replace(/^@/, "") || person.id };
 
-  const next = () => {
-    // Reaching the end is a real state, not a silent wrap. Pull another page if
-    // there is one; otherwise say so once before looping.
-    if (index + 1 >= queue.length) {
-      if (hasMore && onLoadMore) {
-        onLoadMore();
-        return;
-      }
-      setSeenAll(true);
-    }
-    setIndex((i) => (i + 1) % Math.max(queue.length, 1));
+  const advance = () => {
+    setDirection("forward");
+    if (index + 1 >= people.length) setCompletedRound(true);
+    setIndex((current) => (current + 1) % people.length);
   };
-  const back = () => setIndex((i) => (i - 1 + queue.length) % Math.max(queue.length, 1));
+
+  const back = () => {
+    setDirection("back");
+    setIndex((current) => (current - 1 + people.length) % people.length);
+  };
 
   return (
-    <div>
-      <div
-        className="overflow-hidden rounded-3xl border border-border"
-        style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${tribe.colorVar} 22%, var(--card)) 0%, var(--card) 62%)` }}
+    <div aria-live="polite">
+      <article
+        key={`${sessionKey}-${person.id}`}
+        className={cn(
+          "relative overflow-hidden rounded-[28px] border border-border bg-card motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200",
+          direction === "forward"
+            ? "motion-safe:slide-in-from-right-2"
+            : "motion-safe:slide-in-from-left-2",
+        )}
+        style={{
+          background: `linear-gradient(155deg, color-mix(in oklab, ${tribe.colorVar} 24%, var(--card)) 0%, var(--card) 42%)`,
+        }}
       >
+        <div
+          className="absolute inset-x-0 top-0 h-px"
+          style={{ backgroundColor: tribe.colorVar }}
+        />
+
         <div className="p-5">
           <div className="flex items-start gap-4">
             <span className="relative shrink-0">
               <span
-                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl text-4xl"
-                style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[22px] text-4xl"
+                style={{
+                  backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)`,
+                }}
               >
                 {person.avatar.startsWith("http") || person.avatar.startsWith("data:") ? (
                   <img src={person.avatar} alt="" className="h-full w-full object-cover" />
@@ -127,10 +137,43 @@ export function ExploreDeck({
               </span>
               {person.plus && <PlusBadge />}
             </span>
+
             <div className="min-w-0 flex-1">
-              <h3 className="truncate font-display text-2xl font-bold leading-tight">{person.name}</h3>
-              {person.handle && <p className="truncate text-xs text-muted-foreground">{person.handle}</p>}
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-display text-2xl font-bold leading-tight">
+                    {person.name}
+                  </h3>
+                  {person.handle && (
+                    <p className="truncate text-xs text-muted-foreground">{person.handle}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onToggleFollow(person.id)}
+                  disabled={followPending === person.id}
+                  aria-label={
+                    isFollowing ? `Remove ${person.name} from saved` : `Save ${person.name}`
+                  }
+                  aria-pressed={isFollowing}
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+                    isFollowing
+                      ? "border-accent/60 bg-accent/15 text-accent"
+                      : "border-border bg-background/45 text-muted-foreground",
+                  )}
+                >
+                  {followPending === person.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isFollowing ? (
+                    <BookmarkCheck className="h-4 w-4" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <TribeMark tribe={tribe} size="xs" /> {tribe.name}
                 </span>
@@ -140,128 +183,133 @@ export function ExploreDeck({
                     <MapPin className="h-3 w-3" /> {person.distanceBand}
                   </span>
                 )}
-                {/* The score only earns its place next to the reasons that
-                    produced it. On its own it is decoration. */}
-                {person.matchScore !== undefined && person.matchScore > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" /> {person.matchScore}% match
-                  </span>
-                )}
               </div>
             </div>
           </div>
 
+          <section className="mt-5 border-l-2 border-primary/70 pl-4">
+            <p className="label-mono text-primary">In their words</p>
+            <blockquote className="mt-2 font-display text-[17px] font-semibold leading-snug text-foreground">
+              “{person.bio || "I’m open to meeting good people and trying something new."}”
+            </blockquote>
+          </section>
+
           {reasons.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {reasons.map((r) => (
-                <span
-                  key={r.key}
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                    r.kind === "intent"
-                      ? "border-primary/35 bg-primary/10 text-primary"
-                      : "border-border bg-background/40 text-muted-foreground",
-                  )}
-                >
-                  {r.label}
-                </span>
-              ))}
-            </div>
+            <section className="mt-5 border-t border-border/70 pt-4">
+              <p className="label-mono text-muted-foreground">Why you might click</p>
+              <ul className="mt-3 space-y-2">
+                {reasons.map((reason) => (
+                  <li
+                    key={reason.key}
+                    className="flex items-start gap-2 text-xs text-foreground/85"
+                  >
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                      <Check className="h-2.5 w-2.5" />
+                    </span>
+                    {reason.label}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
-          <p className="mt-4 text-sm leading-relaxed text-foreground/90">
-            {person.bio || "Open to meeting people across Tribes."}
-          </p>
-
-          {/* A live plan with an empty seat is a far better opening than a
-              profile. Surface it as an actual door, not a badge. */}
           {person.openVentureTitle && (
-            <button
-              type="button"
-              onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-              className="mt-4 flex w-full items-center gap-2.5 rounded-2xl border border-accent/35 bg-accent/10 px-3 py-2.5 text-left"
-            >
-              <CalendarPlus className="h-4 w-4 shrink-0 text-accent" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold">{person.openVentureTitle}</span>
-                <span className="block text-[11px] text-muted-foreground">Hosting now · spots open</span>
-              </span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            </button>
+            <section className="mt-5 border-t border-border/70 pt-4">
+              <p className="label-mono text-accent">Their open invitation</p>
+              <button
+                type="button"
+                onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
+                className="mt-2 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-accent/35 bg-accent/10 px-3 text-left transition-colors hover:bg-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <CalendarPlus className="h-4 w-4 shrink-0 text-accent" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-semibold">
+                    {person.openVentureTitle}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    Hosting now · spots open
+                  </span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
+            </section>
           )}
 
           <div className="mt-5 flex gap-2">
-            <button
-              onClick={() => onToggleFollow(person.id)}
-              disabled={followPending === person.id}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-2xl border py-2.5 text-xs font-semibold transition-colors disabled:opacity-60",
-                isFollowing ? "border-accent bg-accent/15 text-accent" : "border-border bg-background/40",
-              )}
+            <Link
+              to="/u/$handle"
+              params={profileParams}
+              className="flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-border bg-background/45 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              {followPending === person.id ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : isFollowing ? (
-                <><UserCheck className="h-3.5 w-3.5" /> Saved</>
-              ) : (
-                <><UserPlus className="h-3.5 w-3.5" /> Save</>
-              )}
-            </button>
+              View profile
+            </Link>
 
-            {canMessage ? (
-              <Link
-                to="/u/$handle"
-                params={{ handle: person.handle.replace(/^@/, "") || person.id }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground"
+            {contact.isLoading ? (
+              <button
+                type="button"
+                disabled
+                className="flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-primary text-xs font-semibold text-primary-foreground opacity-60"
               >
-                View profile
-              </Link>
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </button>
+            ) : canMessage ? (
+              <button
+                type="button"
+                onClick={() => intentStore.push({ kind: "openThreadWith", userId: person.id })}
+                className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <MessageCircle className="h-3.5 w-3.5" /> Message {person.name.split(" ")[0]}
+              </button>
             ) : helloStatus ? (
               <button
+                type="button"
                 disabled
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-border bg-background/40 py-2.5 text-xs font-semibold text-muted-foreground disabled:opacity-70"
+                className="flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-border bg-background/40 px-3 text-xs font-semibold text-muted-foreground opacity-70"
               >
                 {helloStatus === "pending" ? "Hello sent" : "Not accepting"}
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => setHelloFor(person)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-primary bg-primary/10 py-2.5 text-xs font-semibold text-primary"
+                className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <Hand className="h-3.5 w-3.5" /> Say hello
+                <Hand className="h-3.5 w-3.5" /> {helloLabel(person)}
               </button>
             )}
           </div>
         </div>
-      </div>
+      </article>
 
-      <div className="mt-3 flex items-center justify-between">
+      <nav
+        className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3"
+        aria-label="Today’s connections"
+      >
         <button
+          type="button"
           onClick={back}
-          disabled={queue.length < 2}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+          disabled={people.length < 2}
+          className="flex min-h-11 items-center justify-start gap-1.5 rounded-full px-2 text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-35"
         >
-          <Undo2 className="h-3.5 w-3.5" /> Back
+          <RotateCcw className="h-3.5 w-3.5" /> Back
         </button>
-        <span className="text-[11px] text-muted-foreground">
-          {queue.length ? `${index + 1} of ${queue.length}` : ""}
+        <span className="label-mono text-muted-foreground">
+          {index + 1} of {people.length}
         </span>
         <button
-          onClick={next}
-          disabled={queue.length < 2 || loadingMore}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+          type="button"
+          onClick={advance}
+          disabled={people.length < 2}
+          className="flex min-h-11 items-center justify-end gap-1.5 rounded-full px-2 text-xs font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-35"
         >
-          {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Next <ArrowRight className="h-3.5 w-3.5" /></>}
+          Maybe later <ArrowRight className="h-3.5 w-3.5" />
         </button>
-      </div>
+      </nav>
 
-      {/* Said once, when it becomes true — not a permanent empty-state banner.
-          Pretending there is an endless supply is how a small network gets
-          caught lying to its first hundred users. */}
-      {seenAll && !hasMore && (
-        <p className="mt-3 rounded-2xl border border-dashed border-border px-4 py-3 text-center text-[11px] leading-relaxed text-muted-foreground">
-          That's everyone for now — you're back at the top. New members show up
-          here as they join.
+      {completedRound && (
+        <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+          That’s today’s set. Pick another mood for a different view, or revisit anyone—nothing was
+          rejected.
         </p>
       )}
 

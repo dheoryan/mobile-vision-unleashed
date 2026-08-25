@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Explore “Today’s five” experience | `DiscoverScreen.tsx`; `ExploreDeck.tsx`; Explore reasons/data helpers and tests as needed; `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -91,6 +90,7 @@ and logged below.
 | **Which art is transparent** | Everything is transparent RGBA now (app illustrations 600x800, Tribe portraits 600x800, crests 256x256) and that is correct — an earlier note here said the Tribe portraits had to stay opaque; testing against the real card colour disproved it. What background-use *does* require is an opaque surface behind the art, which is the container's job: `bg-card` on the Tribe banner and the Discover flip cards. |
 | **Illustration assets** | `src/assets/app-illustrations/*` are **transparent WebP**. `FeatureIllustration` draws no card, border or crop. Any regeneration must preserve transparency, or ship on flat pure #000000 with no vignette/gradient/frame so it can be re-keyed. Black-backed art puts the rectangle back in every empty state. |
 | **Explore ranking** | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius. |
+| **Explore experience** | The default surface is a daily, focused **Today’s five** deck, not a people grid or a scorecard. A user-selected mood transparently reorders already-authorized candidates; it never changes visibility or rejects anyone. “Maybe later” only advances the deck. Search remains a list because lookup and discovery are different jobs; Tribe previews are secondary to people. Do not restore match percentages or swipe/reject semantics. |
 | **Tribe Room participation loop** | Tribe chat is the live floor, not the whole room. A deterministic Daily Pulse lowers the cost of speaking; loose plan proposals gather explicit interest; only the proposal author can turn one into a real Tribe-scoped Venture; completed Ventures continue into the existing read-only Venture Memory and optional Moot flow. Plans and relationships are never created automatically. |
 | **One live-chat capability set** | Tribe, Venture, and DM chat share the same composer and message actions: text, private photo attachment, direct camera capture, structured reply, and durable Love / Funny / Support reactions. Completed Venture Memories stay read-only. |
 
@@ -185,6 +185,30 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Explore “Today’s five” invitation deck
+
+- Rebuilt Explore around a focused daily set of five people. The experience
+  now asks what the member is up for — Surprise me, Coffee nearby, Make
+  friends, Create something, or Tonight — then presents one person at a time
+  through their own bio, explainable shared signals, and an open Venture when
+  relevant. Tribe previews moved below the people experience.
+- Removed the deck/list switcher and match percentages from discovery. Search
+  deliberately remains a compact list, while the default flow uses Back and
+  **Maybe later**; completing a round explicitly says nobody was rejected.
+  Save is a quiet bookmark action, and the primary contact action adapts from
+  contextual Hello to direct Message once contact access exists.
+- Added a pure, tested mood-curation helper. It only reorders the server's
+  authorized Explore page, keeps Surprise based on the canonical rank, and
+  rotates within the strongest eight on the user's local day. No database,
+  RLS, or API contract changed.
+- The frontend and full-stack skills drove the restrained editorial card,
+  honest explainability, 44 px controls, minimal CSS-only transitions, and the
+  separation of discovery from search instead of adding decorative chrome.
+- Validation: focused ESLint, `npx tsc --noEmit`, all 3
+  `tests/explore-moods.test.ts` cases, `git diff --check`, and the complete
+  Cloudflare production build pass. The build retains the existing large-chunk
+  warning; no new build failure was introduced.
 
 ### 2026-08-26 — Codex — One chat capability system across Tribe, Venture, and DM
 

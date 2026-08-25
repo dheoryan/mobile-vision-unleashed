@@ -4,13 +4,17 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   Check,
+  Coffee,
   LocateFixed,
   Loader2,
   MapPin,
+  Moon,
+  Palette,
   Search,
   ShieldCheck,
-  Sparkles,
+  Shuffle,
   UserPlus,
+  UsersRound,
   X,
 } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
@@ -38,16 +42,20 @@ import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { ExploreDeck } from "./ExploreDeck";
-import { Layers, List, Wand2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import { useExploreMatches } from "@/lib/explore-store";
 import type { ExploreMatch } from "@/lib/explore.functions";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
+import { curateForMood, type ExploreMood } from "@/lib/explore-moods";
 import { useMyProfile } from "@/lib/profile-store";
 import { intentStore } from "@/lib/intent-store";
 import { PeopleSkeleton } from "./Skeleton";
 
 type DiscoverPerson = Person & {
   allTribeIds: TribeId[];
+  interests: string[];
+  socialIntents: string[];
+  availability: string[];
   distanceBand?: string | null;
   matchScore?: number;
   signals?: MatchSignals;
@@ -57,6 +65,21 @@ type DiscoverPerson = Person & {
 
 const VALID_TRIBES = new Set<TribeId>(TRIBES.map((t) => t.id));
 const PAGE_SIZE = 20;
+const MOOD_OPTIONS = [
+  { id: "surprise", label: "Surprise me", Icon: Shuffle },
+  { id: "coffee", label: "Coffee nearby", Icon: Coffee },
+  { id: "friends", label: "Make friends", Icon: UsersRound },
+  { id: "create", label: "Create something", Icon: Palette },
+  { id: "tonight", label: "Tonight", Icon: Moon },
+] as const;
+
+function localDayKey(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 function toTribeIds(ids: string[] | null | undefined): TribeId[] {
   return (ids ?? []).filter((id): id is TribeId => VALID_TRIBES.has(id as TribeId));
@@ -76,6 +99,9 @@ function rowToPerson(row: DiscoverProfile | NearbyProfile | ExploreMatch): Disco
     tribeId,
     city: row.city || "",
     bio: row.bio || "",
+    interests: row.interests ?? [],
+    socialIntents: row.social_intents ?? [],
+    availability: row.availability ?? [],
     plus: showPlusBadge(row.plan),
     mutuals: 0,
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
@@ -102,9 +128,8 @@ export function DiscoverScreen() {
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
   const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
-  // Focus mode shows one person at a time. Default, because a flat list is a
-  // scanning surface and this is meant to be a considering one.
-  const [view, setView] = useState<"deck" | "list">("deck");
+  const [mood, setMood] = useState<ExploreMood>("surprise");
+  const [deckDay] = useState(localDayKey);
   const tribeScrollRef = useRef<HTMLDivElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
@@ -194,6 +219,11 @@ export function DiscoverScreen() {
     });
   }, [query, debounced, people]);
 
+  const todaysPeople = useMemo(
+    () => curateForMood(filtered, mood, 5, deckDay),
+    [deckDay, filtered, mood],
+  );
+
   const toggle = (id: string) => toggleFollow.mutate(id);
   const isSearching = query.trim() !== debounced;
   // Nothing to match on means every candidate scores zero, so the ranking
@@ -203,6 +233,8 @@ export function DiscoverScreen() {
     myProfile.interests.length === 0 &&
     myProfile.socialIntents.length === 0 &&
     myProfile.availability.length === 0;
+  const selectedMoodLabel =
+    MOOD_OPTIONS.find((option) => option.id === mood)?.label ?? "Surprise me";
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -219,43 +251,39 @@ export function DiscoverScreen() {
           {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         </div>
 
-        <SectionTitle title="Explore Tribes" hint="Tap to preview registered members" />
-        <div
-          ref={tribeScrollRef}
-          onWheel={onTribeWheel}
-          className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <div className="flex w-max gap-3 pb-1">
-            {TRIBES.map((t) => {
-              // Real count from the DB. This previously counted matches within
-              // the currently-loaded page of 20 profiles, so it read
-              // "3 registered members" when the tribe actually had hundreds —
-              // and "0" for every tribe before the first page arrived.
-              const memberCount = tribeCounts.data?.[t.id];
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setPreviewTribe(t)}
-                  className="group relative h-40 w-44 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <img
-                    src={t.art}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
-                  />
-                  <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
-                  <TribeMark tribe={t} size="sm" className="absolute left-3 top-3" />
-                  <p className="absolute bottom-8 left-4 right-4 font-display text-base font-bold text-white">
-                    {t.name}
-                  </p>
-                  <p className="absolute bottom-3 left-4 right-4 text-[10px] text-white/65">
-                    {memberCount === undefined ? " " : `${memberCount} registered members`}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {!searching && (
+          <section className="mt-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="label-mono text-muted-foreground">What are you up for?</p>
+                <h2 className="mt-1 font-display text-xl font-bold">Set today’s mood.</h2>
+              </div>
+              <p className="max-w-28 text-right text-[10px] leading-snug text-muted-foreground">
+                Changes the order, never rejects anyone.
+              </p>
+            </div>
+            <div className="-mx-5 mt-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-max gap-2 pb-1" role="list" aria-label="Explore mood">
+                {MOOD_OPTIONS.map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setMood(id)}
+                    aria-pressed={mood === id}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      mood === id
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Proximity is a signal inside list_explore_matches, not a list of its
             own. What survives here is the CONSENT control: without a saved
@@ -266,7 +294,7 @@ export function DiscoverScreen() {
             type="button"
             onClick={enableNearby}
             disabled={locating || saveLocation.isPending}
-            className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left disabled:opacity-50"
+            className="mt-3 flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left disabled:opacity-50"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
               {locating ? (
@@ -285,59 +313,31 @@ export function DiscoverScreen() {
         )}
 
         <SectionTitle
-          title={searching ? "Search results" : "People to meet"}
+          title={searching ? "Search results" : "Today’s five"}
           hint={
             activeQuery.isLoading
               ? "Loading"
               : searching
                 ? `${filtered.length} found`
-                : `${filtered.length} ranked for you`
+                : `${todaysPeople.length} picked for ${selectedMoodLabel.toLowerCase()}`
           }
           action={
-            <div className="flex items-center gap-1.5">
-              {locationQuery.data && (
-                <button
-                  type="button"
-                  onClick={() => setNearbySettingsOpen(true)}
-                  aria-label="Adjust nearby preferences"
-                  className={cn(
-                    "flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    locationQuery.data.discoverable
-                      ? "border-primary/35 bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground",
-                  )}
-                >
-                  <MapPin className="h-3 w-3" />
-                  {locationQuery.data.discoverable
-                    ? `${locationQuery.data.radius_km} km`
-                    : "Paused"}
-                </button>
-              )}
-              <div className="flex items-center gap-1 rounded-full bg-card p-1 text-muted-foreground">
-                <button
-                  onClick={() => setView("deck")}
-                  aria-label="One at a time"
-                  aria-pressed={view === "deck"}
-                  className={cn(
-                    "rounded-full p-1.5",
-                    view === "deck" && "bg-primary text-primary-foreground",
-                  )}
-                >
-                  <Layers className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setView("list")}
-                  aria-label="List"
-                  aria-pressed={view === "list"}
-                  className={cn(
-                    "rounded-full p-1.5",
-                    view === "list" && "bg-primary text-primary-foreground",
-                  )}
-                >
-                  <List className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
+            locationQuery.data ? (
+              <button
+                type="button"
+                onClick={() => setNearbySettingsOpen(true)}
+                aria-label="Adjust nearby preferences"
+                className={cn(
+                  "flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  locationQuery.data.discoverable
+                    ? "border-primary/35 bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground",
+                )}
+              >
+                <MapPin className="h-3 w-3" />
+                {locationQuery.data.discoverable ? `${locationQuery.data.radius_km} km` : "Paused"}
+              </button>
+            ) : null
           }
         />
         {/* The ranking can only work with what people have told it. Someone who
@@ -390,30 +390,26 @@ export function DiscoverScreen() {
             </div>
           ) : (
             <>
-              {view === "deck" ? (
+              {searching ? (
+                filtered.map((person) => (
+                  <PersonRow
+                    key={person.id}
+                    person={person}
+                    following={social.following.has(person.id)}
+                    pending={toggleFollow.isPending && toggleFollow.variables === person.id}
+                    onToggle={() => toggle(person.id)}
+                  />
+                ))
+              ) : (
                 <ExploreDeck
-                  people={filtered}
+                  people={todaysPeople}
+                  sessionKey={mood}
                   following={social.following}
                   onToggleFollow={toggle}
                   followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
-                  onLoadMore={() => activeQuery.fetchNextPage()}
-                  loadingMore={activeQuery.isFetchingNextPage}
-                  hasMore={activeQuery.hasNextPage}
                 />
-              ) : (
-                filtered.map((p) => (
-                  <PersonRow
-                    key={p.id}
-                    person={p}
-                    following={social.following.has(p.id)}
-                    pending={toggleFollow.isPending && toggleFollow.variables === p.id}
-                    onToggle={() => toggle(p.id)}
-                  />
-                ))
               )}
-              {/* The deck pulls its own next page when it runs out of cards, so
-                  this button is only for the list view. */}
-              {view === "list" && activeQuery.hasNextPage && (
+              {searching && activeQuery.hasNextPage && (
                 <button
                   onClick={() => activeQuery.fetchNextPage()}
                   disabled={activeQuery.isFetchingNextPage}
@@ -427,6 +423,41 @@ export function DiscoverScreen() {
               )}
             </>
           )}
+        </div>
+
+        <SectionTitle title="Explore Tribes" hint="Preview the rooms behind the people" />
+        <div
+          ref={tribeScrollRef}
+          onWheel={onTribeWheel}
+          className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex w-max gap-3 pb-1">
+            {TRIBES.map((tribe) => {
+              const memberCount = tribeCounts.data?.[tribe.id];
+              return (
+                <button
+                  key={tribe.id}
+                  type="button"
+                  onClick={() => setPreviewTribe(tribe)}
+                  className="group relative h-32 w-36 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <img
+                    src={tribe.art}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                  />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
+                  <TribeMark tribe={tribe} size="xs" className="absolute left-3 top-3" />
+                  <p className="absolute bottom-7 left-3 right-3 truncate font-display text-sm font-bold text-white">
+                    {tribe.name}
+                  </p>
+                  <p className="absolute bottom-2.5 left-3 right-3 text-[9px] text-white/65">
+                    {memberCount === undefined ? " " : `${memberCount} members`}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </main>
 
@@ -709,11 +740,6 @@ function PersonRow({
               <MapPin className="h-3 w-3" /> {person.distanceBand}
             </span>
           )}
-          {person.matchScore !== undefined && person.matchScore > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <Sparkles className="h-3 w-3" /> {person.matchScore}% match
-            </span>
-          )}
         </div>
         {reason && (
           <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
@@ -728,7 +754,7 @@ function PersonRow({
         onClick={onToggle}
         disabled={pending}
         className={cn(
-          "flex min-w-24 shrink-0 items-center justify-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60",
+          "flex min-h-11 min-w-20 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60",
           following
             ? "border-accent bg-accent/15 text-accent"
             : "border-primary bg-primary/15 text-primary",
@@ -738,11 +764,11 @@ function PersonRow({
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : following ? (
           <>
-            <Check className="h-3.5 w-3.5" /> Following
+            <Check className="h-3.5 w-3.5" /> Saved
           </>
         ) : (
           <>
-            <UserPlus className="h-3.5 w-3.5" /> Follow
+            <UserPlus className="h-3.5 w-3.5" /> Save
           </>
         )}
       </button>
