@@ -19,6 +19,7 @@ import {
   type VentureScope,
   type VentureMessage,
 } from "@/lib/ventures.functions";
+import type { RichMessageInput } from "@/lib/chat";
 
 export type {
   VentureApplication,
@@ -193,6 +194,7 @@ export function useVentureMessages(ventureId: string | null, enabled = true) {
     queryFn: () => fn({ data: { venture_id: ventureId! } }),
     enabled: !!user && !!ventureId && enabled,
     staleTime: 5_000,
+    refetchInterval: 8_000,
   });
 }
 
@@ -200,7 +202,7 @@ export function useSendVentureMessage(ventureId: string) {
   const fn = useServerFn(sendVentureMessage);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (content: string) => fn({ data: { venture_id: ventureId, content } }),
+    mutationFn: (input: RichMessageInput) => fn({ data: { venture_id: ventureId, ...input } }),
     onSuccess: (message) => {
       qc.setQueryData<VentureMessage[]>(MESSAGES_KEY(ventureId), (cur) => [
         ...(cur ?? []),

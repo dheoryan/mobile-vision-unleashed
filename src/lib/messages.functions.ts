@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  CHAT_REACTIONS,
+  emptyChatReactions,
+  type ChatReaction,
+  type ChatReactionCounts,
+} from "@/lib/chat";
 
 export type AuthorLite = {
   id: string;
@@ -17,9 +23,15 @@ export type DMMessage = {
   id: string;
   sender_id: string;
   recipient_id: string;
-  content: string;
+  content: string | null;
   created_at: string;
   read_at: string | null;
+  attachment_url: string | null;
+  attachment_type: "image" | null;
+  reply_to_id: string | null;
+  reactions: ChatReactionCounts;
+  my_reactions: ChatReaction[];
+  reply_to?: Pick<DMMessage, "id" | "sender_id" | "content" | "attachment_type"> | null;
 };
 
 export type DMThreadSummary = {
@@ -30,6 +42,48 @@ export type DMThreadSummary = {
 };
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan, city, tribe_ids";
+const MESSAGE_COLS =
+  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id";
+
+async function addReactionState(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  messages: DMMessage[],
+  userId: string,
+): Promise<DMMessage[]> {
+  const messageIds = messages.map((message) => message.id);
+  if (!messageIds.length) return messages;
+  const { data, error } = await supabase
+    .from("chat_message_reactions")
+    .select("message_id, user_id, reaction")
+    .eq("channel_kind", "dm")
+    .in("message_id", messageIds);
+  if (error) throw new Error(error.message);
+
+  const counts = new Map<string, ChatReactionCounts>();
+  const mine = new Map<string, ChatReaction[]>();
+  for (const row of (data ?? []) as Array<{
+    message_id: string;
+    user_id: string;
+    reaction: ChatReaction;
+  }>) {
+    if (!CHAT_REACTIONS.includes(row.reaction)) continue;
+    const next = counts.get(row.message_id) ?? emptyChatReactions();
+    next[row.reaction] += 1;
+    counts.set(row.message_id, next);
+    if (row.user_id === userId) {
+      mine.set(row.message_id, [...(mine.get(row.message_id) ?? []), row.reaction]);
+    }
+  }
+
+  const byId = new Map(messages.map((message) => [message.id, message]));
+  return messages.map((message) => ({
+    ...message,
+    reactions: counts.get(message.id) ?? emptyChatReactions(),
+    my_reactions: mine.get(message.id) ?? [],
+    reply_to: message.reply_to_id ? (byId.get(message.reply_to_id) ?? null) : null,
+  }));
+}
 
 async function fetchProfiles(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,12 +103,16 @@ export const listThreads = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("messages")
-      .select("id, sender_id, recipient_id, content, created_at, read_at")
+      .select(MESSAGE_COLS)
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    const rows = (data ?? []) as DMMessage[];
+    const rows = (data ?? []).map((row) => ({
+      ...row,
+      reactions: emptyChatReactions(),
+      my_reactions: [],
+    })) as DMMessage[];
 
     const byOther = new Map<string, { last: DMMessage; unread: number }>();
     for (const m of rows) {
@@ -86,14 +144,19 @@ export const listMessages = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data: rows, error } = await supabase
       .from("messages")
-      .select("id, sender_id, recipient_id, content, created_at, read_at")
+      .select(MESSAGE_COLS)
       .or(
         `and(sender_id.eq.${userId},recipient_id.eq.${data.other_id}),and(sender_id.eq.${data.other_id},recipient_id.eq.${userId})`,
       )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    return ((rows ?? []) as DMMessage[]).reverse();
+    const messages = (rows ?? []).reverse().map((row) => ({
+      ...row,
+      reactions: emptyChatReactions(),
+      my_reactions: [],
+    })) as DMMessage[];
+    return addReactionState(supabase, messages, userId);
   });
 
 export const sendMessage = createServerFn({ method: "POST" })
@@ -102,24 +165,40 @@ export const sendMessage = createServerFn({ method: "POST" })
     z
       .object({
         recipient_id: z.string().uuid(),
-        content: z.string().min(1).max(2000),
+        content: z.string().trim().min(1).max(2000).nullish(),
+        attachment_url: z.string().min(1).max(500).nullish(),
+        attachment_type: z.literal("image").nullish(),
+        reply_to_id: z.string().uuid().nullish(),
+      })
+      .refine((value) => Boolean(value.content || value.attachment_url), {
+        message: "Message text or an attachment is required",
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.recipient_id === userId) throw new Error("Can't message yourself");
+    if (data.attachment_url && !data.attachment_url.startsWith(`${userId}/dm/`)) {
+      throw new Error("Invalid attachment path");
+    }
     const { data: row, error } = await supabase
       .from("messages")
       .insert({
         sender_id: userId,
         recipient_id: data.recipient_id,
-        content: data.content,
+        content: data.content ?? null,
+        attachment_url: data.attachment_url ?? null,
+        attachment_type: data.attachment_url ? "image" : null,
+        reply_to_id: data.reply_to_id ?? null,
       })
-      .select("id, sender_id, recipient_id, content, created_at, read_at")
+      .select(MESSAGE_COLS)
       .single();
     if (error) throw new Error(error.message);
-    return row as DMMessage;
+    return {
+      ...(row as Omit<DMMessage, "reactions" | "my_reactions">),
+      reactions: emptyChatReactions(),
+      my_reactions: [],
+    };
   });
 
 export const markThreadRead = createServerFn({ method: "POST" })

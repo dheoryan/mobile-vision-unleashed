@@ -125,14 +125,17 @@ function useVentureChatPreviews(ventureIds: string[]) {
     queryFn: async () => {
       const { data } = await supabase
         .from("venture_messages")
-        .select("venture_id, content, created_at, sender_id")
+        .select("venture_id, content, attachment_type, created_at, sender_id")
         .in("venture_id", ventureIds)
         .order("created_at", { ascending: false })
         .limit(200);
       const newest = new Map<string, { content: string; created_at: string }>();
       for (const row of data ?? []) {
         if (!newest.has(row.venture_id)) {
-          newest.set(row.venture_id, { content: row.content, created_at: row.created_at });
+          newest.set(row.venture_id, {
+            content: row.content || (row.attachment_type === "image" ? "Photo" : "Message"),
+            created_at: row.created_at,
+          });
         }
       }
       return newest;
@@ -407,7 +410,10 @@ export function ChatsScreen({
                     </span>
                   }
                   title={thread.other?.display_name?.trim() || "Someone"}
-                  subtitle={thread.last_message.content}
+                  subtitle={
+                    thread.last_message.content ||
+                    (thread.last_message.attachment_type === "image" ? "Photo" : "Message")
+                  }
                   meta={timeAgoLabel(thread.last_message.created_at)}
                   unread={thread.unread_count || null}
                   onClick={() => onOpenThread(thread.other_id)}

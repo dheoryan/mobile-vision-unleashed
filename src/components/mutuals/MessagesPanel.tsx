@@ -6,7 +6,6 @@ import {
   Loader2,
   MessageCircle,
   Reply,
-  Send,
   UserPlus,
   UsersRound,
   X,
@@ -38,7 +37,7 @@ import { showPlusBadge } from "@/lib/feature-flags";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
-import { ReplyPreview, QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
+import { QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
 import { FeatureIllustration } from "./FeatureIllustration";
 import {
   useAnswerHello,
@@ -49,13 +48,14 @@ import {
 import messagesArt from "@/assets/app-illustrations/messages.webp";
 import { SafetyMenu } from "./SafetyMenu";
 import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
+import { ChatComposer, type ChatReplyTarget } from "./ChatComposer";
+import { ChatMessageActions } from "./ChatMessageActions";
+import { ChatAttachment } from "./ChatAttachment";
+import { useOptimisticChatReactions } from "@/lib/chat-store";
+import { removeChatAttachment, uploadChatImage } from "@/lib/uploads";
+import type { ChatReaction } from "@/lib/chat";
 
-type ReplyTarget = { id: string; name: string; snippet: string };
-
-function quotePrefix(reply: ReplyTarget) {
-  const snippet = reply.snippet.length > 80 ? reply.snippet.slice(0, 77) + "…" : reply.snippet;
-  return `↪ ${reply.name}: ${snippet}\n`;
-}
+type ReplyTarget = ChatReplyTarget;
 
 function MessageSwipeRow({
   children,
@@ -298,7 +298,7 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
   const lastSenderName = displayVentureName(last?.sender);
   const isComplete = venture.status === "closed" || !!venture.closed_at || !!venture.ended_at;
   const preview = last
-    ? `${isMine ? "You" : lastSenderName}: ${last.content}`
+    ? `${isMine ? "You" : lastSenderName}: ${last.content || (last.attachment_type === "image" ? "Photo" : "Message")}`
     : isComplete
       ? "Venture complete · reconnect with your party"
       : `${Math.max(venture.filled_slots, 1)}/${venture.max_slots} slots · No messages yet`;
@@ -362,7 +362,8 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
             )}
           >
             {isMine ? "You: " : ""}
-            {t.last_message.content}
+            {t.last_message.content ||
+              (t.last_message.attachment_type === "image" ? "Photo" : "Message")}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -567,27 +568,44 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   const send = useSendVentureMessage(venture.id);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isComplete = useVentureComplete(venture);
+  const chatReactions = useOptimisticChatReactions("venture");
 
   useEffect(() => {
     if (!msgs?.length) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [msgs, isComplete]);
 
-  const submit = () => {
+  const submit = async () => {
     const body = text.trim();
-    if (!body) return;
-    const content = replyTo ? quotePrefix(replyTo) + body : body;
-    send.mutate(content, {
-      onSuccess: () => {
-        setText("");
-        setReplyTo(null);
-        requestPushPrompt("venture");
-      },
-      onError: (err) => toast.error((err as Error).message),
-    });
+    if ((!body && !selectedImage) || !user?.id || uploading) return;
+    setUploading(true);
+    let uploadedPath: string | null = null;
+    try {
+      uploadedPath = selectedImage
+        ? await uploadChatImage(user.id, "venture", venture.id, selectedImage)
+        : null;
+      await send.mutateAsync({
+        content: body || null,
+        attachment_url: uploadedPath,
+        attachment_type: uploadedPath ? "image" : null,
+        reply_to_id: replyTo?.id ?? null,
+      });
+      setText("");
+      setReplyTo(null);
+      setSelectedImage(null);
+      requestPushPrompt("venture");
+    } catch (error) {
+      if (uploadedPath) void removeChatAttachment(uploadedPath).catch(() => undefined);
+      toast.error(error instanceof Error ? error.message : "Couldn't send message");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const startReply = (m: VentureMessage) => {
@@ -595,7 +613,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
     setReplyTo({
       id: m.id,
       name: mine ? "yourself" : displayVentureName(m.sender),
-      snippet: m.content,
+      snippet: m.content || (m.attachment_type === "image" ? "Photo" : "Message"),
     });
     requestAnimationFrame(() => inputRef.current?.focus());
   };
@@ -633,44 +651,94 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
           msgs.map((m: VentureMessage) => {
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
+            const senderName = mine ? "You" : displayVentureName(m.sender);
+            const reactionState = chatReactions.stateFor(m);
             return (
               <MessageSwipeRow
                 key={m.id}
                 mine={mine}
                 accentColor="var(--color-primary)"
-                disabled={pending}
+                disabled={pending || isComplete}
                 onReply={() => startReply(m)}
               >
                 <div className={cn("flex max-w-[88%] items-start gap-1", pending && "opacity-60")}>
                   {(() => {
-                    const { quote, body } = parseQuotedMessage(m.content);
+                    const legacy = parseQuotedMessage(m.content ?? "");
+                    const quote = m.reply_to
+                      ? {
+                          name:
+                            m.reply_to.sender_id === user?.id
+                              ? "You"
+                              : displayVentureName(m.reply_to.sender),
+                          snippet:
+                            m.reply_to.content ||
+                            (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
+                        }
+                      : legacy.quote;
+                    const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
                     return (
-                      <div
-                        className={cn(
-                          "rounded-xl px-3 py-2 text-sm shadow-sm",
-                          mine
-                            ? "rounded-br-sm bg-primary text-white"
-                            : "rounded-bl-sm bg-card text-foreground",
-                        )}
-                      >
-                        {!mine && (
-                          <p className="mb-0.5 text-[10px] font-semibold opacity-70">
-                            {displayVentureName(m.sender)}
-                          </p>
-                        )}
-                        {quote && (
-                          <QuotedBlock
-                            name={quote.name}
-                            snippet={quote.snippet}
-                            mine={mine}
-                            accentColor="var(--color-primary)"
-                          />
-                        )}
-                        <p className="whitespace-pre-wrap leading-relaxed">{body}</p>
+                      <div className="min-w-0">
+                        <div
+                          className={cn(
+                            "space-y-2 rounded-xl px-3 py-2 text-sm shadow-sm",
+                            !pending && "cursor-pointer",
+                            mine
+                              ? "rounded-br-sm bg-primary text-white"
+                              : "rounded-bl-sm bg-card text-foreground",
+                          )}
+                          onClick={(event) => {
+                            if (pending || (event.target as HTMLElement).closest("a, button"))
+                              return;
+                            setActionOpenFor((current) => (current === m.id ? null : m.id));
+                          }}
+                        >
+                          {!mine && (
+                            <p className="text-[10px] font-semibold opacity-70">{senderName}</p>
+                          )}
+                          {quote && (
+                            <QuotedBlock
+                              name={quote.name}
+                              snippet={quote.snippet}
+                              mine={mine}
+                              accentColor="var(--color-primary)"
+                            />
+                          )}
+                          {m.attachment_url && m.attachment_type === "image" && (
+                            <ChatAttachment value={m.attachment_url} />
+                          )}
+                          {messageBody && (
+                            <p className="whitespace-pre-wrap leading-relaxed">{messageBody}</p>
+                          )}
+                        </div>
+                        <ChatMessageActions
+                          open={actionOpenFor === m.id}
+                          mine={mine}
+                          senderName={senderName}
+                          reactions={reactionState.reactions}
+                          myReactions={reactionState.my_reactions}
+                          disabled={pending || isComplete}
+                          onToggleOpen={() =>
+                            setActionOpenFor((current) => (current === m.id ? null : m.id))
+                          }
+                          onReact={(reaction: ChatReaction) => {
+                            setActionOpenFor(null);
+                            void chatReactions
+                              .toggle(m, reaction)
+                              .catch((error) =>
+                                toast.error(
+                                  error instanceof Error ? error.message : "Couldn't save reaction",
+                                ),
+                              );
+                          }}
+                          onReply={() => {
+                            startReply(m);
+                            setActionOpenFor(null);
+                          }}
+                        />
                         <p
                           className={cn(
-                            "mt-1 text-[10px]",
-                            mine ? "text-white/70" : "text-muted-foreground",
+                            "mt-1 text-[10px] text-muted-foreground",
+                            mine && "text-right",
                           )}
                         >
                           {pending ? "sending…" : shortTime(m.created_at)}
@@ -693,7 +761,7 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
         {isComplete && <VentureMootRecap venture={venture} />}
       </div>
 
-      <div className="border-t border-border p-3">
+      <div className={cn("shrink-0", isComplete && "p-3")}>
         {isComplete ? (
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
             <p className="text-xs font-semibold">This party chat is now a memory.</p>
@@ -702,34 +770,21 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
             </p>
           </div>
         ) : (
-          <>
-            {replyTo && (
-              <ReplyPreview
-                name={replyTo.name}
-                snippet={replyTo.snippet}
-                accentColor="var(--color-primary)"
-                onCancel={() => setReplyTo(null)}
-              />
-            )}
-            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
-              <input
-                ref={inputRef}
-                value={text}
-                onChange={(e) => setText(e.target.value.slice(0, 2000))}
-                onKeyDown={(e) => e.key === "Enter" && submit()}
-                placeholder={replyTo ? "Write a reply…" : "Message the party"}
-                className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-              />
-              <button
-                onClick={submit}
-                disabled={!text.trim() || send.isPending}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
-                aria-label="Send party message"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
-          </>
+          <ChatComposer
+            inputRef={inputRef}
+            value={text}
+            onChange={setText}
+            onSend={() => void submit()}
+            placeholder={replyTo ? "Write a reply…" : "Message the party"}
+            accentColor="var(--color-primary)"
+            replyTo={replyTo}
+            onCancelReply={() => setReplyTo(null)}
+            selectedImage={selectedImage}
+            onSelectImage={setSelectedImage}
+            onClearImage={() => setSelectedImage(null)}
+            disabled={isComplete}
+            sending={uploading || send.isPending}
+          />
         )}
       </div>
     </div>
@@ -744,9 +799,13 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   const markRead = useMarkThreadRead(otherId);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const tribe = tribeOf(other?.tribe_ids);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatReactions = useOptimisticChatReactions("dm");
   const unreadIncomingIds = (msgs ?? [])
     .filter((message) => message.sender_id !== user?.id && !message.read_at)
     .map((message) => message.id)
@@ -765,15 +824,31 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [lastMessageId, otherId]);
 
-  const submit = () => {
+  const submit = async () => {
     const body = text.trim();
-    if (!body) return;
-    const content = replyTo ? quotePrefix(replyTo) + body : body;
-    setText("");
-    setReplyTo(null);
-    send.mutate(content, {
-      onSuccess: () => requestPushPrompt("dm"),
-    });
+    if ((!body && !selectedImage) || !user?.id || uploading) return;
+    setUploading(true);
+    let uploadedPath: string | null = null;
+    try {
+      uploadedPath = selectedImage
+        ? await uploadChatImage(user.id, "dm", otherId, selectedImage)
+        : null;
+      await send.mutateAsync({
+        content: body || null,
+        attachment_url: uploadedPath,
+        attachment_type: uploadedPath ? "image" : null,
+        reply_to_id: replyTo?.id ?? null,
+      });
+      setText("");
+      setReplyTo(null);
+      setSelectedImage(null);
+      requestPushPrompt("dm");
+    } catch (error) {
+      if (uploadedPath) void removeChatAttachment(uploadedPath).catch(() => undefined);
+      toast.error(error instanceof Error ? error.message : "Couldn't send message");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -812,6 +887,8 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
             const senderName = mine ? "yourself" : other?.display_name?.trim() || "Them";
+            const actionName = mine ? "You" : other?.display_name?.trim() || "Them";
+            const reactionState = chatReactions.stateFor(m);
             return (
               <MessageSwipeRow
                 key={m.id}
@@ -819,22 +896,40 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                 accentColor={tribe.colorVar}
                 disabled={pending}
                 onReply={() => {
-                  setReplyTo({ id: m.id, name: senderName, snippet: m.content });
+                  setReplyTo({
+                    id: m.id,
+                    name: senderName,
+                    snippet: m.content || (m.attachment_type === "image" ? "Photo" : "Message"),
+                  });
                   requestAnimationFrame(() => inputRef.current?.focus());
                 }}
               >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
                   {(() => {
-                    const { quote, body } = parseQuotedMessage(m.content);
+                    const legacy = parseQuotedMessage(m.content ?? "");
+                    const quote = m.reply_to
+                      ? {
+                          name: m.reply_to.sender_id === user?.id ? "You" : actionName,
+                          snippet:
+                            m.reply_to.content ||
+                            (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
+                        }
+                      : legacy.quote;
+                    const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
                     return (
                       <div
                         className={cn(
-                          "rounded-xl px-3 py-2 text-sm shadow-sm",
+                          "space-y-2 rounded-xl px-3 py-2 text-sm shadow-sm",
+                          !pending && "cursor-pointer",
                           mine
                             ? "rounded-br-sm text-white"
                             : "rounded-bl-sm bg-card text-foreground",
                         )}
                         style={mine ? { backgroundColor: tribe.colorVar } : undefined}
+                        onClick={(event) => {
+                          if (pending || (event.target as HTMLElement).closest("a, button")) return;
+                          setActionOpenFor((current) => (current === m.id ? null : m.id));
+                        }}
                       >
                         {quote && (
                           <QuotedBlock
@@ -844,10 +939,45 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                             accentColor={tribe.colorVar}
                           />
                         )}
-                        <p className="whitespace-pre-wrap break-words">{body}</p>
+                        {m.attachment_url && m.attachment_type === "image" && (
+                          <ChatAttachment value={m.attachment_url} />
+                        )}
+                        {messageBody && (
+                          <p className="whitespace-pre-wrap break-words">{messageBody}</p>
+                        )}
                       </div>
                     );
                   })()}
+                  <ChatMessageActions
+                    open={actionOpenFor === m.id}
+                    mine={mine}
+                    senderName={actionName}
+                    reactions={reactionState.reactions}
+                    myReactions={reactionState.my_reactions}
+                    disabled={pending}
+                    onToggleOpen={() =>
+                      setActionOpenFor((current) => (current === m.id ? null : m.id))
+                    }
+                    onReact={(reaction: ChatReaction) => {
+                      setActionOpenFor(null);
+                      void chatReactions
+                        .toggle(m, reaction)
+                        .catch((error) =>
+                          toast.error(
+                            error instanceof Error ? error.message : "Couldn't save reaction",
+                          ),
+                        );
+                    }}
+                    onReply={() => {
+                      setReplyTo({
+                        id: m.id,
+                        name: senderName,
+                        snippet: m.content || (m.attachment_type === "image" ? "Photo" : "Message"),
+                      });
+                      setActionOpenFor(null);
+                      requestAnimationFrame(() => inputRef.current?.focus());
+                    }}
+                  />
                   <p
                     className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
                   >
@@ -860,34 +990,20 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
         )}
       </div>
 
-      <div className="border-t border-border p-3">
-        {replyTo && (
-          <ReplyPreview
-            name={replyTo.name}
-            snippet={replyTo.snippet}
-            accentColor={tribe.colorVar}
-            onCancel={() => setReplyTo(null)}
-          />
-        )}
-        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2">
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={replyTo ? "Write a reply…" : "Message"}
-            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-          />
-          <button
-            onClick={submit}
-            disabled={!text.trim() || send.isPending}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
-            aria-label="Send"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      <ChatComposer
+        inputRef={inputRef}
+        value={text}
+        onChange={setText}
+        onSend={() => void submit()}
+        placeholder={replyTo ? "Write a reply…" : "Message"}
+        accentColor={tribe.colorVar}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
+        selectedImage={selectedImage}
+        onSelectImage={setSelectedImage}
+        onClearImage={() => setSelectedImage(null)}
+        sending={uploading || send.isPending}
+      />
     </div>
   );
 }

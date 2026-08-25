@@ -2,6 +2,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  CHAT_REACTIONS,
+  emptyChatReactions,
+  type ChatReaction,
+  type ChatReactionCounts,
+} from "@/lib/chat";
 
 export type VentureStatus = "open" | "full" | "closed";
 export type VentureScope = "mine" | "all";
@@ -76,9 +82,18 @@ export type VentureMessage = {
   id: string;
   venture_id: string;
   sender_id: string;
-  content: string;
+  content: string | null;
   created_at: string;
+  attachment_url: string | null;
+  attachment_type: "image" | null;
+  reply_to_id: string | null;
+  reactions: ChatReactionCounts;
+  my_reactions: ChatReaction[];
   sender: VentureProfileLite | null;
+  reply_to?: Pick<
+    VentureMessage,
+    "id" | "sender_id" | "content" | "attachment_type" | "sender"
+  > | null;
 };
 
 export type VentureInviteRelationship = "following" | "follower" | "mutual";
@@ -144,8 +159,11 @@ type VentureMessageDbRow = {
   id: string;
   venture_id: string;
   sender_id: string;
-  content: string;
+  content: string | null;
   created_at: string;
+  attachment_url: string | null;
+  attachment_type: "image" | null;
+  reply_to_id: string | null;
 };
 
 const PROFILE_COLS =
@@ -155,7 +173,8 @@ const VENTURE_COLS =
 const LEGACY_VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
-const MESSAGE_COLS = "id, venture_id, sender_id, content, created_at";
+const MESSAGE_COLS =
+  "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id";
 
 const scopeSchema = z.enum(["mine", "all"]);
 const createVentureSchema = z.object({
@@ -1377,13 +1396,53 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       db,
       messages.map((m) => m.sender_id),
     );
-    return messages.map((m) => ({
+    const mapped: VentureMessage[] = messages.map((m) => ({
       id: m.id,
       venture_id: m.venture_id,
       sender_id: m.sender_id,
       content: m.content,
       created_at: m.created_at,
+      attachment_url: m.attachment_url,
+      attachment_type: m.attachment_type,
+      reply_to_id: m.reply_to_id,
+      reactions: emptyChatReactions(),
+      my_reactions: [],
       sender: senders.get(m.sender_id) ?? null,
+    }));
+
+    const messageIds = mapped.map((message) => message.id);
+    if (messageIds.length) {
+      const { data: reactionRows, error: reactionError } = await db
+        .from("chat_message_reactions")
+        .select("message_id, user_id, reaction")
+        .eq("channel_kind", "venture")
+        .in("message_id", messageIds);
+      if (reactionError) throw new Error(reactionError.message);
+      const counts = new Map<string, ChatReactionCounts>();
+      const mine = new Map<string, ChatReaction[]>();
+      for (const row of (reactionRows ?? []) as Array<{
+        message_id: string;
+        user_id: string;
+        reaction: ChatReaction;
+      }>) {
+        if (!CHAT_REACTIONS.includes(row.reaction)) continue;
+        const next = counts.get(row.message_id) ?? emptyChatReactions();
+        next[row.reaction] += 1;
+        counts.set(row.message_id, next);
+        if (row.user_id === context.userId) {
+          mine.set(row.message_id, [...(mine.get(row.message_id) ?? []), row.reaction]);
+        }
+      }
+      for (const message of mapped) {
+        message.reactions = counts.get(message.id) ?? emptyChatReactions();
+        message.my_reactions = mine.get(message.id) ?? [];
+      }
+    }
+
+    const byId = new Map(mapped.map((message) => [message.id, message]));
+    return mapped.map((message) => ({
+      ...message,
+      reply_to: message.reply_to_id ? (byId.get(message.reply_to_id) ?? null) : null,
     }));
   });
 
@@ -1393,7 +1452,13 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
     z
       .object({
         venture_id: z.string().uuid(),
-        content: z.string().trim().min(1).max(2000),
+        content: z.string().trim().min(1).max(2000).nullish(),
+        attachment_url: z.string().min(1).max(500).nullish(),
+        attachment_type: z.literal("image").nullish(),
+        reply_to_id: z.string().uuid().nullish(),
+      })
+      .refine((value) => Boolean(value.content || value.attachment_url), {
+        message: "Message text or an attachment is required",
       })
       .parse(input),
   )
@@ -1411,13 +1476,22 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
     if (isComplete) {
       throw new Error("This Venture has ended. Its party chat is now a read-only memory.");
     }
+    if (
+      data.attachment_url &&
+      !data.attachment_url.startsWith(`${userId}/venture/${data.venture_id}/`)
+    ) {
+      throw new Error("Invalid attachment path");
+    }
 
     const { data: row, error } = await db
       .from("venture_messages")
       .insert({
         venture_id: data.venture_id,
         sender_id: userId,
-        content: data.content,
+        content: data.content ?? null,
+        attachment_url: data.attachment_url ?? null,
+        attachment_type: data.attachment_url ? "image" : null,
+        reply_to_id: data.reply_to_id ?? null,
       })
       .select(MESSAGE_COLS)
       .single();
@@ -1431,6 +1505,11 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
       sender_id: message.sender_id,
       content: message.content,
       created_at: message.created_at,
+      attachment_url: message.attachment_url,
+      attachment_type: message.attachment_type,
+      reply_to_id: message.reply_to_id,
+      reactions: emptyChatReactions(),
+      my_reactions: [],
       sender: senders.get(userId) ?? null,
     };
   });

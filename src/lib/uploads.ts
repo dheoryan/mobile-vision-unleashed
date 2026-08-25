@@ -12,7 +12,12 @@ function extOf(file: File): string {
 }
 
 async function uploadTo(
-  bucket: "avatars" | "post-images" | "tribe-chat-attachments" | "venture-images",
+  bucket:
+    | "avatars"
+    | "post-images"
+    | "tribe-chat-attachments"
+    | "venture-images"
+    | "chat-attachments",
   userId: string,
   file: File,
   prefix = userId,
@@ -31,7 +36,8 @@ async function uploadTo(
   if (
     bucket === "tribe-chat-attachments" ||
     bucket === "post-images" ||
-    bucket === "venture-images"
+    bucket === "venture-images" ||
+    bucket === "chat-attachments"
   ) {
     return path;
   }
@@ -46,6 +52,23 @@ export const uploadTribeChatImage = (tribeId: string, userId: string, file: File
   uploadTo("tribe-chat-attachments", userId, file, tribeId);
 export const uploadVentureImage = (userId: string, file: File) =>
   uploadTo("venture-images", userId, file);
+const CHAT_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+export const uploadChatImage = (
+  userId: string,
+  channelKind: "dm" | "venture",
+  channelId: string,
+  file: File,
+) => {
+  if (!CHAT_IMAGE_TYPES.has(file.type)) {
+    throw new Error("Use a JPG, PNG, WebP, or GIF image.");
+  }
+  return uploadTo("chat-attachments", userId, file, `${userId}/${channelKind}/${channelId}`);
+};
+
+export async function removeChatAttachment(path: string): Promise<void> {
+  const { error } = await supabase.storage.from("chat-attachments").remove([path]);
+  if (error) throw new Error(error.message);
+}
 
 const VENTURE_BUCKET = "venture-images";
 
@@ -81,6 +104,18 @@ export async function signTribeChatUrl(value: string): Promise<string | null> {
   const { data, error } = await supabase.storage
     .from(TRIBE_BUCKET)
     .createSignedUrl(tribeAttachmentPath(value), 3600);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
+
+const CHAT_BUCKET = "chat-attachments";
+
+/** Signed URL for a private DM or Venture chat attachment (valid one hour). */
+export async function signChatAttachmentUrl(value: string): Promise<string | null> {
+  const marker = `/${CHAT_BUCKET}/`;
+  const index = value.indexOf(marker);
+  const path = index >= 0 ? decodeURIComponent(value.slice(index + marker.length)) : value;
+  const { data, error } = await supabase.storage.from(CHAT_BUCKET).createSignedUrl(path, 3600);
   if (error) return null;
   return data?.signedUrl ?? null;
 }

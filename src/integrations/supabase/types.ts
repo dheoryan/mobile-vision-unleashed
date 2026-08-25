@@ -89,6 +89,38 @@ export type Database = {
           },
         ]
       }
+      chat_message_reactions: {
+        Row: {
+          channel_kind: string
+          created_at: string
+          message_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          channel_kind: string
+          created_at?: string
+          message_id: string
+          reaction: string
+          user_id: string
+        }
+        Update: {
+          channel_kind?: string
+          created_at?: string
+          message_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_id: string
@@ -252,30 +284,47 @@ export type Database = {
       }
       messages: {
         Row: {
-          content: string
+          attachment_type: string | null
+          attachment_url: string | null
+          content: string | null
           created_at: string
           id: string
           read_at: string | null
           recipient_id: string
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
-          content: string
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string | null
           created_at?: string
           id?: string
           read_at?: string | null
           recipient_id: string
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
-          content?: string
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string | null
           created_at?: string
           id?: string
           read_at?: string | null
           recipient_id?: string
+          reply_to_id?: string | null
           sender_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       moderation_actions: {
         Row: {
@@ -955,27 +1004,43 @@ export type Database = {
       }
       venture_messages: {
         Row: {
-          content: string
+          attachment_type: string | null
+          attachment_url: string | null
+          content: string | null
           created_at: string
           id: string
+          reply_to_id: string | null
           sender_id: string
           venture_id: string
         }
         Insert: {
-          content: string
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string | null
           created_at?: string
           id?: string
+          reply_to_id?: string | null
           sender_id: string
           venture_id: string
         }
         Update: {
-          content?: string
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string | null
           created_at?: string
           id?: string
+          reply_to_id?: string | null
           sender_id?: string
           venture_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "venture_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "venture_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "venture_messages_sender_id_fkey"
             columns: ["sender_id"]

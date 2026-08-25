@@ -11,6 +11,7 @@ import {
 } from "@/lib/messages.functions";
 import { useAuth } from "@/lib/auth-context";
 import type { NotificationRow } from "@/lib/notifications.functions";
+import { emptyChatReactions, type RichMessageInput } from "@/lib/chat";
 
 const THREADS_KEY = ["messages", "threads"] as const;
 const THREAD_KEY = (userId: string, id: string) => ["messages", "thread", userId, id] as const;
@@ -57,19 +58,28 @@ export function useSendMessage(otherId: string) {
   const { user } = useAuth();
   const threadKey = THREAD_KEY(user?.id ?? "anonymous", otherId);
   return useMutation({
-    mutationFn: (content: string) => fn({ data: { recipient_id: otherId, content } }),
-    onMutate: async (content) => {
+    mutationFn: (input: RichMessageInput) => fn({ data: { recipient_id: otherId, ...input } }),
+    onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: threadKey });
       const tempId = `tmp-${Date.now()}`;
+      const current = qc.getQueryData<DMMessage[]>(threadKey) ?? [];
       const optimistic: DMMessage = {
         id: tempId,
         sender_id: user?.id ?? "me",
         recipient_id: otherId,
-        content,
+        content: input.content ?? null,
         created_at: new Date().toISOString(),
         read_at: null,
+        attachment_url: input.attachment_url ?? null,
+        attachment_type: input.attachment_url ? "image" : null,
+        reply_to_id: input.reply_to_id ?? null,
+        reply_to: input.reply_to_id
+          ? (current.find((message) => message.id === input.reply_to_id) ?? null)
+          : null,
+        reactions: emptyChatReactions(),
+        my_reactions: [],
       };
-      qc.setQueryData<DMMessage[]>(threadKey, (cur) => [...(cur ?? []), optimistic]);
+      qc.setQueryData<DMMessage[]>(threadKey, [...current, optimistic]);
       return { tempId };
     },
     onSuccess: (saved, _v, ctx) => {

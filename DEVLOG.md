@@ -54,6 +54,7 @@ are already assessed there.
 | Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
 | Installed PWA | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain |
 | Tribe Room participation loop | 🟡 DB migrations applied and all release checks verified; signed-in device acceptance remains |
+| Chat capability parity | 🟡 code/build complete; Red migration `20260825020000_chat_capability_parity.sql` still needs manual Lovable execution + verification |
 
 ---
 
@@ -63,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Chat capability parity (Tribe, Venture, DM) | shared chat components; `MessagesPanel.tsx`; message/Venture stores + server functions; uploads; migration + verification SQL; `DEVLOG.md` | 2026-08-25 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -91,6 +91,7 @@ and logged below.
 | **Illustration assets** | `src/assets/app-illustrations/*` are **transparent WebP**. `FeatureIllustration` draws no card, border or crop. Any regeneration must preserve transparency, or ship on flat pure #000000 with no vignette/gradient/frame so it can be re-keyed. Black-backed art puts the rectangle back in every empty state. |
 | **Explore ranking** | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius. |
 | **Tribe Room participation loop** | Tribe chat is the live floor, not the whole room. A deterministic Daily Pulse lowers the cost of speaking; loose plan proposals gather explicit interest; only the proposal author can turn one into a real Tribe-scoped Venture; completed Ventures continue into the existing read-only Venture Memory and optional Moot flow. Plans and relationships are never created automatically. |
+| **One live-chat capability set** | Tribe, Venture, and DM chat share the same composer and message actions: text, private photo attachment, direct camera capture, structured reply, and durable Love / Funny / Support reactions. Completed Venture Memories stay read-only. |
 
 ---
 
@@ -162,6 +163,16 @@ traceability; implementation and verification evidence is in the Work Log.
 
 Leave messages for the other agent here.
 
+### 2026-08-26 — Codex → Claude — Rich DM/Venture chat requires one manual Red migration
+
+The application-side parity work is complete, but do not deploy it ahead of
+`supabase/migrations/20260825020000_chat_capability_parity.sql`: the new reads
+select columns/tables that do not exist before that migration. Apply it in the
+Lovable SQL editor, then run `LOVABLE_CHAT_PARITY_RELEASE_VERIFY.sql`; every
+returned row must be `true`. The migration creates the private 5 MB
+`chat-attachments` bucket, structured reply fields, normalized DM/Venture
+reactions, scope guards, and storage RLS. No migration was executed by Codex.
+
 ### 2026-08-21 — Codex → Claude — Chats launch creative ready
 
 The approved square announcement thumbnail is available as a full PNG and an
@@ -173,6 +184,36 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — One chat capability system across Tribe, Venture, and DM
+
+- Extracted `ChatComposer` and `ChatMessageActions` from the newest Tribe-chat
+  interaction into shared modules. All three live chat surfaces now use the
+  same right-aligned attachment, camera, and send controls; the same structured
+  reply preview; and the same Love / Funny / Support reaction tray and counts.
+- Upgraded direct and Venture messages from text-only rows to structured rich
+  messages with private photo paths, reply targets, and durable normalized
+  reactions. Replies are database-guarded to the same DM pair or Venture;
+  reaction access is checked through pinned `SECURITY DEFINER` helpers rather
+  than RLS-filtered cross-user subqueries.
+- Added a private, MIME-restricted, 5 MB `chat-attachments` bucket. Reads are
+  limited to the DM participants or Venture members, ownership is encoded in
+  upload paths, in-use files cannot be directly removed, failed message sends
+  clean up their unused upload, and the UI renders one-hour signed URLs.
+- DM and active Venture rooms now support tap-for-actions plus swipe-to-reply.
+  Venture message polling was aligned with DM polling; reaction overrides yield
+  back to fresh server state. Completed Venture Memories deliberately disable
+  reply/reaction writes and keep their recap available.
+- Added `LOVABLE_CHAT_PARITY_RELEASE_VERIFY.sql` and a focused shared-chat
+  test. `20260825020000_chat_capability_parity.sql` is **RED and not applied**;
+  localhost talks production, so signed-in acceptance must wait for the manual
+  Lovable migration and all-green verification query.
+- Validation: `npx tsc --noEmit`, focused ESLint on all changed application
+  files, `tests/chat.test.ts`, all four `tests/tribe-room.test.ts` cases, and
+  the full Cloudflare production build pass. Repository-wide lint remains
+  pre-existing red (2,423 mostly-Prettier findings outside this feature). The
+  browser reached the local app successfully but only the signed-out login
+  state was available, so no authenticated visual mutation was performed.
 
 ### 2026-08-25 — Codex — Full-height Tribe Chat and native back navigation
 

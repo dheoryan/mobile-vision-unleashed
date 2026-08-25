@@ -1,16 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AtSign,
-  Camera,
-  ChevronLeft,
-  HandHeart,
-  Heart,
-  Laugh,
-  Paperclip,
-  Reply,
-  Send,
-  X,
-} from "lucide-react";
+import { AtSign, ChevronLeft, Reply } from "lucide-react";
 import { type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -32,6 +21,9 @@ import {
   type TribeVentureDraft,
 } from "@/lib/tribe-room";
 import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
+import { ChatMessageActions } from "./ChatMessageActions";
+import type { ChatReaction } from "@/lib/chat";
+import { ChatComposer } from "./ChatComposer";
 
 function SwipeReplyRow({
   children,
@@ -285,11 +277,7 @@ function isTribeRoomSchemaUnavailable(error: { code?: string; message?: string }
   );
 }
 
-const CHAT_REACTIONS = [
-  { id: "heart" as const, label: "Love", Icon: Heart },
-  { id: "laugh" as const, label: "Funny", Icon: Laugh },
-  { id: "support" as const, label: "Support", Icon: HandHeart },
-];
+const CHAT_REACTIONS = ["heart", "laugh", "support"] as const;
 
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -311,15 +299,12 @@ function GroupChat({
   const [text, setText] = useState("");
   const [selectedMentions, setSelectedMentions] = useState<TribeMember[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<TribeMessage | null>(null);
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const attachmentInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const toggleReaction = useToggleTribeRoomReaction(tribeId);
 
   useEffect(() => {
@@ -364,16 +349,6 @@ function GroupChat({
       cancelled = true;
     };
   }, [tribeId, tribe.name]);
-
-  useEffect(() => {
-    if (!selectedImage) {
-      setImagePreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(selectedImage);
-    setImagePreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [selectedImage]);
 
   // Fetch tribe members for sender names, avatars, and @mentions.
   useEffect(() => {
@@ -455,7 +430,7 @@ function GroupChat({
         user_id: string;
         reaction: TribeRoomReaction;
       }>) {
-        if (!CHAT_REACTIONS.some((item) => item.id === reaction.reaction)) continue;
+        if (!CHAT_REACTIONS.some((item) => item === reaction.reaction)) continue;
         const counts = reactionCounts.get(reaction.message_id) ?? emptyTribeRoomReactions();
         counts[reaction.reaction] += 1;
         reactionCounts.set(reaction.message_id, counts);
@@ -572,8 +547,6 @@ function GroupChat({
 
   const clearAttachment = () => {
     setSelectedImage(null);
-    if (attachmentInputRef.current) attachmentInputRef.current.value = "";
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const selectImage = (file?: File) => {
@@ -676,7 +649,6 @@ function GroupChat({
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const chatDisabled = !canChat || !dbTribeId || sending;
   const composerPlaceholder = !canChat
     ? "Join this Tribe to chat"
     : dbTribeId
@@ -792,68 +764,29 @@ function GroupChat({
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
                     )}
                   </div>
-                  {reactionOpenFor === m.id && (
-                    <div
-                      className={cn(
-                        "mt-1 flex w-fit items-center gap-0.5 rounded-full border border-border bg-popover p-1 shadow-xl",
-                        mine && "ml-auto",
-                      )}
-                      role="toolbar"
-                      aria-label={`React to ${displayName}'s message`}
-                    >
-                      {CHAT_REACTIONS.map(({ id, label, Icon }) => {
-                        const active = m.my_reactions.includes(id);
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => void reactToMessage(m, id)}
-                            aria-label={label}
-                            aria-pressed={active}
-                            className={cn(
-                              "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                              active && "bg-secondary text-foreground",
-                            )}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </button>
-                        );
-                      })}
-                      <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplyTo(m);
-                          setReactionOpenFor(null);
-                        }}
-                        aria-label="Reply to message"
-                        className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        <Reply className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  {CHAT_REACTIONS.some(({ id }) => m.reactions[id] > 0) && (
-                    <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
-                      {CHAT_REACTIONS.filter(({ id }) => m.reactions[id] > 0).map(
-                        ({ id, label, Icon }) => (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => void reactToMessage(m, id)}
-                            aria-label={`${label}, ${m.reactions[id]}`}
-                            aria-pressed={m.my_reactions.includes(id)}
-                            className={cn(
-                              "inline-flex min-h-7 items-center gap-1 rounded-full border border-border bg-background/85 px-2 text-[10px] text-muted-foreground backdrop-blur-sm",
-                              m.my_reactions.includes(id) && "border-primary/60 text-foreground",
-                            )}
-                          >
-                            <Icon className="h-3 w-3" /> {m.reactions[id]}
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  )}
+                  <ChatMessageActions
+                    open={reactionOpenFor === m.id}
+                    mine={mine}
+                    senderName={displayName}
+                    reactions={{
+                      heart: m.reactions.heart,
+                      laugh: m.reactions.laugh,
+                      support: m.reactions.support,
+                    }}
+                    myReactions={m.my_reactions.filter(
+                      (reaction): reaction is ChatReaction =>
+                        reaction === "heart" || reaction === "laugh" || reaction === "support",
+                    )}
+                    disabled={!canChat}
+                    onToggleOpen={() =>
+                      setReactionOpenFor((current) => (current === m.id ? null : m.id))
+                    }
+                    onReact={(reaction) => void reactToMessage(m, reaction)}
+                    onReply={() => {
+                      setReplyTo(m);
+                      setReactionOpenFor(null);
+                    }}
+                  />
                   <div
                     className={cn(
                       "mt-1 flex items-center text-[10px] text-muted-foreground",
@@ -861,19 +794,6 @@ function GroupChat({
                     )}
                   >
                     <span>{formatTime(m.created_at)}</span>
-                    {canChat && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReactionOpenFor((current) => (current === m.id ? null : m.id))
-                        }
-                        className="sr-only rounded px-1 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-primary"
-                        aria-label={`Open actions for ${displayName}'s message`}
-                        aria-expanded={reactionOpenFor === m.id}
-                      >
-                        Message actions
-                      </button>
-                    )}
                   </div>
                 </div>
                 {!mine && (
@@ -889,148 +809,70 @@ function GroupChat({
           <div ref={endRef} />
         </div>
 
-        <div className="relative shrink-0 border-t border-border/70 bg-background/85 py-2 backdrop-blur-md">
-          {mentionSuggestions.length > 0 && (
-            <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
-              <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                <AtSign className="h-3 w-3" /> Mention members
-              </div>
-              {mentionSuggestions.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => addMention(member)}
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary"
-                >
-                  <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-secondary text-sm">
-                    {member.avatar_url ? (
-                      <img src={member.avatar_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      (member.avatar_emoji ?? member.display_name[0])
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">
-                      {member.display_name}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {mentionLabel(member)}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {(replyTo || selectedImage) && (
-            <div className="mb-2 space-y-2 rounded-2xl border border-border bg-background/80 p-2">
-              {replyTo && (
-                <div className="flex items-start gap-2">
-                  <Reply className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                  <div className="min-w-0 flex-1 text-xs">
-                    <p className="font-medium text-foreground">
-                      Replying to{" "}
-                      {replyTo.sender_id === user?.id
-                        ? "yourself"
-                        : (replyTo.sender?.display_name ?? "Member")}
-                    </p>
-                    <p className="truncate text-muted-foreground">
-                      {replyTo.content ||
-                        (replyTo.attachment_type === "image" ? "Photo" : "Message")}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setReplyTo(null)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              {selectedImage && imagePreviewUrl && (
-                <div className="flex items-center gap-3">
-                  <img
-                    src={imagePreviewUrl}
-                    alt="Selected attachment"
-                    className="h-14 w-14 rounded-xl object-cover"
-                  />
-                  <div className="min-w-0 flex-1 text-xs">
-                    <p className="truncate font-medium text-foreground">{selectedImage.name}</p>
-                    <p className="text-muted-foreground">Ready to send</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={clearAttachment}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="mx-2 flex items-center gap-1 rounded-[24px] border border-border bg-background/95 py-1.5 pl-4 pr-1.5 shadow-2xl backdrop-blur-md">
-            <input
-              ref={attachmentInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => selectImage(event.target.files?.[0])}
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(event) => selectImage(event.target.files?.[0])}
-            />
-            <input
-              ref={inputRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
+        <ChatComposer
+          inputRef={inputRef}
+          value={text}
+          onChange={setText}
+          onSend={() => void send()}
+          placeholder={composerPlaceholder}
+          accentColor={tribe.colorVar}
+          replyTo={
+            replyTo
+              ? {
+                  id: replyTo.id,
+                  name:
+                    replyTo.sender_id === user?.id
+                      ? "yourself"
+                      : (replyTo.sender?.display_name ?? "Member"),
+                  snippet:
+                    replyTo.content || (replyTo.attachment_type === "image" ? "Photo" : "Message"),
                 }
-              }}
-              placeholder={composerPlaceholder}
-              disabled={chatDisabled}
-              className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-60"
-            />
-            <button
-              type="button"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
-              disabled={chatDisabled}
-              onClick={() => attachmentInputRef.current?.click()}
-              aria-label="Attach a photo"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
-              disabled={chatDisabled}
-              onClick={() => cameraInputRef.current?.click()}
-              aria-label="Take a photo"
-            >
-              <Camera className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => void send()}
-              disabled={chatDisabled || (!text.trim() && !selectedImage)}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-95 disabled:opacity-40"
-              style={{ backgroundColor: tribe.colorVar }}
-              aria-label="Send"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+              : null
+          }
+          onCancelReply={() => setReplyTo(null)}
+          selectedImage={selectedImage}
+          onSelectImage={(file) => selectImage(file)}
+          onClearImage={clearAttachment}
+          disabled={!canChat || !dbTribeId}
+          sending={sending}
+          accessory={
+            mentionSuggestions.length > 0 ? (
+              <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
+                <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <AtSign className="h-3 w-3" /> Mention members
+                </div>
+                {mentionSuggestions.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => addMention(member)}
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-secondary text-sm">
+                      {member.avatar_url ? (
+                        <img
+                          src={member.avatar_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        (member.avatar_emoji ?? member.display_name[0])
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">
+                        {member.display_name}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {mentionLabel(member)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null
+          }
+        />
       </div>
     </div>
   );
