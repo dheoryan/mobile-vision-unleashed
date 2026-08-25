@@ -9,7 +9,6 @@ import {
   Paperclip,
   Reply,
   Send,
-  SmilePlus,
   X,
 } from "lucide-react";
 import { type TribeId, tribeById } from "@/lib/mutuals-data";
@@ -240,9 +239,6 @@ function TribeRoomIdentity({
           {memberLabel !== null && <> · {memberLabel} members</>}
         </p>
       </div>
-      <p className="max-w-28 text-right text-[11px] leading-snug text-muted-foreground">
-        Move Tribes in Profile settings
-      </p>
     </section>
   );
 }
@@ -676,27 +672,16 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
       : "Tribe is not ready yet";
 
   return (
-    <div className="relative mt-3 overflow-hidden rounded-[28px] border border-border bg-card">
+    <div className="relative mt-3 overflow-hidden bg-background">
       <img
         src={tribe.art}
         alt=""
         aria-hidden="true"
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_28%] opacity-35"
+        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-contain object-center opacity-[0.07] grayscale"
       />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/70 via-background/88 to-background"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at 75% 12%, transparent 0%, color-mix(in oklab, var(--background) 38%, transparent) 58%, color-mix(in oklab, var(--background) 82%, transparent) 100%)",
-        }}
-      />
+      <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
       <div className="relative z-10 pb-3">
         <div className="scroll-panel flex max-h-[58vh] min-h-72 flex-col gap-2 overflow-y-auto px-3 py-4">
           {loading && <MessageThreadSkeleton />}
@@ -751,11 +736,16 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                   <div
                     className={cn(
                       "space-y-2 rounded-xl px-3 py-2 text-sm",
+                      canChat && "cursor-pointer",
                       mine
                         ? "rounded-br-sm text-primary-foreground"
-                        : "rounded-bl-sm border border-white/10 bg-background/85 text-foreground backdrop-blur-md",
+                        : "rounded-bl-sm border border-border bg-secondary text-foreground",
                     )}
                     style={mine ? { backgroundColor: tribe.colorVar } : undefined}
+                    onClick={(event) => {
+                      if (!canChat || (event.target as HTMLElement).closest("a, button")) return;
+                      setReactionOpenFor((current) => (current === m.id ? null : m.id));
+                    }}
                   >
                     {/* Tribe chat had its OWN quote renderer — a filled,
                         rounded box nested inside an already-rounded bubble,
@@ -788,7 +778,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                   {reactionOpenFor === m.id && (
                     <div
                       className={cn(
-                        "mt-1 flex w-fit items-center gap-1 rounded-full border border-border bg-popover/95 p-1 shadow-xl backdrop-blur-md",
+                        "mt-1 flex w-fit items-center gap-0.5 rounded-full border border-border bg-popover p-1 shadow-xl",
                         mine && "ml-auto",
                       )}
                       role="toolbar"
@@ -812,6 +802,18 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                           </button>
                         );
                       })}
+                      <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReplyTo(m);
+                          setReactionOpenFor(null);
+                        }}
+                        aria-label="Reply to message"
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        <Reply className="h-4 w-4" />
+                      </button>
                     </div>
                   )}
                   {CHAT_REACTIONS.some(({ id }) => m.reactions[id] > 0) && (
@@ -837,7 +839,7 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                   )}
                   <div
                     className={cn(
-                      "mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground",
+                      "mt-1 flex items-center text-[10px] text-muted-foreground",
                       mine && "justify-end",
                     )}
                   >
@@ -848,20 +850,11 @@ function GroupChat({ tribeId, canChat }: { tribeId: TribeId; canChat: boolean })
                         onClick={() =>
                           setReactionOpenFor((current) => (current === m.id ? null : m.id))
                         }
-                        className="inline-flex min-h-7 items-center gap-1 px-1 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        aria-label="React to message"
+                        className="sr-only rounded px-1 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-primary"
+                        aria-label={`Open actions for ${displayName}'s message`}
                         aria-expanded={reactionOpenFor === m.id}
                       >
-                        <SmilePlus className="h-3 w-3" /> React
-                      </button>
-                    )}
-                    {canChat && (
-                      <button
-                        type="button"
-                        onClick={() => setReplyTo(m)}
-                        className="inline-flex min-h-7 items-center gap-1 px-1 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        <Reply className="h-3 w-3" /> Reply
+                        Message actions
                       </button>
                     )}
                   </div>

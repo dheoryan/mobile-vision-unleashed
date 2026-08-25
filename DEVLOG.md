@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| Codex | Correct Tribe chat visual hierarchy and contextual actions | `DEVLOG.md`, `src/components/mutuals/TribeScreen.tsx` | 2026-08-25 |
+| — | — | — | — |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -173,6 +173,32 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-25 — Codex — Corrected Tribe chat visual hierarchy
+
+- Corrected the too-literal first background treatment after reviewing it in
+  the real mobile composition. The Tribe portrait is now a centered,
+  grayscale 7% watermark under a uniform dark wash instead of a 35% cropped
+  illustration competing with message content.
+- Removed the rounded bordered chat frame and restored solid message surfaces:
+  outgoing bubbles retain the Tribe accent; incoming bubbles use the opaque
+  secondary surface with a quiet token border. The artwork is sensed rather
+  than read through either bubble.
+- Removed the squeezed **Move Tribes in Profile settings** instruction from the
+  room identity header. Tribe movement remains reachable in Profile Settings,
+  where it belongs.
+- Removed permanently repeated React/Reply labels beneath every message.
+  Tapping a bubble now opens one compact contextual tray containing Love,
+  Funny, Support, and Reply. Only reaction chips that actually have a count
+  remain persistent. Keyboard and screen-reader users retain a visually hidden
+  Message Actions trigger.
+- Verification: formatting, targeted ESLint, `npx tsc --noEmit`, diff checks,
+  and the Cloudflare production build pass. Both available localhost browser
+  contexts reached login rather than the signed-in room, so final signed-in
+  device visual acceptance remains with the user.
+- The frontend skill's restraint/readability rules directly drove the removal
+  of competing art and repeated controls; the full-stack skill kept the
+  existing typed reaction behavior unchanged. No migration changed.
 
 ### 2026-08-25 — Codex — Tribe chat atmosphere and mobile interactions
 
