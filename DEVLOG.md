@@ -63,7 +63,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
-| — | — | — | — |
+| Codex | Chat capability parity (Tribe, Venture, DM) | shared chat components; `MessagesPanel.tsx`; message/Venture stores + server functions; uploads; migration + verification SQL; `DEVLOG.md` | 2026-08-25 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
