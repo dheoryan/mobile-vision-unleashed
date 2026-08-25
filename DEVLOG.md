@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 |---|---|---|---|
+| Codex | Notification destination handoff fix | `src/routes/notifications.tsx`, `src/routes/index.tsx`, notification navigation helper/tests, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
