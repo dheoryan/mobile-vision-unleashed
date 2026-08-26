@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Venture participant directory | `src/components/mutuals/MessagesPanel.tsx`, `src/components/mutuals/VentureParticipantsSheet.tsx`, `src/routes/index.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,20 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Venture party participant directory
+
+- Replaced the Venture chat header's passive slot fraction with an exact,
+  selectable participant count that opens the shared bottom-sheet pattern.
+- The directory is built only from the host and accepted applications, keeps
+  the host first, labels roles, supports search and public-profile navigation,
+  and exposes the existing report/block controls. Active Venture members can
+  move directly into a DM; completed memories omit that shortcut and retain the
+  established Moot recap flow.
+- Added focused tests for accepted-only membership and ordering. Validation
+  passed targeted ESLint, `npx tsc --noEmit`, all 26 Node tests,
+  `git diff --check`, and the complete Cloudflare production build. No database
+  migration or new participant query was required.
 
 ### 2026-08-26 — Codex — Tribe member hover kept flat
 

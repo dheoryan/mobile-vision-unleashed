@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
+  ChevronRight,
   Handshake,
   Loader2,
   MessageCircle,
@@ -54,6 +55,8 @@ import { ChatAttachment } from "./ChatAttachment";
 import { useOptimisticChatReactions } from "@/lib/chat-store";
 import { removeChatAttachment, uploadChatImage } from "@/lib/uploads";
 import type { ChatReaction } from "@/lib/chat";
+import { listVentureParticipants } from "@/lib/venture-participants";
+import { VentureParticipantsSheet } from "./VentureParticipantsSheet";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -105,11 +108,13 @@ export function MessagesPanel({
   onClose,
   openWithUserId,
   openWithVenture,
+  onOpenProfile,
 }: {
   open: boolean;
   onClose: () => void;
   openWithUserId?: string | null;
   openWithVenture?: VentureParty | null;
+  onOpenProfile?: (handle: string) => void;
 }) {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [ventureThread, setVentureThread] = useState<VentureParty | null>(null);
@@ -138,7 +143,15 @@ export function MessagesPanel({
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl">
         {ventureThread ? (
-          <VenturePartyThread venture={ventureThread} onBack={onClose} />
+          <VenturePartyThread
+            venture={ventureThread}
+            onBack={onClose}
+            onOpenProfile={onOpenProfile}
+            onMessage={(userId) => {
+              setVentureThread(null);
+              setThreadId(userId);
+            }}
+          />
         ) : !threadId ? (
           <Inbox
             onOpen={(id) => setThreadId(id)}
@@ -562,7 +575,17 @@ function VentureMootRecap({ venture }: { venture: VentureParty }) {
   );
 }
 
-function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack: () => void }) {
+function VenturePartyThread({
+  venture,
+  onBack,
+  onOpenProfile,
+  onMessage,
+}: {
+  venture: VentureParty;
+  onBack: () => void;
+  onOpenProfile?: (handle: string) => void;
+  onMessage: (userId: string) => void;
+}) {
   const { user } = useAuth();
   const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
   const send = useSendVentureMessage(venture.id);
@@ -570,11 +593,13 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isComplete = useVentureComplete(venture);
   const chatReactions = useOptimisticChatReactions("venture");
+  const participants = useMemo(() => listVentureParticipants(venture), [venture]);
 
   useEffect(() => {
     if (!msgs?.length) return;
@@ -618,8 +643,6 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
-  const memberCount = Math.max(venture.filled_slots, 1);
-
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-border px-4 py-3">
@@ -634,9 +657,20 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{venture.title}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {isComplete ? "Venture memory" : "Party chat"} · {memberCount}/{venture.max_slots} slots
-          </p>
+          <button
+            type="button"
+            onClick={() => setParticipantsOpen(true)}
+            aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
+            className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 text-[11px] text-muted-foreground outline-none hover:text-foreground focus-visible:text-primary"
+          >
+            <span>{isComplete ? "Venture memory" : "Party chat"}</span>
+            <span aria-hidden="true">·</span>
+            <UsersRound className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              {participants.length} {participants.length === 1 ? "participant" : "participants"}
+            </span>
+            <ChevronRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+          </button>
         </div>
       </header>
 
@@ -787,6 +821,17 @@ function VenturePartyThread({ venture, onBack }: { venture: VentureParty; onBack
           />
         )}
       </div>
+
+      <VentureParticipantsSheet
+        open={participantsOpen}
+        onClose={() => setParticipantsOpen(false)}
+        venture={venture}
+        participants={participants}
+        currentUserId={user?.id}
+        allowMessage={!isComplete}
+        onOpenProfile={onOpenProfile}
+        onMessage={onMessage}
+      />
     </div>
   );
 }

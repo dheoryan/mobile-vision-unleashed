@@ -504,6 +504,7 @@ function App() {
           onClose={() => closeLayer("messages")}
           openWithUserId={openThreadUser}
           openWithVenture={openVentureChat}
+          onOpenProfile={(handle) => navigate({ to: "/u/$handle", params: { handle } })}
         />
       </>
     );
@@ -528,6 +529,7 @@ function App() {
         onClose={() => closeLayer("messages")}
         openWithUserId={openThreadUser}
         openWithVenture={openVentureChat}
+        onOpenProfile={(handle) => navigate({ to: "/u/$handle", params: { handle } })}
       />
       <CommentsModal
         open={!!openPostId}
