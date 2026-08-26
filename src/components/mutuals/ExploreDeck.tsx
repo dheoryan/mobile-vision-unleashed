@@ -632,7 +632,7 @@ export function ExploreDeck({
             type="button"
             onClick={back}
             aria-label={`Previous introduction before ${person.name}`}
-            className="absolute left-1 top-1/2 z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            className="absolute left-3 top-[22.5%] z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
             <ChevronLeft className="h-8 w-8" strokeWidth={2.25} />
           </button>
@@ -647,7 +647,7 @@ export function ExploreDeck({
                 : "Finish today’s introductions"
               : `Next introduction after ${person.name}`
           }
-          className="absolute right-1 top-1/2 z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+          className="absolute right-3 top-[22.5%] z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         >
           <ChevronRight className="h-8 w-8" strokeWidth={2.25} />
         </button>

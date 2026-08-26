@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Discover chevron collision fix | `src/components/mutuals/ExploreDeck.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Discover chevron collision removed
+
+- Moved the borderless previous/next chevrons from the whole-card midpoint to
+  the photo-stage midpoint, eliminating the collision between the left
+  chevron and the gold “In their words” rule.
+- Aligned both 44 px touch targets exactly inside the card (`32–76` and
+  `314–358` at 390 px viewport width). The controls remain visually unboxed,
+  swipe behavior is unchanged, and profile text has a clear content plane.
+- Authenticated mobile acceptance, targeted ESLint, TypeScript,
+  `git diff --check`, and the Cloudflare production build pass.
 
 ### 2026-08-26 — Codex — Discover hierarchy and card-edge chevrons polished
 
