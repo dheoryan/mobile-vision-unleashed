@@ -187,6 +187,96 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-26 — Codex — Discover card geometry and location hierarchy aligned
+
+- Expanded the introduction card to the same horizontal edges as the Discover
+  filter row, removing the nested 12 px inset while keeping the 8 px top gap.
+- Moved the city out of the Tribe identity line and paired it with the distance
+  beside one map pin, so place and proximity read as a single location fact.
+- Increased the reserved bottom-navigation clearance; authenticated layout
+  measurements confirm matching card/control edges and roughly 14 px of visible
+  space above the fixed navigation.
+- Targeted ESLint, TypeScript, `git diff --check`, authenticated visual
+  acceptance, and the Cloudflare production build pass.
+
+### 2026-08-26 — Codex — Discover spacing and return action polished
+
+- Added an explicit 8 px separation between the Discover controls and the
+  fixed-height introduction stage, removing the compressed zero-gap join.
+- Replaced the tiny “Revisit today’s people” utility link with a full-width,
+  56 px return action: “Back to today’s five” with the supporting cue “Review
+  anyone again.” The footer stays visually secondary to the next-step choices.
+- Authenticated mobile acceptance measured the 8 px stage gap and 56 px return
+  target; targeted ESLint, TypeScript, `git diff --check`, and the Cloudflare
+  production build pass.
+
+### 2026-08-26 — Codex — Discover chevron collision removed
+
+- Moved the borderless previous/next chevrons from the whole-card midpoint to
+  the photo-stage midpoint, eliminating the collision between the left
+  chevron and the gold “In their words” rule.
+- Aligned both 44 px touch targets exactly inside the card (`32–76` and
+  `314–358` at 390 px viewport width). The controls remain visually unboxed,
+  swipe behavior is unchanged, and profile text has a clear content plane.
+- Authenticated mobile acceptance, targeted ESLint, TypeScript,
+  `git diff --check`, and the Cloudflare production build pass.
+
+### 2026-08-26 — Codex — Discover hierarchy and card-edge chevrons polished
+
+- Moved the active deck heading and context above the compact mood/location/
+  Tribe/search controls, so the default screen now reads “Today’s five” first,
+  then the Surprise Me row, then the profile card.
+- Replaced the overlapping circular previous/next controls with borderless
+  chevrons inside the card edges. The invisible touch targets remain 44 px wide
+  and the final profile uses the same forward chevron instead of changing to a
+  door icon.
+- Authenticated Chrome acceptance at 390×844 confirmed both controls are fully
+  inside the viewport (`24–68` and `322–366`), the card ends above the fixed
+  navigation, and the document remains one viewport tall. Targeted ESLint,
+  TypeScript, `git diff --check`, and the Cloudflare production build pass.
+
+### 2026-08-26 — Codex — Discover became a fixed Today’s Five stage
+
+- Converted Discover into a `100dvh` workspace with no page-level scrolling.
+  The compact mood, location, Tribe and search controls sit above one bounded
+  card stage; search results scroll only inside their own region.
+- Made every introduction card the same responsive height. Optional open
+  Ventures now render as a one-line image overlay, long profile text is
+  clamped, actions stay pinned to the card bottom, and the outer arrows remain
+  at the card midpoint.
+- Replaced the six equal completion rows with one primary “Meet another five”
+  lens surface plus focused Venture and Tribe exits. Tribe discovery now opens
+  in a full-height layer and returns to the exact deck state instead of living
+  below the cards.
+- Authenticated Chrome acceptance at 390×844 confirmed a document height of
+  exactly 844 px, a card bottom above the fixed nav, identical 582.5 px card
+  heights across four profiles with and without Ventures, full-height Tribe
+  browsing, and internally scrolling search results. Targeted ESLint,
+  TypeScript, all 33 Node tests, `git diff --check`, PWA verification and the
+  full Cloudflare production build pass.
+
+### 2026-08-26 — Codex — Discover became swipe-first Five + Doors
+
+- Rebuilt the focused introduction card around a large profile-photo stage,
+  with a Tribe-art identity fallback for accounts that only have an emoji or a
+  failed image. The quote, two strongest factual reasons, open Venture and
+  Hello/profile actions remain visible without turning the experience into an
+  appearance-only deck.
+- Replaced the small Back / count / Maybe later row with horizontal browsing
+  and 48 px accessible arrow controls overlapping the card's outer midpoint.
+  There is no numeric counter, no reject state, and edge-origin gestures are
+  ignored so the PWA/browser Back gesture keeps ownership of the screen edge.
+- The end of the first set now opens contextual doors: a non-repeating set for
+  overlapping availability or a different mood, nearby radius preferences,
+  Ventures, Tribes, and direct search. A maximum of five additional profiles
+  is selected from the already-authorized ranked pool; no SQL or visibility
+  rule changed.
+- Verification: Prettier, targeted ESLint, `npx tsc --noEmit`, all 33 Node
+  tests, `git diff --check`, PWA release checks and the full Cloudflare
+  production build pass. The localhost app hot-reloads cleanly, but that
+  browser origin is signed out, so authenticated phone gesture and crop
+  acceptance remains for the user's existing session.
+
 ### 2026-08-26 — Codex — Settings became a full-screen navigation space
 
 - Replaced the long Settings dialog with an authenticated `/settings` route;

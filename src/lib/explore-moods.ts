@@ -7,6 +7,7 @@ export interface MoodCandidate {
   interests: string[];
   socialIntents: string[];
   availability: string[];
+  sharedAvailability?: string[];
   distanceBand?: string | null;
   matchScore?: number;
   openVentureTitle?: string | null;
@@ -56,6 +57,7 @@ export function moodAffinity(candidate: MoodCandidate, mood: ExploreMood): numbe
     if (includesAny(candidate.availability, TONIGHT_AVAILABILITY)) {
       affinity += 30;
     }
+    if (candidate.sharedAvailability?.length) affinity += 28;
     if (candidate.openVentureTitle) affinity += 18;
   }
 
@@ -89,4 +91,24 @@ export function curateForMood<T extends MoodCandidate>(
   }
   const offset = hash % possibleOffsets;
   return window.slice(offset, offset + limit);
+}
+
+/**
+ * Produces a second consideration set without recycling anyone from the first.
+ * Exclusion happens before mood ranking so a different lens cannot quietly
+ * reintroduce the same strongest profiles.
+ */
+export function curateUnseenForMood<T extends MoodCandidate>(
+  candidates: T[],
+  mood: ExploreMood,
+  excludedIds: ReadonlySet<string>,
+  limit = 5,
+  dayKey?: string,
+): T[] {
+  return curateForMood(
+    candidates.filter((candidate) => !excludedIds.has(candidate.id)),
+    mood,
+    limit,
+    dayKey,
+  );
 }
