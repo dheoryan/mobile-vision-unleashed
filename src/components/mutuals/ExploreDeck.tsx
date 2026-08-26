@@ -25,7 +25,9 @@ import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
 import { PlusBadge } from "./PlusBadge";
+import { FeatureIllustration } from "./FeatureIllustration";
 import { HelloModal } from "./HelloModal";
+import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { useContactStatus } from "@/lib/social-store";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
 import { curateForMood, curateUnseenForMood, type ExploreMood } from "@/lib/explore-moods";
@@ -133,7 +135,6 @@ export function ExploreDeck({
   const [photoFailed, setPhotoFailed] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
   const gestureRef = useRef<GestureState | null>(null);
 
   const continuationPeople = useMemo(() => {
@@ -170,25 +171,7 @@ export function ExploreDeck({
     setPhotoFailed(false);
   }, [person?.id]);
 
-  useEffect(() => {
-    try {
-      setShowSwipeHint(!window.localStorage.getItem("meutuals:discover-swipe-seen"));
-    } catch {
-      setShowSwipeHint(true);
-    }
-  }, []);
-
-  const dismissSwipeHint = () => {
-    setShowSwipeHint(false);
-    try {
-      window.localStorage.setItem("meutuals:discover-swipe-seen", "true");
-    } catch {
-      // Browsing still works when storage is unavailable.
-    }
-  };
-
   const advance = () => {
-    dismissSwipeHint();
     if (index + 1 < currentPeople.length) {
       setIndex((current) => current + 1);
       return;
@@ -198,7 +181,6 @@ export function ExploreDeck({
   };
 
   const back = () => {
-    dismissSwipeHint();
     if (index > 0) setIndex((current) => current - 1);
   };
 
@@ -401,7 +383,10 @@ export function ExploreDeck({
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Continue with a real room or plan, or revisit anyone you met today.
         </p>
-        <div className="mt-auto grid gap-2 pt-6">
+        <div className="flex min-h-0 flex-1 items-center justify-center py-3">
+          <FeatureIllustration src={discoverArt} size="lg" className="w-[190px] opacity-85" />
+        </div>
+        <div className="grid shrink-0 gap-2">
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
@@ -665,12 +650,6 @@ export function ExploreDeck({
           <ChevronRight className="h-8 w-8" strokeWidth={2.25} />
         </button>
       </div>
-
-      {showSwipeHint && (
-        <p className="pointer-events-none absolute bottom-[4.25rem] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/65 px-3 py-1.5 text-[10px] text-white/80 backdrop-blur-sm">
-          Swipe to browse · nobody is rejected
-        </p>
-      )}
 
       {helloFor && (
         <HelloModal

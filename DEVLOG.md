@@ -187,6 +187,18 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-26 — Codex — Discover completion card gained editorial artwork
+
+- Filled the completion card's empty center with the existing transparent
+  Discover illustration, centered in the flexible space between the summary
+  and the fixed action stack without adding another frame or surface.
+- Removed the one-time swipe tutorial label and its local-storage state; the
+  persistent card-edge chevrons already communicate navigation without
+  obscuring profile actions.
+- Authenticated visual acceptance measured a 253 px illustration with 32 px
+  action clearance; targeted ESLint, TypeScript, `git diff --check`, and the
+  Cloudflare production build pass.
+
 ### 2026-08-26 — Codex — Discover card geometry and location hierarchy aligned
 
 - Expanded the introduction card to the same horizontal edges as the Discover
