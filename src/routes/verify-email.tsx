@@ -14,13 +14,13 @@ export const Route = createFileRoute("/verify-email")({
   }),
   head: () => ({
     meta: [
-      { title: "Verify your email · Meutuals" },
+      { title: "Verify your email · Meutuals — Your tribe is waiting" },
       {
         name: "description",
         content:
           "Check whether your Meutuals email address is verified, resend the confirmation link, and see what to do next.",
       },
-      { property: "og:title", content: "Verify your email · Meutuals" },
+      { property: "og:title", content: "Verify your email · Meutuals — Your tribe is waiting" },
       {
         property: "og:description",
         content: "Confirm your Meutuals email address or resend the verification link.",
