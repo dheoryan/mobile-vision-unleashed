@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Discover card alignment, location hierarchy, and bottom spacing | `src/components/mutuals/ExploreDeck.tsx`, `src/components/mutuals/DiscoverScreen.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Discover card geometry and location hierarchy aligned
+
+- Expanded the introduction card to the same horizontal edges as the Discover
+  filter row, removing the nested 12 px inset while keeping the 8 px top gap.
+- Moved the city out of the Tribe identity line and paired it with the distance
+  beside one map pin, so place and proximity read as a single location fact.
+- Increased the reserved bottom-navigation clearance; authenticated layout
+  measurements confirm matching card/control edges and roughly 14 px of visible
+  space above the fixed navigation.
+- Targeted ESLint, TypeScript, `git diff --check`, authenticated visual
+  acceptance, and the Cloudflare production build pass.
 
 ### 2026-08-26 — Codex — Discover spacing and return action polished
 

@@ -267,7 +267,7 @@ export function DiscoverScreen() {
   return (
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat">
       <AppHeader title="Discover" subtitle="Beyond your Tribe" accent="var(--color-primary)" />
-      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <div className="mb-2 mt-3 flex shrink-0 items-end justify-between gap-3">
           <div className="min-w-0">
             <h2 className="truncate font-display text-lg font-bold">

@@ -449,7 +449,7 @@ export function ExploreDeck({
         </div>
       )}
       <p className="sr-only">Showing {person.name}</p>
-      <div className="relative min-h-0 flex-1 px-3">
+      <div className="relative min-h-0 flex-1">
         <div
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -544,15 +544,23 @@ export function ExploreDeck({
                     {person.plus && <PlusBadge />}
                   </span>
                   <span className="shrink-0">{tribe.name}</span>
-                  {person.city && <span className="truncate">· {person.city}</span>}
                 </div>
                 <h3 className="mt-2 truncate font-display text-3xl font-bold leading-none text-white">
                   {person.name}
                 </h3>
                 {person.handle && <p className="mt-1 text-xs text-white/65">{person.handle}</p>}
-                {person.distanceBand && (
-                  <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                    <MapPin className="h-3.5 w-3.5" /> {person.distanceBand}
+                {(person.city || person.distanceBand) && (
+                  <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px]">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {person.city && <span className="truncate text-white/75">{person.city}</span>}
+                    {person.city && person.distanceBand && (
+                      <span className="shrink-0 text-white/45">·</span>
+                    )}
+                    {person.distanceBand && (
+                      <span className="shrink-0 font-semibold text-primary">
+                        {person.distanceBand}
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
