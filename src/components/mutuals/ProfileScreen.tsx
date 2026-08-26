@@ -44,6 +44,7 @@ import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
 import { TribeMark } from "./TribeMark";
 import { timingLabel } from "@/lib/venture-time";
+import { avatarFileIssue } from "@/lib/avatar-file";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -575,6 +576,7 @@ export function EditProfileModal({
   const [availability, setAvailability] = useState<AvailabilityId[]>(profile.availability);
   const [uploading, setUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const sanitizeHandle = (v: string) =>
     v
@@ -588,15 +590,33 @@ export function EditProfileModal({
 
   const onPickFile = (file: File | undefined) => {
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Only image files.");
+    const issue = avatarFileIssue(file);
+    if (issue === "not-image") {
+      toast.error("We couldn't open this photo", {
+        description: "Choose a JPG, PNG, WebP, GIF, AVIF, HEIC, or HEIF image.",
+      });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (issue === "too-large") {
       toast.error("Image too large", { description: "Please pick an image under 5MB." });
       return;
     }
     setCropFile(file);
+  };
+
+  const openAvatarPicker = () => {
+    if (uploading) return;
+    const input = avatarInputRef.current;
+    if (!input) {
+      toast.error("Photo picker unavailable", {
+        description: "Close Edit profile, reopen it, and try again.",
+      });
+      return;
+    }
+
+    // Clearing first means selecting the same photo again still fires change.
+    input.value = "";
+    input.click();
   };
 
   const onSaveCroppedAvatar = async (file: File) => {
@@ -630,7 +650,13 @@ export function EditProfileModal({
         <h2 className="font-display text-xl font-bold">Edit profile</h2>
 
         <div className="mt-5 flex flex-col items-center">
-          <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-visible">
+          <button
+            type="button"
+            onClick={openAvatarPicker}
+            disabled={uploading}
+            aria-label="Change profile photo"
+            className="relative flex h-24 w-24 items-center justify-center overflow-visible rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-card disabled:cursor-wait"
+          >
             <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-background text-4xl ring-2 ring-background">
               {isImage ? (
                 <img src={avatar} alt="" className="h-full w-full object-cover" />
@@ -638,23 +664,34 @@ export function EditProfileModal({
                 <span>{avatar}</span>
               )}
             </span>
-            <span className="absolute -bottom-1 -right-1 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-card">
+            <span className="absolute -bottom-2 -right-2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-card">
               {uploading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Camera className="h-4 w-4" />
               )}
             </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                onPickFile(e.target.files?.[0]);
-                e.currentTarget.value = "";
-              }}
-            />
-          </label>
+          </button>
+          <button
+            type="button"
+            onClick={openAvatarPicker}
+            disabled={uploading}
+            className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          >
+            Choose photo
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
+            aria-hidden="true"
+            tabIndex={-1}
+            className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+            onChange={(e) => {
+              onPickFile(e.target.files?.[0]);
+              e.currentTarget.value = "";
+            }}
+          />
           {/* The emoji-avatar strip used to sit here. Removed at the user's
               request: it offered twelve near-identical animal glyphs as a
               parallel identity system next to real photo upload, and the
@@ -772,6 +809,7 @@ function AvatarCropModal({
   const [zoom, setZoom] = useState(1.15);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const previewSize = 256;
 
   useEffect(() => {
@@ -781,6 +819,7 @@ function AvatarCropModal({
     setZoom(1.15);
     setOffset({ x: 0, y: 0 });
     setImageSize(null);
+    setImageLoadFailed(false);
     return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
 
@@ -842,7 +881,10 @@ function AvatarCropModal({
     const viewport = viewportRef.current;
     if (!img || !viewport) throw new Error("Image is not ready yet.");
 
-    await img.decode().catch(() => undefined);
+    if (typeof img.decode === "function") await img.decode();
+    if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+      throw new Error("This photo format cannot be decoded on this device.");
+    }
 
     const outputSize = 720;
     const canvas = document.createElement("canvas");
@@ -924,11 +966,16 @@ function AvatarCropModal({
               alt="Selected profile photo"
               draggable={false}
               onLoad={(event) => {
+                setImageLoadFailed(false);
                 setImageSize({
                   width: event.currentTarget.naturalWidth,
                   height: event.currentTarget.naturalHeight,
                 });
                 setOffset({ x: 0, y: 0 });
+              }}
+              onError={() => {
+                setImageLoadFailed(true);
+                setImageSize(null);
               }}
               className="pointer-events-none absolute left-1/2 top-1/2 max-w-none select-none"
               style={{
@@ -937,6 +984,11 @@ function AvatarCropModal({
                 transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
               }}
             />
+            {imageLoadFailed && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/95 px-6 text-center text-sm text-muted-foreground">
+                This photo format cannot be opened on this device. Try a JPG, PNG, or WebP image.
+              </div>
+            )}
             <div className="pointer-events-none absolute inset-0 rounded-full border border-white/15" />
           </div>
         </div>
@@ -971,7 +1023,7 @@ function AvatarCropModal({
           </button>
           <button
             onClick={handleUsePhoto}
-            disabled={saving}
+            disabled={saving || !imageSize || imageLoadFailed}
             className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}

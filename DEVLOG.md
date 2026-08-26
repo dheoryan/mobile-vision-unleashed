@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Android profile-photo picker compatibility | `src/components/mutuals/ProfileScreen.tsx`, `src/lib/avatar-file.ts`, `tests/profile-photo-picker.test.ts`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Android-safe profile photo picker
+
+- Replaced the avatar label/`display:none` file-input activation with explicit
+  avatar and text buttons that synchronously click one visually hidden input.
+  The camera affordance is now a 44px touch target and the same photo can be
+  selected again after a failed or cancelled attempt.
+- Added Android content-provider compatibility for empty and generic MIME
+  metadata when the filename has a known image extension. Unsupported,
+  oversized, and device-undecodable photos now receive visible feedback rather
+  than leaving an inert or blank cropper.
+- Added `tests/profile-photo-picker.test.ts`; its three regression cases pass.
+  Targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and the full
+  production build all pass. Physical acceptance remains for the reporting
+  Android device because desktop emulation cannot prove its native picker.
 
 ### 2026-08-26 — Codex — Discover completion card gained editorial artwork
 
