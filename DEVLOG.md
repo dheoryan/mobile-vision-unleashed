@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Production deployment after Venture coordination DB verification | `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — User + Codex — Venture coordination production release
+
+- The user manually applied
+  `supabase/migrations/20260826010000_venture_chat_coordination.sql` in Lovable
+  and confirmed every row from
+  `LOVABLE_VENTURE_CHAT_COORDINATION_VERIFY.sql` returned `true`. Production
+  now has the arrival states, host announcement, and protected system-event
+  schema required by the Venture coordination UI.
+- Fetched `origin/main` immediately before release and confirmed a clean
+  fast-forward with no remote commits to reconcile. The release contains the
+  Tribe and Venture participant-directory refinements plus the completed
+  Venture coordination room; Google Places remains disabled by the settled
+  feature-flag decision.
+- Release gates passed immediately before deployment: Prettier, targeted
+  ESLint, `npx tsc --noEmit`, all 28 Node tests, `git diff --check`, and the
+  complete Cloudflare production build. Local `.env`, `package-lock.json`, and
+  `HANDOFF.md` changes remain outside the committed release.
 
 ### 2026-08-26 — Codex — Venture chat became a coordination room
 
