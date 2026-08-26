@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Discover fixed-stage redesign | `src/components/mutuals/DiscoverScreen.tsx`, `src/components/mutuals/ExploreDeck.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Discover became a fixed Today’s Five stage
+
+- Converted Discover into a `100dvh` workspace with no page-level scrolling.
+  The compact mood, location, Tribe and search controls sit above one bounded
+  card stage; search results scroll only inside their own region.
+- Made every introduction card the same responsive height. Optional open
+  Ventures now render as a one-line image overlay, long profile text is
+  clamped, actions stay pinned to the card bottom, and the outer arrows remain
+  at the card midpoint.
+- Replaced the six equal completion rows with one primary “Meet another five”
+  lens surface plus focused Venture and Tribe exits. Tribe discovery now opens
+  in a full-height layer and returns to the exact deck state instead of living
+  below the cards.
+- Authenticated Chrome acceptance at 390×844 confirmed a document height of
+  exactly 844 px, a card bottom above the fixed nav, identical 582.5 px card
+  heights across four profiles with and without Ventures, full-height Tribe
+  browsing, and internally scrolling search results. Targeted ESLint,
+  TypeScript, all 33 Node tests, `git diff --check`, PWA verification and the
+  full Cloudflare production build pass.
 
 ### 2026-08-26 — Codex — Discover became swipe-first Five + Doors
 

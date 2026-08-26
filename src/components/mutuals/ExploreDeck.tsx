@@ -12,13 +12,11 @@ import {
   BookmarkCheck,
   CalendarPlus,
   Check,
-  Clock3,
   DoorOpen,
   Hand,
   Loader2,
   MapPin,
   MessageCircle,
-  Search,
   Shuffle,
   UsersRound,
 } from "lucide-react";
@@ -104,7 +102,6 @@ export function ExploreDeck({
   followPending,
   onOpenNearby,
   onExploreTribes,
-  onSearch,
   onPhaseChange,
 }: {
   people: DeckPerson[];
@@ -116,7 +113,6 @@ export function ExploreDeck({
   followPending: string | null;
   onOpenNearby: () => void;
   onExploreTribes: () => void;
-  onSearch: () => void;
   onPhaseChange?: (phase: ExploreDeckPhase) => void;
 }) {
   const primaryPeople = useMemo(
@@ -131,7 +127,6 @@ export function ExploreDeck({
   const [phase, setPhase] = useState<ExploreDeckPhase>("primary");
   const [index, setIndex] = useState(0);
   const [continuationMood, setContinuationMood] = useState<ExploreMood | null>(null);
-  const [showMoodChoices, setShowMoodChoices] = useState(false);
   const [doorMessage, setDoorMessage] = useState<string | null>(null);
   const [helloFor, setHelloFor] = useState<DeckPerson | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -164,7 +159,6 @@ export function ExploreDeck({
   useEffect(() => {
     setIndex(0);
     setContinuationMood(null);
-    setShowMoodChoices(false);
     setDoorMessage(null);
     changePhase("primary");
     // The callback is intentionally excluded: sessionKey is the reset contract.
@@ -295,90 +289,99 @@ export function ExploreDeck({
     const choices = CONTINUATION_MOODS.filter((option) => option.id !== mood);
     const primarySetLabel = primaryPeople.length === 5 ? "Today’s five" : "Today’s set";
     return (
-      <section className="overflow-hidden rounded-[28px] border border-border bg-card p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          <DoorOpen className="h-6 w-6" />
-        </span>
-        <p className="label-mono mt-6 text-primary">{primarySetLabel} complete</p>
-        <h3 className="mt-2 max-w-xs font-display text-3xl font-bold leading-[1.05]">
-          Want to change the room?
-        </h3>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Nobody was rejected. Choose one direction for up to five different introductions.
-        </p>
-
-        <div className="mt-6 space-y-2">
-          <DoorAction
-            icon={Clock3}
-            title="Free around the same time"
-            description="Prioritize people whose usual availability overlaps yours."
-            onClick={() => startContinuation("tonight")}
-          />
-          <DoorAction
-            icon={Shuffle}
-            title="Different energy"
-            description="Change the mood without repeating today’s people."
-            expanded={showMoodChoices}
-            onClick={() => {
-              setDoorMessage(null);
-              setShowMoodChoices((current) => !current);
-            }}
-          />
-          {showMoodChoices && (
-            <div className="grid grid-cols-2 gap-2 px-1 pb-2">
-              {choices.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => startContinuation(option.id)}
-                  className="min-h-11 rounded-xl border border-border bg-background/45 px-3 text-left text-xs font-semibold text-foreground transition-colors hover:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-          <DoorAction
-            icon={MapPin}
-            title="Go a little wider"
-            description="Review your private mutual discovery radius."
-            onClick={onOpenNearby}
-          />
-          <DoorAction
-            icon={CalendarPlus}
-            title="Meet through a Venture"
-            description="Start from a real plan instead of a cold introduction."
-            onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-          />
-          <DoorAction
-            icon={UsersRound}
-            title="Explore Tribes"
-            description="Preview the rooms behind the people."
-            onClick={onExploreTribes}
-          />
-          <DoorAction
-            icon={Search}
-            title="Search directly"
-            description="Find a person, city or Tribe by name."
-            onClick={onSearch}
-          />
+      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+        <div className="shrink-0">
+          <p className="label-mono text-primary">{primarySetLabel} complete</p>
+          <h3 className="mt-2 font-display text-[28px] font-bold leading-[1.05]">
+            Where do you want to go next?
+          </h3>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Everyone stays in play. Choose a new lens, a plan, or a room.
+          </p>
         </div>
 
-        {doorMessage && (
-          <p role="status" className="mt-4 text-xs leading-relaxed text-muted-foreground">
-            {doorMessage}
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setIndex(Math.max(primaryPeople.length - 1, 0));
-            changePhase("primary");
-          }}
-          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <ArrowLeft className="h-4 w-4" /> Revisit today’s people
-        </button>
+        <div className="mt-4 rounded-3xl border border-primary/35 bg-primary/8 p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <Shuffle className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h4 className="font-display text-lg font-bold">Meet another five</h4>
+              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                Change the mix without repeating today’s people.
+              </p>
+            </div>
+          </div>
+          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {choices.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => startContinuation(option.id)}
+                className="min-h-10 shrink-0 rounded-full border border-primary/30 bg-background/60 px-3 text-[11px] font-semibold transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenNearby}
+            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <MapPin className="h-3.5 w-3.5" /> Adjust discovery area
+          </button>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
+            className="flex min-h-[6.25rem] flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <CalendarPlus className="h-5 w-5 text-primary" />
+            <span>
+              <span className="block text-sm font-semibold">Find a Venture</span>
+              <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
+                Start with a real plan
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={onExploreTribes}
+            className="flex min-h-[6.25rem] flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <UsersRound className="h-5 w-5 text-primary" />
+            <span>
+              <span className="block text-sm font-semibold">Enter a Tribe</span>
+              <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
+                Meet through a room
+              </span>
+            </span>
+          </button>
+        </div>
+
+        <div className="mt-auto flex min-h-11 items-end justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setIndex(Math.max(primaryPeople.length - 1, 0));
+              changePhase("primary");
+            }}
+            className="inline-flex min-h-10 items-center gap-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <ArrowLeft className="h-4 w-4" /> Revisit today’s people
+          </button>
+          {doorMessage && (
+            <p
+              role="status"
+              className="max-w-36 text-right text-[10px] leading-snug text-muted-foreground"
+            >
+              {doorMessage}
+            </p>
+          )}
+        </div>
       </section>
     );
   }
@@ -386,13 +389,13 @@ export function ExploreDeck({
   if (phase === "done") {
     const consideredCount = primaryPeople.length + continuationPeople.length;
     return (
-      <section className="rounded-[28px] border border-border bg-card p-6 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+      <section className="flex h-full min-h-0 flex-col rounded-[28px] border border-border bg-card p-6 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
         <p className="label-mono text-primary">{consideredCount} considered, nobody rejected</p>
         <h3 className="mt-2 font-display text-3xl font-bold leading-tight">That’s enough cards.</h3>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Continue with a real room or plan, or revisit anyone you met today.
         </p>
-        <div className="mt-6 grid gap-2">
+        <div className="mt-auto grid gap-2 pt-6">
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
@@ -432,7 +435,7 @@ export function ExploreDeck({
   const hasPhoto = isImageAvatar(person.avatar) && !photoFailed;
 
   return (
-    <div aria-live="polite">
+    <div className="relative flex h-full min-h-0 flex-col" aria-live="polite">
       {phase === "continuation" && continuationMood && (
         <div className="mb-3 border-l-2 border-primary pl-3">
           <p className="label-mono text-primary">A different five</p>
@@ -440,24 +443,24 @@ export function ExploreDeck({
         </div>
       )}
       <p className="sr-only">Showing {person.name}</p>
-      <div className="relative px-3">
+      <div className="relative min-h-0 flex-1 px-3">
         <div
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={finishPointer}
           onPointerCancel={cancelPointer}
           className={cn(
-            "touch-pan-y",
+            "h-full touch-pan-y",
             !dragging && "transition-transform duration-200 ease-out motion-reduce:transition-none",
           )}
           style={{ transform: `translate3d(${dragX}px, 0, 0)` }}
         >
           <article
             key={`${sessionKey}-${phase}-${person.id}`}
-            className="overflow-hidden rounded-[28px] border border-border bg-card motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
           >
             <div
-              className="relative h-[19rem] overflow-hidden bg-card"
+              className="relative h-[45%] min-h-[13rem] shrink-0 overflow-hidden bg-card"
               style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 24%, var(--card))` }}
             >
               <img
@@ -490,6 +493,22 @@ export function ExploreDeck({
               )}
               <span className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-black/15" />
 
+              {person.openVentureTitle && (
+                <button
+                  type="button"
+                  onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
+                  className="absolute left-4 top-4 z-10 flex min-h-10 max-w-[calc(100%-5.5rem)] items-center gap-2 rounded-full border border-accent/40 bg-black/60 px-3 text-left text-white backdrop-blur-md transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <CalendarPlus className="h-3.5 w-3.5 shrink-0 text-accent" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-[10px] font-semibold">
+                      {person.openVentureTitle}
+                    </span>
+                    <span className="block text-[9px] text-white/65">Hosting · spots open</span>
+                  </span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => onToggleFollow(person.id)}
@@ -513,15 +532,15 @@ export function ExploreDeck({
               </button>
 
               <div className="absolute inset-x-0 bottom-0 z-[1] p-5">
-                <div className="flex items-center gap-2 text-[11px] text-white/80">
+                <div className="flex min-w-0 items-center gap-2 text-[11px] text-white/80">
                   <span className="relative">
                     <TribeMark tribe={tribe} size="xs" />
                     {person.plus && <PlusBadge />}
                   </span>
-                  <span>{tribe.name}</span>
-                  {person.city && <span>· {person.city}</span>}
+                  <span className="shrink-0">{tribe.name}</span>
+                  {person.city && <span className="truncate">· {person.city}</span>}
                 </div>
-                <h3 className="mt-2 font-display text-3xl font-bold leading-none text-white">
+                <h3 className="mt-2 truncate font-display text-3xl font-bold leading-none text-white">
                   {person.name}
                 </h3>
                 {person.handle && <p className="mt-1 text-xs text-white/65">{person.handle}</p>}
@@ -533,18 +552,18 @@ export function ExploreDeck({
               </div>
             </div>
 
-            <div className="p-5">
+            <div className="flex min-h-0 flex-1 flex-col p-4">
               <section className="border-l-2 border-primary/75 pl-4">
                 <p className="label-mono text-primary">In their words</p>
-                <blockquote className="mt-2 font-display text-[17px] font-semibold leading-snug text-foreground">
+                <blockquote className="mt-1.5 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-foreground">
                   “{person.bio || "I’m open to meeting good people and trying something new."}”
                 </blockquote>
               </section>
 
               {reasons.length > 0 && (
-                <section className="mt-5 border-t border-border/70 pt-4">
+                <section className="mt-3 border-t border-border/70 pt-3">
                   <p className="label-mono text-muted-foreground">Why you might click</p>
-                  <ul className="mt-3 space-y-2">
+                  <ul className="mt-2 space-y-1.5">
                     {reasons.map((reason) => (
                       <li
                         key={reason.key}
@@ -560,29 +579,7 @@ export function ExploreDeck({
                 </section>
               )}
 
-              {person.openVentureTitle && (
-                <section className="mt-5 border-t border-border/70 pt-4">
-                  <p className="label-mono text-accent">Their open invitation</p>
-                  <button
-                    type="button"
-                    onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-                    className="mt-2 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-accent/35 bg-accent/10 px-3 text-left transition-colors hover:bg-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  >
-                    <CalendarPlus className="h-4 w-4 shrink-0 text-accent" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold">
-                        {person.openVentureTitle}
-                      </span>
-                      <span className="block text-[11px] text-muted-foreground">
-                        Hosting now · spots open
-                      </span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </button>
-                </section>
-              )}
-
-              <div className="mt-5 flex gap-2">
+              <div className="mt-auto flex gap-2 pt-3">
                 <Link
                   to="/u/$handle"
                   params={profileParams}
@@ -660,7 +657,7 @@ export function ExploreDeck({
       </div>
 
       {showSwipeHint && (
-        <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+        <p className="pointer-events-none absolute bottom-[4.25rem] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/65 px-3 py-1.5 text-[10px] text-white/80 backdrop-blur-sm">
           Swipe to browse · nobody is rejected
         </p>
       )}
@@ -676,44 +673,5 @@ export function ExploreDeck({
         />
       )}
     </div>
-  );
-}
-
-function DoorAction({
-  icon: Icon,
-  title,
-  description,
-  expanded,
-  onClick,
-}: {
-  icon: typeof Clock3;
-  title: string;
-  description: string;
-  expanded?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={expanded}
-      className="group flex min-h-[4.5rem] w-full items-center gap-3 rounded-2xl border border-border bg-background/35 px-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">
-          {description}
-        </span>
-      </span>
-      <ArrowRight
-        className={cn(
-          "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-          expanded && "rotate-90",
-        )}
-      />
-    </button>
   );
 }

@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   Check,
+  ChevronLeft,
   Coffee,
-  LocateFixed,
   Loader2,
   MapPin,
   Moon,
   Palette,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Shuffle,
   UserPlus,
   UsersRound,
@@ -20,7 +21,7 @@ import {
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
 import { useFeedPosts, useTribeMemberCounts, type FeedPost } from "@/lib/posts-store";
-import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
+import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSocial, useToggleFollow } from "@/lib/social-store";
@@ -128,13 +129,14 @@ export function DiscoverScreen() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
+  const [tribeBrowserOpen, setTribeBrowserOpen] = useState(false);
+  const [moodPickerOpen, setMoodPickerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [mood, setMood] = useState<ExploreMood>("surprise");
   const [deckPhase, setDeckPhase] = useState<ExploreDeckPhase>("primary");
   const [deckDay] = useState(localDayKey);
-  const tribeScrollRef = useRef<HTMLDivElement>(null);
-  const tribeSectionRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
@@ -196,14 +198,6 @@ export function DiscoverScreen() {
     }
   };
 
-  const onTribeWheel = (e: WheelEvent<HTMLDivElement>) => {
-    const el = tribeScrollRef.current;
-    if (!el) return;
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      el.scrollLeft += e.deltaY;
-    }
-  };
-
   // Server-side search already filters; keep a light client-side pass for tribe-name matches.
   //
   // There is deliberately no second list to exclude here any more. Proximity is
@@ -240,6 +234,8 @@ export function DiscoverScreen() {
     myProfile.availability.length === 0;
   const selectedMoodLabel =
     MOOD_OPTIONS.find((option) => option.id === mood)?.label ?? "Surprise me";
+  const SelectedMoodIcon = MOOD_OPTIONS.find((option) => option.id === mood)?.Icon ?? Shuffle;
+  const searchMode = searchOpen || query.length > 0;
   const deckSectionTitle =
     deckPhase === "doors"
       ? "Choose what’s next"
@@ -257,145 +253,143 @@ export function DiscoverScreen() {
           ? "Continue with a room or plan"
           : `${todaysPeople.length} picked for ${selectedMoodLabel.toLowerCase()}`;
 
-  const scrollToTribes = () => {
-    tribeSectionRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  const focusSearch = () => {
+    setSearchOpen(true);
+    window.requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
-  const focusSearch = () => {
-    searchInputRef.current?.focus();
-    searchInputRef.current?.scrollIntoView({ behavior: "auto", block: "center" });
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+    setDebounced("");
   };
 
   return (
-    <div className="bg-habitat min-h-screen pb-28">
+    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat">
       <AppHeader title="Discover" subtitle="Beyond your Tribe" accent="var(--color-primary)" />
-      <main className="mx-auto max-w-md px-5">
-        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            ref={searchInputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search people, Tribes, cities"
-            className="w-full bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-          />
-          {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+        {searchMode ? (
+          <div className="mt-3 flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={closeSearch}
+              aria-label="Close search"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card px-4">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                ref={searchInputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search people, Tribes, cities"
+                className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
+              />
+              {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 flex shrink-0 items-center gap-2" aria-label="Discover controls">
+            <button
+              type="button"
+              onClick={() => setMoodPickerOpen(true)}
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-4 text-left text-xs font-semibold transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <SelectedMoodIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="truncate">{selectedMoodLabel}</span>
+              <SlidersHorizontal className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (locationQuery.data) setNearbySettingsOpen(true);
+                else void enableNearby();
+              }}
+              disabled={locating || saveLocation.isPending}
+              aria-label={
+                locationQuery.data ? "Adjust nearby preferences" : "Enable nearby discovery"
+              }
+              className={cn(
+                "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                locationQuery.data?.discoverable
+                  ? "border-primary/35 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground",
+              )}
+            >
+              {locating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MapPin className="h-3.5 w-3.5" />
+              )}
+              {locationQuery.data?.discoverable ? `${locationQuery.data.radius_km} km` : "Area"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTribeBrowserOpen(true)}
+              aria-label="Explore Tribes"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <UsersRound className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={focusSearch}
+              aria-label="Search people, Tribes, and cities"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="mb-2 mt-3 flex shrink-0 items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate font-display text-lg font-bold">
+              {searchMode ? "Search" : deckSectionTitle}
+            </h2>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {searchMode
+                ? debounced
+                  ? `${filtered.length} found`
+                  : "Find a person, city, or Tribe"
+                : activeQuery.isLoading
+                  ? "Loading"
+                  : deckSectionHint}
+            </p>
+          </div>
+          {!searchMode && needsProfileSignals && (
+            <button
+              type="button"
+              onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
+              aria-label="Add profile interests for better matches"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Wand2 className="h-3.5 w-3.5" /> Improve matches
+            </button>
+          )}
         </div>
 
-        {!searching && (
-          <section className="mt-6">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="label-mono text-muted-foreground">What are you up for?</p>
-                <h2 className="mt-1 font-display text-xl font-bold">Set today’s mood.</h2>
-              </div>
-              <p className="max-w-28 text-right text-[10px] leading-snug text-muted-foreground">
-                Changes the order, never rejects anyone.
+        <div
+          className={cn(
+            "min-h-0 flex-1",
+            searchMode
+              ? "scroll-panel overflow-y-auto overscroll-contain pb-4"
+              : "flex flex-col overflow-hidden",
+          )}
+        >
+          {searchMode && !query.trim() ? (
+            <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                <Search className="h-6 w-6" />
+              </span>
+              <h3 className="mt-4 font-display text-xl font-bold">Search directly</h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Look up a member, city, or Tribe without changing today’s five.
               </p>
             </div>
-            <div className="-mx-5 mt-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-max gap-2 pb-1" role="list" aria-label="Explore mood">
-                {MOOD_OPTIONS.map(({ id, label, Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setMood(id)}
-                    aria-pressed={mood === id}
-                    className={cn(
-                      "flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                      mood === id
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" /> {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Proximity is a signal inside list_explore_matches, not a list of its
-            own. What survives here is the CONSENT control: without a saved
-            location no candidate carries a distance band at all, so the opt-in
-            has to stay reachable — it just no longer owns a section. */}
-        {!locationQuery.isLoading && !locationQuery.data && (
-          <button
-            type="button"
-            onClick={enableNearby}
-            disabled={locating || saveLocation.isPending}
-            className="mt-3 flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left disabled:opacity-50"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              {locating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <LocateFixed className="h-4 w-4" />
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs font-semibold">Show who is near you</span>
-              <span className="block text-[11px] leading-snug text-muted-foreground">
-                Members see distance bands, never coordinates.
-              </span>
-            </span>
-          </button>
-        )}
-
-        <SectionTitle
-          title={searching ? "Search results" : deckSectionTitle}
-          hint={
-            activeQuery.isLoading
-              ? "Loading"
-              : searching
-                ? `${filtered.length} found`
-                : deckSectionHint
-          }
-          action={
-            locationQuery.data ? (
-              <button
-                type="button"
-                onClick={() => setNearbySettingsOpen(true)}
-                aria-label="Adjust nearby preferences"
-                className={cn(
-                  "flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  locationQuery.data.discoverable
-                    ? "border-primary/35 bg-primary/10 text-primary"
-                    : "border-border bg-card text-muted-foreground",
-                )}
-              >
-                <MapPin className="h-3 w-3" />
-                {locationQuery.data.discoverable ? `${locationQuery.data.radius_km} km` : "Paused"}
-              </button>
-            ) : null
-          }
-        />
-        {/* The ranking can only work with what people have told it. Someone who
-            skipped these fields scores zero against everyone and gets an
-            effectively arbitrary order — so say that plainly and link to the
-            fix, rather than presenting noise as a recommendation. */}
-        {!searching && needsProfileSignals && (
-          <button
-            type="button"
-            onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
-            className="mb-3 flex w-full items-start gap-2.5 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-left"
-          >
-            <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span className="min-w-0">
-              <span className="block text-xs font-semibold">
-                Add your interests to get real matches
-              </span>
-              <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
-                Right now there's nothing to match you on, so this list is close to random. Two
-                minutes fixes it.
-              </span>
-            </span>
-          </button>
-        )}
-
-        <div className="flex flex-col gap-3">
-          {activeQuery.isLoading ? (
+          ) : activeQuery.isLoading || (searchMode && isSearching) ? (
             <PeopleSkeleton />
           ) : activeQuery.isError ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
@@ -409,7 +403,7 @@ export function DiscoverScreen() {
               </button>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+            <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-border p-6 text-center">
               {/* One list now, so an empty result means genuinely nobody —
                   there is no second list that might be holding everyone. */}
               {!debounced && <FeatureIllustration src={discoverArt} />}
@@ -419,37 +413,18 @@ export function DiscoverScreen() {
                   : "No registered users yet."}
               </p>
             </div>
-          ) : (
-            <>
-              {searching ? (
-                filtered.map((person) => (
-                  <PersonRow
-                    key={person.id}
-                    person={person}
-                    following={social.following.has(person.id)}
-                    pending={toggleFollow.isPending && toggleFollow.variables === person.id}
-                    onToggle={() => toggle(person.id)}
-                  />
-                ))
-              ) : (
-                <ExploreDeck
-                  people={filtered}
-                  mood={mood}
-                  dayKey={deckDay}
-                  sessionKey={`${deckDay}:${mood}`}
-                  following={social.following}
-                  onToggleFollow={toggle}
-                  followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
-                  onOpenNearby={() => {
-                    if (locationQuery.data) setNearbySettingsOpen(true);
-                    else void enableNearby();
-                  }}
-                  onExploreTribes={scrollToTribes}
-                  onSearch={focusSearch}
-                  onPhaseChange={setDeckPhase}
+          ) : searchMode ? (
+            <div className="flex flex-col gap-3">
+              {filtered.map((person) => (
+                <PersonRow
+                  key={person.id}
+                  person={person}
+                  following={social.following.has(person.id)}
+                  pending={toggleFollow.isPending && toggleFollow.variables === person.id}
+                  onToggle={() => toggle(person.id)}
                 />
-              )}
-              {searching && activeQuery.hasNextPage && (
+              ))}
+              {activeQuery.hasNextPage && (
                 <button
                   onClick={() => activeQuery.fetchNextPage()}
                   disabled={activeQuery.isFetchingNextPage}
@@ -461,47 +436,45 @@ export function DiscoverScreen() {
                   Load more
                 </button>
               )}
-            </>
+            </div>
+          ) : (
+            <ExploreDeck
+              people={filtered}
+              mood={mood}
+              dayKey={deckDay}
+              sessionKey={`${deckDay}:${mood}`}
+              following={social.following}
+              onToggleFollow={toggle}
+              followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
+              onOpenNearby={() => {
+                if (locationQuery.data) setNearbySettingsOpen(true);
+                else void enableNearby();
+              }}
+              onExploreTribes={() => setTribeBrowserOpen(true)}
+              onPhaseChange={setDeckPhase}
+            />
           )}
         </div>
-
-        <section ref={tribeSectionRef}>
-          <SectionTitle title="Explore Tribes" hint="Preview the rooms behind the people" />
-          <div
-            ref={tribeScrollRef}
-            onWheel={onTribeWheel}
-            className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            <div className="flex w-max gap-3 pb-1">
-              {TRIBES.map((tribe) => {
-                const memberCount = tribeCounts.data?.[tribe.id];
-                return (
-                  <button
-                    key={tribe.id}
-                    type="button"
-                    onClick={() => setPreviewTribe(tribe)}
-                    className="group relative h-32 w-36 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    <img
-                      src={tribe.art}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
-                    />
-                    <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
-                    <TribeMark tribe={tribe} size="xs" className="absolute left-3 top-3" />
-                    <p className="absolute bottom-7 left-3 right-3 truncate font-display text-sm font-bold text-white">
-                      {tribe.name}
-                    </p>
-                    <p className="absolute bottom-2.5 left-3 right-3 text-[9px] text-white/65">
-                      {memberCount === undefined ? " " : `${memberCount} members`}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
       </main>
+
+      <MoodPickerSheet
+        open={moodPickerOpen}
+        value={mood}
+        onClose={() => setMoodPickerOpen(false)}
+        onChange={(nextMood) => {
+          setMood(nextMood);
+          setMoodPickerOpen(false);
+        }}
+      />
+      <TribeBrowserSheet
+        open={tribeBrowserOpen}
+        counts={tribeCounts.data}
+        onClose={() => setTribeBrowserOpen(false)}
+        onSelect={(tribe) => {
+          setTribeBrowserOpen(false);
+          setPreviewTribe(tribe);
+        }}
+      />
 
       <TribePreviewSheet
         tribe={previewTribe}
@@ -528,6 +501,144 @@ export function DiscoverScreen() {
         }
       />
     </div>
+  );
+}
+
+function MoodPickerSheet({
+  open,
+  value,
+  onClose,
+  onChange,
+}: {
+  open: boolean;
+  value: ExploreMood;
+  onClose: () => void;
+  onChange: (mood: ExploreMood) => void;
+}) {
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+      title="Choose today’s mood"
+      contentClassName="overflow-hidden"
+    >
+      <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="pr-10">
+          <p className="label-mono text-primary">Discovery lens</p>
+          <h3 className="mt-2 font-display text-2xl font-bold">What are you up for?</h3>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            This changes the order of today’s people. It never rejects or hides anyone.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close mood picker"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="mt-6 grid gap-2">
+          {MOOD_OPTIONS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onChange(id)}
+              aria-pressed={value === id}
+              className={cn(
+                "flex min-h-12 items-center gap-3 rounded-2xl border px-4 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                value === id
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background/45 text-foreground hover:border-primary/40",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+              {value === id && <Check className="ml-auto h-4 w-4" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    </AnimatedModal>
+  );
+}
+
+function TribeBrowserSheet({
+  open,
+  counts,
+  onClose,
+  onSelect,
+}: {
+  open: boolean;
+  counts: Partial<Record<TribeId, number>> | undefined;
+  onClose: () => void;
+  onSelect: (tribe: Tribe) => void;
+}) {
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+      title="Explore Tribes"
+      contentClassName="h-[100dvh] max-h-[100dvh] overflow-hidden rounded-none border-0 !bg-background sm:h-auto sm:max-h-[90dvh] sm:rounded-3xl sm:border"
+    >
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Back to today’s five"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <p className="label-mono text-muted-foreground">Inside Discover</p>
+            <h3 className="font-display text-lg font-bold">Explore Tribes</h3>
+          </div>
+        </div>
+        <div className="scroll-panel min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+            Preview the rooms behind the people. Your place in today’s five stays exactly where you
+            left it.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {TRIBES.map((tribe, index) => (
+              <button
+                key={tribe.id}
+                type="button"
+                onClick={() => onSelect(tribe)}
+                className={cn(
+                  "group relative h-48 overflow-hidden rounded-3xl border border-border bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  index === 0 && "col-span-2 h-56",
+                )}
+              >
+                <img
+                  src={tribe.art}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                />
+                <span className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/5" />
+                <TribeMark tribe={tribe} size="sm" className="absolute left-4 top-4" />
+                <span className="absolute inset-x-4 bottom-4">
+                  <span className="block truncate font-display text-xl font-bold text-white">
+                    {tribe.name}
+                  </span>
+                  <span className="mt-1 block text-[10px] text-white/70">
+                    {counts?.[tribe.id] === undefined
+                      ? "Room preview"
+                      : `${counts[tribe.id]} members`}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </AnimatedModal>
   );
 }
 
