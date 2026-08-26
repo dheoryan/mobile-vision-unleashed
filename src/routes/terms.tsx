@@ -5,9 +5,9 @@ import { LegalFooter } from "@/components/mutuals/LegalFooter";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service — MEUTUALS" },
+      { title: "Terms of Service — MEUTUALS — Your tribe is waiting" },
       { name: "description", content: "The rules of the road for using MEUTUALS." },
-      { property: "og:title", content: "Terms of Service — MEUTUALS" },
+      { property: "og:title", content: "Terms of Service — MEUTUALS — Your tribe is waiting" },
       { property: "og:description", content: "The rules of the road for using MEUTUALS. Last updated May 2026." },
     ],
   }),

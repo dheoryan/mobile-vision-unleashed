@@ -16,7 +16,7 @@ import { timeAgoLabel } from "@/lib/time";
 
 export const Route = createFileRoute("/admin/reports")({
   component: ModerationQueuePage,
-  head: () => ({ meta: [{ title: "Moderation queue — MEUTUALS" }] }),
+  head: () => ({ meta: [{ title: "Moderation queue — MEUTUALS — Your tribe is waiting" }] }),
 });
 
 function ModerationQueuePage() {

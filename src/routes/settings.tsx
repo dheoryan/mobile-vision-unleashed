@@ -18,7 +18,7 @@ export const Route = createFileRoute("/settings")({
         ? (search.view as SettingsView)
         : undefined,
   }),
-  head: () => ({ meta: [{ title: "Settings — MEUTUALS" }] }),
+  head: () => ({ meta: [{ title: "Settings — MEUTUALS — Your tribe is waiting" }] }),
   component: SettingsPage,
 });
 
