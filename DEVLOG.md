@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Flexible scheduling production deployment | `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — User + Codex — Flexible scheduling released to production
+
+- The user manually applied
+  `supabase/migrations/20260826020000_tribe_plan_availability.sql` in Lovable
+  and confirmed every row from
+  `LOVABLE_TRIBE_PLAN_AVAILABILITY_VERIFY.sql` returned `true`. Production now
+  accepts the bounded `time_1`–`time_3` availability reactions and rejects
+  malformed or out-of-context votes.
+- Fetched `origin/main` immediately before release and confirmed a clean
+  fast-forward with no remote divergence. The matching UI requires an exact
+  host-confirmed Venture schedule while allowing flexible Tribe-plan windows
+  and member availability polling.
+- Release gates were already completed against this application commit:
+  Prettier, targeted ESLint, `npx tsc --noEmit`, all 31 Node tests,
+  `git diff --check`, and the complete Cloudflare production build. Local
+  `.env`, `package-lock.json`, and `HANDOFF.md` changes remain outside the
+  committed release.
 
 ### 2026-08-26 — Codex — Tribe availability resolves into an exact Venture time
 
