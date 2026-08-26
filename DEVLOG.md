@@ -187,6 +187,21 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-26 — Codex — Android-safe profile photo picker
+
+- Replaced the avatar label/`display:none` file-input activation with explicit
+  avatar and text buttons that synchronously click one visually hidden input.
+  The camera affordance is now a 44px touch target and the same photo can be
+  selected again after a failed or cancelled attempt.
+- Added Android content-provider compatibility for empty and generic MIME
+  metadata when the filename has a known image extension. Unsupported,
+  oversized, and device-undecodable photos now receive visible feedback rather
+  than leaving an inert or blank cropper.
+- Added `tests/profile-photo-picker.test.ts`; its three regression cases pass.
+  Targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and the full
+  production build all pass. Physical acceptance remains for the reporting
+  Android device because desktop emulation cannot prove its native picker.
+
 ### 2026-08-26 — Codex — Discover completion card gained editorial artwork
 
 - Filled the completion card's empty center with the existing transparent
