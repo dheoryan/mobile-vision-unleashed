@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Photo action copy and icon cleanup | `src/components/mutuals/ProfileScreen.tsx`, `src/components/mutuals/Onboarding.tsx`, `tests/profile-photo-picker.test.ts`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,19 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Short photo actions without camera glyphs
+
+- Removed the camera badge from both onboarding and Edit Profile because the
+  action opens the device's general image-source chooser, not camera-only UI.
+  Onboarding now says `Add photo`; Edit Profile says `Change photo`.
+- Both avatars remain 96px tappable controls, the text actions retain 44px
+  minimum touch height, and neutral spinner overlays preserve upload feedback.
+  Onboarding now uses the same direct, visually hidden file-input activation
+  pattern as Edit Profile for stronger Android/PWA compatibility.
+- The three photo-picker regressions, targeted ESLint, TypeScript,
+  `git diff --check`, and the full production build pass. The only lint output
+  is Onboarding's existing Fast Refresh warning for its exported helper.
 
 ### 2026-08-26 — Codex — Android-safe profile photo picker
 
