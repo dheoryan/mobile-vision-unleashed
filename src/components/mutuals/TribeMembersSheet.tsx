@@ -185,7 +185,7 @@ export function TribeMembersSheet({
                           ? `View ${isMe ? "your" : member.display_name || "member"} profile`
                           : undefined
                       }
-                      className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1 text-left outline-none transition-colors enabled:hover:bg-secondary/60 enabled:active:bg-secondary enabled:focus-visible:ring-2 enabled:focus-visible:ring-primary disabled:cursor-default"
+                      className="group flex min-w-0 flex-1 items-center gap-3 py-1 text-left outline-none enabled:cursor-pointer disabled:cursor-default"
                     >
                       <span className="relative shrink-0">
                         <MemberAvatar member={member} color={tribe.colorVar} />
@@ -197,10 +197,10 @@ export function TribeMembersSheet({
                         )}
                       </span>
                       <span className="min-w-0 flex-1 py-2">
-                        <span className="block truncate text-sm font-semibold">
+                        <span className="block truncate text-sm font-semibold transition-colors group-enabled:group-hover:text-primary group-enabled:group-focus-visible:text-primary">
                           {member.display_name || "Member"}
                         </span>
-                        <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+                        <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground transition-colors group-enabled:group-hover:text-foreground group-enabled:group-focus-visible:text-foreground">
                           <span className="truncate">
                             {isMe
                               ? "You"
@@ -212,7 +212,7 @@ export function TribeMembersSheet({
                           </span>
                           {canOpenProfile && (
                             <ChevronRight
-                              className="h-3 w-3 shrink-0 transition-transform group-active:translate-x-0.5"
+                              className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 group-active:translate-x-1"
                               aria-hidden="true"
                             />
                           )}

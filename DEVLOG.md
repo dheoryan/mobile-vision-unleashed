@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Tribe member hover refinement | `src/components/mutuals/TribeMembersSheet.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,14 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Tribe member hover kept flat
+
+- Removed the rounded filled hover/pressed surface from profile-capable member
+  rows. The directory now preserves one continuous list while communicating
+  the profile action through restrained text emphasis and chevron movement.
+- Validation passed Prettier, targeted ESLint, `npx tsc --noEmit`, all 24 Node
+  tests, and the complete Cloudflare production build.
 
 ### 2026-08-26 — Codex — Tribe member profiles made discoverable
 
