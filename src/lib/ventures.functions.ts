@@ -87,6 +87,8 @@ export type VentureMessage = {
   attachment_url: string | null;
   attachment_type: "image" | null;
   reply_to_id: string | null;
+  message_kind: "user" | "system";
+  system_event: string | null;
   reactions: ChatReactionCounts;
   my_reactions: ChatReaction[];
   sender: VentureProfileLite | null;
@@ -94,6 +96,28 @@ export type VentureMessage = {
     VentureMessage,
     "id" | "sender_id" | "content" | "attachment_type" | "sender"
   > | null;
+};
+
+export type VentureArrivalStatus = "on_my_way" | "arrived" | "running_late" | "cant_make_it";
+
+export type VentureArrivalState = {
+  venture_id: string;
+  user_id: string;
+  status: VentureArrivalStatus;
+  updated_at: string;
+};
+
+export type VentureAnnouncement = {
+  venture_id: string;
+  author_id: string;
+  content: string;
+  updated_at: string;
+};
+
+export type VentureCoordination = {
+  schema_ready: boolean;
+  announcement: VentureAnnouncement | null;
+  statuses: VentureArrivalState[];
 };
 
 export type VentureInviteRelationship = "following" | "follower" | "mutual";
@@ -164,6 +188,8 @@ type VentureMessageDbRow = {
   attachment_url: string | null;
   attachment_type: "image" | null;
   reply_to_id: string | null;
+  message_kind?: "user" | "system";
+  system_event?: string | null;
 };
 
 const PROFILE_COLS =
@@ -174,6 +200,8 @@ const LEGACY_VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS =
+  "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id, message_kind, system_event";
+const LEGACY_MESSAGE_COLS =
   "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id";
 
 const scopeSchema = z.enum(["mine", "all"]);
@@ -234,6 +262,8 @@ const respondToVentureInviteSchema = z.object({
   status: z.enum(["accepted", "declined"]),
 });
 
+const ventureArrivalStatusSchema = z.enum(["on_my_way", "arrived", "running_late", "cant_make_it"]);
+
 /**
  * Venue support ships behind Red migrations. Production must continue serving
  * the pre-venue Venture experience until those migrations are approved, while
@@ -259,6 +289,18 @@ function isVenueSchemaUnavailable(error: any): boolean {
     "list_venture_distance_bands",
   ];
   return missingSchemaCodes.has(code) && venueIdentifiers.some((name) => text.includes(name));
+}
+
+function isCoordinationSchemaUnavailable(error: any): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  const text = [error.message, error.details, error.hint].filter(Boolean).join(" ").toLowerCase();
+  return (
+    new Set(["PGRST204", "PGRST205", "42P01", "42703"]).has(code) &&
+    ["venture_participant_statuses", "venture_announcements", "message_kind", "system_event"].some(
+      (identifier) => text.includes(identifier),
+    )
+  );
 }
 
 async function selectVenturesWithFallback(buildQuery: (columns: string) => any) {
@@ -443,6 +485,37 @@ async function fetchVentureOrThrow(db: any, ventureId: string): Promise<VentureD
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Venture not found.");
   return data as VentureDbRow;
+}
+
+async function requireVentureMember(
+  db: any,
+  ventureId: string,
+  userId: string,
+): Promise<VentureDbRow> {
+  const venture = await fetchVentureOrThrow(db, ventureId);
+  if (venture.user_id === userId) return venture;
+
+  const { data: application, error } = await db
+    .from("venture_applications")
+    .select("status")
+    .eq("venture_id", ventureId)
+    .eq("applicant_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (application?.status !== "accepted") {
+    throw new Error("This Venture party room is available to accepted participants only.");
+  }
+  return venture;
+}
+
+function ventureRowIsComplete(venture: VentureDbRow): boolean {
+  const scheduledEnd = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
+  return (
+    venture.status === "closed" ||
+    !!venture.closed_at ||
+    !!venture.ended_at ||
+    (Number.isFinite(scheduledEnd) && scheduledEnd <= Date.now())
+  );
 }
 
 async function fetchConnectionIds(db: any, userId: string) {
@@ -1376,6 +1449,146 @@ export const reopenHostedVenture = createServerFn({ method: "POST" })
     return mapParty(row as VentureDbRow, hosts.get(userId) ?? null);
   });
 
+export const getVentureCoordination = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<VentureCoordination> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    await requireVentureMember(db, data.venture_id, userId);
+
+    const [announcementResult, statusesResult] = await Promise.all([
+      db
+        .from("venture_announcements")
+        .select("venture_id, author_id, content, updated_at")
+        .eq("venture_id", data.venture_id)
+        .maybeSingle(),
+      db
+        .from("venture_participant_statuses")
+        .select("venture_id, user_id, status, updated_at")
+        .eq("venture_id", data.venture_id)
+        .order("updated_at", { ascending: false }),
+    ]);
+
+    if (
+      isCoordinationSchemaUnavailable(announcementResult.error) ||
+      isCoordinationSchemaUnavailable(statusesResult.error)
+    ) {
+      return { schema_ready: false, announcement: null, statuses: [] };
+    }
+    if (announcementResult.error) throw new Error(announcementResult.error.message);
+    if (statusesResult.error) throw new Error(statusesResult.error.message);
+
+    return {
+      schema_ready: true,
+      announcement: (announcementResult.data as VentureAnnouncement | null) ?? null,
+      statuses: (statusesResult.data ?? []) as VentureArrivalState[],
+    };
+  });
+
+export const setVentureArrivalStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        venture_id: z.string().uuid(),
+        status: ventureArrivalStatusSchema.nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<VentureArrivalState | null> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    const venture = await requireVentureMember(db, data.venture_id, userId);
+    if (ventureRowIsComplete(venture)) {
+      throw new Error("Arrival updates close when the Venture ends.");
+    }
+
+    if (data.status === null) {
+      const { error } = await db
+        .from("venture_participant_statuses")
+        .delete()
+        .eq("venture_id", data.venture_id)
+        .eq("user_id", userId);
+      if (isCoordinationSchemaUnavailable(error)) {
+        throw new Error("Arrival updates need the Venture coordination database update.");
+      }
+      if (error) throw new Error(error.message);
+      return null;
+    }
+
+    const { data: row, error } = await db
+      .from("venture_participant_statuses")
+      .upsert(
+        {
+          venture_id: data.venture_id,
+          user_id: userId,
+          status: data.status,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "venture_id,user_id" },
+      )
+      .select("venture_id, user_id, status, updated_at")
+      .single();
+    if (isCoordinationSchemaUnavailable(error)) {
+      throw new Error("Arrival updates need the Venture coordination database update.");
+    }
+    if (error) throw new Error(error.message);
+    return row as VentureArrivalState;
+  });
+
+export const updateVentureAnnouncement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        venture_id: z.string().uuid(),
+        content: z.string().trim().min(1).max(280).nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<VentureAnnouncement | null> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    const venture = await fetchVentureOrThrow(db, data.venture_id);
+    if (venture.user_id !== userId) throw new Error("Only the host can pin a Venture update.");
+    if (ventureRowIsComplete(venture)) {
+      throw new Error("Pinned updates close when the Venture ends.");
+    }
+
+    if (data.content === null) {
+      const { error } = await db
+        .from("venture_announcements")
+        .delete()
+        .eq("venture_id", data.venture_id)
+        .eq("author_id", userId);
+      if (isCoordinationSchemaUnavailable(error)) {
+        throw new Error("Pinned updates need the Venture coordination database update.");
+      }
+      if (error) throw new Error(error.message);
+      return null;
+    }
+
+    const { data: row, error } = await db
+      .from("venture_announcements")
+      .upsert(
+        {
+          venture_id: data.venture_id,
+          author_id: userId,
+          content: data.content,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "venture_id" },
+      )
+      .select("venture_id, author_id, content, updated_at")
+      .single();
+    if (isCoordinationSchemaUnavailable(error)) {
+      throw new Error("Pinned updates need the Venture coordination database update.");
+    }
+    if (error) throw new Error(error.message);
+    return row as VentureAnnouncement;
+  });
+
 export const listVentureMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
@@ -1383,15 +1596,23 @@ export const listVentureMessages = createServerFn({ method: "GET" })
     const { supabase } = context;
     const db = supabase as unknown as any;
 
-    const { data: rows, error } = await db
+    let result = await db
       .from("venture_messages")
       .select(MESSAGE_COLS)
       .eq("venture_id", data.venture_id)
       .order("created_at", { ascending: false })
       .limit(500);
-    if (error) throw new Error(error.message);
+    if (isCoordinationSchemaUnavailable(result.error)) {
+      result = await db
+        .from("venture_messages")
+        .select(LEGACY_MESSAGE_COLS)
+        .eq("venture_id", data.venture_id)
+        .order("created_at", { ascending: false })
+        .limit(500);
+    }
+    if (result.error) throw new Error(result.error.message);
 
-    const messages = ((rows ?? []) as VentureMessageDbRow[]).reverse();
+    const messages = ((result.data ?? []) as VentureMessageDbRow[]).reverse();
     const senders = await fetchProfiles(
       db,
       messages.map((m) => m.sender_id),
@@ -1405,12 +1626,16 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       attachment_url: m.attachment_url,
       attachment_type: m.attachment_type,
       reply_to_id: m.reply_to_id,
+      message_kind: m.message_kind ?? "user",
+      system_event: m.system_event ?? null,
       reactions: emptyChatReactions(),
       my_reactions: [],
       sender: senders.get(m.sender_id) ?? null,
     }));
 
-    const messageIds = mapped.map((message) => message.id);
+    const messageIds = mapped
+      .filter((message) => message.message_kind === "user")
+      .map((message) => message.id);
     if (messageIds.length) {
       const { data: reactionRows, error: reactionError } = await db
         .from("chat_message_reactions")
@@ -1466,14 +1691,8 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
 
-    const venture = await fetchVentureOrThrow(db, data.venture_id);
-    const scheduledEnd = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
-    const isComplete =
-      venture.status === "closed" ||
-      !!venture.closed_at ||
-      !!venture.ended_at ||
-      (Number.isFinite(scheduledEnd) && scheduledEnd <= Date.now());
-    if (isComplete) {
+    const venture = await requireVentureMember(db, data.venture_id, userId);
+    if (ventureRowIsComplete(venture)) {
       throw new Error("This Venture has ended. Its party chat is now a read-only memory.");
     }
     if (
@@ -1493,7 +1712,7 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
         attachment_type: data.attachment_url ? "image" : null,
         reply_to_id: data.reply_to_id ?? null,
       })
-      .select(MESSAGE_COLS)
+      .select(LEGACY_MESSAGE_COLS)
       .single();
     if (error) throw new Error(error.message);
 
@@ -1508,6 +1727,8 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
       attachment_url: message.attachment_url,
       attachment_type: message.attachment_type,
       reply_to_id: message.reply_to_id,
+      message_kind: "user",
+      system_event: null,
       reactions: emptyChatReactions(),
       my_reactions: [],
       sender: senders.get(userId) ?? null,

@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Venture chat coordination layer | `src/components/mutuals/MessagesPanel.tsx`, `src/components/mutuals/VentureCoordination.tsx`, `src/lib/ventures.functions.ts`, `src/lib/ventures-store.ts`, `src/lib/venture-coordination.ts`, `tests/venture-coordination.test.ts`, `supabase/migrations/20260826010000_venture_chat_coordination.sql`, `LOVABLE_VENTURE_CHAT_COORDINATION_VERIFY.sql`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Venture chat became a coordination room
+
+- Added a compact Venture Brief inside party chat with the scheduled time,
+  host-authored place and private arrival instructions, a useful two-hour
+  countdown, and meet-safely guidance. Quiet rooms now offer contextual starter
+  prompts instead of ending at “No messages yet.”
+- Added member-owned arrival states (on my way, arrived, running late, and
+  cannot make it), a host-managed pinned update, status visibility in the
+  participant directory, and centered non-interactive system events for
+  meaningful plan, participant, arrival, announcement, and closure changes.
+- Kept the release backwards compatible before the Red migration is applied:
+  ordinary chat continues working while coordination controls stay hidden.
+  Apply `supabase/migrations/20260826010000_venture_chat_coordination.sql`
+  manually in Lovable, then run
+  `LOVABLE_VENTURE_CHAT_COORDINATION_VERIFY.sql`; every returned check must be
+  `true`. The migration was not executed by Codex because the local app uses
+  production and database changes are manual by user decision.
+- Validation passed Prettier, targeted ESLint, `npx tsc --noEmit`, all 28 Node
+  tests, `git diff --check`, and the complete Cloudflare production build.
 
 ### 2026-08-26 — Codex — Venture party participant directory
 

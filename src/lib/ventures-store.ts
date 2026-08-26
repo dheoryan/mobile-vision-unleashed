@@ -14,10 +14,15 @@ import {
   listOpenVentures,
   listVentureMessages,
   sendVentureMessage,
+  getVentureCoordination,
+  setVentureArrivalStatus,
+  updateVentureAnnouncement,
   type VentureApplication,
   type VentureParty,
   type VentureScope,
   type VentureMessage,
+  type VentureCoordination,
+  type VentureArrivalStatus,
 } from "@/lib/ventures.functions";
 import type { RichMessageInput } from "@/lib/chat";
 
@@ -27,6 +32,10 @@ export type {
   VentureScope,
   VentureMessage,
   VentureProfileLite,
+  VentureCoordination,
+  VentureArrivalStatus,
+  VentureArrivalState,
+  VentureAnnouncement,
 } from "@/lib/ventures.functions";
 
 const VENTURES_KEY = ["ventures"] as const;
@@ -34,6 +43,7 @@ const OPEN_KEY = ["ventures", "open"] as const;
 const HOSTED_KEY = ["ventures", "hosted"] as const;
 const JOINED_KEY = ["ventures", "joined"] as const;
 const MESSAGES_KEY = (ventureId: string) => ["ventures", "messages", ventureId] as const;
+const COORDINATION_KEY = (ventureId: string) => ["ventures", "coordination", ventureId] as const;
 
 function invalidateVentures(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: VENTURES_KEY });
@@ -195,6 +205,109 @@ export function useVentureMessages(ventureId: string | null, enabled = true) {
     enabled: !!user && !!ventureId && enabled,
     staleTime: 5_000,
     refetchInterval: 8_000,
+  });
+}
+
+export function useVentureCoordination(ventureId: string | null, enabled = true) {
+  const fn = useServerFn(getVentureCoordination);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: COORDINATION_KEY(ventureId ?? "none"),
+    queryFn: () => fn({ data: { venture_id: ventureId! } }),
+    enabled: !!user && !!ventureId && enabled,
+    staleTime: 5_000,
+    refetchInterval: 12_000,
+  });
+}
+
+export function useSetVentureArrivalStatus(ventureId: string) {
+  const fn = useServerFn(setVentureArrivalStatus);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: (status: VentureArrivalStatus | null) =>
+      fn({ data: { venture_id: ventureId, status } }),
+    onMutate: async (status) => {
+      await qc.cancelQueries({ queryKey: COORDINATION_KEY(ventureId) });
+      const previous = qc.getQueryData<VentureCoordination>(COORDINATION_KEY(ventureId));
+      if (previous && user?.id) {
+        qc.setQueryData<VentureCoordination>(COORDINATION_KEY(ventureId), {
+          ...previous,
+          statuses: status
+            ? [
+                {
+                  venture_id: ventureId,
+                  user_id: user.id,
+                  status,
+                  updated_at: new Date().toISOString(),
+                },
+                ...previous.statuses.filter((item) => item.user_id !== user.id),
+              ]
+            : previous.statuses.filter((item) => item.user_id !== user.id),
+        });
+      }
+      return { previous, status };
+    },
+    onError: (_error, _status, context) => {
+      if (context?.previous) qc.setQueryData(COORDINATION_KEY(ventureId), context.previous);
+    },
+    onSuccess: (arrival) => {
+      qc.setQueryData<VentureCoordination>(COORDINATION_KEY(ventureId), (current) => {
+        if (!current) return current;
+        const userId = arrival?.user_id ?? user?.id;
+        if (!userId) return current;
+        return {
+          ...current,
+          statuses: arrival
+            ? [arrival, ...current.statuses.filter((item) => item.user_id !== userId)]
+            : current.statuses.filter((item) => item.user_id !== userId),
+        };
+      });
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: COORDINATION_KEY(ventureId) });
+      qc.invalidateQueries({ queryKey: MESSAGES_KEY(ventureId) });
+    },
+  });
+}
+
+export function useUpdateVentureAnnouncement(ventureId: string) {
+  const fn = useServerFn(updateVentureAnnouncement);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: (content: string | null) => fn({ data: { venture_id: ventureId, content } }),
+    onMutate: async (content) => {
+      await qc.cancelQueries({ queryKey: COORDINATION_KEY(ventureId) });
+      const previous = qc.getQueryData<VentureCoordination>(COORDINATION_KEY(ventureId));
+      if (previous) {
+        qc.setQueryData<VentureCoordination>(COORDINATION_KEY(ventureId), {
+          ...previous,
+          announcement:
+            content && user?.id
+              ? {
+                  venture_id: ventureId,
+                  author_id: user.id,
+                  content,
+                  updated_at: new Date().toISOString(),
+                }
+              : null,
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _content, context) => {
+      if (context?.previous) qc.setQueryData(COORDINATION_KEY(ventureId), context.previous);
+    },
+    onSuccess: (announcement) => {
+      qc.setQueryData<VentureCoordination>(COORDINATION_KEY(ventureId), (current) =>
+        current ? { ...current, announcement } : current,
+      );
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: COORDINATION_KEY(ventureId) });
+      qc.invalidateQueries({ queryKey: MESSAGES_KEY(ventureId) });
+    },
   });
 }
 

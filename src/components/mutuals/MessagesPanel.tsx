@@ -23,6 +23,9 @@ import {
   useMyHostedVentures,
   useMyJoinedVentures,
   useSendVentureMessage,
+  useSetVentureArrivalStatus,
+  useUpdateVentureAnnouncement,
+  useVentureCoordination,
   useVentureMessages,
   type VentureMessage,
   type VentureParty,
@@ -57,6 +60,8 @@ import { removeChatAttachment, uploadChatImage } from "@/lib/uploads";
 import type { ChatReaction } from "@/lib/chat";
 import { listVentureParticipants } from "@/lib/venture-participants";
 import { VentureParticipantsSheet } from "./VentureParticipantsSheet";
+import { VentureCoordinationPanel } from "./VentureCoordination";
+import { VENTURE_EMPTY_PROMPTS } from "@/lib/venture-coordination";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -589,6 +594,9 @@ function VenturePartyThread({
   const { user } = useAuth();
   const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
   const send = useSendVentureMessage(venture.id);
+  const coordinationQuery = useVentureCoordination(venture.id, true);
+  const setArrivalStatus = useSetVentureArrivalStatus(venture.id);
+  const updateAnnouncement = useUpdateVentureAnnouncement(venture.id);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -674,125 +682,179 @@ function VenturePartyThread({
         </div>
       </header>
 
-      <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
-        {isLoading ? (
-          <MessageThreadSkeleton />
-        ) : !msgs?.length ? (
-          <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-            No messages yet.
-          </p>
-        ) : (
-          msgs.map((m: VentureMessage) => {
-            const mine = m.sender_id === user?.id;
-            const pending = m.id.startsWith("tmp-");
-            const senderName = mine ? "You" : displayVentureName(m.sender);
-            const reactionState = chatReactions.stateFor(m);
-            return (
-              <MessageSwipeRow
-                key={m.id}
-                mine={mine}
-                accentColor="var(--color-primary)"
-                disabled={pending || isComplete}
-                onReply={() => startReply(m)}
-              >
-                <div className={cn("flex max-w-[88%] items-start gap-1", pending && "opacity-60")}>
-                  {(() => {
-                    const legacy = parseQuotedMessage(m.content ?? "");
-                    const quote = m.reply_to
-                      ? {
-                          name:
-                            m.reply_to.sender_id === user?.id
-                              ? "You"
-                              : displayVentureName(m.reply_to.sender),
-                          snippet:
-                            m.reply_to.content ||
-                            (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
-                        }
-                      : legacy.quote;
-                    const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
-                    return (
-                      <div className="min-w-0">
-                        <div
-                          className={cn(
-                            "space-y-2 rounded-xl px-3 py-2 text-sm shadow-sm",
-                            !pending && "cursor-pointer",
-                            mine
-                              ? "rounded-br-sm bg-primary text-white"
-                              : "rounded-bl-sm bg-card text-foreground",
-                          )}
-                          onClick={(event) => {
-                            if (pending || (event.target as HTMLElement).closest("a, button"))
-                              return;
-                            setActionOpenFor((current) => (current === m.id ? null : m.id));
-                          }}
-                        >
-                          {!mine && (
-                            <p className="text-[10px] font-semibold opacity-70">{senderName}</p>
-                          )}
-                          {quote && (
-                            <QuotedBlock
-                              name={quote.name}
-                              snippet={quote.snippet}
-                              mine={mine}
-                              accentColor="var(--color-primary)"
-                            />
-                          )}
-                          {m.attachment_url && m.attachment_type === "image" && (
-                            <ChatAttachment value={m.attachment_url} />
-                          )}
-                          {messageBody && (
-                            <p className="whitespace-pre-wrap leading-relaxed">{messageBody}</p>
-                          )}
-                        </div>
-                        <ChatMessageActions
-                          open={actionOpenFor === m.id}
-                          mine={mine}
-                          senderName={senderName}
-                          reactions={reactionState.reactions}
-                          myReactions={reactionState.my_reactions}
-                          disabled={pending || isComplete}
-                          onToggleOpen={() =>
-                            setActionOpenFor((current) => (current === m.id ? null : m.id))
-                          }
-                          onReact={(reaction: ChatReaction) => {
-                            setActionOpenFor(null);
-                            void chatReactions
-                              .toggle(m, reaction)
-                              .catch((error) =>
-                                toast.error(
-                                  error instanceof Error ? error.message : "Couldn't save reaction",
-                                ),
-                              );
-                          }}
-                          onReply={() => {
-                            startReply(m);
-                            setActionOpenFor(null);
-                          }}
-                        />
-                        <p
-                          className={cn(
-                            "mt-1 text-[10px] text-muted-foreground",
-                            mine && "text-right",
-                          )}
-                        >
-                          {pending ? "sending…" : shortTime(m.created_at)}
-                        </p>
-                      </div>
-                    );
-                  })()}
-                  {!mine && !pending && (
-                    <SafetyMenu
-                      targetName={displayVentureName(m.sender)}
-                      targetUserId={m.sender_id}
-                      className="-mt-1 shrink-0"
-                    />
-                  )}
+      <div ref={scrollRef} className="scroll-panel flex-1 overflow-y-auto">
+        <VentureCoordinationPanel
+          venture={venture}
+          coordination={coordinationQuery.data}
+          currentUserId={user?.id}
+          isComplete={isComplete}
+          statusPending={setArrivalStatus.isPending}
+          announcementPending={updateAnnouncement.isPending}
+          onSetStatus={(status) => {
+            setArrivalStatus.mutate(status, {
+              onError: (error) => toast.error((error as Error).message),
+            });
+          }}
+          onSaveAnnouncement={(content) => {
+            updateAnnouncement.mutate(content, {
+              onError: (error) => toast.error((error as Error).message),
+            });
+          }}
+        />
+
+        <div className="space-y-2 px-4 py-4">
+          {isLoading ? (
+            <MessageThreadSkeleton />
+          ) : !msgs?.length ? (
+            <div className="border-y border-dashed border-border px-3 py-5 text-center">
+              <p className="text-xs font-semibold text-foreground">You’re in.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use this room to coordinate before everyone meets.
+              </p>
+              {!isComplete && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {VENTURE_EMPTY_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt.label}
+                      type="button"
+                      onClick={() => {
+                        setText(prompt.text);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                      className="min-h-11 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground hover:border-primary/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      {prompt.label}
+                    </button>
+                  ))}
                 </div>
-              </MessageSwipeRow>
-            );
-          })
-        )}
-        {isComplete && <VentureMootRecap venture={venture} />}
+              )}
+            </div>
+          ) : (
+            msgs.map((m: VentureMessage) => {
+              if (m.message_kind === "system") {
+                return (
+                  <div key={m.id} className="flex justify-center py-1" role="status">
+                    <p className="max-w-[88%] rounded-full border border-border/70 bg-card/70 px-3 py-1.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+                      {m.content} · {shortTime(m.created_at)}
+                    </p>
+                  </div>
+                );
+              }
+              const mine = m.sender_id === user?.id;
+              const pending = m.id.startsWith("tmp-");
+              const senderName = mine ? "You" : displayVentureName(m.sender);
+              const reactionState = chatReactions.stateFor(m);
+              return (
+                <MessageSwipeRow
+                  key={m.id}
+                  mine={mine}
+                  accentColor="var(--color-primary)"
+                  disabled={pending || isComplete}
+                  onReply={() => startReply(m)}
+                >
+                  <div
+                    className={cn("flex max-w-[88%] items-start gap-1", pending && "opacity-60")}
+                  >
+                    {(() => {
+                      const legacy = parseQuotedMessage(m.content ?? "");
+                      const quote = m.reply_to
+                        ? {
+                            name:
+                              m.reply_to.sender_id === user?.id
+                                ? "You"
+                                : displayVentureName(m.reply_to.sender),
+                            snippet:
+                              m.reply_to.content ||
+                              (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
+                          }
+                        : legacy.quote;
+                      const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
+                      return (
+                        <div className="min-w-0">
+                          <div
+                            className={cn(
+                              "space-y-2 rounded-xl px-3 py-2 text-sm shadow-sm",
+                              !pending && "cursor-pointer",
+                              mine
+                                ? "rounded-br-sm bg-primary text-white"
+                                : "rounded-bl-sm bg-card text-foreground",
+                            )}
+                            onClick={(event) => {
+                              if (pending || (event.target as HTMLElement).closest("a, button"))
+                                return;
+                              setActionOpenFor((current) => (current === m.id ? null : m.id));
+                            }}
+                          >
+                            {!mine && (
+                              <p className="text-[10px] font-semibold opacity-70">{senderName}</p>
+                            )}
+                            {quote && (
+                              <QuotedBlock
+                                name={quote.name}
+                                snippet={quote.snippet}
+                                mine={mine}
+                                accentColor="var(--color-primary)"
+                              />
+                            )}
+                            {m.attachment_url && m.attachment_type === "image" && (
+                              <ChatAttachment value={m.attachment_url} />
+                            )}
+                            {messageBody && (
+                              <p className="whitespace-pre-wrap leading-relaxed">{messageBody}</p>
+                            )}
+                          </div>
+                          <ChatMessageActions
+                            open={actionOpenFor === m.id}
+                            mine={mine}
+                            senderName={senderName}
+                            reactions={reactionState.reactions}
+                            myReactions={reactionState.my_reactions}
+                            disabled={pending || isComplete}
+                            onToggleOpen={() =>
+                              setActionOpenFor((current) => (current === m.id ? null : m.id))
+                            }
+                            onReact={(reaction: ChatReaction) => {
+                              setActionOpenFor(null);
+                              void chatReactions
+                                .toggle(m, reaction)
+                                .catch((error) =>
+                                  toast.error(
+                                    error instanceof Error
+                                      ? error.message
+                                      : "Couldn't save reaction",
+                                  ),
+                                );
+                            }}
+                            onReply={() => {
+                              startReply(m);
+                              setActionOpenFor(null);
+                            }}
+                          />
+                          <p
+                            className={cn(
+                              "mt-1 text-[10px] text-muted-foreground",
+                              mine && "text-right",
+                            )}
+                          >
+                            {pending ? "sending…" : shortTime(m.created_at)}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    {!mine && !pending && (
+                      <SafetyMenu
+                        targetName={displayVentureName(m.sender)}
+                        targetUserId={m.sender_id}
+                        className="-mt-1 shrink-0"
+                      />
+                    )}
+                  </div>
+                </MessageSwipeRow>
+              );
+            })
+          )}
+          {isComplete && <VentureMootRecap venture={venture} />}
+        </div>
       </div>
 
       <div className={cn("shrink-0", isComplete && "p-3")}>
@@ -828,6 +890,7 @@ function VenturePartyThread({
         venture={venture}
         participants={participants}
         currentUserId={user?.id}
+        arrivalStatuses={coordinationQuery.data?.statuses}
         allowMessage={!isComplete}
         onOpenProfile={onOpenProfile}
         onMessage={onMessage}

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, MessageCircle, Search, UsersRound, X } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
-import type { VentureParty, VentureProfileLite } from "@/lib/ventures-store";
+import type { VentureArrivalState, VentureParty, VentureProfileLite } from "@/lib/ventures-store";
 import type { VentureParticipant } from "@/lib/venture-participants";
+import { arrivalStatusLabel } from "@/lib/venture-coordination";
 import { SafetyMenu } from "./SafetyMenu";
 
 function ParticipantAvatar({ profile }: { profile: VentureProfileLite }) {
@@ -29,6 +30,7 @@ export function VentureParticipantsSheet({
   venture,
   participants,
   currentUserId,
+  arrivalStatuses,
   allowMessage,
   onOpenProfile,
   onMessage,
@@ -38,6 +40,7 @@ export function VentureParticipantsSheet({
   venture: VentureParty;
   participants: VentureParticipant[];
   currentUserId?: string;
+  arrivalStatuses?: VentureArrivalState[];
   allowMessage: boolean;
   onOpenProfile?: (handle: string) => void;
   onMessage?: (userId: string) => void;
@@ -55,6 +58,10 @@ export function VentureParticipantsSheet({
       `${profile.display_name} ${profile.handle ?? ""}`.toLocaleLowerCase().includes(normalized),
     );
   }, [participants, query]);
+  const statusesByUser = useMemo(
+    () => new Map((arrivalStatuses ?? []).map((item) => [item.user_id, item.status])),
+    [arrivalStatuses],
+  );
 
   return (
     <AnimatedModal
@@ -132,6 +139,7 @@ export function VentureParticipantsSheet({
                 const isMe = profile.id === currentUserId;
                 const canOpenProfile = !!profile.handle && !!onOpenProfile;
                 const roleLabel = role === "host" ? "Host" : "Participant";
+                const arrivalStatus = statusesByUser.get(profile.id);
                 return (
                   <li
                     key={profile.id}
@@ -161,6 +169,7 @@ export function VentureParticipantsSheet({
                           <span className="truncate">
                             {roleLabel}
                             {profile.handle ? ` · @${profile.handle}` : ""}
+                            {arrivalStatus ? ` · ${arrivalStatusLabel(arrivalStatus)}` : ""}
                           </span>
                           {canOpenProfile && (
                             <ChevronRight
