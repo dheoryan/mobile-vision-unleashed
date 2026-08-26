@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Flexible Tribe-plan availability and exact Venture scheduling | `src/components/mutuals/TribeRoomLayer.tsx`, `src/components/mutuals/VenturesScreen.tsx`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/lib/tribe-room-store.ts`, `src/lib/venture-time.ts`, `src/lib/ventures.functions.ts`, `tests/tribe-room.test.ts`, `tests/venture-time.test.ts`, `supabase/migrations/20260826020000_tribe_plan_availability.sql`, `LOVABLE_TRIBE_PLAN_AVAILABILITY_VERIFY.sql`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,30 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Tribe availability resolves into an exact Venture time
+
+- Replaced the fixed rough-timing chips in Tribe plans with two intentional
+  paths: one flexible date/window, or an “Ask the room” poll containing two or
+  three distinct options. Dates use the phone's native picker while all public
+  labels use unambiguous localized copy such as `Sat 29 Aug · Afternoon`.
+- Members can select every poll option that works for them. Availability uses
+  the existing normalized, member-authorized Tribe reaction table with stable
+  option keys, bounded plan metadata, one vote per member and option, and a
+  trigger that rejects votes against any other message or malformed option.
+- Turning a Tribe plan into a Venture now opens schedule confirmation first,
+  prefills the highest-availability window, and still requires the host to
+  publish an exact start and end. The Venture picker adds This weekend,
+  morning/afternoon/evening start shortcuts, a visible localized date, and a
+  custom end clock that supports after-midnight plans without a second date
+  picker. The authenticated create boundary now refuses timestamp-free
+  Ventures rather than relying only on form state.
+- Added `20260826020000_tribe_plan_availability.sql` and
+  `LOVABLE_TRIBE_PLAN_AVAILABILITY_VERIFY.sql`. This Red migration was not run
+  by Codex; apply it manually in Lovable and require every verification row to
+  return `true` before releasing the matching UI.
+- Validation passed Prettier, targeted ESLint, `npx tsc --noEmit`, all 31 Node
+  tests, `git diff --check`, and the complete Cloudflare production build.
 
 ### 2026-08-26 — User + Codex — Venture coordination production release
 

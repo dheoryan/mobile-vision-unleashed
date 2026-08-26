@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { emptyTribeRoomReactions } from "@/lib/tribe-room";
+import { planTimeLabel } from "@/lib/venture-time";
 import type {
   TribeRoomAuthor,
   TribeRoomItem,
@@ -14,6 +15,14 @@ const tribeSchema = z.object({ tribe_key: z.string().trim().min(1).max(40) });
 const roomMessageSchema = z.object({
   tribe_key: z.string().trim().min(1).max(40),
   content: z.string().trim().min(1).max(600),
+});
+const tribePlanTimeOptionSchema = z.object({
+  key: z.enum(["time_1", "time_2", "time_3"]),
+  day: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((value) => !Number.isNaN(new Date(`${value}T12:00:00`).getTime()), "Invalid plan date"),
+  period: z.enum(["morning", "afternoon", "evening"]),
 });
 
 async function resolveMemberTribe(
@@ -206,9 +215,44 @@ export const createTribePlan = createServerFn({ method: "POST" })
         tribe_key: z.string().trim().min(1).max(40),
         title: z.string().trim().min(3).max(80),
         note: z.string().trim().max(280).default(""),
-        when_label: z.string().trim().min(1).max(80),
+        timing_mode: z.enum(["single", "poll"]),
+        time_options: z.array(tribePlanTimeOptionSchema).min(1).max(3),
         area: z.string().trim().min(2).max(120),
         max_slots: z.number().int().min(2).max(20),
+      })
+      .superRefine((value, context) => {
+        const expected = value.time_options.map((_option, index) => `time_${index + 1}`);
+        if (value.time_options.some((option, index) => option.key !== expected[index])) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["time_options"],
+            message: "Time options must use stable ordered keys",
+          });
+        }
+        const distinctTimes = new Set(
+          value.time_options.map((option) => `${option.day}:${option.period}`),
+        );
+        if (distinctTimes.size !== value.time_options.length) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["time_options"],
+            message: "Each plan option must use a different date or time window",
+          });
+        }
+        if (value.timing_mode === "single" && value.time_options.length !== 1) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["time_options"],
+            message: "A single plan needs one time option",
+          });
+        }
+        if (value.timing_mode === "poll" && value.time_options.length < 2) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["time_options"],
+            message: "An availability poll needs at least two options",
+          });
+        }
       })
       .parse(input),
   )
@@ -224,7 +268,12 @@ export const createTribePlan = createServerFn({ method: "POST" })
         room_kind: "plan",
         room_metadata: {
           note: data.note,
-          when_label: data.when_label,
+          timing_mode: data.timing_mode,
+          when_label:
+            data.timing_mode === "poll"
+              ? `${data.time_options.length} times · choose together`
+              : planTimeLabel(data.time_options[0].day, data.time_options[0].period),
+          time_options: data.time_options,
           area: data.area,
           max_slots: data.max_slots,
         },
@@ -241,7 +290,16 @@ export const toggleTribeRoomReaction = createServerFn({ method: "POST" })
     z
       .object({
         message_id: z.string().uuid(),
-        reaction: z.enum(["spark", "interested", "heart", "laugh", "support"]),
+        reaction: z.enum([
+          "spark",
+          "interested",
+          "heart",
+          "laugh",
+          "support",
+          "time_1",
+          "time_2",
+          "time_3",
+        ]),
       })
       .parse(input),
   )

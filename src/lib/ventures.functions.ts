@@ -1104,9 +1104,13 @@ async function upsertPrivateVenue(
 
 export const createHostedVenture = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    checkTiming(createVentureSchema.parse(input), { allowPast: false }),
-  )
+  .inputValidator((input: unknown) => {
+    const data = checkTiming(createVentureSchema.parse(input), { allowPast: false });
+    if (!data.starts_at || !data.ends_at) {
+      throw new Error("Choose an exact start and end before publishing this Venture.");
+    }
+    return data;
+  })
   .handler(async ({ data, context }): Promise<VentureParty> => {
     const { supabase, userId } = context;
     const db = supabase as unknown as any;

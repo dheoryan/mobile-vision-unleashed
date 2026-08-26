@@ -93,8 +93,8 @@ export function useCreateHostedVenture() {
       scope: VentureScope;
       /** Legacy free-text timing. Derived from the day the host picked. */
       time_window: string;
-      starts_at?: string | null;
-      ends_at?: string | null;
+      starts_at: string;
+      ends_at: string;
       /** IANA zone the Venture happens in, e.g. Asia/Jakarta. */
       venue_tz?: string | null;
       /** Becomes a venue_places row server-side; the caller has no id to send. */

@@ -7,6 +7,7 @@ import {
   Flame,
   Loader2,
   MapPin,
+  Plus,
   RefreshCw,
   Sparkles,
   Ticket,
@@ -21,6 +22,8 @@ import {
   dailyPulse,
   roomMetadataNumber,
   roomMetadataString,
+  roomMetadataTimeOptions,
+  type TribePlanTimeOption,
   type TribeRoomItem,
   type TribeVentureDraft,
 } from "@/lib/tribe-room";
@@ -32,6 +35,14 @@ import {
   useTribeRoom,
 } from "@/lib/tribe-room-store";
 import { cn } from "@/lib/utils";
+import {
+  dayChoices,
+  PLAN_PERIOD_CHOICES,
+  planTimeLabel,
+  todayKey,
+  weekendKey,
+  type PlanPeriod,
+} from "@/lib/venture-time";
 
 export type TribeRoomView = "chat" | "room" | "plans";
 
@@ -388,7 +399,12 @@ function PlanRow({
 }) {
   const toggle = useToggleTribeRoomReaction(tribeId);
   const interested = item.my_reactions.includes("interested");
-  const whenLabel = roomMetadataString(item.room_metadata, "when_label", "Timing open");
+  const timeOptions = roomMetadataTimeOptions(item.room_metadata, item.reactions);
+  const timingMode = roomMetadataString(item.room_metadata, "timing_mode", "single");
+  const whenLabel =
+    timingMode === "single" && timeOptions[0]
+      ? timeOptions[0].label
+      : roomMetadataString(item.room_metadata, "when_label", "Timing open");
   const area = roomMetadataString(item.room_metadata, "area", "Area open");
   const note = roomMetadataString(item.room_metadata, "note");
   const maxSlots = roomMetadataNumber(item.room_metadata, "max_slots", 4);
@@ -414,6 +430,42 @@ function PlanRow({
               <Users className="h-3.5 w-3.5" /> up to {maxSlots}
             </span>
           </div>
+          {timingMode === "poll" && timeOptions.length >= 2 && (
+            <fieldset className="mt-4 border-l-2 border-border pl-3">
+              <legend className="label-mono px-0 text-muted-foreground">
+                When can you make it?
+              </legend>
+              <div className="mt-2 grid gap-2">
+                {timeOptions.map((option) => {
+                  const active = item.my_reactions.includes(option.key);
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => toggle.mutate({ message_id: item.id, reaction: option.key })}
+                      disabled={toggle.isPending || Boolean(linked)}
+                      aria-pressed={active}
+                      className={cn(
+                        "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-3 text-left text-xs transition-colors disabled:opacity-50",
+                        active
+                          ? "border-transparent text-background"
+                          : "border-border bg-background/40 text-foreground",
+                      )}
+                      style={active ? { backgroundColor: tribeColor } : undefined}
+                    >
+                      <span className="font-semibold">{option.label}</span>
+                      <span className="font-mono text-[10px]">
+                        {option.votes} {option.votes === 1 ? "person" : "people"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                Choose every time that works. The host confirms one exact start before publishing.
+              </p>
+            </fieldset>
+          )}
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2 pl-11">
@@ -443,6 +495,7 @@ function PlanRow({
                 title: item.content,
                 note,
                 whenLabel,
+                timeOptions,
                 area,
                 maxSlots,
               })
@@ -613,6 +666,16 @@ function PulseComposer({
   );
 }
 
+function defaultPlanTimeOptions(mode: "single" | "poll"): TribePlanTimeOption[] {
+  const firstDay = todayKey(1);
+  const weekend = weekendKey();
+  const secondDay = weekend > firstDay ? weekend : todayKey(6);
+  const first: TribePlanTimeOption = { key: "time_1", day: firstDay, period: "evening" };
+  return mode === "single"
+    ? [first]
+    : [first, { key: "time_2", day: secondDay, period: "afternoon" }];
+}
+
 function PlanComposer({
   open,
   onClose,
@@ -630,18 +693,70 @@ function PlanComposer({
 }) {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
-  const [whenLabel, setWhenLabel] = useState("This week");
+  const [timingMode, setTimingMode] = useState<"single" | "poll">("single");
+  const [timeOptions, setTimeOptions] = useState<TribePlanTimeOption[]>(() =>
+    defaultPlanTimeOptions("single"),
+  );
   const [area, setArea] = useState(initialArea);
   const [maxSlots, setMaxSlots] = useState(4);
   const mutation = useCreateTribePlan(tribeId);
+  const distinctTimeCount = new Set(timeOptions.map((option) => `${option.day}:${option.period}`))
+    .size;
+  const validTiming =
+    timeOptions.length === distinctTimeCount &&
+    (timingMode === "single" ? timeOptions.length === 1 : timeOptions.length >= 2);
+  const chooseTimingMode = (mode: "single" | "poll") => {
+    setTimingMode(mode);
+    setTimeOptions((current) => {
+      if (mode === "single") return [current[0] ?? defaultPlanTimeOptions("single")[0]];
+      if (current.length >= 2) return current;
+      const defaults = defaultPlanTimeOptions("poll");
+      return [current[0] ?? defaults[0], defaults[1]];
+    });
+  };
+  const updateTimeOption = (
+    index: number,
+    update: Partial<Pick<TribePlanTimeOption, "day" | "period">>,
+  ) => {
+    setTimeOptions((current) =>
+      current.map((option, optionIndex) =>
+        optionIndex === index ? { ...option, ...update } : option,
+      ),
+    );
+  };
+  const addTimeOption = () => {
+    setTimeOptions((current) => {
+      if (current.length >= 3) return current;
+      const index = current.length;
+      return [
+        ...current,
+        {
+          key: `time_${index + 1}` as TribePlanTimeOption["key"],
+          day: todayKey(index + 2),
+          period: index === 1 ? "afternoon" : "evening",
+        },
+      ];
+    });
+  };
+  const removeTimeOption = (index: number) => {
+    setTimeOptions((current) =>
+      current
+        .filter((_option, optionIndex) => optionIndex !== index)
+        .map((option, optionIndex) => ({
+          ...option,
+          key: `time_${optionIndex + 1}` as TribePlanTimeOption["key"],
+        })),
+    );
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (title.trim().length < 3 || area.trim().length < 2) return;
+    if (title.trim().length < 3 || area.trim().length < 2 || !validTiming) return;
     mutation.mutate(
       {
         title: title.trim(),
         note: note.trim(),
-        when_label: whenLabel,
+        timing_mode: timingMode,
+        time_options: timeOptions,
         area: area.trim(),
         max_slots: maxSlots,
       },
@@ -649,6 +764,8 @@ function PlanComposer({
         onSuccess: () => {
           setTitle("");
           setNote("");
+          setTimingMode("single");
+          setTimeOptions(defaultPlanTimeOptions("single"));
           onClose();
           toast.success("Plan added to the room");
         },
@@ -701,26 +818,173 @@ function PlanComposer({
               className="w-full resize-none border-b border-border bg-transparent py-3 text-sm outline-none focus:border-primary"
             />
           </RoomField>
-          <RoomField label="Rough timing">
-            <div className="flex flex-wrap gap-2 pt-2">
-              {["Tonight", "This week", "This weekend", "Next week"].map((value) => (
+          <RoomGroup label="When could this happen?">
+            <div className="mt-2 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-background p-1">
+              {(
+                [
+                  ["single", "Pick one window"],
+                  ["poll", "Ask the room"],
+                ] as const
+              ).map(([mode, label]) => (
                 <button
-                  key={value}
+                  key={mode}
                   type="button"
-                  onClick={() => setWhenLabel(value)}
+                  aria-pressed={timingMode === mode}
+                  onClick={() => chooseTimingMode(mode)}
                   className={cn(
-                    "min-h-11 rounded-full border px-3 text-xs font-semibold",
-                    whenLabel === value
-                      ? "border-transparent text-background"
-                      : "border-border text-muted-foreground",
+                    "min-h-11 rounded-xl px-3 text-xs font-semibold transition-colors",
+                    timingMode === mode ? "text-background" : "text-muted-foreground",
                   )}
-                  style={whenLabel === value ? { backgroundColor: tribeColor } : undefined}
+                  style={timingMode === mode ? { backgroundColor: tribeColor } : undefined}
                 >
-                  {value}
+                  {label}
                 </button>
               ))}
             </div>
-          </RoomField>
+
+            {timingMode === "single" ? (
+              <div className="mt-3 space-y-3 border-l-2 border-border pl-3">
+                <div className="flex flex-wrap gap-2">
+                  {dayChoices().map((choice) => (
+                    <button
+                      key={choice.value}
+                      type="button"
+                      onClick={() => updateTimeOption(0, { day: choice.value })}
+                      className={cn(
+                        "min-h-11 rounded-full border px-3 text-xs font-semibold",
+                        timeOptions[0]?.day === choice.value
+                          ? "border-transparent text-background"
+                          : "border-border text-muted-foreground",
+                      )}
+                      style={
+                        timeOptions[0]?.day === choice.value
+                          ? { backgroundColor: tribeColor }
+                          : undefined
+                      }
+                    >
+                      {choice.label}
+                    </button>
+                  ))}
+                  <label className="relative">
+                    <span className="sr-only">Pick another date</span>
+                    <input
+                      type="date"
+                      min={todayKey()}
+                      value={timeOptions[0]?.day ?? todayKey(1)}
+                      onChange={(event) =>
+                        event.target.value && updateTimeOption(0, { day: event.target.value })
+                      }
+                      className="min-h-11 rounded-full border border-border bg-background px-3 font-mono text-xs outline-none focus:border-primary"
+                    />
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PLAN_PERIOD_CHOICES.map((choice) => (
+                    <button
+                      key={choice.value}
+                      type="button"
+                      onClick={() => updateTimeOption(0, { period: choice.value })}
+                      className={cn(
+                        "min-h-11 rounded-full border px-3 text-xs font-semibold capitalize",
+                        timeOptions[0]?.period === choice.value
+                          ? "border-transparent text-background"
+                          : "border-border text-muted-foreground",
+                      )}
+                      style={
+                        timeOptions[0]?.period === choice.value
+                          ? { backgroundColor: tribeColor }
+                          : undefined
+                      }
+                    >
+                      {choice.label}
+                    </button>
+                  ))}
+                </div>
+                {timeOptions[0] && (
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {planTimeLabel(timeOptions[0].day, timeOptions[0].period)}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2 border-l-2 border-border pl-3">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Add two or three windows. Members can choose every option that works.
+                </p>
+                {timeOptions.map((option, index) => (
+                  <div
+                    key={option.key}
+                    className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 border-b border-border py-2"
+                  >
+                    <span
+                      className="flex h-8 w-8 items-center justify-center rounded-full font-mono text-[10px] font-bold text-background"
+                      style={{ backgroundColor: tribeColor }}
+                    >
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <label>
+                        <span className="sr-only">Option {index + 1} date</span>
+                        <input
+                          type="date"
+                          min={todayKey()}
+                          value={option.day}
+                          onChange={(event) =>
+                            event.target.value &&
+                            updateTimeOption(index, { day: event.target.value })
+                          }
+                          className="min-h-11 rounded-xl border border-border bg-background px-2 font-mono text-xs outline-none focus:border-primary"
+                        />
+                      </label>
+                      <label className="min-w-0 flex-1">
+                        <span className="sr-only">Option {index + 1} time window</span>
+                        <select
+                          value={option.period}
+                          onChange={(event) =>
+                            updateTimeOption(index, {
+                              period: event.target.value as PlanPeriod,
+                            })
+                          }
+                          className="min-h-11 w-full rounded-xl border border-border bg-background px-2 text-xs font-semibold outline-none focus:border-primary"
+                        >
+                          {PLAN_PERIOD_CHOICES.map((choice) => (
+                            <option key={choice.value} value={choice.value}>
+                              {choice.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {timeOptions.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeTimeOption(index)}
+                          aria-label={`Remove option ${index + 1}`}
+                          className="flex h-11 w-11 items-center justify-center text-muted-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {timeOptions.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={addTimeOption}
+                    className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold"
+                    style={{ color: tribeColor }}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add another time
+                  </button>
+                )}
+                {!validTiming && (
+                  <p className="text-[11px] font-medium text-destructive">
+                    Each option needs a different date or time window.
+                  </p>
+                )}
+              </div>
+            )}
+          </RoomGroup>
           <RoomField label="Area—not the exact meeting point">
             <input
               value={area}
@@ -756,7 +1020,9 @@ function PlanComposer({
         </div>
         <button
           type="submit"
-          disabled={title.trim().length < 3 || area.trim().length < 2 || mutation.isPending}
+          disabled={
+            title.trim().length < 3 || area.trim().length < 2 || !validTiming || mutation.isPending
+          }
           className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-primary-foreground disabled:opacity-50"
           style={{ backgroundColor: tribeColor }}
         >
@@ -778,6 +1044,15 @@ function RoomField({ label, children }: { label: string; children: React.ReactNo
       <span className="label-mono">{label}</span>
       {children}
     </label>
+  );
+}
+
+function RoomGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="block">
+      <legend className="label-mono">{label}</legend>
+      {children}
+    </fieldset>
   );
 }
 

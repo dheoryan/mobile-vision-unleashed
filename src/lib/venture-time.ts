@@ -155,6 +155,22 @@ export const DURATION_CHOICES = [
   { label: "All evening", minutes: 300 },
 ] as const;
 
+export type PlanPeriod = "morning" | "afternoon" | "evening";
+
+export const PLAN_PERIOD_CHOICES: ReadonlyArray<{
+  value: PlanPeriod;
+  label: string;
+  defaultTime: string;
+}> = [
+  { value: "morning", label: "Morning", defaultTime: "10:00" },
+  { value: "afternoon", label: "Afternoon", defaultTime: "14:00" },
+  { value: "evening", label: "Evening", defaultTime: "19:00" },
+];
+
+export function periodDefaultTime(period: PlanPeriod): string {
+  return PLAN_PERIOD_CHOICES.find((choice) => choice.value === period)?.defaultTime ?? "19:00";
+}
+
 export function addMinutes(iso: string, minutes: number): string {
   return new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
 }
@@ -185,12 +201,24 @@ export function todayKey(offsetDays = 0): string {
   ).padStart(2, "0")}`;
 }
 
-/** The two shortcuts worth a chip. Everything else goes through the date input. */
+/** The high-frequency shortcuts worth a chip. Everything else uses the date input. */
 export function dayChoices(): Array<{ value: string; label: string }> {
-  return [
+  const choices = [
     { value: todayKey(0), label: "Tonight" },
     { value: todayKey(1), label: "Tomorrow" },
+    { value: weekendKey(), label: "This weekend" },
   ];
+  return choices.filter(
+    (choice, index) => choices.findIndex((candidate) => candidate.value === choice.value) === index,
+  );
+}
+
+/** Saturday, or today when the host is already in the weekend. */
+export function weekendKey(): string {
+  const now = new Date();
+  const weekday = now.getDay();
+  const offset = weekday === 0 || weekday === 6 ? 0 : 6 - weekday;
+  return todayKey(offset);
 }
 
 export function initialDay(v?: VentureTiming | null): string {
@@ -255,6 +283,34 @@ export function endsAtLabel(day: string, time: string, minutes: number): string 
   const tz = viewerTz();
   const abbr = zoneAbbr(tz);
   return `Ends ${clock(addMinutes(starts, minutes), tz)}${abbr ? ` · ${abbr}` : ""}`;
+}
+
+/**
+ * A custom end clock resolves forward from the start. An earlier clock means
+ * the next day, which makes 22:00 → 01:00 useful without adding a second date
+ * control. The server still enforces the 24-hour maximum.
+ */
+export function minutesUntilEnd(day: string, startTime: string, endTime: string): number | null {
+  const start = new Date(`${day}T${startTime}`);
+  const end = new Date(`${day}T${endTime}`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  if (end.getTime() === start.getTime()) return null;
+  if (end.getTime() < start.getTime()) end.setDate(end.getDate() + 1);
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+  return minutes > 0 && minutes <= 1_440 ? minutes : null;
+}
+
+export function endTimeForDuration(day: string, startTime: string, minutes: number): string {
+  const starts = localIso(day, startTime);
+  if (!starts) return startTime;
+  return toLocalTime(new Date(addMinutes(starts, minutes)));
+}
+
+export function planTimeLabel(day: string, period: PlanPeriod): string {
+  const dayLabel = day === todayKey() && period !== "evening" ? "Today" : dayChoiceLabel(day);
+  const periodLabel =
+    PLAN_PERIOD_CHOICES.find((choice) => choice.value === period)?.label ?? period;
+  return `${dayLabel} · ${periodLabel}`;
 }
 
 /** Label a bare YYYY-MM-DD the way the chips do, for the form's summary row. */

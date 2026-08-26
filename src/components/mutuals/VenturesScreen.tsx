@@ -71,9 +71,13 @@ import {
   DURATION_CHOICES,
   dayChoices,
   durationMinutes,
+  endTimeForDuration,
   endsAtLabel,
   initialDay,
   initialTime,
+  minutesUntilEnd,
+  periodDefaultTime,
+  PLAN_PERIOD_CHOICES,
   timingLabel,
   dayChoiceLabel,
   timingPayload,
@@ -1118,6 +1122,10 @@ function HostView({
  * create and quietly missing from edit. `editing` switches the mutation, the
  * copy and the reset behaviour; everything else is shared.
  */
+function preferredDraftTime(draft?: TribeVentureDraft | null) {
+  return [...(draft?.timeOptions ?? [])].sort((left, right) => right.votes - left.votes)[0] ?? null;
+}
+
 function HostForm({
   profile,
   onCancel,
@@ -1138,6 +1146,7 @@ function HostForm({
   const create = useCreateHostedVenture();
   const update = useUpdateHostedVenture();
   const isEditing = Boolean(editing);
+  const suggestedTime = preferredDraftTime(draft);
   const [title, setTitle] = useState(editing?.title ?? draft?.title ?? "");
   const [intents, setIntents] = useState<string[]>(editing?.intents ?? []);
   const [scope, setScope] = useState<VentureScope>(editing?.scope ?? (draft ? "mine" : "all"));
@@ -1145,10 +1154,20 @@ function HostForm({
   // submit. `day` and `time` are kept apart because they are picked apart —
   // a chip row and a clock — and joining them earlier would mean re-splitting
   // an ISO string every render.
-  const [day, setDay] = useState<string>(() => initialDay(editing));
-  const [time, setTime] = useState<string>(() => initialTime(editing));
+  const [day, setDay] = useState<string>(() => suggestedTime?.day ?? initialDay(editing));
+  const [time, setTime] = useState<string>(() =>
+    suggestedTime ? periodDefaultTime(suggestedTime.period) : initialTime(editing),
+  );
   const [durationMins, setDurationMins] = useState<number>(
     () => durationMinutes(editing ?? {}) ?? 180,
+  );
+  const [durationMode, setDurationMode] = useState<"preset" | "custom">("preset");
+  const [customEndTime, setCustomEndTime] = useState<string>(() =>
+    endTimeForDuration(
+      suggestedTime?.day ?? initialDay(editing),
+      suggestedTime ? periodDefaultTime(suggestedTime.period) : initialTime(editing),
+      durationMinutes(editing ?? {}) ?? 180,
+    ),
   );
   const [maxSlots, setMaxSlots] = useState(editing?.max_slots ?? draft?.maxSlots ?? 4);
   const [note, setNote] = useState(
@@ -1180,9 +1199,13 @@ function HostForm({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   /** Which decision is open. One at a time, by construction. */
-  const [sheet, setSheet] = useState<"where" | "when" | "room" | "vibe" | "details" | null>(null);
+  const [sheet, setSheet] = useState<"where" | "when" | "room" | "vibe" | "details" | null>(
+    draft ? "when" : null,
+  );
   const closeSheet = () => setSheet(null);
   const { user } = useAuth();
+  const resolvedDurationMins =
+    durationMode === "custom" ? minutesUntilEnd(day, time, customEndTime) : durationMins;
 
   // Resolve a preview for a photo that already exists on the Venture.
   useEffect(() => {
@@ -1212,6 +1235,7 @@ function HostForm({
     // Cannot shrink below the people already in the room. The database refuses
     // this too; saying so here avoids a pointless round trip.
     maxSlots >= occupancy &&
+    resolvedDurationMins !== null &&
     // New Ventures must say where. Legacy Ventures remain editable even when
     // they predate the venue tier.
     (isEditing || Boolean(venue)) &&
@@ -1244,7 +1268,12 @@ function HostForm({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || resolvedDurationMins === null) return;
+    const timing = timingPayload(day, time, resolvedDurationMins);
+    if (!("starts_at" in timing) || !timing.starts_at || !timing.ends_at) {
+      toast.error("Choose a valid Venture date and time.");
+      return;
+    }
 
     if (editing) {
       update.mutate(
@@ -1255,7 +1284,7 @@ function HostForm({
           // Omitted when locked so the database never sees an unchanged-but-sent
           // scope on a Venture people have already joined.
           ...(audienceLocked ? {} : { scope }),
-          ...timingPayload(day, time, durationMins),
+          ...timing,
           venue,
           private_venue: arrivalDetails.trim() ? { arrival_details: arrivalDetails.trim() } : null,
           max_slots: maxSlots,
@@ -1278,7 +1307,7 @@ function HostForm({
         title: title.trim(),
         intents,
         scope,
-        ...timingPayload(day, time, durationMins),
+        ...timing,
         venue,
         ...(arrivalDetails.trim()
           ? { private_venue: { arrival_details: arrivalDetails.trim() } }
@@ -1365,7 +1394,11 @@ function HostForm({
             label="When"
             required
             value={`${dayChoiceLabel(day)}, ${time}`}
-            hint={endsAtLabel(day, time, durationMins)}
+            hint={
+              resolvedDurationMins
+                ? endsAtLabel(day, time, resolvedDurationMins)
+                : "Choose an end after the start"
+            }
             onClick={() => setSheet("when")}
           />
           <FormRow
@@ -1452,6 +1485,44 @@ function HostForm({
 
       <VentureSheet open={sheet === "when"} onClose={closeSheet} title="When">
         <div className="grid gap-3">
+          {draft && (draft.timeOptions?.length ?? 0) > 0 && (
+            <FieldLabel label="From the Tribe plan">
+              <div className="mt-1 grid gap-2 border-l-2 border-primary/50 pl-3">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Availability is a guide. Confirm one exact start before this Venture goes live.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {draft.timeOptions.map((option) => {
+                    const optionTime = periodDefaultTime(option.period);
+                    const active = day === option.day && time === optionTime;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => {
+                          setDay(option.day);
+                          setTime(optionTime);
+                        }}
+                        className={cn(
+                          "min-h-11 rounded-xl border px-3 py-2 text-left text-xs",
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground",
+                        )}
+                      >
+                        <span className="block font-semibold">{option.label}</span>
+                        <span
+                          className={cn("font-mono text-[9px]", !active && "text-muted-foreground")}
+                        >
+                          {option.votes} available · starts at {optionTime}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </FieldLabel>
+          )}
           <FieldLabel label="Starts">
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap gap-2">
@@ -1468,16 +1539,33 @@ function HostForm({
                     native picker is the one control every phone already knows. */}
                 <input
                   type="date"
+                  aria-label="Venture date"
                   value={day}
                   min={todayKey()}
                   onChange={(event) => event.target.value && setDay(event.target.value)}
-                  className="rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
+                  className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
                 />
+              </div>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                {dayChoiceLabel(day)}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {PLAN_PERIOD_CHOICES.map((choice) => (
+                  <ChoiceButton
+                    key={choice.value}
+                    active={time === choice.defaultTime}
+                    onClick={() => setTime(choice.defaultTime)}
+                    title={choice.label}
+                    body={choice.defaultTime}
+                    compact
+                  />
+                ))}
                 <input
                   type="time"
+                  aria-label="Exact Venture start time"
                   value={time}
                   onChange={(event) => event.target.value && setTime(event.target.value)}
-                  className="rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
+                  className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -1488,18 +1576,43 @@ function HostForm({
                 {DURATION_CHOICES.map((choice) => (
                   <ChoiceButton
                     key={choice.minutes}
-                    active={durationMins === choice.minutes}
-                    onClick={() => setDurationMins(choice.minutes)}
+                    active={durationMode === "preset" && durationMins === choice.minutes}
+                    onClick={() => {
+                      setDurationMode("preset");
+                      setDurationMins(choice.minutes);
+                    }}
                     title={choice.label}
                     compact
                   />
                 ))}
+                <ChoiceButton
+                  active={durationMode === "custom"}
+                  onClick={() => {
+                    setDurationMode("custom");
+                    setCustomEndTime(endTimeForDuration(day, time, durationMins));
+                  }}
+                  title="Custom end"
+                  compact
+                />
               </div>
+              {durationMode === "custom" && (
+                <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2">
+                  <span className="text-xs font-semibold">Ends at</span>
+                  <input
+                    type="time"
+                    value={customEndTime}
+                    onChange={(event) => setCustomEndTime(event.target.value)}
+                    className="min-h-11 bg-transparent font-mono text-xs outline-none"
+                  />
+                </label>
+              )}
               {/* Show the computed end. A duration is easier to pick than a second
                   clock, but only if you can see what it resolved to — otherwise
                   "all evening" quietly becomes a Venture that ends at 3am. */}
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                {endsAtLabel(day, time, durationMins)}
+                {resolvedDurationMins
+                  ? endsAtLabel(day, time, resolvedDurationMins)
+                  : "End must be after the start · earlier clocks mean next day"}
               </p>
             </div>
           </FieldLabel>
@@ -2411,7 +2524,7 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-xl border text-left transition-colors",
+        "min-h-11 rounded-xl border text-left transition-colors",
         compact ? "px-3 py-2.5" : "p-3",
         active ? "border-primary bg-primary/10" : "border-border bg-background",
       )}

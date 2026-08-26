@@ -9,7 +9,7 @@ import {
   markTribeRoomRead,
   toggleTribeRoomReaction,
 } from "@/lib/tribe-room.functions";
-import type { TribeRoomItem, TribeRoomReaction } from "@/lib/tribe-room";
+import type { TribePlanTimeOption, TribeRoomItem, TribeRoomReaction } from "@/lib/tribe-room";
 
 const roomKey = (tribeKey: string) => ["tribe-room", tribeKey] as const;
 
@@ -41,7 +41,8 @@ export function useCreateTribePlan(tribeKey: string) {
     mutationFn: (input: {
       title: string;
       note: string;
-      when_label: string;
+      timing_mode: "single" | "poll";
+      time_options: TribePlanTimeOption[];
       area: string;
       max_slots: number;
     }) => fn({ data: { tribe_key: tribeKey, ...input } }),

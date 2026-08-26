@@ -1,7 +1,16 @@
 import type { TribeId } from "@/lib/mutuals-data";
+import { planTimeLabel, type PlanPeriod } from "./venture-time.ts";
 
 export type TribeRoomKind = "pulse_answer" | "plan" | "venture";
-export type TribeRoomReaction = "spark" | "interested" | "heart" | "laugh" | "support";
+export type TribeRoomReaction =
+  | "spark"
+  | "interested"
+  | "heart"
+  | "laugh"
+  | "support"
+  | "time_1"
+  | "time_2"
+  | "time_3";
 
 export const emptyTribeRoomReactions = (): Record<TribeRoomReaction, number> => ({
   spark: 0,
@@ -9,6 +18,9 @@ export const emptyTribeRoomReactions = (): Record<TribeRoomReaction, number> => 
   heart: 0,
   laugh: 0,
   support: 0,
+  time_1: 0,
+  time_2: 0,
+  time_3: 0,
 });
 export type TribeRoomMetadataValue =
   | string
@@ -49,8 +61,22 @@ export interface TribeVentureDraft {
   title: string;
   note: string;
   whenLabel: string;
+  timeOptions: TribePlanTimeOptionWithVotes[];
   area: string;
   maxSlots: number;
+}
+
+export type TribePlanTimeKey = "time_1" | "time_2" | "time_3";
+
+export interface TribePlanTimeOption {
+  key: TribePlanTimeKey;
+  day: string;
+  period: PlanPeriod;
+}
+
+export interface TribePlanTimeOptionWithVotes extends TribePlanTimeOption {
+  label: string;
+  votes: number;
 }
 
 interface PulsePrompt {
@@ -152,4 +178,44 @@ export function roomMetadataString(metadata: TribeRoomMetadata, key: string, fal
 export function roomMetadataNumber(metadata: TribeRoomMetadata, key: string, fallback: number) {
   const value = metadata[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+const TIME_KEYS: TribePlanTimeKey[] = ["time_1", "time_2", "time_3"];
+const PLAN_PERIODS: PlanPeriod[] = ["morning", "afternoon", "evening"];
+
+export function roomMetadataTimeOptions(
+  metadata: TribeRoomMetadata,
+  reactions: Record<TribeRoomReaction, number> = emptyTribeRoomReactions(),
+): TribePlanTimeOptionWithVotes[] {
+  const value = metadata.time_options;
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const key = entry.key;
+    const day = entry.day;
+    const period = entry.period;
+    if (
+      index > 2 ||
+      typeof key !== "string" ||
+      !TIME_KEYS.includes(key as TribePlanTimeKey) ||
+      typeof day !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+      typeof period !== "string" ||
+      !PLAN_PERIODS.includes(period as PlanPeriod)
+    ) {
+      return [];
+    }
+    const typedKey = key as TribePlanTimeKey;
+    const typedPeriod = period as PlanPeriod;
+    return [
+      {
+        key: typedKey,
+        day,
+        period: typedPeriod,
+        label: planTimeLabel(day, typedPeriod),
+        votes: reactions[typedKey],
+      },
+    ];
+  });
 }
