@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -957,6 +957,42 @@ export type Database = {
         }
         Relationships: []
       }
+      venture_announcements: {
+        Row: {
+          author_id: string
+          content: string
+          updated_at: string
+          venture_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          updated_at?: string
+          venture_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          updated_at?: string
+          venture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venture_announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venture_announcements_venture_id_fkey"
+            columns: ["venture_id"]
+            isOneToOne: true
+            referencedRelation: "ventures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venture_applications: {
         Row: {
           applicant_id: string
@@ -1009,8 +1045,11 @@ export type Database = {
           content: string | null
           created_at: string
           id: string
+          message_kind: string
           reply_to_id: string | null
           sender_id: string
+          system_event: string | null
+          system_key: string | null
           venture_id: string
         }
         Insert: {
@@ -1019,8 +1058,11 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          message_kind?: string
           reply_to_id?: string | null
           sender_id: string
+          system_event?: string | null
+          system_key?: string | null
           venture_id: string
         }
         Update: {
@@ -1029,8 +1071,11 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          message_kind?: string
           reply_to_id?: string | null
           sender_id?: string
+          system_event?: string | null
+          system_key?: string | null
           venture_id?: string
         }
         Relationships: [
@@ -1050,6 +1095,42 @@ export type Database = {
           },
           {
             foreignKeyName: "venture_messages_venture_id_fkey"
+            columns: ["venture_id"]
+            isOneToOne: false
+            referencedRelation: "ventures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venture_participant_statuses: {
+        Row: {
+          status: string
+          updated_at: string
+          user_id: string
+          venture_id: string
+        }
+        Insert: {
+          status: string
+          updated_at?: string
+          user_id: string
+          venture_id: string
+        }
+        Update: {
+          status?: string
+          updated_at?: string
+          user_id?: string
+          venture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venture_participant_statuses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venture_participant_statuses_venture_id_fkey"
             columns: ["venture_id"]
             isOneToOne: false
             referencedRelation: "ventures"
@@ -1220,9 +1301,32 @@ export type Database = {
     Functions: {
       adult_gate_enabled: { Args: never; Returns: boolean }
       age_in_years: { Args: { value: string }; Returns: number }
+      can_access_chat_message: {
+        Args: { _channel_kind: string; _message_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_access_tribe_room_message: {
+        Args: { target_message_id: string; target_user_id: string }
+        Returns: boolean
+      }
       can_direct_message: { Args: { _a: string; _b: string }; Returns: boolean }
+      can_read_chat_attachment: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
+      chat_attachment_is_in_use: { Args: { _path: string }; Returns: boolean }
       content_is_blocked: { Args: { value: string }; Returns: boolean }
       current_user_is_moderator: { Args: never; Returns: boolean }
+      emit_venture_system_message: {
+        Args: {
+          _content: string
+          _event: string
+          _sender_id: string
+          _system_key?: string
+          _venture_id: string
+        }
+        Returns: undefined
+      }
       expire_venue_coordinates: { Args: never; Returns: number }
       has_blocked: {
         Args: { _target: string; _viewer: string }
