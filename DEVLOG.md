@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Venture chat coordination layer | `src/components/mutuals/MessagesPanel.tsx`, `src/components/mutuals/VentureCoordination.tsx`, `src/lib/ventures.functions.ts`, `src/lib/ventures-store.ts`, `src/lib/venture-coordination.ts`, `tests/venture-coordination.test.ts`, `supabase/migrations/20260826010000_venture_chat_coordination.sql`, `LOVABLE_VENTURE_CHAT_COORDINATION_VERIFY.sql`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
