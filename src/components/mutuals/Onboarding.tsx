@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { FeatureIllustration } from "./FeatureIllustration";
 import welcomeArt from "@/assets/app-illustrations/onboarding-01.webp";
 import {
   ArrowRight,
   ArrowLeft,
-  Camera,
   Check,
   Loader2,
   LocateFixed,
@@ -109,6 +108,7 @@ export function Onboarding({
   const [location, setLocation] = useState<BrowserLocation | null>(null);
   const [locating, setLocating] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const resolveLocation = useServerFn(resolveMyLocationLabel);
 
   const tribe = tribeId ? tribeById(tribeId) : null;
@@ -125,6 +125,32 @@ export function Onboarding({
       .replace(/^@/, "")
       .replace(/[^a-z0-9_]/g, "")
       .slice(0, 30);
+
+  const openAvatarPicker = () => {
+    if (uploading) return;
+    const input = avatarInputRef.current;
+    if (!input) {
+      toast.error("Photo picker unavailable", {
+        description: "Return to this step and try again.",
+      });
+      return;
+    }
+
+    input.value = "";
+    input.click();
+  };
+
+  const onPickAvatar = async (file: File | undefined) => {
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      setAvatar(await uploadAvatar(user.id, file));
+    } catch (error) {
+      toast.error("Upload failed", { description: (error as Error).message });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const locate = async () => {
     setLocating(true);
@@ -415,7 +441,13 @@ export function Onboarding({
               body="A name people can remember and a handle they can find."
             />
             <div className="mt-6 flex flex-col items-center">
-              <label className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-visible">
+              <button
+                type="button"
+                onClick={openAvatarPicker}
+                disabled={uploading}
+                aria-label="Add profile photo"
+                className="relative flex h-24 w-24 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background disabled:cursor-wait"
+              >
                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-card text-4xl">
                   {avatar.startsWith("data:") || avatar.startsWith("http") ? (
                     <img
@@ -427,33 +459,33 @@ export function Onboarding({
                     avatar
                   )}
                 </span>
-                <span className="absolute -bottom-1 -right-1 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-background">
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                </span>
-                <span className="sr-only">Upload a profile photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (!file || !user) return;
-                    setUploading(true);
-                    try {
-                      setAvatar(await uploadAvatar(user.id, file));
-                    } catch (error) {
-                      toast.error("Upload failed", { description: (error as Error).message });
-                    } finally {
-                      setUploading(false);
-                    }
-                  }}
-                />
-              </label>
+                {uploading && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70 backdrop-blur-sm">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={openAvatarPicker}
+                disabled={uploading}
+                className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+              >
+                {uploading ? "Uploading…" : "Add photo"}
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
+                aria-hidden="true"
+                tabIndex={-1}
+                className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  event.currentTarget.value = "";
+                  void onPickAvatar(file);
+                }}
+              />
               <p className="mt-3 text-[11px] text-muted-foreground">
                 A photo helps with trust. The leaf works too.
               </p>

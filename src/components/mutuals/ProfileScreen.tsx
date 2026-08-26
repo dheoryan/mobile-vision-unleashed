@@ -1,15 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Settings,
-  Edit3,
-  Bookmark,
-  Zap,
-  X,
-  Camera,
-  Loader2,
-  Check,
-  LocateFixed,
-} from "lucide-react";
+import { Settings, Edit3, Bookmark, Zap, X, Loader2, Check, LocateFixed } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
@@ -664,13 +654,11 @@ export function EditProfileModal({
                 <span>{avatar}</span>
               )}
             </span>
-            <span className="absolute -bottom-2 -right-2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-card">
-              {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Camera className="h-4 w-4" />
-              )}
-            </span>
+            {uploading && (
+              <span className="absolute inset-0 z-20 flex items-center justify-center rounded-full bg-background/70 backdrop-blur-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -678,7 +666,7 @@ export function EditProfileModal({
             disabled={uploading}
             className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
-            Choose photo
+            {uploading ? "Uploading…" : "Change photo"}
           </button>
           <input
             ref={avatarInputRef}

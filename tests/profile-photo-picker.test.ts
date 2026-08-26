@@ -24,18 +24,26 @@ test("rejects non-images and oversized avatar files", () => {
 });
 
 test("profile photo controls directly activate one non-display-none file input", () => {
-  const source = readFileSync(
+  const editProfileSource = readFileSync(
     new URL("../src/components/mutuals/ProfileScreen.tsx", import.meta.url),
     "utf8",
   );
+  const onboardingSource = readFileSync(
+    new URL("../src/components/mutuals/Onboarding.tsx", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(source, /const avatarInputRef = useRef<HTMLInputElement>\(null\)/);
-  assert.match(source, /input\.click\(\)/);
-  assert.match(source, /ref=\{avatarInputRef\}/);
-  assert.match(source, /aria-label="Change profile photo"/);
-  assert.match(source, />\s*Choose photo\s*</);
+  for (const source of [editProfileSource, onboardingSource]) {
+    assert.match(source, /avatarInputRef = useRef<HTMLInputElement>\(null\)/);
+    assert.match(source, /input\.click\(\)/);
+    assert.match(source, /ref=\{avatarInputRef\}/);
+    assert.doesNotMatch(source, /<Camera\b/);
 
-  const avatarInput = source.match(/<input\s+ref=\{avatarInputRef\}[\s\S]*?\/>/)?.[0] ?? "";
-  assert.ok(avatarInput);
-  assert.doesNotMatch(avatarInput, /className="hidden"/);
+    const avatarInput = source.match(/<input\s+ref=\{avatarInputRef\}[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(avatarInput);
+    assert.doesNotMatch(avatarInput, /className="hidden"/);
+  }
+
+  assert.match(editProfileSource, /"Change photo"/);
+  assert.match(onboardingSource, /"Add photo"/);
 });

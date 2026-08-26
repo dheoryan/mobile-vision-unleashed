@@ -187,6 +187,19 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-26 — Codex — Short photo actions without camera glyphs
+
+- Removed the camera badge from both onboarding and Edit Profile because the
+  action opens the device's general image-source chooser, not camera-only UI.
+  Onboarding now says `Add photo`; Edit Profile says `Change photo`.
+- Both avatars remain 96px tappable controls, the text actions retain 44px
+  minimum touch height, and neutral spinner overlays preserve upload feedback.
+  Onboarding now uses the same direct, visually hidden file-input activation
+  pattern as Edit Profile for stronger Android/PWA compatibility.
+- The three photo-picker regressions, targeted ESLint, TypeScript,
+  `git diff --check`, and the full production build pass. The only lint output
+  is Onboarding's existing Fast Refresh warning for its exported helper.
+
 ### 2026-08-26 — Codex — Android-safe profile photo picker
 
 - Replaced the avatar label/`display:none` file-input activation with explicit
