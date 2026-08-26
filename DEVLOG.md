@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Discover Five + Doors and swipe-first cards | `src/components/mutuals/DiscoverScreen.tsx`, `src/components/mutuals/ExploreDeck.tsx`, `src/lib/explore-moods.ts`, `tests/explore-moods.test.ts`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
