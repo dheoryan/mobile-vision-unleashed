@@ -363,25 +363,30 @@ export function ExploreDeck({
           </button>
         </div>
 
-        <div className="mt-auto flex min-h-11 items-end justify-between gap-3 pt-2">
+        <div className="mt-auto border-t border-border/70 pt-2">
+          {doorMessage && (
+            <p role="status" className="px-2 pb-1 text-[10px] leading-snug text-muted-foreground">
+              {doorMessage}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => {
               setIndex(Math.max(primaryPeople.length - 1, 0));
               changePhase("primary");
             }}
-            className="inline-flex min-h-10 items-center gap-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="group flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left transition-colors hover:bg-background/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowLeft className="h-4 w-4" /> Revisit today’s people
+            <ChevronLeft className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-x-0.5" />
+            <span className="min-w-0">
+              <span className="block text-xs font-semibold text-foreground">
+                Back to today’s five
+              </span>
+              <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                Review anyone again
+              </span>
+            </span>
           </button>
-          {doorMessage && (
-            <p
-              role="status"
-              className="max-w-36 text-right text-[10px] leading-snug text-muted-foreground"
-            >
-              {doorMessage}
-            </p>
-          )}
         </div>
       </section>
     );

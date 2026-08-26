@@ -376,7 +376,7 @@ export function DiscoverScreen() {
             "min-h-0 flex-1",
             searchMode
               ? "scroll-panel overflow-y-auto overscroll-contain pb-4"
-              : "flex flex-col overflow-hidden",
+              : "flex flex-col overflow-hidden pt-2",
           )}
         >
           {searchMode && !query.trim() ? (

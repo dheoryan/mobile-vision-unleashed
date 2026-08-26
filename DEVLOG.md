@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Discover completion return action and deck spacing | `src/components/mutuals/ExploreDeck.tsx`, `src/components/mutuals/DiscoverScreen.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Discover spacing and return action polished
+
+- Added an explicit 8 px separation between the Discover controls and the
+  fixed-height introduction stage, removing the compressed zero-gap join.
+- Replaced the tiny “Revisit today’s people” utility link with a full-width,
+  56 px return action: “Back to today’s five” with the supporting cue “Review
+  anyone again.” The footer stays visually secondary to the next-step choices.
+- Authenticated mobile acceptance measured the 8 px stage gap and 56 px return
+  target; targeted ESLint, TypeScript, `git diff --check`, and the Cloudflare
+  production build pass.
 
 ### 2026-08-26 — Codex — Discover chevron collision removed
 
