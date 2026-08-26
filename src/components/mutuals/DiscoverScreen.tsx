@@ -41,7 +41,7 @@ import { Switch } from "@/components/ui/switch";
 import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
-import { ExploreDeck } from "./ExploreDeck";
+import { ExploreDeck, type ExploreDeckPhase } from "./ExploreDeck";
 import { Wand2 } from "lucide-react";
 import { useExploreMatches } from "@/lib/explore-store";
 import type { ExploreMatch } from "@/lib/explore.functions";
@@ -56,6 +56,7 @@ type DiscoverPerson = Person & {
   interests: string[];
   socialIntents: string[];
   availability: string[];
+  sharedAvailability?: string[];
   distanceBand?: string | null;
   matchScore?: number;
   signals?: MatchSignals;
@@ -102,6 +103,7 @@ function rowToPerson(row: DiscoverProfile | NearbyProfile | ExploreMatch): Disco
     interests: row.interests ?? [],
     socialIntents: row.social_intents ?? [],
     availability: row.availability ?? [],
+    sharedAvailability: scored?.shared_availability ?? [],
     plus: showPlusBadge(row.plan),
     mutuals: 0,
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
@@ -129,8 +131,11 @@ export function DiscoverScreen() {
   const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [mood, setMood] = useState<ExploreMood>("surprise");
+  const [deckPhase, setDeckPhase] = useState<ExploreDeckPhase>("primary");
   const [deckDay] = useState(localDayKey);
   const tribeScrollRef = useRef<HTMLDivElement>(null);
+  const tribeSectionRef = useRef<HTMLElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const social = useSocial();
   const blocked = useBlocked();
   const myProfile = useMyProfile();
@@ -235,6 +240,31 @@ export function DiscoverScreen() {
     myProfile.availability.length === 0;
   const selectedMoodLabel =
     MOOD_OPTIONS.find((option) => option.id === mood)?.label ?? "Surprise me";
+  const deckSectionTitle =
+    deckPhase === "doors"
+      ? "Choose what’s next"
+      : deckPhase === "continuation"
+        ? "A different five"
+        : deckPhase === "done"
+          ? "Today’s introductions"
+          : "Today’s five";
+  const deckSectionHint =
+    deckPhase === "doors"
+      ? `${todaysPeople.length} considered · nobody rejected`
+      : deckPhase === "continuation"
+        ? "A new direction · no repeats"
+        : deckPhase === "done"
+          ? "Continue with a room or plan"
+          : `${todaysPeople.length} picked for ${selectedMoodLabel.toLowerCase()}`;
+
+  const scrollToTribes = () => {
+    tribeSectionRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  };
+
+  const focusSearch = () => {
+    searchInputRef.current?.focus();
+    searchInputRef.current?.scrollIntoView({ behavior: "auto", block: "center" });
+  };
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
@@ -243,6 +273,7 @@ export function DiscoverScreen() {
         <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
+            ref={searchInputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people, Tribes, cities"
@@ -313,13 +344,13 @@ export function DiscoverScreen() {
         )}
 
         <SectionTitle
-          title={searching ? "Search results" : "Today’s five"}
+          title={searching ? "Search results" : deckSectionTitle}
           hint={
             activeQuery.isLoading
               ? "Loading"
               : searching
                 ? `${filtered.length} found`
-                : `${todaysPeople.length} picked for ${selectedMoodLabel.toLowerCase()}`
+                : deckSectionHint
           }
           action={
             locationQuery.data ? (
@@ -402,11 +433,20 @@ export function DiscoverScreen() {
                 ))
               ) : (
                 <ExploreDeck
-                  people={todaysPeople}
-                  sessionKey={mood}
+                  people={filtered}
+                  mood={mood}
+                  dayKey={deckDay}
+                  sessionKey={`${deckDay}:${mood}`}
                   following={social.following}
                   onToggleFollow={toggle}
                   followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
+                  onOpenNearby={() => {
+                    if (locationQuery.data) setNearbySettingsOpen(true);
+                    else void enableNearby();
+                  }}
+                  onExploreTribes={scrollToTribes}
+                  onSearch={focusSearch}
+                  onPhaseChange={setDeckPhase}
                 />
               )}
               {searching && activeQuery.hasNextPage && (
@@ -425,40 +465,42 @@ export function DiscoverScreen() {
           )}
         </div>
 
-        <SectionTitle title="Explore Tribes" hint="Preview the rooms behind the people" />
-        <div
-          ref={tribeScrollRef}
-          onWheel={onTribeWheel}
-          className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <div className="flex w-max gap-3 pb-1">
-            {TRIBES.map((tribe) => {
-              const memberCount = tribeCounts.data?.[tribe.id];
-              return (
-                <button
-                  key={tribe.id}
-                  type="button"
-                  onClick={() => setPreviewTribe(tribe)}
-                  className="group relative h-32 w-36 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <img
-                    src={tribe.art}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
-                  />
-                  <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
-                  <TribeMark tribe={tribe} size="xs" className="absolute left-3 top-3" />
-                  <p className="absolute bottom-7 left-3 right-3 truncate font-display text-sm font-bold text-white">
-                    {tribe.name}
-                  </p>
-                  <p className="absolute bottom-2.5 left-3 right-3 text-[9px] text-white/65">
-                    {memberCount === undefined ? " " : `${memberCount} members`}
-                  </p>
-                </button>
-              );
-            })}
+        <section ref={tribeSectionRef}>
+          <SectionTitle title="Explore Tribes" hint="Preview the rooms behind the people" />
+          <div
+            ref={tribeScrollRef}
+            onWheel={onTribeWheel}
+            className="-mx-5 overflow-x-auto overflow-y-hidden overscroll-x-contain px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div className="flex w-max gap-3 pb-1">
+              {TRIBES.map((tribe) => {
+                const memberCount = tribeCounts.data?.[tribe.id];
+                return (
+                  <button
+                    key={tribe.id}
+                    type="button"
+                    onClick={() => setPreviewTribe(tribe)}
+                    className="group relative h-32 w-36 shrink-0 overflow-hidden rounded-2xl border border-border bg-card text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <img
+                      src={tribe.art}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                    />
+                    <span className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
+                    <TribeMark tribe={tribe} size="xs" className="absolute left-3 top-3" />
+                    <p className="absolute bottom-7 left-3 right-3 truncate font-display text-sm font-bold text-white">
+                      {tribe.name}
+                    </p>
+                    <p className="absolute bottom-2.5 left-3 right-3 text-[9px] text-white/65">
+                      {memberCount === undefined ? " " : `${memberCount} members`}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </section>
       </main>
 
       <TribePreviewSheet

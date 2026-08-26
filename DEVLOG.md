@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Discover Five + Doors and swipe-first cards | `src/components/mutuals/DiscoverScreen.tsx`, `src/components/mutuals/ExploreDeck.tsx`, `src/lib/explore-moods.ts`, `tests/explore-moods.test.ts`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,28 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Discover became swipe-first Five + Doors
+
+- Rebuilt the focused introduction card around a large profile-photo stage,
+  with a Tribe-art identity fallback for accounts that only have an emoji or a
+  failed image. The quote, two strongest factual reasons, open Venture and
+  Hello/profile actions remain visible without turning the experience into an
+  appearance-only deck.
+- Replaced the small Back / count / Maybe later row with horizontal browsing
+  and 48 px accessible arrow controls overlapping the card's outer midpoint.
+  There is no numeric counter, no reject state, and edge-origin gestures are
+  ignored so the PWA/browser Back gesture keeps ownership of the screen edge.
+- The end of the first set now opens contextual doors: a non-repeating set for
+  overlapping availability or a different mood, nearby radius preferences,
+  Ventures, Tribes, and direct search. A maximum of five additional profiles
+  is selected from the already-authorized ranked pool; no SQL or visibility
+  rule changed.
+- Verification: Prettier, targeted ESLint, `npx tsc --noEmit`, all 33 Node
+  tests, `git diff --check`, PWA release checks and the full Cloudflare
+  production build pass. The localhost app hot-reloads cleanly, but that
+  browser origin is signed out, so authenticated phone gesture and crop
+  acceptance remains for the user's existing session.
 
 ### 2026-08-26 — Codex — Settings became a full-screen navigation space
 
