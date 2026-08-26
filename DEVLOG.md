@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Full-screen Settings navigation | `src/routes/settings.tsx`, `src/components/mutuals/SettingsScreen.tsx`, `src/components/mutuals/ProfileScreen.tsx`, `src/routeTree.gen.ts`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Settings became a full-screen navigation space
+
+- Replaced the long Settings dialog with an authenticated `/settings` route;
+  the bottom navigation is absent and the sticky mobile header respects safe
+  areas.
+- Split account, notifications, nearby discovery, installation, privacy and
+  safety, and blocked accounts into focused route-history views. Header Back,
+  Android system Back, and iOS edge Back now unwind the same browser history.
+- Preserved all existing controls: profile editing, Tribe movement, password
+  reset, push preferences, PWA installation, approximate-location privacy,
+  blocked-account management, legal links, sign-out, and account deletion.
+- Validation: targeted ESLint and `tsc --noEmit` pass; app-navigation tests are
+  3/3; PWA release checks pass; the production Cloudflare build exits 0. The
+  signed-out local route redirects cleanly to login with no console errors.
+  Authenticated device acceptance remains for the user session.
 
 ### 2026-08-26 — User + Codex — Flexible scheduling released to production
 

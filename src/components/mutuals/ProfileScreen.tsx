@@ -4,31 +4,17 @@ import {
   Edit3,
   Bookmark,
   Zap,
-  Trash2,
-  LogOut,
   X,
   Camera,
-  Ban,
   Loader2,
   Check,
   LocateFixed,
-  MapPinOff,
-  RefreshCw,
-  ShieldCheck,
-  UserRound,
-  KeyRound,
-  ChevronRight,
-  Scale,
-  BookOpenCheck,
-  LifeBuoy,
-  Mail,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
-import { DeleteAccountModal } from "./DeleteAccountModal";
 import { useMyPosts, useMySavedPosts } from "@/lib/posts-store";
 import { useMyHostedVentures } from "@/lib/ventures-store";
 import { useFollowCounts } from "@/lib/social-store";
@@ -37,14 +23,12 @@ import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
 import { intentStore } from "@/lib/intent-store";
 import { preferVentureHostingOnNextOpen } from "@/lib/ventures-mode";
-import { useBlockedProfiles, useUnblockUser } from "@/lib/blocked-store";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { CompactListSkeleton, PeopleSkeleton, Skeleton } from "./Skeleton";
+import { CompactListSkeleton } from "./Skeleton";
 import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
-import { PushSettingsRow } from "./EnablePushBanner";
 import {
   AVAILABILITY_OPTIONS,
   INTEREST_OPTIONS,
@@ -56,22 +40,10 @@ import {
   type SocialIntentId,
 } from "@/lib/profile-options";
 import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
-import {
-  useDeleteMyLocation,
-  useMyLocationSettings,
-  useSaveMyLocation,
-  useUpdateMyLocationSettings,
-} from "@/lib/location-store";
+import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
-import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
-import { Switch } from "@/components/ui/switch";
-import { AnimatedModal } from "@/components/ui/animated-modal";
 import { TribeMark } from "./TribeMark";
-import { FeatureIllustration } from "./FeatureIllustration";
-import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
 import { timingLabel } from "@/lib/venture-time";
-import { PwaInstallRow } from "./PwaInstallRow";
-import { AddTribeSheet } from "./AddTribeSheet";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -83,10 +55,7 @@ export function ProfileScreen({
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
 }) {
   const { user } = useAuth();
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [tribeSettingsOpen, setTribeSettingsOpen] = useState(false);
   const [gridTab, setGridTab] = useState<GridTab>("posts");
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
@@ -119,13 +88,13 @@ export function ProfileScreen({
             was the softest, most generic element on the screen, and a card
             around the thing that IS the page adds a frame around a frame. */}
         <section className="relative mt-5">
-          <button
+          <Link
+            to="/settings"
             aria-label="Settings"
-            onClick={() => setSettingsOpen(true)}
-            className="absolute -top-1 right-0 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+            className="absolute -top-2 right-0 flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Settings className="h-4 w-4" />
-          </button>
+          </Link>
           <div className="flex items-center gap-4">
             <span className="relative">
               <span
@@ -464,47 +433,6 @@ export function ProfileScreen({
           toast.success("Profile updated.");
         }}
       />
-
-      <SettingsSheet
-        open={settingsOpen}
-        profile={profile}
-        onClose={() => setSettingsOpen(false)}
-        onEditProfile={() => {
-          setSettingsOpen(false);
-          setEditOpen(true);
-        }}
-        onManageTribe={() => {
-          setSettingsOpen(false);
-          setTribeSettingsOpen(true);
-        }}
-        onLogout={() => {
-          setSettingsOpen(false);
-          setProfile?.(() => null);
-          toast.success("Signed out.");
-        }}
-        onDelete={() => {
-          setSettingsOpen(false);
-          setDeleteOpen(true);
-        }}
-      />
-
-      <AddTribeSheet
-        open={tribeSettingsOpen}
-        onClose={() => setTribeSettingsOpen(false)}
-        profile={profile}
-        onJoined={(tribeId) =>
-          setProfile?.((current) => (current ? { ...current, tribeIds: [tribeId] } : current))
-        }
-      />
-
-      <DeleteAccountModal
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        onDeleted={() => {
-          setDeleteOpen(false);
-          setProfile?.(() => null);
-        }}
-      />
     </div>
   );
 }
@@ -625,7 +553,7 @@ function ProfileTag({ label, accent = false }: { label: string; accent?: boolean
   );
 }
 
-function EditProfileModal({
+export function EditProfileModal({
   open,
   profile,
   onClose,
@@ -1129,373 +1057,5 @@ function ProfileChoiceGroup({
         })}
       </div>
     </fieldset>
-  );
-}
-
-function SettingsSheet({
-  open,
-  profile,
-  onClose,
-  onEditProfile,
-  onManageTribe,
-  onLogout,
-  onDelete,
-}: {
-  open: boolean;
-  profile: Profile;
-  onClose: () => void;
-  onEditProfile: () => void;
-  onManageTribe: () => void;
-  onLogout: () => void;
-  onDelete: () => void;
-}) {
-  const { user } = useAuth();
-  const blockedProfilesQuery = useBlockedProfiles();
-  const unblockUser = useUnblockUser();
-  const blockedPeople = blockedProfilesQuery.data ?? [];
-  const locationQuery = useMyLocationSettings();
-  const saveLocation = useSaveMyLocation();
-  const updateLocation = useUpdateMyLocationSettings();
-  const deleteLocation = useDeleteMyLocation();
-  const [locating, setLocating] = useState(false);
-  const location = locationQuery.data;
-  const currentTribe = tribeById(profile.tribeIds[0]);
-
-  const refreshLocation = async () => {
-    setLocating(true);
-    try {
-      const browserLocation = await requestBrowserLocation();
-      const saved = await saveLocation.mutateAsync({
-        ...browserLocation,
-        radius_km: (location?.radius_km ?? 15) as LocationRadiusKm,
-        discoverable: location?.discoverable ?? true,
-      });
-      toast.success(saved.city ? `Current area updated — ${saved.city}` : "Current area updated.");
-    } catch (error) {
-      toast.error("Location unavailable", { description: (error as Error).message });
-    } finally {
-      setLocating(false);
-    }
-  };
-
-  return (
-    <AnimatedModal
-      open={open}
-      onOpenChange={(next) => !next && onClose()}
-      title="Settings"
-      contentClassName="max-h-[92dvh] overflow-y-auto scroll-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-    >
-      <div>
-        <button
-          onClick={onClose}
-          aria-label="Close settings"
-          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <h2 className="font-display text-xl font-bold">Settings</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Your account, privacy, safety, and preferences.
-        </p>
-
-        <div className="mt-5">
-          <p className="label-mono text-muted-foreground">Account</p>
-          <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
-            <SettingsAction
-              icon={UserRound}
-              title="Edit profile"
-              detail="Photo, bio, home city, and social signals"
-              onClick={onEditProfile}
-            />
-            <button
-              type="button"
-              onClick={onManageTribe}
-              className="flex min-h-16 w-full items-center gap-3 border-t border-border px-4 text-left transition-colors hover:bg-secondary/60"
-            >
-              <TribeMark tribe={currentTribe} size="xs" decorative={false} />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Your Tribe</p>
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {currentTribe.name} · View movement timing and choices
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <div className="border-t border-border px-4 py-3">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">Email</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {user?.email ?? "Signed-in account"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <Link
-              to="/reset-password"
-              className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"
-            >
-              <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Change password</p>
-                <p className="text-[11px] text-muted-foreground">Send a secure reset link</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="label-mono text-muted-foreground">Notifications</p>
-          <div className="mt-2">
-            <PushSettingsRow />
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="label-mono text-muted-foreground">App installation</p>
-          <div className="mt-2">
-            <PwaInstallRow />
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="label-mono text-muted-foreground">Nearby discovery</p>
-          <div className="mt-2 rounded-2xl border border-border bg-background p-4">
-            {locationQuery.isLoading ? (
-              <div role="status" aria-label="Loading location settings" className="space-y-3">
-                <span className="sr-only">Loading location settings</span>
-                <Skeleton className="h-4 w-44" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-10 w-full rounded-xl" />
-              </div>
-            ) : !location ? (
-              <>
-                <div className="flex items-start gap-3">
-                  <MapPinOff className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-semibold">City-only discovery</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Add an approximate location to see mutually nearby members.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={refreshLocation}
-                  disabled={locating || saveLocation.isPending}
-                  className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                >
-                  {locating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <LocateFixed className="h-4 w-4" />
-                  )}{" "}
-                  Use my current area
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
-                    <div>
-                      <p className="text-sm font-semibold">Approximate area saved</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Coordinates remain private. Only distance bands are shared. Your area
-                        changes only when you update it.
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={location.discoverable}
-                    disabled={updateLocation.isPending}
-                    aria-label={
-                      location.discoverable ? "Pause nearby discovery" : "Enable nearby discovery"
-                    }
-                    onCheckedChange={(discoverable) =>
-                      updateLocation.mutate(
-                        { discoverable, radius_km: location.radius_km as LocationRadiusKm },
-                        {
-                          onError: (error) =>
-                            toast.error("Could not update nearby discovery", {
-                              description: (error as Error).message,
-                            }),
-                        },
-                      )
-                    }
-                  />
-                </div>
-                <div className="mt-4">
-                  <DiscoveryRadiusSlider
-                    value={location.radius_km as LocationRadiusKm}
-                    disabled={updateLocation.isPending}
-                    onChange={(radiusKm) =>
-                      updateLocation.mutate({
-                        discoverable: location.discoverable,
-                        radius_km: radiusKm,
-                      })
-                    }
-                  />
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={refreshLocation}
-                    disabled={locating}
-                    className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold"
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Update
-                    current area
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      deleteLocation.mutate(undefined, {
-                        onSuccess: () => toast.success("Approximate location removed."),
-                      })
-                    }
-                    className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border text-[11px] font-semibold text-muted-foreground"
-                  >
-                    <MapPinOff className="h-3.5 w-3.5" /> Remove
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="label-mono text-muted-foreground">Safety & privacy</p>
-          {/* Sits with the policy links and nearby controls — deliberately not
-              next to the destructive account actions further down. Reinforces
-              that location is approximate and under the user's control; makes
-              no claim that the app guarantees safety. */}
-          <div className="mt-2 flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
-            <FeatureIllustration src={safetyArt} size="sm" className="shrink-0" />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              You control what you share. Nearby uses your last confirmed approximate area, never an
-              exact pin or background tracking.
-            </p>
-          </div>
-          <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-background">
-            <Link
-              to="/community-guidelines"
-              className="flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-secondary/60"
-            >
-              <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-sm font-semibold">Community Guidelines</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Link
-              to="/privacy"
-              className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"
-            >
-              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-sm font-semibold">Privacy Policy</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Link
-              to="/terms"
-              className="flex min-h-14 items-center gap-3 border-t border-border px-4 transition-colors hover:bg-secondary/60"
-            >
-              <Scale className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-sm font-semibold">Terms of Service</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="label-mono text-muted-foreground">Blocked accounts</p>
-          {blockedProfilesQuery.isLoading ? (
-            <div className="mt-2">
-              <PeopleSkeleton count={2} />
-            </div>
-          ) : blockedPeople.length === 0 ? (
-            <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-              You haven't blocked anyone.
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {blockedPeople.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
-                >
-                  {p.avatar_url ? (
-                    <img src={p.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg">
-                      {p.avatar_emoji || "🙂"}
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{p.display_name || "Unnamed"}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {p.handle ? `@${p.handle}` : ""}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      unblockUser.mutate(p.id, {
-                        onSuccess: () => toast.success(`Unblocked ${p.display_name || "user"}.`),
-                        onError: (e) => toast.error((e as Error).message),
-                      })
-                    }
-                    className="flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                  >
-                    <Ban className="h-3 w-3" /> Unblock
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2">
-          <button
-            onClick={onLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-semibold hover:bg-secondary"
-          >
-            <LogOut className="h-4 w-4" /> Log out
-          </button>
-          <button
-            onClick={onDelete}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 py-3 text-sm font-semibold text-destructive hover:bg-destructive/20"
-          >
-            <Trash2 className="h-4 w-4" /> Delete account
-          </button>
-        </div>
-      </div>
-    </AnimatedModal>
-  );
-}
-
-function SettingsAction({
-  icon: Icon,
-  title,
-  detail,
-  onClick,
-}: {
-  icon: typeof LifeBuoy;
-  title: string;
-  detail: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/60"
-    >
-      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">{detail}</span>
-      </span>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-    </button>
   );
 }
