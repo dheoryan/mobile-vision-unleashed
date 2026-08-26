@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Discover title and chevron polish | `src/components/mutuals/DiscoverScreen.tsx`, `src/components/mutuals/ExploreDeck.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,20 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Discover hierarchy and card-edge chevrons polished
+
+- Moved the active deck heading and context above the compact mood/location/
+  Tribe/search controls, so the default screen now reads “Today’s five” first,
+  then the Surprise Me row, then the profile card.
+- Replaced the overlapping circular previous/next controls with borderless
+  chevrons inside the card edges. The invisible touch targets remain 44 px wide
+  and the final profile uses the same forward chevron instead of changing to a
+  door icon.
+- Authenticated Chrome acceptance at 390×844 confirmed both controls are fully
+  inside the viewport (`24–68` and `322–366`), the card ends above the fixed
+  navigation, and the document remains one viewport tall. Targeted ESLint,
+  TypeScript, `git diff --check`, and the Cloudflare production build pass.
 
 ### 2026-08-26 — Codex — Discover became a fixed Today’s Five stage
 

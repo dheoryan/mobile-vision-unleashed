@@ -12,7 +12,8 @@ import {
   BookmarkCheck,
   CalendarPlus,
   Check,
-  DoorOpen,
+  ChevronLeft,
+  ChevronRight,
   Hand,
   Loader2,
   MapPin,
@@ -631,9 +632,9 @@ export function ExploreDeck({
             type="button"
             onClick={back}
             aria-label={`Previous introduction before ${person.name}`}
-            className="absolute -left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/95 text-foreground shadow-xl backdrop-blur-sm transition-colors hover:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="absolute left-1 top-1/2 z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ChevronLeft className="h-8 w-8" strokeWidth={2.25} />
           </button>
         )}
         <button
@@ -646,13 +647,9 @@ export function ExploreDeck({
                 : "Finish today’s introductions"
               : `Next introduction after ${person.name}`
           }
-          className="absolute -right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-primary/45 bg-background/95 text-primary shadow-xl backdrop-blur-sm transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="absolute right-1 top-1/2 z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         >
-          {index + 1 >= currentPeople.length ? (
-            <DoorOpen className="h-5 w-5" />
-          ) : (
-            <ArrowRight className="h-5 w-5" />
-          )}
+          <ChevronRight className="h-8 w-8" strokeWidth={2.25} />
         </button>
       </div>
 

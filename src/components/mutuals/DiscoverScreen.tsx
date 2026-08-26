@@ -268,8 +268,35 @@ export function DiscoverScreen() {
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat">
       <AppHeader title="Discover" subtitle="Beyond your Tribe" accent="var(--color-primary)" />
       <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+        <div className="mb-2 mt-3 flex shrink-0 items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate font-display text-lg font-bold">
+              {searchMode ? "Search" : deckSectionTitle}
+            </h2>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {searchMode
+                ? debounced
+                  ? `${filtered.length} found`
+                  : "Find a person, city, or Tribe"
+                : activeQuery.isLoading
+                  ? "Loading"
+                  : deckSectionHint}
+            </p>
+          </div>
+          {!searchMode && needsProfileSignals && (
+            <button
+              type="button"
+              onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
+              aria-label="Add profile interests for better matches"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Wand2 className="h-3.5 w-3.5" /> Improve matches
+            </button>
+          )}
+        </div>
+
         {searchMode ? (
-          <div className="mt-3 flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={closeSearch}
@@ -291,7 +318,7 @@ export function DiscoverScreen() {
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex shrink-0 items-center gap-2" aria-label="Discover controls">
+          <div className="flex shrink-0 items-center gap-2" aria-label="Discover controls">
             <button
               type="button"
               onClick={() => setMoodPickerOpen(true)}
@@ -343,33 +370,6 @@ export function DiscoverScreen() {
             </button>
           </div>
         )}
-
-        <div className="mb-2 mt-3 flex shrink-0 items-end justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="truncate font-display text-lg font-bold">
-              {searchMode ? "Search" : deckSectionTitle}
-            </h2>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {searchMode
-                ? debounced
-                  ? `${filtered.length} found`
-                  : "Find a person, city, or Tribe"
-                : activeQuery.isLoading
-                  ? "Loading"
-                  : deckSectionHint}
-            </p>
-          </div>
-          {!searchMode && needsProfileSignals && (
-            <button
-              type="button"
-              onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
-              aria-label="Add profile interests for better matches"
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <Wand2 className="h-3.5 w-3.5" /> Improve matches
-            </button>
-          )}
-        </div>
 
         <div
           className={cn(
