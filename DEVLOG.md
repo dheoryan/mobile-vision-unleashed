@@ -43,18 +43,18 @@ are already assessed there.
 
 ### Roadmap position
 
-| Phase | Status |
-|---|---|
-| Week 1 — critical security, store blockers, scale | ✅ done (commit `7a25853`) |
-| Week 2 — safety & correctness | ✅ done (2026-08-20) |
-| Week 3 — compliance & launch prep | 🟡 engineering pass complete; external launch work remains |
-| Product: audience-primitive decision | 🟡 recommended, **awaiting user decision** |
-| Ventures: times + board + tickets | ✅ done (2026-08-24) |
-| Ventures: venue picker + distance bands | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision |
-| Ventures: accepted-member venue + map | ✅ code + approved Red migration verified |
-| Installed PWA | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain |
-| Tribe Room participation loop | 🟡 DB migrations applied and all release checks verified; signed-in device acceptance remains |
-| Chat capability parity | 🟡 code/build complete; Red migration `20260825020000_chat_capability_parity.sql` still needs manual Lovable execution + verification |
+| Phase                                             | Status                                                                                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Week 1 — critical security, store blockers, scale | ✅ done (commit `7a25853`)                                                                                                            |
+| Week 2 — safety & correctness                     | ✅ done (2026-08-20)                                                                                                                  |
+| Week 3 — compliance & launch prep                 | 🟡 engineering pass complete; external launch work remains                                                                            |
+| Product: audience-primitive decision              | 🟡 recommended, **awaiting user decision**                                                                                            |
+| Ventures: times + board + tickets                 | ✅ done (2026-08-24)                                                                                                                  |
+| Ventures: venue picker + distance bands           | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision                                     |
+| Ventures: accepted-member venue + map             | ✅ code + approved Red migration verified                                                                                             |
+| Installed PWA                                     | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain                                          |
+| Tribe Room participation loop                     | 🟡 DB migrations applied and all release checks verified; signed-in device acceptance remains                                         |
+| Chat capability parity                            | 🟡 code/build complete; Red migration `20260825020000_chat_capability_parity.sql` still needs manual Lovable execution + verification |
 
 ---
 
@@ -63,8 +63,7 @@ are already assessed there.
 Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
-|---|---|---|---|
-| Codex | Notification destination handoff fix | `src/routes/notifications.tsx`, `src/routes/index.tsx`, notification navigation helper/tests, `DEVLOG.md` | 2026-08-26 |
+| ----- | ---- | ----- | ------- |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -73,28 +72,28 @@ and logged below.
 
 ## Decided — do not re-litigate
 
-| Decision | Detail |
-|---|---|
-| **Brand name** | `MEUTUALS` (not MUTUALS, not Moots). User chose this spelling explicitly. Internal identifiers stay lowercase `mutuals` — component dir, `mutuals-data.ts`, package name. Don't "fix" those. |
-| **Pricing copy** | User said **leave both** `/tiers` and `/upgrade` as-is. They contradict each other and the DB; that is known and accepted. Don't touch pricing content. Both routes are now gated behind `MONETIZATION_ENABLED`. |
-| **Payments** | Free at launch. No processor. When it happens: StoreKit / Play Billing / hosted checkout — **never** an in-app card form (Apple 3.1.1). Entitlement must be granted server-side from the store webhook, since `profiles.plan` is deliberately not user-writable. |
-| **Animation** | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library. |
-| **Modals** | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals. |
-| **Nearby discovery** | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. For Indonesia, the same rounded coordinate (without account identity) is resolved through BIG's official village/kelurahan → district → regency/city boundary ladder, then the offline world-city catalog. Village is used only to establish the hierarchy; public labels stop at district plus regency/city. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
-| **Google Venue precision** | Manual host-authored place + area is the production Venue flow. Google search, badges, external maps, embeds, and server calls are gated by `GOOGLE_PLACES_ENABLED = false` pending a team decision on API terms, restrictions, and quota. Re-enable through that single flag only after credentials are approved. |
-| **Pushing to remote** | User-authorised only. Both agents. |
-| **One Tribe per user** | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**. |
-| **Global vs Tribe timeline** | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`. |
-| **Moots after Ventures** | A Moot is reciprocal and opt-in, never inferred from DM access or created automatically. Completed Venture rooms become read-only **Venture Memories** with a participant recap; an accepted Hello is the current relationship record behind Add as Moot / Accept / Moots states. This does not settle the feed audience/follows decision below. |
-| **Swipe lives on Ventures, not people** | Judging a plan, not a face. Explore uses focused one-at-a-time cards with Next/Back where Next means *later*, not *never*. Reject-forever on people needs a pool of thousands and imports dating semantics; user agreed. |
-| **Illustration masks** | Tribe animals appear as masks **worn up / half-masks with faces visible** — never full face-covering. A masquerade signals anonymity, and this product is built on accountable identity (real handles, adult verification, Hello gating). Full masks would also pull toward the romantic register the Explore deck was designed away from. |
-| **Which art is transparent** | Everything is transparent RGBA now (app illustrations 600x800, Tribe portraits 600x800, crests 256x256) and that is correct — an earlier note here said the Tribe portraits had to stay opaque; testing against the real card colour disproved it. What background-use *does* require is an opaque surface behind the art, which is the container's job: `bg-card` on the Tribe banner and the Discover flip cards. |
-| **Illustration assets** | `src/assets/app-illustrations/*` are **transparent WebP**. `FeatureIllustration` draws no card, border or crop. Any regeneration must preserve transparency, or ship on flat pure #000000 with no vignette/gradient/frame so it can be re-keyed. Black-backed art puts the rectangle back in every empty state. |
-| **Explore ranking** | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius. |
-| **Explore experience** | The default surface is a daily, focused **Today’s five** deck, not a people grid or a scorecard. A user-selected mood transparently reorders already-authorized candidates; it never changes visibility or rejects anyone. “Maybe later” only advances the deck. Search remains a list because lookup and discovery are different jobs; Tribe previews are secondary to people. Do not restore match percentages or swipe/reject semantics. |
-| **Tribe Room participation loop** | Tribe chat is the live floor, not the whole room. A deterministic Daily Pulse lowers the cost of speaking; loose plan proposals gather explicit interest; only the proposal author can turn one into a real Tribe-scoped Venture; completed Ventures continue into the existing read-only Venture Memory and optional Moot flow. Plans and relationships are never created automatically. |
-| **One live-chat capability set** | Tribe, Venture, and DM chat share the same composer and message actions: text, private photo attachment, direct camera capture, structured reply, and durable Love / Funny / Support reactions. Completed Venture Memories stay read-only. |
-| **Notification read semantics** | Opening the notification screen does **not** mark anything read. A row becomes read when the member selects it; **Read all** is an explicit action. Unread activity stays grouped under New regardless of age. Push and in-app taps share the same typed destination mapping so an attention signal always resolves to its source context. |
+| Decision                                | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Brand name**                          | `MEUTUALS` (not MUTUALS, not Moots). User chose this spelling explicitly. Internal identifiers stay lowercase `mutuals` — component dir, `mutuals-data.ts`, package name. Don't "fix" those.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Pricing copy**                        | User said **leave both** `/tiers` and `/upgrade` as-is. They contradict each other and the DB; that is known and accepted. Don't touch pricing content. Both routes are now gated behind `MONETIZATION_ENABLED`.                                                                                                                                                                                                                                                                                                                                                                              |
+| **Payments**                            | Free at launch. No processor. When it happens: StoreKit / Play Billing / hosted checkout — **never** an in-app card form (Apple 3.1.1). Entitlement must be granted server-side from the store webhook, since `profiles.plan` is deliberately not user-writable.                                                                                                                                                                                                                                                                                                                              |
+| **Animation**                           | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Modals**                              | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals.                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Nearby discovery**                    | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. For Indonesia, the same rounded coordinate (without account identity) is resolved through BIG's official village/kelurahan → district → regency/city boundary ladder, then the offline world-city catalog. Village is used only to establish the hierarchy; public labels stop at district plus regency/city. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
+| **Google Venue precision**              | Manual host-authored place + area is the production Venue flow. Google search, badges, external maps, embeds, and server calls are gated by `GOOGLE_PLACES_ENABLED = false` pending a team decision on API terms, restrictions, and quota. Re-enable through that single flag only after credentials are approved.                                                                                                                                                                                                                                                                            |
+| **Pushing to remote**                   | User-authorised only. Both agents.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **One Tribe per user**                  | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**.                                                                                                                                                                                                                                                                                                               |
+| **Global vs Tribe timeline**            | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`.                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Moots after Ventures**                | A Moot is reciprocal and opt-in, never inferred from DM access or created automatically. Completed Venture rooms become read-only **Venture Memories** with a participant recap; an accepted Hello is the current relationship record behind Add as Moot / Accept / Moots states. This does not settle the feed audience/follows decision below.                                                                                                                                                                                                                                              |
+| **Swipe lives on Ventures, not people** | Judging a plan, not a face. Explore uses focused one-at-a-time cards with Next/Back where Next means _later_, not _never_. Reject-forever on people needs a pool of thousands and imports dating semantics; user agreed.                                                                                                                                                                                                                                                                                                                                                                      |
+| **Illustration masks**                  | Tribe animals appear as masks **worn up / half-masks with faces visible** — never full face-covering. A masquerade signals anonymity, and this product is built on accountable identity (real handles, adult verification, Hello gating). Full masks would also pull toward the romantic register the Explore deck was designed away from.                                                                                                                                                                                                                                                    |
+| **Which art is transparent**            | Everything is transparent RGBA now (app illustrations 600x800, Tribe portraits 600x800, crests 256x256) and that is correct — an earlier note here said the Tribe portraits had to stay opaque; testing against the real card colour disproved it. What background-use _does_ require is an opaque surface behind the art, which is the container's job: `bg-card` on the Tribe banner and the Discover flip cards.                                                                                                                                                                           |
+| **Illustration assets**                 | `src/assets/app-illustrations/*` are **transparent WebP**. `FeatureIllustration` draws no card, border or crop. Any regeneration must preserve transparency, or ship on flat pure #000000 with no vignette/gradient/frame so it can be re-keyed. Black-backed art puts the rectangle back in every empty state.                                                                                                                                                                                                                                                                               |
+| **Explore ranking**                     | `list_explore_matches` scores on stated signals. Location is a **bonus, never a gate** — that regression is what made Explore newest-first for most users. Sharing a Tribe is worth **0** on purpose: tribemates are already reachable, and Explore is the cross-Tribe bridge. Distance bands are disclosed only inside the mutual radius.                                                                                                                                                                                                                                                    |
+| **Explore experience**                  | The default surface is a daily, focused **Today’s five** deck, not a people grid or a scorecard. A user-selected mood transparently reorders already-authorized candidates; it never changes visibility or rejects anyone. “Maybe later” only advances the deck. Search remains a list because lookup and discovery are different jobs; Tribe previews are secondary to people. Do not restore match percentages or swipe/reject semantics.                                                                                                                                                   |
+| **Tribe Room participation loop**       | Tribe chat is the live floor, not the whole room. A deterministic Daily Pulse lowers the cost of speaking; loose plan proposals gather explicit interest; only the proposal author can turn one into a real Tribe-scoped Venture; completed Ventures continue into the existing read-only Venture Memory and optional Moot flow. Plans and relationships are never created automatically.                                                                                                                                                                                                     |
+| **One live-chat capability set**        | Tribe, Venture, and DM chat share the same composer and message actions: text, private photo attachment, direct camera capture, structured reply, and durable Love / Funny / Support reactions. Completed Venture Memories stay read-only.                                                                                                                                                                                                                                                                                                                                                    |
+| **Notification read semantics**         | Opening the notification screen does **not** mark anything read. A row becomes read when the member selects it; **Read all** is an explicit action. Unread activity stays grouped under New regardless of age. Push and in-app taps share the same typed destination mapping so an attention signal always resolves to its source context.                                                                                                                                                                                                                                                    |
 
 ---
 
@@ -113,6 +112,7 @@ and logged below.
    better business than consumer subscriptions. Needs a user call.
 3. **Launch geography.** Cold start needs concentration in one city / one or
    two tribes. Nobody has picked one.
+
 ---
 
 ## Known issues — prioritised
@@ -124,28 +124,28 @@ Full detail and file:line evidence in `MEUTUALS_PRODUCTION_AUDIT.md`.
 All items in this table are complete. The original findings are retained for
 traceability; implementation and verification evidence is in the Work Log.
 
-| ID | Issue | Why it matters |
-|---|---|---|
-| **S2** | **Blocking is one-way and silently does nothing.** A policy sub-select checks `blocks` rows the current user can't see, so "did *they* block *me*" never matches. Affects posts, comments, and the DM insert policy. | A blocked harasser keeps DMing (with push) and keeps seeing the blocker's content. Safety failure **and** Apple 1.2 rejection. **Fix first.** |
-| **L3** | `SafetyMenu` is imported in exactly one file (`PostCard.tsx`). Absent from DMs, comments, tribe chat, Venture cards, applicant lists, party chat, profiles. | Reviewers test the DM surface specifically. Component already supports it — mostly plumbing. |
-| **S3** | `post-images` storage SELECT policy has no `TO` clause → applies to `anon`. Bucket is public. | Anyone can list and download every post image, including tribe-only ones, without an account. |
-| **L6** | Account deletion never touches Storage. No `.remove()` call exists in the repo. | Avatars and post images stay public forever after "permanently delete". Apple 5.1.1(v) + GDPR Art. 17. Also: `reports.reporter_id` cascades, so a victim deleting their account destroys their own reports. |
-| **L7** | Age gate is a client-side `Number(age) >= 21`. Signup collects no age; the DB column is nullable. | App has stranger DMs and in-person meetups. Largest liability surface. |
-| **S4** | DM `DELETE` policy allows `recipient_id`. | A harasser can delete their own abusive messages from the victim's account, destroying evidence. |
-| **S5** | Venture SELECT policy permits any `status = 'open'` row; scope filtering is application-only. | Tribe-only meetup plans readable by any signed-in user via PostgREST. |
-| **S6** | `tribe-chat-attachments` bucket is `public = true` while `uploads.ts` mints signed URLs assuming it's private. | Signed URLs are security theatre; paths are permanently public. |
-| **P3** | Chat/comment queries use `ascending: true` + `limit` → they return the **oldest** N rows. | Tribe chat freezes at 100 messages, DMs at 500. A 5-person tribe hits this on day one. |
-| **P4** | Counter triggers do a full `count(*)` recount per like, and lock the post row. | Viral-post death: like latency grows linearly with like count. |
+| ID     | Issue                                                                                                                                                                                                                | Why it matters                                                                                                                                                                                              |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **S2** | **Blocking is one-way and silently does nothing.** A policy sub-select checks `blocks` rows the current user can't see, so "did _they_ block _me_" never matches. Affects posts, comments, and the DM insert policy. | A blocked harasser keeps DMing (with push) and keeps seeing the blocker's content. Safety failure **and** Apple 1.2 rejection. **Fix first.**                                                               |
+| **L3** | `SafetyMenu` is imported in exactly one file (`PostCard.tsx`). Absent from DMs, comments, tribe chat, Venture cards, applicant lists, party chat, profiles.                                                          | Reviewers test the DM surface specifically. Component already supports it — mostly plumbing.                                                                                                                |
+| **S3** | `post-images` storage SELECT policy has no `TO` clause → applies to `anon`. Bucket is public.                                                                                                                        | Anyone can list and download every post image, including tribe-only ones, without an account.                                                                                                               |
+| **L6** | Account deletion never touches Storage. No `.remove()` call exists in the repo.                                                                                                                                      | Avatars and post images stay public forever after "permanently delete". Apple 5.1.1(v) + GDPR Art. 17. Also: `reports.reporter_id` cascades, so a victim deleting their account destroys their own reports. |
+| **L7** | Age gate is a client-side `Number(age) >= 21`. Signup collects no age; the DB column is nullable.                                                                                                                    | App has stranger DMs and in-person meetups. Largest liability surface.                                                                                                                                      |
+| **S4** | DM `DELETE` policy allows `recipient_id`.                                                                                                                                                                            | A harasser can delete their own abusive messages from the victim's account, destroying evidence.                                                                                                            |
+| **S5** | Venture SELECT policy permits any `status = 'open'` row; scope filtering is application-only.                                                                                                                        | Tribe-only meetup plans readable by any signed-in user via PostgREST.                                                                                                                                       |
+| **S6** | `tribe-chat-attachments` bucket is `public = true` while `uploads.ts` mints signed URLs assuming it's private.                                                                                                       | Signed URLs are security theatre; paths are permanently public.                                                                                                                                             |
+| **P3** | Chat/comment queries use `ascending: true` + `limit` → they return the **oldest** N rows.                                                                                                                            | Tribe chat freezes at 100 messages, DMs at 500. A 5-person tribe hits this on day one.                                                                                                                      |
+| **P4** | Counter triggers do a full `count(*)` recount per like, and lock the post row.                                                                                                                                       | Viral-post death: like latency grows linearly with like count.                                                                                                                                              |
 
 ### Week 3 — compliance (engineering pass 2026-08-20)
 
-| ID | Status | Remaining work |
-|---|---|---|
-| **L1** | 🟡 Queue complete | Moderator roles, 24-hour due timestamps, `/admin/reports`, hide/suspend/dismiss actions, and audit log are implemented and tested. Launch still needs named staff, monitored alerts, and a rehearsed SLA/runbook. |
-| **L2** | 🟡 Text baseline complete | Database triggers reject a narrow high-confidence harmful-text set. Automated image/CSAM/NCII classification and quarantine remain a launch blocker. |
-| **L5** | 🟡 Data map corrected | Privacy page now describes Cloudflare, Supabase, OAuth, push, private media, and the data actually collected. Controller identity/address, real contacts, retention/legal basis detail, and counsel/store review remain. |
-| **L8** | ✅ Complete | Venture surfaces now carry report/block controls, two-way block filtering, meet-safely guidance, and accepted-chat location guidance. |
-| **L9** | 🟡 Code complete | Apple entry points and consistent MEUTUALS manifest/title/push metadata are present. Production Apple credentials and working contact inboxes remain external blockers. |
+| ID     | Status                    | Remaining work                                                                                                                                                                                                           |
+| ------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **L1** | 🟡 Queue complete         | Moderator roles, 24-hour due timestamps, `/admin/reports`, hide/suspend/dismiss actions, and audit log are implemented and tested. Launch still needs named staff, monitored alerts, and a rehearsed SLA/runbook.        |
+| **L2** | 🟡 Text baseline complete | Database triggers reject a narrow high-confidence harmful-text set. Automated image/CSAM/NCII classification and quarantine remain a launch blocker.                                                                     |
+| **L5** | 🟡 Data map corrected     | Privacy page now describes Cloudflare, Supabase, OAuth, push, private media, and the data actually collected. Controller identity/address, real contacts, retention/legal basis detail, and counsel/store review remain. |
+| **L8** | ✅ Complete               | Venture surfaces now carry report/block controls, two-way block filtering, meet-safely guidance, and accepted-chat location guidance.                                                                                    |
+| **L9** | 🟡 Code complete          | Apple entry points and consistent MEUTUALS manifest/title/push metadata are present. Production Apple credentials and working contact inboxes remain external blockers.                                                  |
 
 ### Deferred / lower priority
 
@@ -187,6 +187,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Notification taps land on their source
+
+- Replaced the notification screen's module-memory-only handoff with validated,
+  URL-backed destinations for Chats, Venture tickets/chat, Tribe rooms, and
+  root tabs. The destination now survives route chunk remounts and installed
+  PWA navigation, and it explicitly selects the correct tab instead of
+  inheriting whichever tab the member last used.
+- Post activity now opens the existing dedicated `/p/$postId` screen, so likes,
+  comments, mentions, and new-signal notifications land on the exact Signal
+  instead of merely returning to Timeline. Profile notifications continue to
+  use the exact public profile route.
+- Prevented account/tab restoration from overwriting an incoming notification
+  target, retained native back-state behavior, and made older in-app intents
+  choose their canonical Chats or Feed tab.
+- No database or RLS change was needed. Validation passed targeted ESLint,
+  `npx tsc --noEmit`, all 5 notification presenter/navigation tests, a full
+  Cloudflare production build, and signed-in browser checks against populated
+  production-backed local data: a real like opened its exact post URL and a
+  real Venture acceptance opened **My Ventures** for its ticket.
 
 ### 2026-08-26 — Codex — Notification activity inbox
 
@@ -460,7 +480,7 @@ Newest first. Append; don't edit past entries.
 - Replaced Indonesia's major-city-only GPS label with a server-side lookup
   against Badan Informasi Geospasial's nationwide district boundary layer.
   Auto-location now returns locality labels such as `Tambun Selatan, Kabupaten
-  Bekasi`, `Cikarang Timur, Kabupaten Bekasi`, and `Cakung, Jakarta Timur`.
+Bekasi`, `Cikarang Timur, Kabupaten Bekasi`, and `Cakung, Jakarta Timur`.
 - The provider receives only the same two-decimal coordinate stored by
   MEUTUALS (roughly 1 km), never the user ID. The request is authenticated at
   the app boundary, limited to Indonesia, times out after five seconds, and
@@ -713,7 +733,7 @@ Newest first. Append; don't edit past entries.
   status split remains keyboard and screen-reader understandable without an
   incomplete custom ARIA-tab interaction.
 - Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
-  --check` clean, and the Cloudflare production build succeeds with only the
+--check` clean, and the Cloudflare production build succeeds with only the
   existing chunk-size and third-party bundler warnings.
 - `.env` and `package-lock.json` remain dirty and unstaged.
 
@@ -731,7 +751,7 @@ Newest first. Append; don't edit past entries.
   heading where the removed view switcher used to be. The destination title and
   empty-state copy now use the same product language.
 - Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
-  --check` clean, and the Cloudflare production build succeeds with only the
+--check` clean, and the Cloudflare production build succeeds with only the
   existing chunk-size and third-party bundler warnings.
 - `.env` and `package-lock.json` remain dirty and unstaged.
 
@@ -750,7 +770,7 @@ Newest first. Append; don't edit past entries.
 - Venue labels, distance bands, and accepted-member arrival details remain
   unavailable until the Red migrations are explicitly approved and applied.
 - Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
-  --check` clean, and the Cloudflare production build succeeds with only the
+--check` clean, and the Cloudflare production build succeeds with only the
   existing chunk-size and third-party bundler warnings.
 - `.env` and `package-lock.json` remain dirty and unstaged.
 
@@ -766,7 +786,7 @@ Newest first. Append; don't edit past entries.
 - Preserved stored-mode and deep-entry behavior, including Profile → Hosting,
   while keeping all existing request, ticket, and host flows intact.
 - Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
-  --check` clean, and the Cloudflare production build succeeds with only the
+--check` clean, and the Cloudflare production build succeeds with only the
   existing chunk-size and third-party bundler warnings. Production visual E2E
   remains blocked by the intentionally unrun Red venue migrations.
 - `.env` and `package-lock.json` remain dirty and unstaged.
@@ -784,7 +804,7 @@ Newest first. Append; don't edit past entries.
   `aria-controls` wiring and an input label, kept action targets at least 44 px,
   and respected reduced-motion preferences for the chevron transition.
 - Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
-  --check` clean, and the Cloudflare production build succeeds with only the
+--check` clean, and the Cloudflare production build succeeds with only the
   existing chunk-size and third-party bundler warnings. Production visual E2E
   remains blocked by the intentionally unrun Red venue migrations.
 - `.env` and `package-lock.json` remain dirty and unstaged.
@@ -814,7 +834,7 @@ Newest first. Append; don't edit past entries.
 - Preserved Google storage constraints: Google names/addresses are not stored;
   place ids are retained; coordinate cache rows are deleted after 30 days.
 - Validation: targeted ESLint clean, `npx tsc --noEmit` clean, `git diff
-  --check` clean, and the Cloudflare production build succeeds with only the
+--check` clean, and the Cloudflare production build succeeds with only the
   existing chunk-size and third-party bundler warnings. Production E2E is
   intentionally pending because localhost uses the live database and the Red
   migrations are not applied.
@@ -833,7 +853,7 @@ Eleven commits, `2de573d`..`a026890`. Two migrations, one of them still unrun.
   partial index for the new ordering. Replayed twice on PG16 for idempotency.
 - `20260824034000_party_members_see_each_other` — **RED, applied and verified
   2026-08-24.** Lets an
-  accepted member read the other *accepted* applications of the same Venture.
+  accepted member read the other _accepted_ applications of the same Venture.
   Declined and pending applicants stay the host's business. Verified on a local
   RLS harness across six roles before delivery.
 - `20260824040000_venue_places` — **GREEN, NOT RUN.** Blocks all three Ventures
@@ -863,7 +883,7 @@ Looking · Yours · Hosting. Invites and pending requests moved off the board pi
 into Yours; `JoinedVentureCard` and the requests modal are gone rather than left
 as duplicates.
 
-**Bug Kila found:** an accepted member could see *that* they were in and nothing
+**Bug Kila found:** an accepted member could see _that_ they were in and nothing
 about what they had joined. Two layers — `listMyJoinedVentures` passed a
 hardcoded `[]` for applications (fixed), and RLS would have blocked it anyway
 (the unrun Red migration). Degrades to a count until that runs.
@@ -886,7 +906,7 @@ non-null — the name proves nothing.
 1. I built and "delivered" step 1 into a clone on the cloud container's own
    disk, not this repo, and reported it done. Kila found out by looking at
    localhost. Every delivery since hashes each touched file against the copy on
-   `D:\Dheoryans\Meutuals\mobile-vision-unleashed` *before* writing and
+   `D:\Dheoryans\Meutuals\mobile-vision-unleashed` _before_ writing and
    re-hashes after.
 2. The picker asked the host to type the name — carefully, because storing
    `displayName` is forbidden — and then saved Google's formatted address as the
@@ -937,8 +957,8 @@ actions in 1 screen", not friendly enough, not memorable. The fix was structural
 rather than cosmetic — every tab got one job.
 
 - **`CHANGE_PROTOCOL.md` and `LAUNCH_CHECKLIST.md`** (`09f166e`, 291 lines).
-  The protocol's core: *additive changes fail loudly, access changes fail
-  silently*. Green work proceeds; Red — RLS, triggers, grants, updates on live
+  The protocol's core: _additive changes fail loudly, access changes fail
+  silently_. Green work proceeds; Red — RLS, triggers, grants, updates on live
   rows, `app_settings`, storage flags — stops for Kila. Lovable's scanner will
   keep flagging the venture self-accept policy as Critical; **"Try to fix all"
   must never be clicked** on a Red finding. `SUPABASE_PRODUCTION_MIGRATION_PLAN`
@@ -990,7 +1010,7 @@ Decided with the user. Push the mask onto the forehead, hold it on a stick
 visible. Do NOT cover faces.
 
 The reasoning, so this does not get "improved" back to full masks: a
-masquerade is *about concealment*, and this product is built on the opposite.
+masquerade is _about concealment_, and this product is built on the opposite.
 Real display names, handles, adult verification, Hello requests before a
 stranger can DM — an entire safety architecture that assumes people are
 accountable to an identity. Full masks advertise an anonymity the app
@@ -1027,13 +1047,13 @@ black rectangle returns to every empty state.
 crest is a brow, two eyes and a beak). Reuse their shape language and palette
 so the mask and the badge read as the same object.
 
-| Tribe | key | crest file | palette |
-|---|---|---|---|
-| Iron Wolf | `wolf` | `iron-wolf.webp` | `var(--tribe-wolf)` |
-| Mindful Koi | `koi` | `koi.webp` | `var(--tribe-koi)` |
-| Studio Cat | `cat` | `studio-cat.webp` | `var(--tribe-cat)` |
-| Night Owl | `owl` | `night-owl.webp` | `var(--tribe-owl)` |
-| Honeybee | `bee` | `honeybee.webp` | `var(--tribe-bee)` |
+| Tribe       | key    | crest file        | palette             |
+| ----------- | ------ | ----------------- | ------------------- |
+| Iron Wolf   | `wolf` | `iron-wolf.webp`  | `var(--tribe-wolf)` |
+| Mindful Koi | `koi`  | `koi.webp`        | `var(--tribe-koi)`  |
+| Studio Cat  | `cat`  | `studio-cat.webp` | `var(--tribe-cat)`  |
+| Night Owl   | `owl`  | `night-owl.webp`  | `var(--tribe-owl)`  |
+| Honeybee    | `bee`  | `honeybee.webp`   | `var(--tribe-bee)`  |
 
 **4. Start with `onboarding-01.webp` and stop for review.**
 
@@ -1050,12 +1070,11 @@ on the welcome screen, on feature intros, and in genuinely empty states. This
 was corrected once already on 2026-08-20; see the illustration-placement entry
 below.
 
-
 ### 2026-08-20 — Claude — Explore ranks on stated signals (`69a9ae2`)
 
 **The bug, and why it was invisible.** `list_nearby_profile_matches` was the
 only scored discovery path in the app. It INNER JOINs `profile_locations` on
-*both* sides and requires `discoverable`. So any user who had not granted
+_both_ sides and requires `discoverable`. So any user who had not granted
 browser geolocation got zero scored rows and fell through to
 `listDiscoverProfiles`, which is `order by created_at desc`. At launch density
 that is what Explore actually was for nearly every user: a list of whoever
@@ -1067,18 +1086,18 @@ looked like it worked.
 
 Scoring, 0–100:
 
-| Signal | Points |
-|---|---|
-| Any shared social intent | 30 |
-| Each shared interest (capped) | 10, max 30 |
-| Any shared availability | 15 |
-| Hosts an open Venture with a free seat | 15 |
-| Within the mutual radius | 10 |
+| Signal                                 | Points     |
+| -------------------------------------- | ---------- |
+| Any shared social intent               | 30         |
+| Each shared interest (capped)          | 10, max 30 |
+| Any shared availability                | 15         |
+| Hosts an open Venture with a free seat | 15         |
+| Within the mutual radius               | 10         |
 
 - **Location is a LEFT JOIN.** No location means no proximity bonus, not an
   empty result set. This is the whole fix.
 - **Sharing a Tribe is worth 0, deliberately.** Under exclusive membership,
-  tribemates are already directly reachable and Explore is the *cross-Tribe*
+  tribemates are already directly reachable and Explore is the _cross-Tribe_
   bridge. Boosting them would fill the deck with people the user can already
   message and starve the one surface that crosses Tribes. They stay in the pool
   (a large Tribe contains strangers) and `same_tribe` is returned so the UI can
@@ -1105,8 +1124,8 @@ prefilled** — an opener everybody sends identically is worth less than none.
 **Client:** `explore.functions.ts` (server fn), `explore-store.ts` (paged
 query), `explore-reasons.ts` (phrasings — written out, not derived from picker
 labels, which produce "Both want make friends"). `DiscoverScreen` now runs two
-queries: no search term is a *ranking* question and uses the RPC; a search term
-is a *lookup* and stays on `listDiscoverProfiles`.
+queries: no search term is a _ranking_ question and uses the RPC; a search term
+is a _lookup_ and stays on `listDiscoverProfiles`.
 
 Also added: an honest end-of-pool line in the deck when it wraps, deck-driven
 auto-paging, and a prompt for users with no interests/intents/availability —
@@ -1139,7 +1158,7 @@ you regenerate types, drop the cast.
   tribe keys** (`'wolf'`, `'koi'`). They cannot be compared directly —
   `operator does not exist: uuid = text`. Always join through `public.tribes`
   and match `t.key = any (p.tribe_ids)`. Membership rows also carry the profile
-  in *both* `user_id` and `profile_id`, so match on either.
+  in _both_ `user_id` and `profile_id`, so match on either.
 - `AddTribeSheet` is now a switch flow. The old "Add Tribe" button was
   conditioned on `tribeIds.length < 3`, which under exclusive membership would
   have made it vanish entirely. It is **Move** now.

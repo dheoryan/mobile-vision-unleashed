@@ -7,6 +7,10 @@ import {
   notificationDestination,
   notificationSections,
 } from "../src/lib/notification-presenter.ts";
+import {
+  notificationHomeSearch,
+  parseNotificationHomeSearch,
+} from "../src/lib/notification-navigation.ts";
 
 function notification(overrides: Partial<NotificationRow>): NotificationRow {
   return {
@@ -72,6 +76,35 @@ test("every high-intent kind resolves to its actionable context", () => {
     ),
     { kind: "ventureChat", ventureId: "00000000-0000-4000-8000-000000000002" },
   );
+});
+
+test("home destinations survive a route change and reject incomplete URLs", () => {
+  assert.deepEqual(
+    notificationHomeSearch({
+      kind: "venture",
+      ventureId: "00000000-0000-4000-8000-000000000002",
+      mode: "host",
+    }),
+    {
+      notification: "venture",
+      target: "00000000-0000-4000-8000-000000000002",
+      mode: "host",
+    },
+  );
+  assert.deepEqual(
+    parseNotificationHomeSearch({
+      notification: "post",
+      target: "00000000-0000-4000-8000-000000000003",
+      comment: "00000000-0000-4000-8000-000000000004",
+    }),
+    {
+      notification: "post",
+      target: "00000000-0000-4000-8000-000000000003",
+      comment: "00000000-0000-4000-8000-000000000004",
+    },
+  );
+  assert.deepEqual(parseNotificationHomeSearch({ notification: "dm" }), {});
+  assert.deepEqual(parseNotificationHomeSearch({ notification: "tab", tab: "profile" }), {});
 });
 
 test("unread activity remains in New even when it is old", () => {

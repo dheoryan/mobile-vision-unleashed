@@ -34,6 +34,10 @@ export const intentStore = {
     emit();
     return i;
   },
+  clear: () => {
+    intent = null;
+    emit();
+  },
 };
 
 export function useIntent() {

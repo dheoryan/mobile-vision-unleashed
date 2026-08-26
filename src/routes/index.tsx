@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Onboarding, type Profile } from "@/components/mutuals/Onboarding";
 import { BottomNav, type TabKey } from "@/components/mutuals/BottomNav";
 import { TribeScreen } from "@/components/mutuals/TribeScreen";
@@ -11,7 +11,7 @@ import { ChatsScreen } from "@/components/mutuals/ChatsScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import type { VentureParty } from "@/lib/ventures-store";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
-import type { Person, TribeId } from "@/lib/mutuals-data";
+import { TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
 import { useUnreadCount, useThreads } from "@/lib/messages-store";
 import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -30,8 +30,15 @@ import {
   writeAppNavigation,
   type AppNavigationSnapshot,
 } from "@/lib/app-navigation";
+import {
+  parseNotificationHomeSearch,
+  type NotificationHomeSearch,
+} from "@/lib/notification-navigation";
+import { saveStoredVentureMode } from "@/lib/ventures-mode";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): NotificationHomeSearch =>
+    parseNotificationHomeSearch(search),
   component: App,
 });
 
@@ -39,6 +46,7 @@ const TAB_KEY = "mutuals.tab";
 const LEGACY_PROFILE_KEY = "mutuals.profile";
 
 const VALID_TABS: TabKey[] = ["feed", "discover", "ventures", "chats", "profile"];
+const VALID_TRIBES = new Set<TribeId>(TRIBES.map((tribe) => tribe.id));
 
 /** Existing installs have a tab name in localStorage that no longer exists.
  *  Without this they land on the fallback and silently lose their place.
@@ -67,10 +75,30 @@ function loadTab(userId: string): TabKey {
   }
 }
 
+function notificationTab(search: NotificationHomeSearch): TabKey | null {
+  switch (search.notification) {
+    case "post":
+    case "feed-post":
+      return "feed";
+    case "dm":
+    case "venture-chat":
+    case "tribe":
+      return "chats";
+    case "venture":
+      return "ventures";
+    case "tab":
+      return search.tab ?? "feed";
+    default:
+      return null;
+  }
+}
+
 function App() {
   const { user, loading: authLoading, signOut } = useAuth();
   const userId = user?.id;
   const navigate = useNavigate();
+  const notificationSearch = Route.useSearch();
+  const notificationDestinationTab = notificationTab(notificationSearch);
   const profileQuery = useProfileRow();
   const updateProfile = useUpdateProfile();
   const saveLocation = useSaveMyLocation();
@@ -95,6 +123,7 @@ function App() {
     mode: "host" | "yours";
   } | null>(null);
   const [pendingVentureChatId, setPendingVentureChatId] = useState<string | null>(null);
+  const handledNotificationTarget = useRef<string | null>(null);
   const intent = useIntent();
   const threadsQuery = useThreads();
   const sendDM = useServerFn(sendMessageFn);
@@ -157,7 +186,7 @@ function App() {
       setTabOwnerId(null);
       return;
     }
-    const restoredTab = loadTab(userId);
+    const restoredTab = notificationDestinationTab ?? loadTab(userId);
     setTab(restoredTab);
     setTabOwnerId(userId);
     setMessagesOpen(false);
@@ -172,7 +201,68 @@ function App() {
     setVentureDestination(null);
     setPendingVentureChatId(null);
     writeAppNavigation({ tab: restoredTab }, true);
-  }, [userId]);
+  }, [notificationDestinationTab, userId]);
+
+  // Notification destinations are encoded in the URL so taps remain reliable
+  // across PWA launches, reloads, and route remounts. Apply the exact screen
+  // first, then clean the URL without asking the router to remount the home
+  // route and restore the member's previous tab over the destination.
+  useEffect(() => {
+    const { notification, target, comment, mode, tab: targetTab } = notificationSearch;
+    if (!userId || !notification) return;
+
+    const destinationKey = JSON.stringify(notificationSearch);
+    if (handledNotificationTarget.current === destinationKey) return;
+    handledNotificationTarget.current = destinationKey;
+
+    let snapshot: AppNavigationSnapshot;
+    switch (notification) {
+      case "post":
+        if (!target) return;
+        snapshot = {
+          tab: "feed",
+          layer: { kind: "post", postId: target, commentId: comment ?? null },
+        };
+        break;
+      case "feed-post":
+        if (!target) return;
+        setScrollToPostId(target);
+        snapshot = { tab: "feed" };
+        break;
+      case "dm":
+        if (!target) return;
+        snapshot = { tab: "chats", layer: { kind: "messages", userId: target } };
+        break;
+      case "venture":
+        if (!target || !mode) return;
+        if (userId) saveStoredVentureMode(userId, mode);
+        setVentureDestination({ ventureId: target, mode });
+        snapshot = { tab: "ventures" };
+        break;
+      case "venture-chat":
+        if (!target) return;
+        setPendingVentureChatId(target);
+        snapshot = { tab: "chats" };
+        break;
+      case "tribe":
+        if (!target || !VALID_TRIBES.has(target as TribeId)) {
+          snapshot = { tab: "chats" };
+          break;
+        }
+        snapshot = {
+          tab: "chats",
+          layer: { kind: "tribe", tribeId: target as TribeId },
+        };
+        break;
+      case "tab":
+        snapshot = { tab: targetTab ?? "feed" };
+        break;
+    }
+
+    restoreNavigation(snapshot);
+    writeAppNavigation(snapshot, true);
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+  }, [notificationSearch, restoreNavigation, userId]);
 
   useEffect(() => {
     if (!userId || tabOwnerId !== userId) return;
@@ -219,11 +309,11 @@ function App() {
 
   // Consume cross-screen navigation intents
   useEffect(() => {
-    if (!intent || !profile) return;
+    if (!intent) return;
     const i = intentStore.consume();
     if (!i) return;
     if (i.kind === "openThreadWith") {
-      pushNavigation({ tab, layer: { kind: "messages", userId: i.userId } });
+      pushNavigation({ tab: "chats", layer: { kind: "messages", userId: i.userId } });
     } else if (i.kind === "openVenture") {
       setVentureDestination({ ventureId: i.ventureId, mode: i.mode });
       pushNavigation({ tab: "ventures" });
@@ -232,7 +322,7 @@ function App() {
       pushNavigation({ tab: "chats" });
     } else if (i.kind === "openPost") {
       pushNavigation({
-        tab,
+        tab: "feed",
         layer: { kind: "post", postId: i.postId, commentId: i.commentId ?? null },
       });
     } else if (i.kind === "scrollToPost") {
@@ -243,7 +333,10 @@ function App() {
     } else if (i.kind === "openTribe") {
       pushNavigation({ tab: "chats", layer: { kind: "tribe", tribeId: i.tribeId } });
     }
-  }, [intent, profile, pushNavigation, tab]);
+    if (notificationSearch.notification) {
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+    }
+  }, [intent, notificationSearch.notification, pushNavigation]);
 
   const unread = useUnreadCount(threadsQuery.data);
 

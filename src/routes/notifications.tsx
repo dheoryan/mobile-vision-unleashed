@@ -25,13 +25,11 @@ import {
   type NotificationKind,
   type NotificationRow,
 } from "@/lib/notifications-store";
-import { intentStore } from "@/lib/intent-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { EnablePushBanner } from "@/components/mutuals/EnablePushBanner";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { timeAgoLabel } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
-import { TRIBES, type TribeId } from "@/lib/mutuals-data";
 import { NotifRowSkeleton } from "@/components/mutuals/Skeleton";
 import {
   notificationActionLabel,
@@ -40,9 +38,9 @@ import {
   notificationSections,
   type NotificationCategory,
 } from "@/lib/notification-presenter";
-import { useAuth } from "@/lib/auth-context";
-import { saveStoredVentureMode } from "@/lib/ventures-mode";
 import { cn } from "@/lib/utils";
+import { notificationHomeSearch } from "@/lib/notification-navigation";
+import { intentStore } from "@/lib/intent-store";
 
 interface NotificationsSearch {
   open?: string;
@@ -105,9 +103,6 @@ const TEXTS: Record<NotificationKind, string> = {
   hello_accepted: "accepted your Hello",
 };
 
-const isTribeId = (value: string | null): value is TribeId =>
-  Boolean(value && TRIBES.some((tribe) => tribe.id === value));
-
 function NotificationsPage() {
   const {
     items,
@@ -121,7 +116,6 @@ function NotificationsPage() {
     markNotificationRead,
     markingAll,
   } = useNotifications();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { open } = Route.useSearch();
   const openedFromPush = useRef<string | null>(null);
@@ -130,56 +124,28 @@ function NotificationsPage() {
   const openDestination = useCallback(
     (notification: NotificationRow) => {
       const destination = notificationDestination(notification);
-      switch (destination.kind) {
-        case "post":
-          intentStore.push(
-            destination.scrollOnly
-              ? { kind: "scrollToPost", postId: destination.postId }
-              : {
-                  kind: "openPost",
-                  postId: destination.postId,
-                  commentId: destination.commentId,
-                },
-          );
-          void navigate({ to: "/" });
-          return;
-        case "profile":
-          void navigate({
-            to: "/u/$handle",
-            params: { handle: notification.actor?.handle ?? destination.actorId },
-          });
-          return;
-        case "dm":
-          intentStore.push({ kind: "openThreadWith", userId: destination.actorId });
-          void navigate({ to: "/" });
-          return;
-        case "venture":
-          if (user?.id) saveStoredVentureMode(user.id, destination.mode);
-          intentStore.push({
-            kind: "openVenture",
-            ventureId: destination.ventureId,
-            mode: destination.mode,
-          });
-          void navigate({ to: "/" });
-          return;
-        case "ventureChat":
-          intentStore.push({ kind: "openVentureChat", ventureId: destination.ventureId });
-          void navigate({ to: "/" });
-          return;
-        case "tribe":
-          intentStore.push(
-            isTribeId(destination.tribeId)
-              ? { kind: "openTribe", tribeId: destination.tribeId }
-              : { kind: "openTab", tab: "chats" },
-          );
-          void navigate({ to: "/" });
-          return;
-        case "tab":
-          intentStore.push({ kind: "openTab", tab: destination.tab });
-          void navigate({ to: "/" });
+      if (destination.kind === "post") {
+        void navigate({
+          to: "/p/$postId",
+          params: { postId: destination.postId },
+        });
+        return;
+      }
+      if (destination.kind === "profile") {
+        void navigate({
+          to: "/u/$handle",
+          params: { handle: notification.actor?.handle ?? destination.actorId },
+        });
+        return;
+      }
+
+      const search = notificationHomeSearch(destination);
+      if (search) {
+        intentStore.clear();
+        void navigate({ to: "/", search });
       }
     },
-    [navigate, user?.id],
+    [navigate],
   );
 
   const selectNotification = useCallback(
