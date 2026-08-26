@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Photo action copy and icon cleanup | `src/components/mutuals/ProfileScreen.tsx`, `src/components/mutuals/Onboarding.tsx`, `tests/profile-photo-picker.test.ts`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
