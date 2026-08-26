@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Flexible Tribe-plan availability and exact Venture scheduling | `src/components/mutuals/TribeRoomLayer.tsx`, `src/components/mutuals/VenturesScreen.tsx`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/lib/tribe-room-store.ts`, `src/lib/venture-time.ts`, `src/lib/ventures.functions.ts`, `tests/tribe-room.test.ts`, `tests/venture-time.test.ts`, `supabase/migrations/20260826020000_tribe_plan_availability.sql`, `LOVABLE_TRIBE_PLAN_AVAILABILITY_VERIFY.sql`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
