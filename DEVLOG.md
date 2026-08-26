@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Tribe member profile affordance | `src/components/mutuals/TribeMembersSheet.tsx`, `DEVLOG.md` | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Tribe member profiles made discoverable
+
+- Turned each member's avatar, name, and handle into one clear profile target
+  with pressed/focus feedback and a small navigation chevron, while preserving
+  Message and report/block as independent actions.
+- The current account's row now opens its own public profile instead of being a
+  disabled identity row. Members without a routable handle remain safely
+  non-interactive.
+- Validation passed targeted ESLint, `npx tsc --noEmit`, all 24 Node tests, and
+  the complete Cloudflare production build. No database change was required.
 
 ### 2026-08-26 — Codex — Tribe Room member directory
 
