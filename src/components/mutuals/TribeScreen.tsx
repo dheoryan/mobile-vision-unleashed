@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AtSign, ChevronLeft, Reply } from "lucide-react";
+import { AtSign, ChevronLeft, Reply, UsersRound } from "lucide-react";
 import { type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
-import { useTribeMemberCounts } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -24,6 +23,9 @@ import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
 import { ChatMessageActions } from "./ChatMessageActions";
 import type { ChatReaction } from "@/lib/chat";
 import { ChatComposer } from "./ChatComposer";
+import { useTribeMembers } from "@/lib/tribe-members-store";
+import type { TribeMemberSummary } from "@/lib/tribe-members";
+import { TribeMembersSheet } from "./TribeMembersSheet";
 
 function SwipeReplyRow({
   children,
@@ -80,6 +82,8 @@ export function TribeScreen({
   onStartVenture,
   onOpenVentures,
   onOpenChats,
+  onOpenMemberProfile,
+  onOpenMemberThread,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
@@ -91,11 +95,15 @@ export function TribeScreen({
   onStartVenture?: (draft: TribeVentureDraft) => void;
   onOpenVentures?: () => void;
   onOpenChats?: () => void;
+  onOpenMemberProfile?: (handle: string) => void;
+  onOpenMemberThread?: (userId: string) => void;
 }) {
+  const { user } = useAuth();
   const initial =
     initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
   const [roomView, setRoomView] = useState<TribeRoomView>("chat");
+  const [membersOpen, setMembersOpen] = useState(false);
 
   useEffect(() => {
     if (!profile.tribeIds.includes(activeTribe)) setActiveTribe(profile.tribeIds[0]);
@@ -107,9 +115,9 @@ export function TribeScreen({
 
   const tribe = tribeById(activeTribe);
   const isJoined = profile.tribeIds.includes(activeTribe);
-  const countsQuery = useTribeMemberCounts(profile.tribeIds);
-  const liveMembers = countsQuery.data?.[activeTribe];
-  const liveOnline = useTribeOnlineCount(activeTribe, isJoined);
+  const membersQuery = useTribeMembers(activeTribe, isJoined);
+  const onlineMemberIds = useTribePresence(activeTribe, isJoined);
+  const members = membersQuery.data?.members ?? [];
 
   return (
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat overscroll-none">
@@ -134,7 +142,12 @@ export function TribeScreen({
       )}
       {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
       <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-hidden px-5 pb-[env(safe-area-inset-bottom)] pt-2">
-        <TribeRoomIdentity tribe={tribe} liveMembers={liveMembers} liveOnline={liveOnline} />
+        <TribeRoomIdentity
+          tribe={tribe}
+          liveMembers={membersQuery.data?.total}
+          liveOnline={onlineMemberIds.size}
+          onOpenMembers={() => setMembersOpen(true)}
+        />
 
         <TribeRoomLayer
           tribeId={activeTribe}
@@ -151,24 +164,44 @@ export function TribeScreen({
 
         {/* The shell never scrolls. Chat owns the remaining height and only its
             message pool scrolls; Pulse and Plans are focused sibling views. */}
-        <GroupChat tribeId={activeTribe} canChat={isJoined} hidden={roomView !== "chat"} />
+        <GroupChat
+          tribeId={activeTribe}
+          canChat={isJoined}
+          members={members}
+          hidden={roomView !== "chat"}
+        />
       </main>
+      <TribeMembersSheet
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
+        tribe={tribe}
+        members={members}
+        total={membersQuery.data?.total ?? members.length}
+        hasMore={membersQuery.data?.has_more ?? false}
+        onlineIds={onlineMemberIds}
+        currentUserId={user?.id}
+        loading={membersQuery.isLoading}
+        error={membersQuery.isError}
+        onRetry={() => void membersQuery.refetch()}
+        onOpenProfile={onOpenMemberProfile}
+        onMessage={onOpenMemberThread}
+      />
     </div>
   );
 }
 
-function useTribeOnlineCount(tribeId: TribeId, enabled: boolean) {
+function useTribePresence(tribeId: TribeId, enabled: boolean) {
   const { user } = useAuth();
-  const [count, setCount] = useState(0);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (!enabled || !user?.id) {
-      setCount(0);
+      setOnlineIds(new Set());
       return;
     }
 
     if (isLocalSupabaseRealtimeDisabled) {
-      setCount(0);
+      setOnlineIds(new Set());
       console.warn("[tribe presence] disabled in local dev");
       return;
     }
@@ -185,7 +218,7 @@ function useTribeOnlineCount(tribeId: TribeId, enabled: boolean) {
           if (entry.user_id) users.add(entry.user_id);
         });
       });
-      setCount(users.size);
+      setOnlineIds(users);
     };
 
     channel
@@ -208,17 +241,19 @@ function useTribeOnlineCount(tribeId: TribeId, enabled: boolean) {
     };
   }, [enabled, tribeId, user?.id]);
 
-  return count;
+  return onlineIds;
 }
 
 function TribeRoomIdentity({
   tribe,
   liveMembers,
   liveOnline,
+  onOpenMembers,
 }: {
   tribe: ReturnType<typeof tribeById>;
   liveMembers?: number;
   liveOnline: number;
+  onOpenMembers: () => void;
 }) {
   const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
   const onlineLabel = liveOnline.toLocaleString();
@@ -230,22 +265,24 @@ function TribeRoomIdentity({
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
         </p>
         <h2 className="truncate font-display text-xl font-bold leading-tight">{tribe.name}</h2>
-        <p className="text-xs text-muted-foreground">
-          <span className="text-foreground">{onlineLabel}</span> online
-          {memberLabel !== null && <> · {memberLabel} members</>}
-        </p>
+        <button
+          type="button"
+          onClick={onOpenMembers}
+          className="-ml-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label={`View ${memberLabel ?? "Tribe"} members, ${onlineLabel} online`}
+        >
+          <UsersRound className="h-3.5 w-3.5" />
+          <span>
+            <span className="text-foreground">{onlineLabel}</span> online
+          </span>
+          {memberLabel !== null && <span>· {memberLabel} members</span>}
+        </button>
       </div>
     </section>
   );
 }
 
-type TribeMember = {
-  id: string;
-  display_name: string;
-  handle: string | null;
-  avatar_emoji?: string | null;
-  avatar_url: string | null;
-};
+type TribeMember = TribeMemberSummary;
 
 type TribeMessage = {
   id: string;
@@ -285,17 +322,18 @@ const isUuid = (value: string) =>
 function GroupChat({
   tribeId,
   canChat,
+  members,
   hidden = false,
 }: {
   tribeId: TribeId;
   canChat: boolean;
+  members: TribeMember[];
   hidden?: boolean;
 }) {
   const tribe = tribeById(tribeId);
   const { user } = useAuth();
   const [dbTribeId, setDbTribeId] = useState<string | null>(null);
   const [messages, setMessages] = useState<TribeMessage[]>([]);
-  const [members, setMembers] = useState<TribeMember[]>([]);
   const [text, setText] = useState("");
   const [selectedMentions, setSelectedMentions] = useState<TribeMember[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -349,19 +387,6 @@ function GroupChat({
       cancelled = true;
     };
   }, [tribeId, tribe.name]);
-
-  // Fetch tribe members for sender names, avatars, and @mentions.
-  useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("id, display_name, handle, avatar_emoji, avatar_url")
-      .contains("tribe_ids", [tribeId])
-      .order("display_name", { ascending: true })
-      .limit(100)
-      .then(({ data }) => {
-        setMembers((data ?? []) as TribeMember[]);
-      });
-  }, [tribeId]);
 
   const loadMessages = useCallback(async () => {
     setMessages([]);

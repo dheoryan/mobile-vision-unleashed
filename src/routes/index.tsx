@@ -492,6 +492,12 @@ function App() {
           onOpenChats={() => {
             pushNavigation({ tab: "chats" });
           }}
+          onOpenMemberProfile={(handle) => {
+            navigate({ to: "/u/$handle", params: { handle } });
+          }}
+          onOpenMemberThread={(userId) => {
+            pushNavigation({ tab: "chats", layer: { kind: "messages", userId } });
+          }}
         />
         <MessagesPanel
           open={messagesOpen}

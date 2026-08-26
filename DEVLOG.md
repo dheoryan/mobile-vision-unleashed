@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Tribe Room member directory | DEVLOG.md; Tribe Room UI; Tribe/profile data hooks; focused tests | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -187,6 +186,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Tribe Room member directory
+
+- Made the live member summary in the Tribe Room identity header a 44 px
+  control that opens the shared accessible mobile bottom sheet without
+  changing the fixed-height chat layout or adding another room tab.
+- Added one authenticated, membership-authorized and bounded member query that
+  now powers the header count, mention candidates, and directory instead of a
+  second direct profile fetch. Presence supplies exact online account ids;
+  the directory keeps the current account first, then live members, then the
+  remaining alphabetical list.
+- Added search by display name or handle, real loading/empty/error/retry states,
+  profile and same-Tribe Message actions, a `You` state, lazy avatars, and the
+  existing report/block menu with a full-size touch target. No database
+  migration or new public presence disclosure was introduced.
+- Validation passed targeted ESLint, `npx tsc --noEmit`, all 24 Node tests
+  (including two directory ordering/search cases), `git diff --check`, and the
+  complete Cloudflare production build. The local browser reached the real
+  app successfully but had no signed-in session, so populated-room visual
+  acceptance remains for the user's device.
 
 ### 2026-08-26 — Codex — Production release verified for Git deployment
 

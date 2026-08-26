@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useBlockUser } from "@/lib/blocked-store";
 import { useReportContent } from "@/lib/social-store";
+import { cn } from "@/lib/utils";
 
 const REPORT_REASONS = [
   "Spam",
@@ -24,6 +25,7 @@ export function SafetyMenu({
   targetCommentId,
   kind = "user",
   className = "",
+  buttonClassName = "",
 }: {
   targetName: string;
   /** Person id for "user" kind. Required to actually filter feeds when blocked. */
@@ -34,6 +36,7 @@ export function SafetyMenu({
   targetCommentId?: string;
   kind?: SafetyTargetKind;
   className?: string;
+  buttonClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -51,7 +54,10 @@ export function SafetyMenu({
           onClick={() => setOpen((o) => !o)}
           aria-label={`Safety options for ${targetName}`}
           aria-expanded={open}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            buttonClassName,
+          )}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -60,7 +66,10 @@ export function SafetyMenu({
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <div className="absolute right-0 top-9 z-40 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
               <button
-                onClick={() => { setOpen(false); setReportOpen(true); }}
+                onClick={() => {
+                  setOpen(false);
+                  setReportOpen(true);
+                }}
                 className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
               >
                 <Flag className="h-3.5 w-3.5" /> Report {kind}
@@ -105,8 +114,18 @@ export function SafetyMenu({
 }
 
 function ReportModal({
-  open, onClose, targetName, kind, targetId,
-}: { open: boolean; onClose: () => void; targetName: string; kind: SafetyTargetKind; targetId?: string }) {
+  open,
+  onClose,
+  targetName,
+  kind,
+  targetId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  targetName: string;
+  kind: SafetyTargetKind;
+  targetId?: string;
+}) {
   const [reason, setReason] = useState(REPORT_REASONS[0]);
   const [details, setDetails] = useState("");
   const reportContent = useReportContent();
@@ -132,19 +151,27 @@ function ReportModal({
   return (
     <AnimatedModal
       open={open}
-      onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
       title={`Report ${kind}`}
       preventClose={reportContent.isPending}
       contentClassName="p-6"
     >
       <div>
-        <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+        >
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">
           Report {kind === "user" ? `@${targetName}` : kind}
         </h2>
-        <p className="mt-1 text-xs text-muted-foreground">Reports are reviewed by the MEUTUALS team. They're confidential.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Reports are reviewed by the MEUTUALS team. They're confidential.
+        </p>
 
         <label className="mt-4 block">
           <span className="label-mono text-muted-foreground">Reason</span>
@@ -153,7 +180,9 @@ function ReportModal({
             onChange={(e) => setReason(e.target.value)}
             className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
           >
-            {REPORT_REASONS.map((r) => <option key={r}>{r}</option>)}
+            {REPORT_REASONS.map((r) => (
+              <option key={r}>{r}</option>
+            ))}
           </select>
         </label>
 
@@ -176,7 +205,10 @@ function ReportModal({
           >
             {reportContent.isPending ? "Submitting…" : "Submit report"}
           </button>
-          <button onClick={onClose} className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
             Cancel
           </button>
         </div>
