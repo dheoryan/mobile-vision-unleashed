@@ -10,9 +10,9 @@ export const Route = createFileRoute("/tiers")({
   },
   head: () => ({
     meta: [
-      { title: "Subscription tiers — MEUTUALS" },
+      { title: "Subscription tiers — MEUTUALS — Your tribe is waiting" },
       { name: "description", content: "Explorer, Venturer, and Scene Maker tiers — pick the level of social ambition that fits you." },
-      { property: "og:title", content: "MEUTUALS subscription tiers" },
+      { property: "og:title", content: "Subscription tiers — MEUTUALS — Your tribe is waiting" },
       { property: "og:description", content: "Free, $9.99/mo, and $24.99/mo plans." },
     ],
   }),
