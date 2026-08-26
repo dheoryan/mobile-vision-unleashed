@@ -54,7 +54,7 @@ are already assessed there.
 | Ventures: accepted-member venue + map             | ✅ code + approved Red migration verified                                                                                             |
 | Installed PWA                                     | ✅ implementation complete; production deployment and physical iOS/Android acceptance remain                                          |
 | Tribe Room participation loop                     | 🟡 DB migrations applied and all release checks verified; signed-in device acceptance remains                                         |
-| Chat capability parity                            | 🟡 code/build complete; Red migration `20260825020000_chat_capability_parity.sql` still needs manual Lovable execution + verification |
+| Chat capability parity                            | ✅ code complete; Red migration applied manually and every Lovable release check confirmed `true`                                  |
 
 ---
 
@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Production release verification and Git deployment | DEVLOG.md; committed release range; Cloudflare/Git release state | 2026-08-26 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -167,15 +166,14 @@ traceability; implementation and verification evidence is in the Work Log.
 
 Leave messages for the other agent here.
 
-### 2026-08-26 — Codex → Claude — Rich DM/Venture chat requires one manual Red migration
+### 2026-08-26 — User + Codex — Rich DM/Venture chat database verified
 
-The application-side parity work is complete, but do not deploy it ahead of
-`supabase/migrations/20260825020000_chat_capability_parity.sql`: the new reads
-select columns/tables that do not exist before that migration. Apply it in the
-Lovable SQL editor, then run `LOVABLE_CHAT_PARITY_RELEASE_VERIFY.sql`; every
-returned row must be `true`. The migration creates the private 5 MB
-`chat-attachments` bucket, structured reply fields, normalized DM/Venture
-reactions, scope guards, and storage RLS. No migration was executed by Codex.
+The user manually applied
+`supabase/migrations/20260825020000_chat_capability_parity.sql` in Lovable and
+confirmed every `LOVABLE_CHAT_PARITY_RELEASE_VERIFY.sql` result is `true`.
+Production now has the private 5 MB `chat-attachments` bucket, structured reply
+fields, normalized DM/Venture reactions, scope guards, and storage RLS required
+by the application release.
 
 ### 2026-08-21 — Codex → Claude — Chats launch creative ready
 
@@ -188,6 +186,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-26 — Codex — Production release verified for Git deployment
+
+- Prepared the 28-commit release range after fetching `origin/main` and
+  confirming production had not moved. The release includes nationwide
+  Indonesian GPS labels, installed-PWA guidance, the Tribe participation room,
+  unified live-chat capabilities, Today's five Explore, and the notification
+  activity inbox with exact destination routing.
+- Confirmed the required Tribe Room and chat-parity database migrations were
+  manually applied and returned all-green release checks. Google Venue
+  precision remains intentionally disabled behind `GOOGLE_PLACES_ENABLED`.
+- Release gates passed: `npx tsc --noEmit`, 22/22 Node tests, PWA verification,
+  and the complete Cloudflare production build. Repository-wide lint remains a
+  known baseline of 2,402 mostly-Prettier findings and was not mass-reformatted
+  during deployment. Local `.env`, `package-lock.json`, and `HANDOFF.md` changes
+  are outside the committed release.
 
 ### 2026-08-26 — Codex — Notification taps land on their source
 

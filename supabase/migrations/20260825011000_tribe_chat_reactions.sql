@@ -45,4 +45,3 @@ $$;
 
 revoke all on function public.enforce_tribe_room_reaction() from public;
 revoke execute on function public.enforce_tribe_room_reaction() from anon, authenticated;
-
