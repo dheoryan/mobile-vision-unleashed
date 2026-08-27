@@ -12,9 +12,9 @@ export const Route = createFileRoute("/host")({
   },
   head: () => ({
     meta: [
-      { title: "Apply to host a Tribe — MEUTUALS" },
+      { title: "Apply to host a Tribe — MEUTUALS — Your tribe is waiting" },
       { name: "description", content: "Brands, venues, and community builders can apply to run a Verified Hosted Tribe on MEUTUALS." },
-      { property: "og:title", content: "Host a Tribe on MEUTUALS" },
+      { property: "og:title", content: "Apply to host a Tribe — MEUTUALS — Your tribe is waiting" },
       { property: "og:description", content: "Verified host status, analytics, and pinned posts." },
     ],
   }),

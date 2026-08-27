@@ -12,9 +12,9 @@ export const Route = createFileRoute("/upgrade")({
   },
   head: () => ({
     meta: [
-      { title: "MEUTUALS+ — Venture further" },
+      { title: "MEUTUALS+ — Venture further — Your tribe is waiting" },
       { name: "description", content: "Upgrade to MEUTUALS+ for unlimited Ventures, unlimited Hellos, full match visibility, and read receipts." },
-      { property: "og:title", content: "MEUTUALS+ — Venture further" },
+      { property: "og:title", content: "MEUTUALS+ — Venture further — Your tribe is waiting" },
       { property: "og:description", content: "Unlimited Ventures, unlimited Hellos, and read receipts." },
     ],
   }),

@@ -55,7 +55,7 @@ export const Route = createFileRoute("/notifications")({
   }),
   head: () => ({
     meta: [
-      { title: "Notifications — MEUTUALS" },
+      { title: "Notifications — MEUTUALS — Your tribe is waiting" },
       { name: "description", content: "Your MEUTUALS activity and invitations." },
     ],
   }),

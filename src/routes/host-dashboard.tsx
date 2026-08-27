@@ -13,7 +13,7 @@ export const Route = createFileRoute("/host-dashboard")({
   },
   head: () => ({
     meta: [
-      { title: "Host Dashboard — MEUTUALS" },
+      { title: "Host Dashboard — MEUTUALS — Your tribe is waiting" },
       { name: "description", content: "Manage your Hosted Tribe: members, posts, ventures, and announcements." },
     ],
   }),

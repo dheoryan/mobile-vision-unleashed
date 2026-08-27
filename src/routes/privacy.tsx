@@ -5,12 +5,12 @@ import { LegalFooter } from "@/components/mutuals/LegalFooter";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — MEUTUALS" },
+      { title: "Privacy Policy — MEUTUALS — Your tribe is waiting" },
       {
         name: "description",
         content: "What data MEUTUALS collects, how we use it, and your rights.",
       },
-      { property: "og:title", content: "Privacy Policy — MEUTUALS" },
+      { property: "og:title", content: "Privacy Policy — MEUTUALS — Your tribe is waiting" },
       {
         property: "og:description",
         content: "What data MEUTUALS collects, how we use it, and your rights.",

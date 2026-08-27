@@ -2,11 +2,46 @@
 export const VAPID_PUBLIC_KEY =
   "BJPHTQJ4qyDf9_YrT0HbcZ6GeNMs-3DsV7Awdos-dj1F8FmvqcTMCBs5nSNQ2Uw2nt-uJ8bkHB-Abh-599_wqJk";
 
-export type PushAvailability = "available" | "blocked" | "needs-install" | "unsupported";
+export type PushAvailability =
+  | "available"
+  | "blocked"
+  | "needs-install"
+  | "insecure"
+  | "unsupported";
+
+export interface PushSubscriptionData {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+export type PushEnableStage = "permission" | "service" | "subscription";
+
+const SERVICE_WORKER_TIMEOUT_MS = 10_000;
+const PERMISSION_TIMEOUT_MS = 45_000;
+const SUBSCRIPTION_TIMEOUT_MS = 20_000;
+
+export async function withPushTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation, deadline]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
 
 export interface PushCapabilitySnapshot {
   appleMobile: boolean;
   standalone: boolean;
+  secureContext: boolean;
   hasServiceWorker: boolean;
   hasPushManager: boolean;
   hasNotifications: boolean;
@@ -31,7 +66,12 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
 
 export function isPushSupported(): boolean {
   if (typeof window === "undefined") return false;
-  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  return (
+    window.isSecureContext &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
 }
 
 export function isStandalonePwa(): boolean {
@@ -47,8 +87,16 @@ export function isIosSafari(): boolean {
   const ua = navigator.userAgent;
   const classicIos = /iPad|iPhone|iPod/.test(ua);
   // Since iPadOS 13, Safari can identify itself as macOS in desktop mode.
-  const desktopModeIpad = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  return (classicIos || desktopModeIpad) && !("MSStream" in window);
+  const desktopModeIpad =
+    (/Macintosh/.test(ua) || navigator.platform === "MacIntel") &&
+    (navigator.maxTouchPoints ?? 0) > 1;
+  return classicIos || desktopModeIpad;
+}
+
+/** Chrome / Firefox / Edge on iOS are WebKit shells and share iOS PWA limits. */
+export function isIosThirdPartyBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return isIosSafari() && /CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
 }
 
 export function isAndroid(): boolean {
@@ -58,7 +106,18 @@ export function isAndroid(): boolean {
 
 export type PushPermission = "default" | "granted" | "denied" | "unsupported";
 
+export type PushBlocker = "none" | "needs-install" | "insecure" | "unsupported";
+
+export function getPushBlocker(): PushBlocker {
+  const availability = getPushAvailability();
+  if (availability === "needs-install") return "needs-install";
+  if (availability === "insecure") return "insecure";
+  if (availability === "unsupported") return "unsupported";
+  return "none";
+}
+
 export function evaluatePushAvailability(snapshot: PushCapabilitySnapshot): PushAvailability {
+  if (!snapshot.secureContext) return "insecure";
   // iOS/iPadOS deliberately hides Push API support from normal browser tabs.
   // Preserve this state before generic feature detection so the UI can explain
   // how to install the Home Screen web app instead of saying "unsupported".
@@ -74,6 +133,7 @@ export function getPushAvailability(): PushAvailability {
   return evaluatePushAvailability({
     appleMobile: isIosSafari(),
     standalone: isStandalonePwa(),
+    secureContext: window.isSecureContext,
     hasServiceWorker: "serviceWorker" in navigator,
     hasPushManager: "PushManager" in window,
     hasNotifications: "Notification" in window,
@@ -87,30 +147,104 @@ export function getPushPermission(): PushPermission {
 }
 
 async function getRegistration(): Promise<ServiceWorkerRegistration> {
-  const existing = await navigator.serviceWorker.getRegistration("/sw.js");
-  if (existing) return existing;
-  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  const registration = await withPushTimeout(
+    (async () => {
+      const existing =
+        (await navigator.serviceWorker.getRegistration("/sw.js")) ??
+        (await navigator.serviceWorker.getRegistration("/"));
+      return (
+        existing ??
+        (await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+          updateViaCache: "none",
+        }))
+      );
+    })(),
+    SERVICE_WORKER_TIMEOUT_MS,
+    "The notification service did not start. Reload MEUTUALS and try again.",
+  );
+
+  if (registration.active) return registration;
+
+  // `register()` and `getRegistration()` may both return while a worker is
+  // still installing. PushManager exists at that point, but Chromium rejects
+  // subscribe() with "no active Service Worker". A stale first install can
+  // also be waiting with no active predecessor, so explicitly promote it.
+  registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+
+  const activeRegistration = await new Promise<ServiceWorkerRegistration>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error("Notifications are still starting. Reload MEUTUALS and try again."));
+    }, SERVICE_WORKER_TIMEOUT_MS);
+
+    void navigator.serviceWorker.ready.then(
+      (readyRegistration) => {
+        window.clearTimeout(timeout);
+        resolve(readyRegistration);
+      },
+      () => {
+        window.clearTimeout(timeout);
+        reject(new Error("The notification service could not start. Reload and try again."));
+      },
+    );
+  });
+
+  if (!activeRegistration.active) {
+    throw new Error("The notification service is not active. Reload MEUTUALS and try again.");
+  }
+  return activeRegistration;
 }
 
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
   try {
-    const reg = await navigator.serviceWorker.getRegistration("/sw.js");
-    if (!reg) return null;
+    const reg =
+      (await navigator.serviceWorker.getRegistration("/sw.js")) ??
+      (await navigator.serviceWorker.getRegistration("/"));
+    if (!reg?.active) return null;
     return await reg.pushManager.getSubscription();
   } catch {
     return null;
   }
 }
 
-export async function subscribeToPush(): Promise<{
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-} | null> {
+function subscriptionData(sub: PushSubscription): PushSubscriptionData {
+  const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+  const p256dh = json.keys?.p256dh ?? arrayBufferToBase64Url(sub.getKey("p256dh")!);
+  const auth = json.keys?.auth ?? arrayBufferToBase64Url(sub.getKey("auth")!);
+  return { endpoint: sub.endpoint, p256dh, auth };
+}
+
+/**
+ * Returns the browser's existing subscription in the format accepted by the
+ * server. This does not request permission and is safe to use after login to
+ * re-attach an already-authorized installation to the current account.
+ */
+export async function getCurrentSubscriptionData(): Promise<PushSubscriptionData | null> {
+  const sub = await getCurrentSubscription();
+  return sub ? subscriptionData(sub) : null;
+}
+
+export async function subscribeToPush(
+  onStage?: (stage: PushEnableStage) => void,
+): Promise<PushSubscriptionData> {
+  const blocker = getPushBlocker();
+  if (blocker === "needs-install") {
+    throw new Error(
+      "On iPhone and iPad, add MEUTUALS to your Home Screen first, then open it from there to turn notifications on.",
+    );
+  }
+  if (blocker === "insecure") {
+    throw new Error("Push requires a secure HTTPS connection.");
+  }
   if (!isPushSupported()) throw new Error("Push not supported on this device.");
 
-  const permission = await Notification.requestPermission();
+  onStage?.("permission");
+  const permission = await withPushTimeout(
+    Notification.requestPermission(),
+    PERMISSION_TIMEOUT_MS,
+    "The notification permission prompt did not respond. Close any open browser prompt and try again.",
+  );
   if (permission !== "granted") {
     throw new Error(
       permission === "denied"
@@ -119,24 +253,30 @@ export async function subscribeToPush(): Promise<{
     );
   }
 
+  onStage?.("service");
   const reg = await getRegistration();
-  let sub = await reg.pushManager.getSubscription();
+  onStage?.("subscription");
+  let sub = await withPushTimeout(
+    reg.pushManager.getSubscription(),
+    SUBSCRIPTION_TIMEOUT_MS,
+    "MEUTUALS could not read this device's notification subscription. Try again.",
+  );
   if (!sub) {
     const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: key.buffer.slice(
-        key.byteOffset,
-        key.byteOffset + key.byteLength,
-      ) as ArrayBuffer,
-    });
+    sub = await withPushTimeout(
+      reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key.buffer.slice(
+          key.byteOffset,
+          key.byteOffset + key.byteLength,
+        ) as ArrayBuffer,
+      }),
+      SUBSCRIPTION_TIMEOUT_MS,
+      "This device did not finish enabling notifications. Check browser notification settings and try again.",
+    );
   }
 
-  const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-  const p256dh = json.keys?.p256dh ?? arrayBufferToBase64Url(sub.getKey("p256dh")!);
-  const auth = json.keys?.auth ?? arrayBufferToBase64Url(sub.getKey("auth")!);
-
-  return { endpoint: sub.endpoint, p256dh, auth };
+  return subscriptionData(sub);
 }
 
 export async function unsubscribeFromPush(): Promise<string | null> {

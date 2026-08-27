@@ -86,29 +86,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "MEUTUALS" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { title: "MEUTUALS — Start with your Tribe" },
-      { name: "description", content: "A new social layer for real-life meetups. 21+ only." },
-      { property: "og:title", content: "MEUTUALS — Start with your Tribe" },
+      { title: "MEUTUALS — Your tribe is waiting" },
+      { name: "description", content: "Connect with people who share your interests, then meet up in the real world. 21+ only." },
+      { property: "og:title", content: "MEUTUALS — Your tribe is waiting" },
       {
         property: "og:description",
-        content: "A new social layer for real-life meetups. 21+ only.",
+        content: "Connect with people who share your interests, then meet up in the real world. 21+ only.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "MEUTUALS — Start with your Tribe" },
+      { name: "twitter:title", content: "MEUTUALS — Your tribe is waiting" },
       {
         name: "twitter:description",
-        content: "A new social layer for real-life meetups. 21+ only.",
+        content: "Connect with people who share your interests, then meet up in the real world. 21+ only.",
       },
       {
         property: "og:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55",
+        content: "/__l5e/assets-v1/884bca6a-a9cf-43a0-8b5e-a2f8d0f21f35/meutuals-og.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/74b7acc7-e70b-4627-a85c-fccdaa19de55",
+        content: "/__l5e/assets-v1/884bca6a-a9cf-43a0-8b5e-a2f8d0f21f35/meutuals-og.png",
       },
     ],
     links: [
