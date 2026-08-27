@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   isIosThirdPartyBrowser,
 
-  isIosThirdPartyBrowser,
   getPushBlocker,
   getPushPermission,
   subscribeToPush,
