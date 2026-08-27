@@ -445,6 +445,13 @@ function App() {
               venture_id: venture.id,
             },
             {
+              onSuccess: (result) => {
+                if (result.invited_count > 0) {
+                  toast.success(
+                    `${result.invited_count} interested ${result.invited_count === 1 ? "member was" : "members were"} invited.`,
+                  );
+                }
+              },
               onError: (error) =>
                 toast.error("Venture is live, but the Tribe card was not posted", {
                   description: (error as Error).message,

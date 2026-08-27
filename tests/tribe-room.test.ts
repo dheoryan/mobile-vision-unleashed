@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   dailyPulse,
   emptyTribeRoomReactions,
+  interestedInviteIds,
   roomMetadataNumber,
   roomMetadataString,
   roomMetadataTimeOptions,
@@ -15,6 +16,13 @@ test("Daily Pulse is stable for one Tribe and local date", () => {
   assert.deepEqual(evening, morning);
   assert.match(morning.id, /^2026-8-25:cat:/);
   assert.ok(morning.question.length > 20);
+});
+
+test("proposal conversion invites each interested member once without overwriting applicants", () => {
+  assert.deepEqual(
+    interestedInviteIds(["host", "a", "b", "a", "c"], ["b", "c"], "host"),
+    ["a"],
+  );
 });
 
 test("Daily Pulse rotates without becoming random per render", () => {

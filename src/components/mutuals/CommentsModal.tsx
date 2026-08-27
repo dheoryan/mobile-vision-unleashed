@@ -13,10 +13,9 @@ import { toast } from "sonner";
 import {
   useMentionPicker,
   useMentionRegistry,
-  applyMention,
-  collectMentionIds,
   MentionSuggestions,
 } from "./MentionInput";
+import { applyMention, collectMentionIds } from "@/lib/mentions";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
@@ -91,12 +90,10 @@ export function CommentsModal({
   };
 
   const onPickMention = (p: { id: string; display_name: string; handle: string | null; avatar_emoji: string; avatar_url: string | null }) => {
-    // Fallback: synthesize a handle from display name + id suffix when missing
-    const fallback = `${(p.display_name || "user").toLowerCase().replace(/[^a-z0-9]/g, "")}_${p.id.slice(0, 6)}`;
-    const effective = { ...p, handle: p.handle || fallback };
-    register(effective);
+    if (!p.handle) return;
+    register(p);
     if (picker.start < 0) return;
-    const next = applyMention(text, caret, picker.start, effective.handle);
+    const next = applyMention(text, caret, picker.start, p.handle);
     setText(next.text);
     requestAnimationFrame(() => {
       const el = inputRef.current;

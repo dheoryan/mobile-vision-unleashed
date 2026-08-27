@@ -146,10 +146,10 @@ export function TribeRoomLayer({
             type="button"
             onClick={() => setPlanOpen(true)}
             disabled={!canParticipate}
-            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold disabled:opacity-40"
-            style={{ color: tribeColor }}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-background disabled:opacity-40"
+            style={{ backgroundColor: tribeColor }}
           >
-            <CalendarPlus className="h-4 w-4" /> Propose
+            <Plus className="h-4 w-4" /> New plan
           </button>
         )}
       </div>
@@ -216,19 +216,25 @@ export function TribeRoomLayer({
         <div className="scroll-panel min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
           {room.isLoading && <RoomLines />}
           {!room.isLoading && plans.length === 0 && (
-            <div className="py-9 text-center">
-              <CalendarPlus className="mx-auto h-6 w-6 text-muted-foreground" />
-              <p className="mt-3 text-sm font-semibold">No plans on the table</p>
+            <div className="rounded-3xl border border-dashed border-border bg-card/45 px-5 py-7 text-center">
+              <span
+                className="mx-auto flex h-11 w-11 items-center justify-center rounded-full text-background"
+                style={{ backgroundColor: tribeColor }}
+              >
+                <CalendarPlus className="h-5 w-5" />
+              </span>
+              <p className="mt-4 font-display text-lg font-bold">Put an idea on the table.</p>
               <p className="mx-auto mt-1 max-w-64 text-xs leading-relaxed text-muted-foreground">
-                Start with a loose idea. The room can show interest before you commit to hosting.
+                Choose a place and one time—or let the room vote. Interested members receive an
+                invite only if you make it a Venture.
               </p>
               <button
                 type="button"
                 onClick={() => setPlanOpen(true)}
-                className="mt-4 min-h-11 px-4 text-xs font-semibold"
-                style={{ color: tribeColor }}
+                className="mt-5 min-h-11 rounded-full px-5 text-xs font-semibold text-background"
+                style={{ backgroundColor: tribeColor }}
               >
-                Propose a plan
+                Start a plan
               </button>
             </div>
           )}
@@ -410,7 +416,7 @@ function PlanRow({
   const maxSlots = roomMetadataNumber(item.room_metadata, "max_slots", 4);
 
   return (
-    <article className="border-y border-border bg-card/45 px-1 py-4 first:border-t">
+    <article className="rounded-2xl border border-border bg-card/55 p-4">
       <div className="flex items-start gap-3">
         <Avatar item={item} />
         <div className="min-w-0 flex-1">
@@ -468,7 +474,7 @@ function PlanRow({
           )}
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-2 pl-11">
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/70 pt-3">
         <button
           type="button"
           onClick={() => toggle.mutate({ message_id: item.id, reaction: "interested" })}
@@ -503,7 +509,7 @@ function PlanRow({
             className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-semibold"
             style={{ color: tribeColor }}
           >
-            Build Venture <ArrowRight className="h-3.5 w-3.5" />
+            Turn into Venture <ArrowRight className="h-3.5 w-3.5" />
           </button>
         )}
         {linked && (
@@ -512,6 +518,11 @@ function PlanRow({
           </span>
         )}
       </div>
+      {!linked && (
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+          Interested means “invite me if this goes live.” Nobody joins automatically.
+        </p>
+      )}
     </article>
   );
 }
@@ -778,17 +789,17 @@ function PlanComposer({
       open={open}
       onOpenChange={(next) => !next && onClose()}
       title="Propose a plan"
-      contentClassName="max-h-[92svh] overflow-y-auto"
+      contentClassName="flex max-h-[92svh] flex-col overflow-hidden"
     >
-      <form onSubmit={submit} className="p-5">
-        <div className="flex items-start justify-between gap-3">
+      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div>
             <p className="label-mono" style={{ color: tribeColor }}>
-              Loose plan · {tribeName}
+              Plan together · {tribeName}
             </p>
-            <h2 className="mt-2 font-display text-2xl font-bold">Put it on the table.</h2>
+            <h2 className="mt-1 font-display text-2xl font-bold">What could the room do?</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Interest first. Hosting only starts when you turn it into a Venture.
+              This is a temperature check, not a commitment.
             </p>
           </div>
           <button
@@ -800,14 +811,17 @@ function PlanComposer({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="mt-5 space-y-4">
+        <div className="scroll-panel min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           <RoomField label="What is the idea?">
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value.slice(0, 80))}
               placeholder="Small gallery hop"
-              className="w-full border-b border-border bg-transparent py-3 text-base outline-none focus:border-primary"
+              className="w-full border-b border-border bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground focus:border-primary"
             />
+            <span className="mt-1 block text-right font-mono text-[9px] text-muted-foreground">
+              {title.length}/80
+            </span>
           </RoomField>
           <RoomField label="Give the room a little context">
             <textarea
@@ -1018,21 +1032,30 @@ function PlanComposer({
             </div>
           </RoomField>
         </div>
-        <button
-          type="submit"
-          disabled={
-            title.trim().length < 3 || area.trim().length < 2 || !validTiming || mutation.isPending
-          }
-          className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-primary-foreground disabled:opacity-50"
-          style={{ backgroundColor: tribeColor }}
-        >
-          {mutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CalendarPlus className="h-4 w-4" />
-          )}
-          Propose to the room
-        </button>
+        <div className="shrink-0 border-t border-border bg-card px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <p className="text-[10px] leading-relaxed text-muted-foreground">
+            If you later publish this as a Venture, everyone who tapped Interested receives an
+            invite and decides for themselves.
+          </p>
+          <button
+            type="submit"
+            disabled={
+              title.trim().length < 3 ||
+              area.trim().length < 2 ||
+              !validTiming ||
+              mutation.isPending
+            }
+            className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-background disabled:opacity-50"
+            style={{ backgroundColor: tribeColor }}
+          >
+            {mutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CalendarPlus className="h-4 w-4" />
+            )}
+            Share plan with the room
+          </button>
+        </div>
       </form>
     </AnimatedModal>
   );
@@ -1040,7 +1063,7 @@ function PlanComposer({
 
 function RoomField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block">
+    <label className="block rounded-2xl border border-border/80 bg-background/45 p-4">
       <span className="label-mono">{label}</span>
       {children}
     </label>
@@ -1049,7 +1072,7 @@ function RoomField({ label, children }: { label: string; children: React.ReactNo
 
 function RoomGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <fieldset className="block">
+    <fieldset className="block rounded-2xl border border-border/80 bg-background/45 p-4">
       <legend className="label-mono">{label}</legend>
       {children}
     </fieldset>

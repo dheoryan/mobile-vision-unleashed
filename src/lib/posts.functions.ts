@@ -217,6 +217,7 @@ const createSchema = z.object({
   image_path: z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200).nullable().optional(),
   tag: z.string().max(40).nullable().optional(),
   audience: z.enum(["tribe", "all"]).default("tribe"),
+  mentions: z.array(z.string().uuid()).max(20).optional().default([]),
 });
 
 export const createPost = createServerFn({ method: "POST" })
@@ -230,7 +231,7 @@ export const createPost = createServerFn({ method: "POST" })
     if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
       throw new Error("Post images must belong to the author");
     }
-    const { data: row, error } = await supabase
+    let result = await supabase
       .from("posts")
       .insert({
         author_id: userId,
@@ -239,9 +240,25 @@ export const createPost = createServerFn({ method: "POST" })
         image_url: data.image_path ?? null,
         tag: data.tag ?? null,
         audience: data.audience,
+        mentions: data.mentions,
       })
       .select(POST_COLS)
       .single();
+    if (["PGRST204", "42703"].includes(result.error?.code ?? "")) {
+      result = await supabase
+        .from("posts")
+        .insert({
+          author_id: userId,
+          tribe_id: data.tribe_id,
+          content: data.content,
+          image_url: data.image_path ?? null,
+          tag: data.tag ?? null,
+          audience: data.audience,
+        })
+        .select(POST_COLS)
+        .single();
+    }
+    const { data: row, error } = result;
     if (error) throw new Error(error.message);
     return (await hydratePosts(supabase, [row]))[0];
   });

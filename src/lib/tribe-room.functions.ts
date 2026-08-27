@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { emptyTribeRoomReactions } from "@/lib/tribe-room";
+import { emptyTribeRoomReactions, interestedInviteIds } from "@/lib/tribe-room";
 import { planTimeLabel } from "@/lib/venture-time";
 import type {
   TribeRoomAuthor,
@@ -387,6 +387,51 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
     }
     if (venture.user_id !== userId) throw new Error("Only the Venture host can announce it");
 
+    // "Interested" is explicit consent to receive an invitation, not consent
+    // to be joined automatically. Translate those reactions into durable
+    // invited applications. Existing applications are never overwritten: a
+    // pending request, acceptance, decline, or earlier invite keeps its state.
+    const { data: interestRows, error: interestError } = await supabase
+      .from("tribe_room_reactions")
+      .select("user_id")
+      .eq("message_id", source.id)
+      .eq("reaction", "interested")
+      .neq("user_id", userId);
+    if (interestError) throw new Error(interestError.message);
+
+    const interestedIds = [
+      ...new Set((interestRows ?? []).map((row: { user_id: string }) => row.user_id)),
+    ];
+    let invitedCount = 0;
+    if (interestedIds.length > 0) {
+      const { data: existingApplications, error: applicationsError } = await supabase
+        .from("venture_applications")
+        .select("applicant_id")
+        .eq("venture_id", venture.id)
+        .in("applicant_id", interestedIds);
+      if (applicationsError) throw new Error(applicationsError.message);
+
+      const invitations = interestedInviteIds(
+        interestedIds,
+        (existingApplications ?? []).map((row: { applicant_id: string }) => row.applicant_id),
+        userId,
+      )
+        .map((applicantId) => ({
+          venture_id: venture.id,
+          applicant_id: applicantId,
+          status: "invited",
+          message: "Interested in the Tribe plan",
+        }));
+
+      if (invitations.length > 0) {
+        const { error: inviteError } = await supabase
+          .from("venture_applications")
+          .insert(invitations);
+        if (inviteError) throw new Error(inviteError.message);
+        invitedCount = invitations.length;
+      }
+    }
+
     const { data: existing, error: existingError } = await supabase
       .from("tribe_messages")
       .select("id")
@@ -395,7 +440,7 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
       .contains("room_metadata", { venture_id: venture.id })
       .maybeSingle();
     if (existingError) throw new Error(existingError.message);
-    if (existing) return { id: existing.id };
+    if (existing) return { id: existing.id, invited_count: invitedCount };
 
     const { data: row, error } = await supabase
       .from("tribe_messages")
@@ -414,5 +459,5 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return { id: row.id };
+    return { id: row.id, invited_count: invitedCount };
   });

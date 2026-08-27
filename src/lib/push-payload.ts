@@ -32,6 +32,7 @@ const KIND_TEXT: Record<PushNotificationKind, string> = {
 };
 
 const PRIVATE_PREVIEW_KINDS = new Set<PushNotificationKind>([
+  "mention",
   "message",
   "hello",
   "hello_accepted",

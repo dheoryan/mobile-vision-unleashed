@@ -18,4 +18,5 @@ export interface RichMessageInput {
   attachment_url?: string | null;
   attachment_type?: "image" | null;
   reply_to_id?: string | null;
+  mentions?: string[];
 }

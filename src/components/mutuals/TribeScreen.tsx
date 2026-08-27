@@ -26,6 +26,7 @@ import { ChatComposer } from "./ChatComposer";
 import { useTribeMembers } from "@/lib/tribe-members-store";
 import type { TribeMemberSummary } from "@/lib/tribe-members";
 import { TribeMembersSheet } from "./TribeMembersSheet";
+import { applyMention, collectMentionIds, mentionRangeAtCaret } from "@/lib/mentions";
 
 function SwipeReplyRow({
   children,
@@ -123,7 +124,7 @@ export function TribeScreen({
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat overscroll-none">
       {onBack && (
         <div className="glass z-30 shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
-          <div className="mx-auto flex min-h-12 max-w-md items-center gap-2 px-3 py-1">
+          <div className="flex min-h-12 w-full items-center gap-2 px-2 py-1">
             <button
               type="button"
               onClick={onBack}
@@ -141,29 +142,39 @@ export function TribeScreen({
         </div>
       )}
       {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
-      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-hidden px-5 pb-[env(safe-area-inset-bottom)] pt-2">
-        <TribeRoomIdentity
-          tribe={tribe}
-          liveMembers={membersQuery.data?.total}
-          liveOnline={onlineMemberIds.size}
-          onOpenMembers={() => setMembersOpen(true)}
-        />
+      <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pt-2">
+        <div className="shrink-0 px-2">
+          <TribeRoomIdentity
+            tribe={tribe}
+            liveMembers={membersQuery.data?.total}
+            liveOnline={onlineMemberIds.size}
+            onOpenMembers={() => setMembersOpen(true)}
+          />
+        </div>
 
-        <TribeRoomLayer
-          tribeId={activeTribe}
-          tribeName={tribe.name}
-          tribeColor={tribe.colorVar}
-          city={profile.city}
-          canParticipate={isJoined}
-          view={roomView}
-          onViewChange={setRoomView}
-          onStartVenture={onStartVenture}
-          onOpenVentures={onOpenVentures}
-          onOpenChats={onOpenChats}
-        />
+        <div
+          className={cn(
+            "flex min-h-0 flex-col px-2",
+            roomView === "chat" ? "shrink-0" : "flex-1 overflow-hidden",
+          )}
+        >
+          <TribeRoomLayer
+            tribeId={activeTribe}
+            tribeName={tribe.name}
+            tribeColor={tribe.colorVar}
+            city={profile.city}
+            canParticipate={isJoined}
+            view={roomView}
+            onViewChange={setRoomView}
+            onStartVenture={onStartVenture}
+            onOpenVentures={onOpenVentures}
+            onOpenChats={onOpenChats}
+          />
+        </div>
 
         {/* The shell never scrolls. Chat owns the remaining height and only its
-            message pool scrolls; Pulse and Plans are focused sibling views. */}
+            message pool scrolls; Pulse and Plans keep the page gutter while
+            live chat uses only its own compact message/composer padding. */}
         <GroupChat
           tribeId={activeTribe}
           canChat={isJoined}
@@ -335,7 +346,7 @@ function GroupChat({
   const [dbTribeId, setDbTribeId] = useState<string | null>(null);
   const [messages, setMessages] = useState<TribeMessage[]>([]);
   const [text, setText] = useState("");
-  const [selectedMentions, setSelectedMentions] = useState<TribeMember[]>([]);
+  const [caret, setCaret] = useState(0);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [replyTo, setReplyTo] = useState<TribeMessage | null>(null);
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
@@ -556,14 +567,15 @@ function GroupChat({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const mentionQuery = getMentionQuery(text);
+  const mentionRange = mentionRangeAtCaret(text, caret);
   const mentionSuggestions =
-    mentionQuery === null
+    mentionRange === null
       ? []
       : members
           .filter((m) => m.id !== user?.id)
+          .filter((m) => Boolean(m.handle))
           .filter((m) => {
-            const q = mentionQuery.toLowerCase();
+            const q = mentionRange.query.toLowerCase();
             return (
               m.display_name.toLowerCase().includes(q) || (m.handle ?? "").toLowerCase().includes(q)
             );
@@ -612,13 +624,14 @@ function GroupChat({
   };
 
   const addMention = (member: TribeMember) => {
-    const label = mentionLabel(member);
-    const next = text.replace(/(^|\s)@([a-zA-Z0-9_.-]{0,40})$/, `$1${label} `);
-    setText(next);
-    setSelectedMentions((prev) =>
-      prev.some((m) => m.id === member.id) ? prev : [...prev, member],
-    );
-    requestAnimationFrame(() => inputRef.current?.focus());
+    if (!member.handle || !mentionRange) return;
+    const next = applyMention(text, caret, mentionRange.start, member.handle);
+    setText(next.text);
+    setCaret(next.caret);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(next.caret, next.caret);
+    });
   };
 
   const send = async () => {
@@ -637,12 +650,11 @@ function GroupChat({
         attachmentUrl = await uploadTribeChatImage(dbTribeId, user.id, selectedImage);
       }
 
-      const mentionIds = new Set(selectedMentions.map((m) => m.id));
-      for (const member of members) {
-        if (member.id === user.id) continue;
-        const label = mentionLabel(member).toLowerCase();
-        if (cleanContent.toLowerCase().includes(label)) mentionIds.add(member.id);
-      }
+      const mentionRegistry = new Map(
+        members.flatMap((member) =>
+          member.handle ? [[member.handle.replace(/^@/, "").toLowerCase(), member.id] as const] : [],
+        ),
+      );
 
       const payload = {
         tribe_id: dbTribeId,
@@ -651,15 +663,15 @@ function GroupChat({
         attachment_url: attachmentUrl,
         attachment_type: attachmentUrl ? "image" : null,
         reply_to_id: replyTo?.id ?? null,
-        mentions: [...mentionIds],
+        mentions: collectMentionIds(cleanContent, mentionRegistry),
       };
 
       const { error } = await supabase.from("tribe_messages").insert(payload);
 
       if (error) throw error;
       setText("");
+      setCaret(0);
       setReplyTo(null);
-      setSelectedMentions([]);
       clearAttachment();
       await loadMessages();
     } catch (error) {
@@ -697,7 +709,7 @@ function GroupChat({
       />
       <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <div className="scroll-panel flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-3 py-4">
+        <div className="scroll-panel flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-2 py-4">
           {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
@@ -838,6 +850,7 @@ function GroupChat({
           inputRef={inputRef}
           value={text}
           onChange={setText}
+          onCaretChange={setCaret}
           onSend={() => void send()}
           placeholder={composerPlaceholder}
           accentColor={tribe.colorVar}
@@ -860,6 +873,7 @@ function GroupChat({
           onClearImage={clearAttachment}
           disabled={!canChat || !dbTribeId}
           sending={sending}
+          outerClassName="!px-2"
           accessory={
             mentionSuggestions.length > 0 ? (
               <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
@@ -889,7 +903,7 @@ function GroupChat({
                         {member.display_name}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {mentionLabel(member)}
+                        @{member.handle?.replace(/^@/, "")}
                       </span>
                     </span>
                   </button>
@@ -901,16 +915,6 @@ function GroupChat({
       </div>
     </div>
   );
-}
-
-function getMentionQuery(value: string) {
-  const match = /(?:^|\s)@([a-zA-Z0-9_.-]{0,40})$/.exec(value);
-  return match ? match[1] : null;
-}
-
-function mentionLabel(member: TribeMember) {
-  if (member.handle) return `@${member.handle.replace(/^@/, "")}`;
-  return `@${member.display_name.replace(/\s+/g, "")}`;
 }
 
 function ChatAttachmentImage({ value }: { value: string }) {

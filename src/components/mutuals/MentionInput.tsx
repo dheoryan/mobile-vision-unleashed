@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { searchMentionProfiles } from "@/lib/profile.functions";
+import { mentionRangeAtCaret } from "@/lib/mentions";
 
 export type Mention = {
   id: string;
@@ -9,7 +10,7 @@ export type Mention = {
   display_name: string;
 };
 
-type Profile = {
+export type MentionProfile = {
   id: string;
   display_name: string;
   handle: string | null;
@@ -18,11 +19,9 @@ type Profile = {
 };
 
 export function useMentionPicker(text: string, caret: number) {
-  // detect "@<query>" right before the caret
-  const upTo = text.slice(0, caret);
-  const m = /(?:^|\s)@([\w.-]{0,30})$/.exec(upTo);
-  const query = m ? m[1] : null;
-  const start = m ? upTo.length - (m[1].length + 1) : -1;
+  const range = mentionRangeAtCaret(text, caret);
+  const query = range?.query ?? null;
+  const start = range?.start ?? -1;
 
   const [debounced, setDebounced] = useState<string | null>(null);
   useEffect(() => {
@@ -37,7 +36,7 @@ export function useMentionPicker(text: string, caret: number) {
   const fn = useServerFn(searchMentionProfiles);
   const q = useQuery({
     queryKey: ["mention-search", debounced ?? ""],
-    queryFn: () => fn({ data: { q: debounced || "a" } }),
+    queryFn: () => fn({ data: { q: debounced ?? "" } }),
     enabled: debounced !== null && debounced.length >= 0,
     staleTime: 30_000,
   });
@@ -45,47 +44,23 @@ export function useMentionPicker(text: string, caret: number) {
   return {
     query,
     start,
-    suggestions: (query !== null ? (q.data ?? []) : []) as Profile[],
+    suggestions: (query !== null ? (q.data ?? []) : []) as MentionProfile[],
     isLoading: q.isLoading && query !== null,
   };
-}
-
-/** Replace the active "@xxx" token in `text` with "@handle " and return the new text + the new caret pos. */
-export function applyMention(
-  text: string,
-  caret: number,
-  start: number,
-  handle: string,
-): { text: string; caret: number } {
-  const before = text.slice(0, start);
-  const after = text.slice(caret);
-  const insert = `@${handle} `;
-  return { text: `${before}${insert}${after}`, caret: before.length + insert.length };
-}
-
-/** Extract mention user IDs from text by matching against a known map of @handle → id. */
-export function collectMentionIds(text: string, knownHandles: Map<string, string>): string[] {
-  const ids = new Set<string>();
-  const re = /(?:^|\s)@([\w.-]{1,30})/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text)) !== null) {
-    const id = knownHandles.get(match[1].toLowerCase());
-    if (id) ids.add(id);
-  }
-  return Array.from(ids);
 }
 
 export function MentionSuggestions({
   suggestions,
   onPick,
 }: {
-  suggestions: Profile[];
-  onPick: (p: Profile) => void;
+  suggestions: MentionProfile[];
+  onPick: (p: MentionProfile) => void;
 }) {
-  if (!suggestions.length) return null;
+  const mentionable = suggestions.filter((profile) => Boolean(profile.handle));
+  if (!mentionable.length) return null;
   return (
     <div className="scroll-panel absolute bottom-full left-0 right-0 z-30 mb-2 max-h-56 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
-      {suggestions.map((p) => {
+      {mentionable.map((p) => {
         const av = p.avatar_url || p.avatar_emoji || "🙂";
         const isImg = av.startsWith("data:") || av.startsWith("http");
         return (
@@ -115,7 +90,7 @@ export function MentionSuggestions({
 /** Hook helper: maintain a handle → id map so collectMentionIds can resolve final mentions. */
 export function useMentionRegistry() {
   const ref = useRef<Map<string, string>>(new Map());
-  const register = (p: Profile) => {
+  const register = (p: MentionProfile) => {
     if (p.handle) ref.current.set(p.handle.toLowerCase(), p.id);
   };
   return { register, registry: ref.current };

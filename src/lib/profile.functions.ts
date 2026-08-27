@@ -315,18 +315,23 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
 export const searchMentionProfiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ q: z.string().min(1).max(40) }).parse(input),
+    z.object({ q: z.string().max(40) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const safe = data.q.replace(/[,()*%]/g, " ").slice(0, 40);
-    const like = `%${safe}%`;
-    const { data: rows, error } = await supabase
+    let query = supabase
       .from("profiles")
       .select("id, display_name, handle, avatar_emoji, avatar_url")
       .neq("id", userId)
-      .or(`display_name.ilike.${like},handle.ilike.${like}`)
+      .not("handle", "is", null)
+      .order("display_name", { ascending: true })
       .limit(8);
+    if (safe) {
+      const like = `%${safe}%`;
+      query = query.or(`display_name.ilike.${like},handle.ilike.${like}`);
+    }
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
     return (rows ?? []) as Array<{
       id: string;

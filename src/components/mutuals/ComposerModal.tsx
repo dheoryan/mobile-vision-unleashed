@@ -8,6 +8,13 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { requestPushPrompt } from "@/lib/push-prompt-events";
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import {
+  MentionSuggestions,
+  useMentionPicker,
+  useMentionRegistry,
+  type MentionProfile,
+} from "./MentionInput";
+import { applyMention, collectMentionIds } from "@/lib/mentions";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 
@@ -21,9 +28,13 @@ export function ComposerModal({
   const [imagePath, setImagePath] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [caret, setCaret] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const createPost = useCreatePost();
+  const { register, registry } = useMentionRegistry();
+  const mentionPicker = useMentionPicker(text, caret);
 
   const tribe = tribeById(tribeId);
   /**
@@ -41,7 +52,25 @@ export function ComposerModal({
   const [audience, setAudience] = useState<Audience>(initialAudience);
   const effectiveAudience: Audience = audience;
 
-  const reset = () => { setText(""); setImagePath(null); setImagePreviewUrl(null); setAudience(initialAudience); };
+  const reset = () => {
+    setText("");
+    setCaret(0);
+    setImagePath(null);
+    setImagePreviewUrl(null);
+    setAudience(initialAudience);
+  };
+
+  const pickMention = (profile: MentionProfile) => {
+    if (!profile.handle || mentionPicker.start < 0) return;
+    register(profile);
+    const next = applyMention(text, caret, mentionPicker.start, profile.handle);
+    setText(next.text);
+    setCaret(next.caret);
+    requestAnimationFrame(() => {
+      textRef.current?.focus();
+      textRef.current?.setSelectionRange(next.caret, next.caret);
+    });
+  };
 
   const submit = () => {
     const t = text.trim();
@@ -54,6 +83,7 @@ export function ComposerModal({
         image_path: imagePath ?? null,
         image_preview_url: imagePreviewUrl ?? null,
         audience: effectiveAudience,
+        mentions: collectMentionIds(t, registry),
       },
       {
         onError: (e) => toast.error((e as Error).message),
@@ -125,15 +155,26 @@ export function ComposerModal({
           </div>
         </div>
 
-
-        <textarea
-          autoFocus
-          rows={4}
-          value={text}
-          onChange={(e) => setText(e.target.value.slice(0, 280))}
-          placeholder="Share a plan, an invite, a small thing…"
-          className="mt-4 w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-        />
+        <div className="relative mt-4">
+          <MentionSuggestions suggestions={mentionPicker.suggestions} onPick={pickMention} />
+          <textarea
+            ref={textRef}
+            autoFocus
+            rows={4}
+            value={text}
+            onChange={(event) => {
+              const next = event.target.value.slice(0, 280);
+              setText(next);
+              setCaret(Math.min(event.target.selectionStart ?? next.length, next.length));
+            }}
+            onClick={(event) => setCaret(event.currentTarget.selectionStart ?? 0)}
+            onKeyUp={(event) =>
+              setCaret(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
+            }
+            placeholder="Share a plan, invite someone with @, or post a small thing…"
+            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+          />
+        </div>
 
         {imagePreviewUrl && (
           <div className="relative mt-3 overflow-hidden rounded-xl border border-border">

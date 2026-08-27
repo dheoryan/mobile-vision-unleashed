@@ -467,6 +467,7 @@ export type Database = {
           id: string
           image_url: string | null
           likes_count: number
+          mentions: string[]
           moderation_hidden_at: string | null
           moderation_hidden_by: string | null
           replies_count: number
@@ -483,6 +484,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
+          mentions?: string[]
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
           replies_count?: number
@@ -499,6 +501,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number
+          mentions?: string[]
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
           replies_count?: number
@@ -1021,6 +1024,7 @@ export type Database = {
           content: string | null
           created_at: string
           id: string
+          mentions: string[]
           reply_to_id: string | null
           sender_id: string
           venture_id: string
@@ -1031,6 +1035,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          mentions?: string[]
           reply_to_id?: string | null
           sender_id: string
           venture_id: string
@@ -1041,6 +1046,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          mentions?: string[]
           reply_to_id?: string | null
           sender_id?: string
           venture_id?: string

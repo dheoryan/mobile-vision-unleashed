@@ -76,6 +76,24 @@ test("every high-intent kind resolves to its actionable context", () => {
     ),
     { kind: "ventureChat", ventureId: "00000000-0000-4000-8000-000000000002" },
   );
+  assert.deepEqual(
+    notificationDestination(
+      notification({
+        kind: "mention",
+        venture_id: "00000000-0000-4000-8000-000000000002",
+      }),
+    ),
+    { kind: "ventureChat", ventureId: "00000000-0000-4000-8000-000000000002" },
+  );
+  assert.deepEqual(
+    notificationDestination(
+      notification({
+        kind: "mention",
+        tribe_id: "00000000-0000-4000-8000-000000000005",
+      }),
+    ),
+    { kind: "tribe", tribeId: "00000000-0000-4000-8000-000000000005" },
+  );
 });
 
 test("home destinations survive a route change and reject incomplete URLs", () => {

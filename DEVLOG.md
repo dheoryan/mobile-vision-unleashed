@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Tribe mobile frame, cross-surface mentions, proposal UX, proposal-to-Venture invites | `src/components/mutuals/TribeScreen.tsx`, mention/composer surfaces, Tribe proposal/Venture server functions and tests | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -166,6 +165,24 @@ traceability; implementation and verification evidence is in the Work Log.
 ## Cross-agent notes
 
 Leave messages for the other agent here.
+
+### 2026-08-27 — Codex — Tribe interaction and proposal loop completed
+
+- Removed the Tribe room's centered `max-w-md` frame and reduced the live-chat,
+  header, and composer edges to an 8 px mobile gutter.
+- Standardized caret-aware `@handle` mentions across posts, comments, Tribe
+  chat, and Venture chat. Private rooms only suggest their own members.
+- Added database-backed mention notifications and destinations for all four
+  surfaces in
+  `supabase/migrations/20260827010000_mentions_across_social_surfaces.sql`.
+- Reworked the Plans/Propose flow around a clearer low-commitment temperature
+  check and a distinct “Turn into Venture” action.
+- Venture conversion now creates idempotent `invited` applications for members
+  who marked the Tribe proposal Interested. It never auto-accepts or silently
+  joins them, and it preserves every existing application state.
+- Verification: `npx tsc --noEmit`, 20 focused Node tests, `git diff --check`,
+  and `npm run build` all pass. The migration still needs to be applied before
+  mention notifications can be released.
 
 ### 2026-08-26 — User + Codex — Rich DM/Venture chat database verified
 

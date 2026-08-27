@@ -138,6 +138,7 @@ export function useCreatePost() {
       image_path?: string | null;
       image_preview_url?: string | null;
       audience?: "tribe" | "all";
+      mentions?: string[];
     }) => {
       const { image_preview_url: _preview, ...data } = input;
       return fn({ data });

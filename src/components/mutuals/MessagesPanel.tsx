@@ -62,6 +62,11 @@ import { listVentureParticipants } from "@/lib/venture-participants";
 import { VentureParticipantsSheet } from "./VentureParticipantsSheet";
 import { VentureCoordinationPanel } from "./VentureCoordination";
 import { VENTURE_EMPTY_PROMPTS } from "@/lib/venture-coordination";
+import {
+  MentionSuggestions,
+  type MentionProfile,
+} from "./MentionInput";
+import { applyMention, collectMentionIds, mentionRangeAtCaret } from "@/lib/mentions";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -598,6 +603,7 @@ function VenturePartyThread({
   const setArrivalStatus = useSetVentureArrivalStatus(venture.id);
   const updateAnnouncement = useUpdateVentureAnnouncement(venture.id);
   const [text, setText] = useState("");
+  const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
@@ -608,6 +614,34 @@ function VenturePartyThread({
   const isComplete = useVentureComplete(venture);
   const chatReactions = useOptimisticChatReactions("venture");
   const participants = useMemo(() => listVentureParticipants(venture), [venture]);
+  const participantProfiles = useMemo(
+    () => participants.map((participant) => participant.profile),
+    [participants],
+  );
+  const mentionRange = mentionRangeAtCaret(text, caret);
+  const mentionSuggestions: MentionProfile[] = mentionRange
+    ? participantProfiles
+        .filter((participant) => participant.id !== user?.id && Boolean(participant.handle))
+        .filter((participant) => {
+          const query = mentionRange.query.toLowerCase();
+          return (
+            participant.display_name.toLowerCase().includes(query) ||
+            (participant.handle ?? "").toLowerCase().includes(query)
+          );
+        })
+        .slice(0, 6)
+    : [];
+  const mentionRegistry = useMemo(
+    () =>
+      new Map(
+        participantProfiles.flatMap((participant) =>
+          participant.handle
+            ? [[participant.handle.replace(/^@/, "").toLowerCase(), participant.id] as const]
+            : [],
+        ),
+      ),
+    [participantProfiles],
+  );
 
   useEffect(() => {
     if (!msgs?.length) return;
@@ -628,8 +662,10 @@ function VenturePartyThread({
         attachment_url: uploadedPath,
         attachment_type: uploadedPath ? "image" : null,
         reply_to_id: replyTo?.id ?? null,
+        mentions: collectMentionIds(body, mentionRegistry),
       });
       setText("");
+      setCaret(0);
       setReplyTo(null);
       setSelectedImage(null);
       requestPushPrompt("venture");
@@ -649,6 +685,17 @@ function VenturePartyThread({
       snippet: m.content || (m.attachment_type === "image" ? "Photo" : "Message"),
     });
     requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const pickMention = (profile: MentionProfile) => {
+    if (!profile.handle || !mentionRange) return;
+    const next = applyMention(text, caret, mentionRange.start, profile.handle);
+    setText(next.text);
+    setCaret(next.caret);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(next.caret, next.caret);
+    });
   };
 
   return (
@@ -870,6 +917,7 @@ function VenturePartyThread({
             inputRef={inputRef}
             value={text}
             onChange={setText}
+            onCaretChange={setCaret}
             onSend={() => void submit()}
             placeholder={replyTo ? "Write a reply…" : "Message the party"}
             accentColor="var(--color-primary)"
@@ -880,6 +928,9 @@ function VenturePartyThread({
             onClearImage={() => setSelectedImage(null)}
             disabled={isComplete}
             sending={uploading || send.isPending}
+            accessory={
+              <MentionSuggestions suggestions={mentionSuggestions} onPick={pickMention} />
+            }
           />
         )}
       </div>

@@ -87,6 +87,7 @@ export type VentureMessage = {
   attachment_url: string | null;
   attachment_type: "image" | null;
   reply_to_id: string | null;
+  mentions: string[];
   message_kind: "user" | "system";
   system_event: string | null;
   reactions: ChatReactionCounts;
@@ -188,6 +189,7 @@ type VentureMessageDbRow = {
   attachment_url: string | null;
   attachment_type: "image" | null;
   reply_to_id: string | null;
+  mentions?: string[];
   message_kind?: "user" | "system";
   system_event?: string | null;
 };
@@ -200,7 +202,7 @@ const LEGACY_VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS =
-  "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id, message_kind, system_event";
+  "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id, mentions, message_kind, system_event";
 const LEGACY_MESSAGE_COLS =
   "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id";
 
@@ -1630,6 +1632,7 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       attachment_url: m.attachment_url,
       attachment_type: m.attachment_type,
       reply_to_id: m.reply_to_id,
+      mentions: m.mentions ?? [],
       message_kind: m.message_kind ?? "user",
       system_event: m.system_event ?? null,
       reactions: emptyChatReactions(),
@@ -1685,6 +1688,7 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
         attachment_url: z.string().min(1).max(500).nullish(),
         attachment_type: z.literal("image").nullish(),
         reply_to_id: z.string().uuid().nullish(),
+        mentions: z.array(z.string().uuid()).max(20).optional().default([]),
       })
       .refine((value) => Boolean(value.content || value.attachment_url), {
         message: "Message text or an attachment is required",
@@ -1706,7 +1710,7 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
       throw new Error("Invalid attachment path");
     }
 
-    const { data: row, error } = await db
+    let result = await db
       .from("venture_messages")
       .insert({
         venture_id: data.venture_id,
@@ -1715,9 +1719,25 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
         attachment_url: data.attachment_url ?? null,
         attachment_type: data.attachment_url ? "image" : null,
         reply_to_id: data.reply_to_id ?? null,
+        mentions: data.mentions,
       })
-      .select(LEGACY_MESSAGE_COLS)
+      .select(MESSAGE_COLS)
       .single();
+    if (isCoordinationSchemaUnavailable(result.error)) {
+      result = await db
+        .from("venture_messages")
+        .insert({
+          venture_id: data.venture_id,
+          sender_id: userId,
+          content: data.content ?? null,
+          attachment_url: data.attachment_url ?? null,
+          attachment_type: data.attachment_url ? "image" : null,
+          reply_to_id: data.reply_to_id ?? null,
+        })
+        .select(LEGACY_MESSAGE_COLS)
+        .single();
+    }
+    const { data: row, error } = result;
     if (error) throw new Error(error.message);
 
     const senders = await fetchProfiles(db, [userId]);
@@ -1731,6 +1751,7 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
       attachment_url: message.attachment_url,
       attachment_type: message.attachment_type,
       reply_to_id: message.reply_to_id,
+      mentions: message.mentions ?? [],
       message_kind: "user",
       system_event: null,
       reactions: emptyChatReactions(),

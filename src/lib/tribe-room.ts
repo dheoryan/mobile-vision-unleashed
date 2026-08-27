@@ -79,6 +79,17 @@ export interface TribePlanTimeOptionWithVotes extends TribePlanTimeOption {
   votes: number;
 }
 
+export function interestedInviteIds(
+  interestedUserIds: string[],
+  existingApplicantIds: Iterable<string>,
+  hostId: string,
+): string[] {
+  const existing = new Set(existingApplicantIds);
+  return [...new Set(interestedUserIds)].filter(
+    (userId) => userId !== hostId && !existing.has(userId),
+  );
+}
+
 interface PulsePrompt {
   key: string;
   question: string;

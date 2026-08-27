@@ -75,6 +75,12 @@ export function notificationDestination(item: NotificationRow): NotificationDest
       scrollOnly: false,
     };
   }
+  if (item.kind === "mention" && item.venture_id) {
+    return { kind: "ventureChat", ventureId: item.venture_id };
+  }
+  if (item.kind === "mention" && item.tribe_id) {
+    return { kind: "tribe", tribeId: item.tribe_id };
+  }
   if (item.kind === "follow") {
     return item.actor_id
       ? { kind: "profile", actorId: item.actor_id }

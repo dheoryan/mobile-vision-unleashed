@@ -24,6 +24,8 @@ interface ChatComposerProps {
   inputRef?: React.RefObject<HTMLInputElement | null>;
   maxLength?: number;
   accessory?: React.ReactNode;
+  onCaretChange?: (caret: number) => void;
+  outerClassName?: string;
 }
 
 /**
@@ -46,6 +48,8 @@ export function ChatComposer({
   inputRef,
   maxLength = 2000,
   accessory,
+  onCaretChange,
+  outerClassName,
 }: ChatComposerProps) {
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +79,9 @@ export function ChatComposer({
   const canSend = !disabled && !sending && Boolean(value.trim() || selectedImage);
 
   return (
-    <div className="relative shrink-0 border-t border-border/70 bg-background/90 px-3 py-2 backdrop-blur-md">
+    <div
+      className={`relative shrink-0 border-t border-border/70 bg-background/90 px-3 py-2 backdrop-blur-md ${outerClassName ?? ""}`}
+    >
       {accessory}
       {replyTo && onCancelReply && (
         <ReplyPreview
@@ -128,7 +134,16 @@ export function ChatComposer({
           ref={inputRef}
           value={value}
           maxLength={maxLength}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            onCaretChange?.(event.target.selectionStart ?? event.target.value.length);
+          }}
+          onClick={(event) =>
+            onCaretChange?.(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
+          }
+          onKeyUp={(event) =>
+            onCaretChange?.(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
+          }
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey && canSend) {
               event.preventDefault();
