@@ -3,9 +3,8 @@ import { Bell, BellOff, X, Smartphone, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  isPushSupported,
-  isStandalonePwa,
-  isIosSafari,
+  isIosThirdPartyBrowser,
+
   isIosThirdPartyBrowser,
   getPushBlocker,
   getPushPermission,
