@@ -93,7 +93,9 @@ async function getRegistration(): Promise<ServiceWorkerRegistration> {
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
   try {
-    const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+    const reg =
+      (await navigator.serviceWorker.getRegistration("/sw.js")) ??
+      (await navigator.serviceWorker.getRegistration("/"));
     if (!reg) return null;
     return await reg.pushManager.getSubscription();
   } catch {
@@ -106,8 +108,15 @@ export async function subscribeToPush(): Promise<{
   p256dh: string;
   auth: string;
 } | null> {
+  if (getPushBlocker() === "needs-install") {
+    throw new Error(
+      "On iPhone and iPad, add MEUTUALS to your Home Screen first, then open it from there to turn notifications on.",
+    );
+  }
   if (!isPushSupported()) throw new Error("Push not supported on this device.");
 
+  // Safari requires this to be called directly from the tap that started it,
+  // so nothing may be awaited before it.
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
     throw new Error(
@@ -116,6 +125,7 @@ export async function subscribeToPush(): Promise<{
         : "Permission was not granted.",
     );
   }
+
 
   const reg = await getRegistration();
   let sub = await reg.pushManager.getSubscription();
