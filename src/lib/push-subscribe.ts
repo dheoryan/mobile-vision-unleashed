@@ -35,16 +35,41 @@ export function isStandalonePwa(): boolean {
   return window.matchMedia?.("(display-mode: standalone)").matches ?? false;
 }
 
+/**
+ * iPhone, iPod, iPad — including iPadOS 13+, which reports a desktop
+ * "Macintosh" user agent and would otherwise be missed entirely.
+ */
 export function isIosSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const isIos = /iPad|iPhone|iPod/.test(ua) && !("MSStream" in window);
-  return isIos;
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  return /Macintosh/.test(ua) && (navigator.maxTouchPoints ?? 0) > 1;
+}
+
+/** Chrome / Firefox / Edge on iOS are WebKit shells and behave the same. */
+export function isIosThirdPartyBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return isIosSafari() && /CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
 }
 
 export function isAndroid(): boolean {
   if (typeof navigator === "undefined") return false;
   return /Android/i.test(navigator.userAgent);
+}
+
+/**
+ * iOS only exposes Notification/PushManager inside a Home Screen web app.
+ * In a browser tab the APIs are simply absent, so a plain capability check
+ * looks identical to "unsupported device" and the UI used to hide itself
+ * with no way for the user to fix it. Treat that case as "install first".
+ */
+export type PushBlocker = "none" | "needs-install" | "unsupported";
+
+export function getPushBlocker(): PushBlocker {
+  if (typeof window === "undefined") return "unsupported";
+  if (isIosSafari() && !isStandalonePwa()) return "needs-install";
+  if (!isPushSupported()) return "unsupported";
+  return "none";
 }
 
 export type PushPermission = "default" | "granted" | "denied" | "unsupported";
@@ -55,10 +80,15 @@ export function getPushPermission(): PushPermission {
 }
 
 async function getRegistration(): Promise<ServiceWorkerRegistration> {
-  const existing = await navigator.serviceWorker.getRegistration("/sw.js");
+  const existing =
+    (await navigator.serviceWorker.getRegistration("/sw.js")) ??
+    (await navigator.serviceWorker.getRegistration("/"));
   if (existing) return existing;
-  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+  // Safari resolves `ready` only once a worker is actually controlling.
+  return navigator.serviceWorker.ready;
 }
+
 
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
