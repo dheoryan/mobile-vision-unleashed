@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Push notification compatibility, privacy, and delivery reliability | `src/lib/push-subscribe.ts`, `src/lib/push-payload.ts`, `src/lib/push.functions.ts`, `src/components/mutuals/EnablePushBanner.tsx`, `src/components/mutuals/PushPromptModal.tsx`, `src/routes/api/public/push.dispatch.ts`, `src/integrations/supabase/types.ts`, `supabase/migrations/20260827043000_harden_push_delivery.sql`, `scripts/verify-pwa.mjs`, `tests/push-notifications.test.ts`, `PWA_RELEASE_CHECKLIST.md`, `package.json`, `DEVLOG.md` | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
