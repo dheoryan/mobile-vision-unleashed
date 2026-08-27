@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Compact chat bubble model across Tribe and Venture chat | `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/MessagesPanel.tsx`, shared chat presentation/tests | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
