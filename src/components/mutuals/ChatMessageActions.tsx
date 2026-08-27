@@ -37,7 +37,7 @@ export function ChatMessageActions({
       {open && !disabled && (
         <div
           className={cn(
-            "mt-1 flex w-fit items-center gap-0.5 rounded-full border border-border bg-popover p-1 shadow-xl",
+            "mt-1 flex w-fit items-center gap-0.5 rounded-full border border-border/80 bg-popover p-0.5 shadow-xl",
             mine && "ml-auto",
           )}
           role="toolbar"
@@ -71,7 +71,7 @@ export function ChatMessageActions({
       )}
 
       {ACTIONS.some(({ id }) => reactions[id] > 0) && (
-        <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
+        <div className={cn("relative z-10 -mt-2 flex flex-wrap gap-1 px-1", mine && "justify-end")}>
           {ACTIONS.filter(({ id }) => reactions[id] > 0).map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -81,7 +81,7 @@ export function ChatMessageActions({
               aria-pressed={myReactions.includes(id)}
               disabled={disabled}
               className={cn(
-                "inline-flex min-h-7 items-center gap-1 rounded-full border border-border bg-background/85 px-2 text-[10px] text-muted-foreground backdrop-blur-sm disabled:cursor-default",
+                "inline-flex min-h-7 items-center gap-1 rounded-full border border-border/80 bg-card px-2 text-[10px] text-muted-foreground shadow-sm disabled:cursor-default",
                 myReactions.includes(id) && "border-primary/60 text-foreground",
               )}
             >

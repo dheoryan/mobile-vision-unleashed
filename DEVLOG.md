@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Normalize Tribe chat header to Venture/DM shell metrics | `src/components/mutuals/TribeScreen.tsx` | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-27 — Codex — Tribe header normalized to chat shell metrics
+
+- Matched the Tribe chat header to Venture/DM's 60 px content height and
+  horizontal rhythm: 16 px side padding, 12 px gaps, a 36 px room crest, and
+  the same two-line title/subtitle density.
+- Collapsed the former three-line identity into a 44 px member-access target;
+  home state, presence, and member count remain visible without making the
+  header taller than the other chat types.
+- Verification: 10 focused tests, Prettier, TypeScript, `git diff --check`,
+  and the full Cloudflare production build pass.
 
 ### 2026-08-27 — Codex — Tribe room shell aligned to approved scratch
 

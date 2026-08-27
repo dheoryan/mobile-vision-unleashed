@@ -62,11 +62,15 @@ import { listVentureParticipants } from "@/lib/venture-participants";
 import { VentureParticipantsSheet } from "./VentureParticipantsSheet";
 import { VentureCoordinationPanel } from "./VentureCoordination";
 import { VENTURE_EMPTY_PROMPTS } from "@/lib/venture-coordination";
-import {
-  MentionSuggestions,
-  type MentionProfile,
-} from "./MentionInput";
+import { MentionSuggestions, type MentionProfile } from "./MentionInput";
 import { applyMention, collectMentionIds, mentionRangeAtCaret } from "@/lib/mentions";
+import {
+  chatBubbleShape,
+  chatGroupPosition,
+  chatGroupSpacing,
+  endsChatGroup,
+  startsChatGroup,
+} from "@/lib/chat-grouping";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -76,16 +80,18 @@ function MessageSwipeRow({
   accentColor,
   disabled,
   onReply,
+  className,
 }: {
   children: React.ReactNode;
   mine: boolean;
   accentColor: string;
   disabled?: boolean;
   onReply: () => void;
+  className?: string;
 }) {
   const { dragX, peekOpacity, handlers } = useSwipeReply(onReply, disabled);
   return (
-    <div className="relative select-none">
+    <div className={cn("relative select-none", className)}>
       {dragX > 4 && (
         <div
           className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-1 text-muted-foreground"
@@ -749,7 +755,7 @@ function VenturePartyThread({
           }}
         />
 
-        <div className="space-y-2 px-4 py-4">
+        <div className="px-3 py-4">
           {isLoading ? (
             <MessageThreadSkeleton />
           ) : !msgs?.length ? (
@@ -777,13 +783,22 @@ function VenturePartyThread({
               )}
             </div>
           ) : (
-            msgs.map((m: VentureMessage) => {
+            msgs.map((m: VentureMessage, index: number) => {
+              const groupPosition = chatGroupPosition(
+                msgs,
+                index,
+                (message) => message.message_kind === "system",
+              );
+              const groupStart = startsChatGroup(groupPosition);
+              const groupEnd = endsChatGroup(groupPosition);
               if (m.message_kind === "system") {
                 return (
-                  <div key={m.id} className="flex justify-center py-1" role="status">
-                    <p className="max-w-[88%] rounded-full border border-border/70 bg-card/70 px-3 py-1.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+                  <div key={m.id} className="my-3 flex items-center gap-3 px-2" role="status">
+                    <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
+                    <p className="max-w-[72%] text-center text-[10px] leading-relaxed text-muted-foreground">
                       {m.content} · {shortTime(m.created_at)}
                     </p>
+                    <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
                   </div>
                 );
               }
@@ -798,10 +813,27 @@ function VenturePartyThread({
                   accentColor="var(--color-primary)"
                   disabled={pending || isComplete}
                   onReply={() => startReply(m)}
+                  className={chatGroupSpacing(groupPosition)}
                 >
                   <div
-                    className={cn("flex max-w-[88%] items-start gap-1", pending && "opacity-60")}
+                    className={cn("flex max-w-[90%] items-start gap-2", pending && "opacity-60")}
                   >
+                    {!mine && groupStart && (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center self-start overflow-hidden rounded-full bg-primary/15 text-xs text-primary">
+                        {m.sender?.avatar_url ? (
+                          <img
+                            src={m.sender.avatar_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          m.sender?.avatar_emoji || senderName[0]?.toUpperCase()
+                        )}
+                      </span>
+                    )}
+                    {!mine && !groupStart && (
+                      <span aria-hidden="true" className="h-7 w-7 shrink-0" />
+                    )}
                     {(() => {
                       const legacy = parseQuotedMessage(m.content ?? "");
                       const quote = m.reply_to
@@ -818,13 +850,19 @@ function VenturePartyThread({
                       const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
                       return (
                         <div className="min-w-0">
+                          {!mine && groupStart && (
+                            <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
+                              {senderName}
+                            </p>
+                          )}
                           <div
                             className={cn(
-                              "space-y-2 rounded-xl px-3 py-2 text-sm shadow-sm",
+                              "space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                              chatBubbleShape(groupPosition, mine),
                               !pending && "cursor-pointer",
                               mine
-                                ? "rounded-br-sm bg-primary text-white"
-                                : "rounded-bl-sm bg-card text-foreground",
+                                ? "border-primary/35 bg-primary/75 text-primary-foreground"
+                                : "border-border/80 bg-card/95 text-foreground",
                             )}
                             onClick={(event) => {
                               if (pending || (event.target as HTMLElement).closest("a, button"))
@@ -832,9 +870,6 @@ function VenturePartyThread({
                               setActionOpenFor((current) => (current === m.id ? null : m.id));
                             }}
                           >
-                            {!mine && (
-                              <p className="text-[10px] font-semibold opacity-70">{senderName}</p>
-                            )}
                             {quote && (
                               <QuotedBlock
                                 name={quote.name}
@@ -877,18 +912,20 @@ function VenturePartyThread({
                               setActionOpenFor(null);
                             }}
                           />
-                          <p
-                            className={cn(
-                              "mt-1 text-[10px] text-muted-foreground",
-                              mine && "text-right",
-                            )}
-                          >
-                            {pending ? "sending…" : shortTime(m.created_at)}
-                          </p>
+                          {groupEnd && (
+                            <p
+                              className={cn(
+                                "mt-1 px-1 text-[10px] text-muted-foreground",
+                                mine && "text-right",
+                              )}
+                            >
+                              {pending ? "sending…" : shortTime(m.created_at)}
+                            </p>
+                          )}
                         </div>
                       );
                     })()}
-                    {!mine && !pending && (
+                    {!mine && !pending && groupStart && (
                       <SafetyMenu
                         targetName={displayVentureName(m.sender)}
                         targetUserId={m.sender_id}
@@ -928,9 +965,7 @@ function VenturePartyThread({
             onClearImage={() => setSelectedImage(null)}
             disabled={isComplete}
             sending={uploading || send.isPending}
-            accessory={
-              <MentionSuggestions suggestions={mentionSuggestions} onPick={pickMention} />
-            }
+            accessory={<MentionSuggestions suggestions={mentionSuggestions} onPick={pickMention} />}
           />
         )}
       </div>
@@ -1036,13 +1071,16 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
         />
       </header>
 
-      <div ref={scrollRef} className="scroll-panel flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scroll-panel flex-1 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <MessageThreadSkeleton />
         ) : !msgs?.length ? (
           <p className="py-10 text-center text-xs text-muted-foreground">Say hi 👋</p>
         ) : (
-          msgs.map((m) => {
+          msgs.map((m, index) => {
+            const groupPosition = chatGroupPosition(msgs, index);
+            const groupStart = startsChatGroup(groupPosition);
+            const groupEnd = endsChatGroup(groupPosition);
             const mine = m.sender_id === user?.id;
             const pending = m.id.startsWith("tmp-");
             const senderName = mine ? "yourself" : other?.display_name?.trim() || "Them";
@@ -1054,6 +1092,7 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                 mine={mine}
                 accentColor={tribe.colorVar}
                 disabled={pending}
+                className={chatGroupSpacing(groupPosition)}
                 onReply={() => {
                   setReplyTo({
                     id: m.id,
@@ -1078,13 +1117,20 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                     return (
                       <div
                         className={cn(
-                          "space-y-2 rounded-xl px-3 py-2 text-sm shadow-sm",
+                          "space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                          chatBubbleShape(groupPosition, mine),
                           !pending && "cursor-pointer",
                           mine
-                            ? "rounded-br-sm text-white"
-                            : "rounded-bl-sm bg-card text-foreground",
+                            ? "border-transparent text-primary-foreground"
+                            : "border-border/80 bg-card/95 text-foreground",
                         )}
-                        style={mine ? { backgroundColor: tribe.colorVar } : undefined}
+                        style={
+                          mine
+                            ? {
+                                backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 76%, var(--color-card))`,
+                              }
+                            : undefined
+                        }
                         onClick={(event) => {
                           if (pending || (event.target as HTMLElement).closest("a, button")) return;
                           setActionOpenFor((current) => (current === m.id ? null : m.id));
@@ -1137,11 +1183,16 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
                       requestAnimationFrame(() => inputRef.current?.focus());
                     }}
                   />
-                  <p
-                    className={cn("mt-0.5 text-[10px] text-muted-foreground", mine && "text-right")}
-                  >
-                    {pending ? "sending…" : timeAgoLabel(m.created_at)}
-                  </p>
+                  {groupEnd && (
+                    <p
+                      className={cn(
+                        "mt-1 px-1 text-[10px] text-muted-foreground",
+                        mine && "text-right",
+                      )}
+                    >
+                      {pending ? "sending…" : timeAgoLabel(m.created_at)}
+                    </p>
+                  )}
                 </div>
               </MessageSwipeRow>
             );

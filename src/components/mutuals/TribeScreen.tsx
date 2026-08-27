@@ -26,7 +26,15 @@ import { ChatComposer } from "./ChatComposer";
 import { useTribeMembers } from "@/lib/tribe-members-store";
 import type { TribeMemberSummary } from "@/lib/tribe-members";
 import { TribeMembersSheet } from "./TribeMembersSheet";
+import { NotificationBell } from "./NotificationBell";
 import { applyMention, collectMentionIds, mentionRangeAtCaret } from "@/lib/mentions";
+import {
+  chatBubbleShape,
+  chatGroupPosition,
+  chatGroupSpacing,
+  endsChatGroup,
+  startsChatGroup,
+} from "@/lib/chat-grouping";
 
 function SwipeReplyRow({
   children,
@@ -34,16 +42,18 @@ function SwipeReplyRow({
   tribeColor,
   disabled,
   onReply,
+  className,
 }: {
   children: React.ReactNode;
   mine: boolean;
   tribeColor: string;
   disabled?: boolean;
   onReply: () => void;
+  className?: string;
 }) {
   const { dragX, peekOpacity, handlers } = useSwipeReply(onReply, disabled);
   return (
-    <div className="relative select-none">
+    <div className={cn("relative select-none", className)}>
       {dragX > 4 && (
         <div
           className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start pl-2 text-muted-foreground"
@@ -123,34 +133,55 @@ export function TribeScreen({
   return (
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat overscroll-none">
       {onBack && (
-        <div className="glass z-30 shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
-          <div className="flex min-h-12 w-full items-center gap-2 px-2 py-1">
+        <header className="glass z-30 shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
+          <div className="flex w-full items-center gap-3 px-4 py-2">
             <button
               type="button"
               onClick={onBack}
               aria-label="Back to Chats"
-              className="flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <ChevronLeft className="h-4 w-4" />
-              Chats
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <span className="flex items-center gap-1.5 truncate">
-              <TribeMark tribe={tribe} size="xs" />
-              <span className="truncate font-display text-sm font-semibold">{tribe.name}</span>
-            </span>
+            <TribeMark tribe={tribe} size="sm" className="h-9 w-9" decorative={false} />
+            <button
+              type="button"
+              onClick={() => setMembersOpen(true)}
+              className="min-h-11 min-w-0 flex-1 rounded-lg text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`View ${membersQuery.data?.total ?? members.length} Tribe members, ${onlineMemberIds.size} online`}
+            >
+              <h1 className="truncate font-display text-sm font-semibold leading-tight">
+                {tribe.name}
+              </h1>
+              <span className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                <span className="shrink-0">You're home</span>
+                <span aria-hidden="true">·</span>
+                <UsersRound className="h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {onlineMemberIds.size} online · {membersQuery.data?.total ?? members.length}{" "}
+                  members
+                </span>
+              </span>
+            </button>
+            <div className="shrink-0">
+              <NotificationBell />
+            </div>
           </div>
-        </div>
+        </header>
       )}
       {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
       <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pt-2">
-        <div className="shrink-0 px-2">
-          <TribeRoomIdentity
-            tribe={tribe}
-            liveMembers={membersQuery.data?.total}
-            liveOnline={onlineMemberIds.size}
-            onOpenMembers={() => setMembersOpen(true)}
-          />
-        </div>
+        {!onBack && (
+          <div className="shrink-0 px-2">
+            <TribeRoomIdentity
+              tribe={tribe}
+              liveMembers={membersQuery.data?.total}
+              liveOnline={onlineMemberIds.size}
+              onOpenMembers={() => setMembersOpen(true)}
+            />
+          </div>
+        )}
 
         <div
           className={cn(
@@ -266,8 +297,6 @@ function TribeRoomIdentity({
   liveOnline: number;
   onOpenMembers: () => void;
 }) {
-  const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
-  const onlineLabel = liveOnline.toLocaleString();
   return (
     <section className="mt-4 flex items-center gap-3 border-b border-border/70 pb-3">
       <TribeMark tribe={tribe} size="md" decorative={false} />
@@ -276,20 +305,41 @@ function TribeRoomIdentity({
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
         </p>
         <h2 className="truncate font-display text-xl font-bold leading-tight">{tribe.name}</h2>
-        <button
-          type="button"
-          onClick={onOpenMembers}
-          className="-ml-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          aria-label={`View ${memberLabel ?? "Tribe"} members, ${onlineLabel} online`}
-        >
-          <UsersRound className="h-3.5 w-3.5" />
-          <span>
-            <span className="text-foreground">{onlineLabel}</span> online
-          </span>
-          {memberLabel !== null && <span>· {memberLabel} members</span>}
-        </button>
+        <RoomMemberStatus
+          liveMembers={liveMembers}
+          liveOnline={liveOnline}
+          onOpenMembers={onOpenMembers}
+        />
       </div>
     </section>
+  );
+}
+
+function RoomMemberStatus({
+  liveMembers,
+  liveOnline,
+  onOpenMembers,
+}: {
+  liveMembers?: number;
+  liveOnline: number;
+  onOpenMembers: () => void;
+}) {
+  const memberLabel = liveMembers === undefined ? null : liveMembers.toLocaleString();
+  const onlineLabel = liveOnline.toLocaleString();
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenMembers}
+      className="-ml-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      aria-label={`View ${memberLabel ?? "Tribe"} members, ${onlineLabel} online`}
+    >
+      <UsersRound className="h-3.5 w-3.5" />
+      <span>
+        <span className="text-foreground">{onlineLabel}</span> online
+      </span>
+      {memberLabel !== null && <span>· {memberLabel} members</span>}
+    </button>
   );
 }
 
@@ -652,7 +702,9 @@ function GroupChat({
 
       const mentionRegistry = new Map(
         members.flatMap((member) =>
-          member.handle ? [[member.handle.replace(/^@/, "").toLowerCase(), member.id] as const] : [],
+          member.handle
+            ? [[member.handle.replace(/^@/, "").toLowerCase(), member.id] as const]
+            : [],
         ),
       );
 
@@ -709,26 +761,34 @@ function GroupChat({
       />
       <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <div className="scroll-panel flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-2 py-4">
+        <div className="scroll-panel flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-2 py-4">
           {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
               No messages yet. Be the first voice in the room.
             </p>
           )}
-          {messages.map((m) => {
+          {messages.map((m, index) => {
             const isSystem = m.attachment_type === "system:tribe_join";
+            const groupPosition = chatGroupPosition(
+              messages,
+              index,
+              (message) => message.attachment_type === "system:tribe_join",
+            );
+            const groupStart = startsChatGroup(groupPosition);
+            const groupEnd = endsChatGroup(groupPosition);
             const mine = m.sender_id === user?.id;
             const displayName = mine ? "You" : (m.sender?.display_name ?? "Member");
             const avatarUrl = m.sender?.avatar_url;
 
             if (isSystem) {
               return (
-                <div key={m.id} className="flex justify-center py-1">
-                  <div className="max-w-[82%] rounded-full border border-border bg-secondary/70 px-3 py-1.5 text-center text-[11px] leading-snug text-muted-foreground">
-                    <span>{m.content}</span>
-                    <span className="ml-1 opacity-70">{formatTime(m.created_at)}</span>
-                  </div>
+                <div key={m.id} className="my-3 flex items-center gap-3 px-4" role="status">
+                  <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
+                  <p className="max-w-[72%] text-center text-[10px] leading-relaxed text-muted-foreground">
+                    {m.content} · {formatTime(m.created_at)}
+                  </p>
+                  <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
                 </div>
               );
             }
@@ -740,10 +800,11 @@ function GroupChat({
                 mine={mine}
                 disabled={!canChat}
                 onReply={() => setReplyTo(m)}
+                className={chatGroupSpacing(groupPosition)}
               >
-                {!mine && (
+                {!mine && groupStart && (
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center self-start overflow-hidden rounded-full text-sm"
                     style={{
                       backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)`,
                     }}
@@ -755,19 +816,29 @@ function GroupChat({
                     )}
                   </span>
                 )}
-                <div className="max-w-[74%]">
-                  {!mine && (
-                    <p className="mb-0.5 text-[10px] text-muted-foreground">{displayName}</p>
+                {!mine && !groupStart && <span aria-hidden="true" className="h-7 w-7 shrink-0" />}
+                <div className="min-w-0 max-w-[78%]">
+                  {!mine && groupStart && (
+                    <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
+                      {displayName}
+                    </p>
                   )}
                   <div
                     className={cn(
-                      "space-y-2 rounded-xl px-3 py-2 text-sm",
+                      "space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                      chatBubbleShape(groupPosition, mine),
                       canChat && "cursor-pointer",
                       mine
-                        ? "rounded-br-sm text-primary-foreground"
-                        : "rounded-bl-sm border border-border bg-secondary text-foreground",
+                        ? "border-transparent text-primary-foreground"
+                        : "border-border/80 bg-card/95 text-foreground",
                     )}
-                    style={mine ? { backgroundColor: tribe.colorVar } : undefined}
+                    style={
+                      mine
+                        ? {
+                            backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 76%, var(--color-card))`,
+                          }
+                        : undefined
+                    }
                     onClick={(event) => {
                       if (!canChat || (event.target as HTMLElement).closest("a, button")) return;
                       setReactionOpenFor((current) => (current === m.id ? null : m.id));
@@ -824,16 +895,18 @@ function GroupChat({
                       setReactionOpenFor(null);
                     }}
                   />
-                  <div
-                    className={cn(
-                      "mt-1 flex items-center text-[10px] text-muted-foreground",
-                      mine && "justify-end",
-                    )}
-                  >
-                    <span>{formatTime(m.created_at)}</span>
-                  </div>
+                  {groupEnd && (
+                    <p
+                      className={cn(
+                        "mt-1 px-1 text-[10px] text-muted-foreground",
+                        mine && "text-right",
+                      )}
+                    >
+                      {formatTime(m.created_at)}
+                    </p>
+                  )}
                 </div>
-                {!mine && (
+                {!mine && groupStart && (
                   <SafetyMenu
                     targetName={displayName}
                     targetUserId={m.sender_id}

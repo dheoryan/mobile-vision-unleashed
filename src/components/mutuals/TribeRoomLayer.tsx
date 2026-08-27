@@ -109,9 +109,9 @@ export function TribeRoomLayer({
       className={cn("flex min-h-0 shrink-0 flex-col", view !== "chat" && "flex-1 overflow-hidden")}
       aria-labelledby="tribe-room-heading"
     >
-      <div className="flex items-center justify-between border-b border-border">
+      <div className="border-b border-border">
         <div
-          className="flex min-h-11 flex-1 items-center gap-5"
+          className="grid min-h-14 w-full grid-cols-3 items-stretch"
           role="tablist"
           aria-label="Tribe Room"
         >
@@ -123,7 +123,7 @@ export function TribeRoomLayer({
               aria-selected={view === key}
               onClick={() => onViewChange(key)}
               className={cn(
-                "relative min-h-11 text-xs font-semibold capitalize text-muted-foreground transition-colors",
+                "relative flex min-h-14 items-center justify-center px-2 font-display text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary/35 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                 view === key && "text-foreground",
               )}
             >
@@ -134,24 +134,13 @@ export function TribeRoomLayer({
                   : `Plans${plans.length ? ` · ${plans.length}` : ""}`}
               {view === key && (
                 <span
-                  className="absolute inset-x-0 bottom-0 h-0.5"
+                  className="absolute inset-x-5 bottom-0 h-[3px] rounded-t-full"
                   style={{ backgroundColor: tribeColor }}
                 />
               )}
             </button>
           ))}
         </div>
-        {view === "plans" && (
-          <button
-            type="button"
-            onClick={() => setPlanOpen(true)}
-            disabled={!canParticipate}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-background disabled:opacity-40"
-            style={{ backgroundColor: tribeColor }}
-          >
-            <Plus className="h-4 w-4" /> New plan
-          </button>
-        )}
       </div>
 
       {view !== "chat" && room.isError && (
@@ -215,6 +204,19 @@ export function TribeRoomLayer({
       ) : view === "plans" ? (
         <div className="scroll-panel min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
           {room.isLoading && <RoomLines />}
+          {!room.isLoading && plans.length > 0 && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPlanOpen(true)}
+                disabled={!canParticipate}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-xs font-semibold text-background disabled:opacity-40"
+                style={{ backgroundColor: tribeColor }}
+              >
+                <Plus className="h-4 w-4" /> New plan
+              </button>
+            </div>
+          )}
           {!room.isLoading && plans.length === 0 && (
             <div className="rounded-3xl border border-dashed border-border bg-card/45 px-5 py-7 text-center">
               <span
