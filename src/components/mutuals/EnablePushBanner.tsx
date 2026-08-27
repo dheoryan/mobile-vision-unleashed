@@ -4,8 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   isIosThirdPartyBrowser,
-
   getPushBlocker,
+
   getPushPermission,
   subscribeToPush,
   unsubscribeFromPush,
