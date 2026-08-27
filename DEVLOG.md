@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Tribe mobile frame, cross-surface mentions, proposal UX, proposal-to-Venture invites | `src/components/mutuals/TribeScreen.tsx`, mention/composer surfaces, Tribe proposal/Venture server functions and tests | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -186,6 +187,112 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-27 — Codex — Push loading fix released to Git; Lovable publish pending
+
+- Built an isolated release worktree from current `origin/main`, copied only
+  the five verified push files, reran eleven tests, PWA checks, targeted lint,
+  TypeScript, diff checks, and the full production build, then pushed commit
+  `0d5edc2` (`fix: prevent push enable from hanging`) to `main`.
+- The public `https://moots.lovable.app/` host continued serving its prior
+  bundle after repeated cache-busted checks. GitHub has the commit but Lovable
+  did not auto-publish it during the verification window.
+- Both available browser sessions reached Lovable without an authenticated
+  project session, so the final Lovable Publish action remains a user handoff.
+  The signed-in Chrome publish tab was left open for that step. Do not call the
+  release live until the production bundle contains `Waiting for permission`
+  and the push save-timeout recovery copy.
+
+### 2026-08-27 — Codex — Push enable can no longer load indefinitely
+
+- Bounded every asynchronous enable stage: browser permission (45s), service
+  worker lookup/registration (10s), PushManager reads/subscription (20s), and
+  authenticated subscription persistence (15s). A stalled browser or network
+  now clears the loading state and shows a specific recovery message.
+- Replaced the unexplained spinner-only state with live progress labels:
+  Waiting for permission, Starting notifications, Connecting device, and
+  Saving. This applies consistently to the contextual prompt, notification
+  banner, and Settings.
+- Stabilized automatic subscription reconciliation with refs so a changing
+  server-function callback cannot repeatedly rerun the effect and contend with
+  the user's explicit Enable action.
+- Added a regression test proving a never-resolving push operation rejects.
+- Verification: eleven push/navigation tests, PWA checks, targeted ESLint (one
+  pre-existing Fast Refresh warning only), `npx tsc --noEmit`,
+  `git diff --check`, and the full Cloudflare production build pass.
+
+### 2026-08-27 — Codex — Cross-platform Web Push lifecycle hardening
+
+- Added an explicit insecure-origin state so phone testing over a LAN HTTP URL
+  gets actionable HTTPS guidance rather than an unsupported-browser diagnosis.
+- Existing browser subscriptions are now serialized and re-claimed for the
+  currently authenticated account when the prompt, notification inbox, or
+  Settings loads. This closes the gap where a granted subscription survived a
+  login change but the client skipped the server ownership update and silently
+  stopped delivering to the correct account.
+- Updated iPhone/iPad installation guidance to state the iOS/iPadOS 16.4+
+  requirement and use browser-neutral Share-menu wording. The app still uses
+  feature detection for actual support and requests permission only from the
+  user's explicit Enable action.
+- Verification: ten push/navigation tests, PWA release checks, targeted ESLint
+  (one pre-existing Fast Refresh warning only), `npx tsc --noEmit`,
+  `git diff --check`, and the full Cloudflare production build pass.
+
+### 2026-08-27 — Codex — Push waits for an active Service Worker
+
+- Fixed the Chromium `PushManager.subscribe()` race that produced
+  "Subscription failed - no active Service Worker". Subscription now reuses
+  registrations across both known scope lookups, registers without HTTP cache
+  reuse when needed, promotes a waiting first install, and waits for
+  `navigator.serviceWorker.ready` before accessing PushManager.
+- A genuinely stalled worker now returns a short recovery instruction instead
+  of exposing the raw browser exception. Existing active registrations remain
+  immediate and current subscription checks ignore inactive registrations.
+- Strengthened the PWA release check to require the active-worker lifecycle.
+- Verification: PWA checks, nine push tests, targeted ESLint,
+  `npx tsc --noEmit`, and the full Cloudflare production build pass.
+
+### 2026-08-27 — Codex — Tribe room top-area gutter alignment
+
+- Reduced the Tribe identity and Chat/Pulse/Plans navigation gutter from 20px
+  to the same 12px used by the message list and composer. The full room now
+  follows one continuous edge instead of stepping inward above the chat.
+- Verification: targeted ESLint, `npx tsc --noEmit`, and `git diff --check`
+  pass.
+
+### 2026-08-27 — Codex — Tribe room width-cap follow-up
+
+- The first gutter fix removed stacked padding, but a separate `max-w-md`
+  constraint still centered the whole room inside viewports wider than 448px.
+  Raised the Tribe room and its back header to a shared 576px cap so narrow
+  desktop windows, large phones, and foldables use the available viewport
+  instead of rendering empty side columns. Message bubbles retain their own
+  percentage width caps.
+- Verification: targeted ESLint, `npx tsc --noEmit`, and `git diff --check`
+  pass.
+
+### 2026-08-27 — Codex — Tribe chat viewport gutters
+
+- Removed the page-level horizontal padding from the live Tribe conversation.
+  The identity and Chat/Pulse/Plans navigation retain the established 20px
+  alignment, while messages and the composer now use only their own compact
+  12px gutter instead of stacking both values into oversized side rails.
+- Pulse and Plans remain constrained to the normal page gutter.
+- Verification: targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and
+  the full Cloudflare production build pass.
+
+### 2026-08-27 — Codex — Safari typography and Discover deck overlap
+
+- Disabled Mobile Safari's automatic text inflation so Timeline cards, tab
+  controls, metadata, and action rows keep the authored responsive type scale
+  after rotation and across different iPhone viewport heuristics. Browser
+  pinch zoom remains available.
+- Moved the mobile Discover deck chevrons into the clear upper photo field and
+  reduced their visible glyph size while retaining accessible tap targets. The
+  arrows no longer cross the profile name or location block; larger layouts
+  retain the established outer-midpoint placement.
+- Verification: targeted ESLint, `npx tsc --noEmit`, `git diff --check`, and
+  the full Cloudflare production build pass.
 
 ### 2026-08-27 — Codex — Push compatibility, privacy, and delivery hardening
 
@@ -341,6 +448,31 @@ Newest first. Append; don't edit past entries.
   production build pass. The localhost app hot-reloads cleanly, but that
   browser origin is signed out, so authenticated phone gesture and crop
   acceptance remains for the user's existing session.
+
+### 2026-08-26 — Codex — General Lovable shared-link thumbnail
+
+- Created `public/meutuals-lovable-share-general.png` (1727×908) as the
+  preferred general MEUTUALS shared-link cover. It derives from the published
+  app illustrations rather than a single Tribe: five people, balanced accent
+  details from the Tribe family, general messaging and plan-making cues, and
+  the exact shipped MEUTUALS eye mark composited above the wordmark. It is a
+  publishing artifact only and is not imported by the app.
+
+### 2026-08-26 — Codex — Editorial Lovable shared-link thumbnail
+
+- Created `public/meutuals-lovable-share-editorial.png`, a 1729×910 wide
+  social-preview image in the established MEUTUALS screen-print illustration
+  language: warm ivory figures, near-black ink, tactile print grain, Tribe
+  masks worn up with visible faces, and the existing fuchsia/rose/coral palette.
+  This is the preferred shared-link thumbnail; the earlier photo-editorial
+  option remains as a separate file for recovery, not an application import.
+
+### 2026-08-26 — Codex — Lovable shared-link thumbnail
+
+- Created `public/meutuals-lovable-share.png`, a 1730×909 social-preview
+  graphic for MEUTUALS. It uses the established charcoal, fuchsia, rose, and
+  coral palette with a diverse connected-friends scene and a legible MEUTUALS
+  wordmark; it is a publishing artifact and is not imported by the app.
 
 ### 2026-08-26 — Codex — Settings became a full-screen navigation space
 
