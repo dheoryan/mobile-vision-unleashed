@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Stronger chat bubble visual differentiation | `src/lib/chat-grouping.ts`, chat thread presentation/tests | 2026-08-27 |
+| Codex | Chat group breathing-space correction | `src/lib/chat-grouping.ts`, grouping test | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +205,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-27 — Codex — Stronger connected chat silhouettes
+
+- Responded to signed-in localhost evidence that the first grouped-bubble pass
+  was technically present but visually too subtle to register.
+- Widened conversational grouping from five to fifteen minutes, collapsed the
+  inter-message seam, reduced standalone pill rounding, and gave connected
+  messages sharply reduced inner corners. Reaction chips now overlap the
+  parent bubble more clearly.
+- Applied the same shared treatment to Tribe, Venture party, and direct chat.
+  Verification: 13 focused chat/mention/room tests, Prettier, TypeScript,
+  `git diff --check`, and the full Cloudflare production build pass.
 
 ### 2026-08-27 — Codex — Compact grouped chat bubble model
 
