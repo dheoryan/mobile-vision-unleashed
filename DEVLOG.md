@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Chat group breathing-space correction | `src/lib/chat-grouping.ts`, grouping test | 2026-08-27 |
+| Codex | Unify Tribe room header to approved scratch | `src/components/mutuals/TribeScreen.tsx` | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +205,14 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-27 — Codex — Grouped messages regain breathing room
+
+- Replaced the zero/negative seam between connected messages with a 4 px gap.
+  The reduced inner corners remain, so a burst still reads as one group without
+  collapsing into a solid column.
+- Updated the grouping contract test and confirmed localhost:8082 is serving
+  the new spacing. Focused tests and TypeScript pass.
 
 ### 2026-08-27 — Codex — Stronger connected chat silhouettes
 
