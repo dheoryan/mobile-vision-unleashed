@@ -13,20 +13,13 @@ export const saveSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SubscriptionSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .upsert(
-        {
-          user_id: userId,
-          endpoint: data.endpoint,
-          p256dh: data.p256dh,
-          auth: data.auth,
-          user_agent: data.userAgent ?? null,
-          last_used_at: new Date().toISOString(),
-        },
-        { onConflict: "endpoint" },
-      );
+    const { supabase } = context;
+    const { error } = await supabase.rpc("claim_push_subscription", {
+      _endpoint: data.endpoint,
+      _p256dh: data.p256dh,
+      _auth: data.auth,
+      _user_agent: data.userAgent ?? null,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

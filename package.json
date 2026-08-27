@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "check:location": "node --test tests/indonesia-location.test.ts",
     "check:pwa": "node scripts/verify-pwa.mjs",
+    "check:push": "node --test --test-isolation=none tests/push-notifications.test.ts tests/notification-presenter.test.ts",
     "check:tribe-room": "node --test tests/tribe-room.test.ts",
     "preview": "vite preview",
     "lint": "eslint .",

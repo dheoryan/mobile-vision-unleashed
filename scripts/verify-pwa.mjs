@@ -62,6 +62,32 @@ assert(
   "Service worker needs a navigation fallback",
 );
 
+const pushSubscribe = await read("src/lib/push-subscribe.ts");
+assert(
+  pushSubscribe.includes('return "needs-install"') && pushSubscribe.includes("desktopModeIpad"),
+  "Push capability detection must preserve iPhone/iPad install guidance",
+);
+
+const pushDispatch = await read("src/routes/api/public/push.dispatch.ts");
+for (const required of [
+  "VAPID_PRIVATE_KEY is not configured",
+  "recordDelivery",
+  "buildPushCopy",
+  "AbortSignal.timeout",
+]) {
+  assert(pushDispatch.includes(required), `Push dispatch is missing ${required}`);
+}
+
+const pushMigration = await read("supabase/migrations/20260827043000_harden_push_delivery.sql");
+for (const required of [
+  "claim_push_subscription",
+  "push_attempted_at",
+  "push_delivered_count",
+  "offset 8",
+]) {
+  assert(pushMigration.includes(required), `Push hardening migration is missing ${required}`);
+}
+
 const offlinePage = await read("public/offline.html");
 assert(offlinePage.includes("You’re offline."), "Offline page needs a clear status");
 assert(offlinePage.includes('addEventListener("online"'), "Offline page must recover on reconnect");
