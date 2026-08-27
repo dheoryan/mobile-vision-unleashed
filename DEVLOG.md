@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Unify Tribe room header to approved scratch | `src/components/mutuals/TribeScreen.tsx` | 2026-08-27 |
+| Codex | Unify Tribe room header and tabs to approved scratch | `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/TribeRoomLayer.tsx` | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
