@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Compact chat bubble model across Tribe and Venture chat | `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/MessagesPanel.tsx`, shared chat presentation/tests | 2026-08-27 |
+| Codex | Stronger chat bubble visual differentiation | `src/lib/chat-grouping.ts`, chat thread presentation/tests | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +205,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-27 — Codex — Compact grouped chat bubble model
+
+- Reworked Tribe, Venture party, and direct-message threads around a shared
+  five-minute grouping rule: consecutive messages from one sender connect,
+  identity appears once at the group start, and time appears once at the end.
+- Replaced pill-like system events with quiet ruled timeline notices, attached
+  reaction chips to their bubbles, and retained reply swipe, quotes, mentions,
+  attachments, safety actions, and the existing 44 px action targets.
+- Added focused grouping regression tests. Verification: 17 chat/mention/room
+  tests, `npx tsc --noEmit`, `git diff --check`, and the full Cloudflare
+  production build pass. Signed-in visual acceptance remains a device check.
 
 ### 2026-08-27 — Codex — Push loading fix released to Git; Lovable publish pending
 
