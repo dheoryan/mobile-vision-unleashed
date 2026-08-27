@@ -1,20 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, BellOff, X, Smartphone, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  isIosThirdPartyBrowser,
+  isStandalonePwa,
+  isIosSafari,
   getPushAvailability,
   getPushPermission,
   subscribeToPush,
   unsubscribeFromPush,
-  getCurrentSubscription,
+  getCurrentSubscriptionData,
+  withPushTimeout,
+  type PushEnableStage,
   type PushPermission,
   type PushAvailability,
 } from "@/lib/push-subscribe";
 import { saveSubscription, deleteSubscription } from "@/lib/push.functions";
 
 const DISMISS_KEY = "mutuals.push-banner.dismissed-session";
+const SAVE_TIMEOUT_MS = 15_000;
+
+type EnableProgress = PushEnableStage | "saving" | null;
+
+const progressLabel = (progress: EnableProgress, fallback: string) => {
+  if (progress === "permission") return "Waiting for permission…";
+  if (progress === "service") return "Starting notifications…";
+  if (progress === "subscription") return "Connecting device…";
+  if (progress === "saving") return "Saving…";
+  return fallback;
+};
 
 export function EnablePushBanner() {
   const [permission, setPermission] = useState<PushPermission>("unsupported");
@@ -22,7 +36,10 @@ export function EnablePushBanner() {
   const [subscribed, setSubscribed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<EnableProgress>(null);
   const save = useServerFn(saveSubscription);
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   useEffect(() => {
     setAvailability(getPushAvailability());
@@ -32,28 +49,43 @@ export function EnablePushBanner() {
     } catch {
       /* ignore */
     }
-    getCurrentSubscription().then((s) => setSubscribed(!!s));
+    void getCurrentSubscriptionData().then(async (sub) => {
+      if (!sub) return;
+      try {
+        await saveRef.current({
+          data: { ...sub, userAgent: navigator.userAgent.slice(0, 500) },
+        });
+        setSubscribed(true);
+      } catch {
+        setSubscribed(false);
+      }
+    });
   }, []);
 
   const enable = async () => {
     setLoading(true);
     try {
-      const sub = await subscribeToPush();
-      if (!sub) throw new Error("Could not subscribe.");
-      await save({
-        data: {
-          endpoint: sub.endpoint,
-          p256dh: sub.p256dh,
-          auth: sub.auth,
-          userAgent: navigator.userAgent.slice(0, 500),
-        },
-      });
+      const sub = await subscribeToPush(setProgress);
+      setProgress("saving");
+      await withPushTimeout(
+        save({
+          data: {
+            endpoint: sub.endpoint,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+            userAgent: navigator.userAgent.slice(0, 500),
+          },
+        }),
+        SAVE_TIMEOUT_MS,
+        "MEUTUALS could not save this device in time. Check your connection and try again.",
+      );
       setSubscribed(true);
       setPermission("granted");
       toast.success("Push notifications enabled.");
     } catch (err) {
       toast.error("Could not enable push", { description: (err as Error).message });
     } finally {
+      setProgress(null);
       setLoading(false);
     }
   };
@@ -75,9 +107,8 @@ export function EnablePushBanner() {
         <div className="min-w-0 flex-1 text-xs">
           <p className="font-semibold text-foreground">Get push notifications on iPhone</p>
           <p className="mt-1 text-muted-foreground">
-            {isIosThirdPartyBrowser() ? "Open MEUTUALS in Safari, then tap " : "Tap "}
-            Share → <b>Add to Home Screen</b>, then open MEUTUALS from its home-screen icon and
-            enable notifications there.
+            On iOS 16.4 or later, open Share → <b>Add to Home Screen</b>, then launch MEUTUALS from
+            its new icon.
           </p>
         </div>
         <button
@@ -92,7 +123,7 @@ export function EnablePushBanner() {
     );
   }
 
-  if (availability === "unsupported") return null;
+  if (availability === "unsupported" || availability === "insecure") return null;
   if (subscribed) return null;
   if (availability === "blocked" || permission === "denied") return null;
   if (dismissed) return null;
@@ -113,7 +144,7 @@ export function EnablePushBanner() {
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
-            Enable
+            <span aria-live="polite">{progressLabel(progress, "Enable")}</span>
           </button>
           <button
             onClick={dismiss}
@@ -139,13 +170,26 @@ export function PushSettingsRow() {
   const [availability, setAvailability] = useState<PushAvailability>("unsupported");
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<EnableProgress>(null);
   const save = useServerFn(saveSubscription);
   const remove = useServerFn(deleteSubscription);
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   useEffect(() => {
     setAvailability(getPushAvailability());
     setPermission(getPushPermission());
-    getCurrentSubscription().then((s) => setSubscribed(!!s));
+    void getCurrentSubscriptionData().then(async (sub) => {
+      if (!sub) return;
+      try {
+        await saveRef.current({
+          data: { ...sub, userAgent: navigator.userAgent.slice(0, 500) },
+        });
+        setSubscribed(true);
+      } catch {
+        setSubscribed(false);
+      }
+    });
   }, []);
 
   if (availability === "needs-install") {
@@ -156,9 +200,8 @@ export function PushSettingsRow() {
           <div>
             <p className="text-sm font-semibold">Install to enable notifications</p>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              On iPhone or iPad, {isIosThirdPartyBrowser() ? "open MEUTUALS in Safari, then " : ""}
-              tap Share → Add to Home Screen. Open MEUTUALS from its new icon, then return here to
-              enable push.
+              On iOS or iPadOS 16.4 and later, open Share → Add to Home Screen. Launch MEUTUALS from
+              its new icon, then return here to enable push.
             </p>
           </div>
         </div>
@@ -174,25 +217,44 @@ export function PushSettingsRow() {
     );
   }
 
+  if (availability === "insecure") {
+    return (
+      <p className="rounded-xl border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
+        Push requires a secure HTTPS connection. Open the published MEUTUALS app to enable it.
+      </p>
+    );
+  }
+
   const enable = async () => {
+    if (isIosSafari() && !isStandalonePwa()) {
+      toast.message("Install the app first", {
+        description: "Tap Share → Add to Home Screen, then open MEUTUALS from the home screen.",
+      });
+      return;
+    }
     setLoading(true);
     try {
-      const sub = await subscribeToPush();
-      if (!sub) throw new Error("Could not subscribe.");
-      await save({
-        data: {
-          endpoint: sub.endpoint,
-          p256dh: sub.p256dh,
-          auth: sub.auth,
-          userAgent: navigator.userAgent.slice(0, 500),
-        },
-      });
+      const sub = await subscribeToPush(setProgress);
+      setProgress("saving");
+      await withPushTimeout(
+        save({
+          data: {
+            endpoint: sub.endpoint,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+            userAgent: navigator.userAgent.slice(0, 500),
+          },
+        }),
+        SAVE_TIMEOUT_MS,
+        "MEUTUALS could not save this device in time. Check your connection and try again.",
+      );
       setSubscribed(true);
       setPermission("granted");
       toast.success("Push notifications enabled.");
     } catch (err) {
       toast.error("Could not enable push", { description: (err as Error).message });
     } finally {
+      setProgress(null);
       setLoading(false);
     }
   };
@@ -245,7 +307,7 @@ export function PushSettingsRow() {
           className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
         >
           {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
-          Enable
+          <span aria-live="polite">{progressLabel(progress, "Enable")}</span>
         </button>
       )}
     </div>

@@ -67,6 +67,16 @@ assert(
   pushSubscribe.includes('return "needs-install"') && pushSubscribe.includes("desktopModeIpad"),
   "Push capability detection must preserve iPhone/iPad install guidance",
 );
+for (const required of [
+  "navigator.serviceWorker.ready",
+  'updateViaCache: "none"',
+  "registration.active",
+]) {
+  assert(
+    pushSubscribe.includes(required),
+    `Push subscription must wait for an active Service Worker: ${required}`,
+  );
+}
 
 const pushDispatch = await read("src/routes/api/public/push.dispatch.ts");
 for (const required of [

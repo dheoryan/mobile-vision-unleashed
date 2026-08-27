@@ -5,14 +5,15 @@ import { AnimatedModal } from "@/components/ui/animated-modal";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getCurrentSubscription,
+  getCurrentSubscriptionData,
   getPushAvailability,
   getPushPermission,
   isAndroid,
   isIosSafari,
-  isIosThirdPartyBrowser,
   isStandalonePwa,
   subscribeToPush,
+  withPushTimeout,
+  type PushEnableStage,
 } from "@/lib/push-subscribe";
 import {
   canInstallNow,
@@ -52,11 +53,22 @@ const COPY: Record<PushPromptTrigger, { title: string; body: string }> = {
   },
 };
 
+const SAVE_TIMEOUT_MS = 15_000;
+
+const enableLabel = (stage: PushEnableStage | "saving" | null) => {
+  if (stage === "permission") return "Waiting for permission…";
+  if (stage === "service") return "Starting notifications…";
+  if (stage === "subscription") return "Connecting device…";
+  if (stage === "saving") return "Saving…";
+  return "Enable notifications";
+};
+
 export function PushPromptModal() {
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [trigger, setTrigger] = useState<PushPromptTrigger>("session");
   const [busy, setBusy] = useState(false);
+  const [enableStage, setEnableStage] = useState<PushEnableStage | "saving" | null>(null);
   const [installable, setInstallable] = useState(canInstallNow());
   const save = useServerFn(saveSubscription);
   const profileQuery = useProfileRow();
@@ -84,12 +96,27 @@ export function PushPromptModal() {
   useEffect(() => {
     if (authLoading || !user || !profileReady) return;
     const availability = getPushAvailability();
-    if (availability === "unsupported" || availability === "blocked") return;
+    if (availability === "unsupported" || availability === "blocked" || availability === "insecure")
+      return;
     const timer = window.setTimeout(() => {
       void (async () => {
         if (availability === "available") {
-          const sub = await getCurrentSubscription();
-          if (sub) return;
+          const sub = await getCurrentSubscriptionData();
+          if (sub) {
+            try {
+              await save({
+                data: {
+                  ...sub,
+                  userAgent: navigator.userAgent.slice(0, 500),
+                },
+              });
+              markEnabled(user.id);
+              return;
+            } catch {
+              // Keep going to the visible retry path if server reconciliation
+              // failed. The browser permission itself remains intact.
+            }
+          }
           const perm = getPushPermission();
           if (perm === "denied") return;
         }
@@ -103,7 +130,8 @@ export function PushPromptModal() {
   function tryOpen(t: PushPromptTrigger) {
     if (!user || !profileReady) return;
     const availability = getPushAvailability();
-    if (availability === "unsupported" || availability === "blocked") return;
+    if (availability === "unsupported" || availability === "blocked" || availability === "insecure")
+      return;
     if (!shouldShowPrompt(user.id, t)) return;
     setTrigger(t);
     setOpen(true);
@@ -116,22 +144,27 @@ export function PushPromptModal() {
     if (!user) return;
     setBusy(true);
     try {
-      const sub = await subscribeToPush();
-      if (!sub) throw new Error("Could not subscribe.");
-      await save({
-        data: {
-          endpoint: sub.endpoint,
-          p256dh: sub.p256dh,
-          auth: sub.auth,
-          userAgent: navigator.userAgent.slice(0, 500),
-        },
-      });
+      const sub = await subscribeToPush(setEnableStage);
+      setEnableStage("saving");
+      await withPushTimeout(
+        save({
+          data: {
+            endpoint: sub.endpoint,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+            userAgent: navigator.userAgent.slice(0, 500),
+          },
+        }),
+        SAVE_TIMEOUT_MS,
+        "MEUTUALS could not save this device in time. Check your connection and try again.",
+      );
       markEnabled(user.id);
       toast.success("Push notifications enabled.");
       setOpen(false);
     } catch (err) {
       toast.error("Could not enable push", { description: (err as Error).message });
     } finally {
+      setEnableStage(null);
       setBusy(false);
     }
   };
@@ -149,23 +182,14 @@ export function PushPromptModal() {
   const standalone = isStandalonePwa();
   const ios = isIosSafari();
   const android = isAndroid();
-  const iosNeedsInstall = getPushAvailability() === "needs-install";
-  const iosOtherBrowser = ios && isIosThirdPartyBrowser();
+  const iosNeedsInstall = ios && !standalone;
   const androidCanInstall = android && !standalone;
   const copy = COPY[trigger];
 
   const iosSteps = [
-    ...(iosOtherBrowser
-      ? [
-          {
-            icon: <Smartphone className="h-4 w-4" />,
-            text: "Open MEUTUALS in Safari first — iPhone notifications only work from a Safari-installed app.",
-          },
-        ]
-      : []),
     {
       icon: <Share className="h-4 w-4" />,
-      text: "Tap the Share button in Safari's toolbar.",
+      text: "Open your browser's Share menu. In Safari, tap Share in the toolbar.",
     },
     { icon: <Plus className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
     {
@@ -211,7 +235,7 @@ export function PushPromptModal() {
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
         {iosNeedsInstall
-          ? "Push on iPhone and iPad requires installing MEUTUALS to your home screen. Follow these steps:"
+          ? "On iOS or iPadOS 16.4 and later, push requires installing MEUTUALS to your home screen. Follow these steps:"
           : copy.body}
       </p>
 
@@ -250,7 +274,7 @@ export function PushPromptModal() {
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-            Enable notifications
+            <span aria-live="polite">{enableLabel(enableStage)}</span>
           </button>
           <div className="flex items-center justify-between gap-2">
             <button
