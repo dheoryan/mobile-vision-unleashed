@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Unify Tribe room header and tabs to approved scratch | `src/components/mutuals/TribeScreen.tsx`, `src/components/mutuals/TribeRoomLayer.tsx` | 2026-08-27 |
+| Codex | Normalize Tribe chat header to Venture/DM shell metrics | `src/components/mutuals/TribeScreen.tsx` | 2026-08-27 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +205,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-27 — Codex — Tribe room shell aligned to approved scratch
+
+- Removed the duplicated breadcrumb plus identity stack for rooms opened from
+  Chats. The replacement is one unified header with back navigation, Tribe
+  crest, home status, name, member access, and notifications.
+- Replaced the small left-clustered room tabs with three equal-width 56 px
+  targets, larger display labels, and a clear active underline. The contextual
+  New plan action now lives in Plans content instead of compressing the tabs.
+- Verification: 13 focused room/chat/mention tests, Prettier, TypeScript,
+  `git diff --check`, localhost source confirmation, and the full Cloudflare
+  production build pass.
 
 ### 2026-08-27 — Codex — Grouped messages regain breathing room
 
