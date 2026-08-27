@@ -187,6 +187,31 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-27 — Codex — Push compatibility, privacy, and delivery hardening
+
+- Replaced binary Push API detection with explicit available, blocked,
+  install-required, and unsupported states. iPhone and iPad browser tabs now
+  receive Home Screen installation guidance before WebKit's intentionally
+  hidden Push API is mistaken for missing browser support; desktop-mode iPads
+  are detected as Apple mobile devices too.
+- Moved subscription writes into a bounded authenticated database capability.
+  An installed app can safely reassign its existing subscription after an
+  interrupted logout or account switch, while direct unbounded inserts and
+  updates are removed and each account is capped at eight active endpoints.
+- Added durable delivery state and counters to notifications. The Worker now
+  validates its VAPID configuration, times out provider requests, records
+  skipped/delivered/partial/failed outcomes, removes expired endpoints, and
+  returns non-2xx when configured recipients receive zero successful pushes.
+- Private DM, Hello, Venture application, invitation, acceptance, and party-
+  chat text no longer appears in lock-screen payloads. Public post activity can
+  retain its useful preview. Existing inbox and deep-link semantics are
+  unchanged.
+- Verification passes: nine focused push/navigation tests, strengthened PWA
+  release gate, service-worker syntax, targeted ESLint (one pre-existing Fast
+  Refresh warning), clean TypeScript, `git diff --check`, and the full
+  Cloudflare production build. The Red migration remains unapplied pending the
+  user's manual SQL-editor step and physical iPhone/Android delivery acceptance.
+
 ### 2026-08-26 — Codex — Short photo actions without camera glyphs
 
 - Removed the camera badge from both onboarding and Edit Profile because the

@@ -6,12 +6,12 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
   getCurrentSubscription,
+  getPushAvailability,
   getPushPermission,
   isAndroid,
   isIosSafari,
   isIosThirdPartyBrowser,
   isStandalonePwa,
-  getPushBlocker,
   subscribeToPush,
 } from "@/lib/push-subscribe";
 import {
@@ -83,13 +83,16 @@ export function PushPromptModal() {
   // Session prompt on app open.
   useEffect(() => {
     if (authLoading || !user || !profileReady) return;
-    if (getPushBlocker() === "unsupported") return;
+    const availability = getPushAvailability();
+    if (availability === "unsupported" || availability === "blocked") return;
     const timer = window.setTimeout(() => {
       void (async () => {
-        const sub = await getCurrentSubscription();
-        if (sub) return;
-        const perm = getPushPermission();
-        if (perm === "denied") return;
+        if (availability === "available") {
+          const sub = await getCurrentSubscription();
+          if (sub) return;
+          const perm = getPushPermission();
+          if (perm === "denied") return;
+        }
         tryOpen("session");
       })();
     }, 1500);
@@ -99,8 +102,8 @@ export function PushPromptModal() {
 
   function tryOpen(t: PushPromptTrigger) {
     if (!user || !profileReady) return;
-    if (getPushBlocker() === "unsupported") return;
-    if (getPushPermission() === "denied") return;
+    const availability = getPushAvailability();
+    if (availability === "unsupported" || availability === "blocked") return;
     if (!shouldShowPrompt(user.id, t)) return;
     setTrigger(t);
     setOpen(true);
@@ -146,7 +149,7 @@ export function PushPromptModal() {
   const standalone = isStandalonePwa();
   const ios = isIosSafari();
   const android = isAndroid();
-  const iosNeedsInstall = getPushBlocker() === "needs-install";
+  const iosNeedsInstall = getPushAvailability() === "needs-install";
   const iosOtherBrowser = ios && isIosThirdPartyBrowser();
   const androidCanInstall = android && !standalone;
   const copy = COPY[trigger];
@@ -185,132 +188,134 @@ export function PushPromptModal() {
   return (
     <AnimatedModal
       open={open && !!user}
-      onOpenChange={(o) => { if (!o) skipSoft(); }}
+      onOpenChange={(o) => {
+        if (!o) skipSoft();
+      }}
       title="Push notifications"
       center
       zIndex={60}
       contentClassName="max-h-[90vh] overflow-y-auto scroll-panel p-6 shadow-2xl"
     >
-        <button
-          onClick={skipSoft}
-          aria-label="Close"
-          className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          {iosNeedsInstall ? <Smartphone className="h-6 w-6" /> : <Bell className="h-6 w-6" />}
-        </div>
-        <h2 className="mt-4 font-display text-lg font-bold text-foreground">
-          {iosNeedsInstall ? "Get push notifications on iPhone" : copy.title}
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {iosNeedsInstall
-            ? "Push on iPhone requires installing MEUTUALS to your home screen. Follow these steps:"
-            : copy.body}
-        </p>
+      <button
+        onClick={skipSoft}
+        aria-label="Close"
+        className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground hover:text-foreground"
+      >
+        <X className="h-4 w-4" />
+      </button>
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+        {iosNeedsInstall ? <Smartphone className="h-6 w-6" /> : <Bell className="h-6 w-6" />}
+      </div>
+      <h2 className="mt-4 font-display text-lg font-bold text-foreground">
+        {iosNeedsInstall ? "Get push notifications on iPhone or iPad" : copy.title}
+      </h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {iosNeedsInstall
+          ? "Push on iPhone and iPad requires installing MEUTUALS to your home screen. Follow these steps:"
+          : copy.body}
+      </p>
 
-        {iosNeedsInstall ? (
-          <>
-            <ol className="mt-4 space-y-2.5">
-              {iosSteps.map((s, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/40 p-3"
-                >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                    {i + 1}
-                  </span>
-                  <span className="flex items-start gap-2 text-xs text-foreground">
-                    <span className="mt-0.5 text-primary">{s.icon}</span>
-                    <span>{s.text}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={skipSoft}
-                className="rounded-full px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+      {iosNeedsInstall ? (
+        <>
+          <ol className="mt-4 space-y-2.5">
+            {iosSteps.map((s, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/40 p-3"
               >
-                Got it
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="mt-5 space-y-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                  {i + 1}
+                </span>
+                <span className="flex items-start gap-2 text-xs text-foreground">
+                  <span className="mt-0.5 text-primary">{s.icon}</span>
+                  <span>{s.text}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-5 flex justify-end gap-2">
             <button
-              onClick={enable}
-              disabled={busy}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              onClick={skipSoft}
+              className="rounded-full px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-              Enable notifications
+              Got it
             </button>
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={skipSoft}
-                className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
-              >
-                Skip for now
-              </button>
-              <button
-                onClick={skipHard}
-                className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground/70 hover:text-foreground"
-              >
-                Don't ask again
-              </button>
-            </div>
-
-            {androidCanInstall && installable && (
-              <button
-                onClick={async () => {
-                  const outcome = await triggerInstallPrompt();
-                  if (outcome === "accepted") {
-                    toast.success("MEUTUALS is installing — open it from your home screen.");
-                    setOpen(false);
-                  } else if (outcome === "unavailable") {
-                    toast.message("Install not available", {
-                      description: "Use Chrome's menu → Install app instead.",
-                    });
-                  }
-                }}
-                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15"
-              >
-                <Download className="h-4 w-4" />
-                Install MEUTUALS on home screen
-              </button>
-            )}
-
-            {androidCanInstall && !installable && (
-              <details className="group mt-3 rounded-2xl border border-border/60 bg-secondary/30 p-3">
-                <summary className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-foreground">
-                  <span className="inline-flex items-center gap-2">
-                    <Smartphone className="h-4 w-4 text-primary" />
-                    Install MEUTUALS on Android
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
-                </summary>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Optional — installing gives a fullscreen app and more reliable notifications.
-                </p>
-                <ol className="mt-2 space-y-2">
-                  {androidSteps.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-foreground">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                        {i + 1}
-                      </span>
-                      <span className="flex items-start gap-2">
-                        <span className="mt-0.5 text-primary">{s.icon}</span>
-                        <span>{s.text}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </details>
-            )}
           </div>
-        )}
+        </>
+      ) : (
+        <div className="mt-5 space-y-2">
+          <button
+            onClick={enable}
+            disabled={busy}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+            Enable notifications
+          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={skipSoft}
+              className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Skip for now
+            </button>
+            <button
+              onClick={skipHard}
+              className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground/70 hover:text-foreground"
+            >
+              Don't ask again
+            </button>
+          </div>
+
+          {androidCanInstall && installable && (
+            <button
+              onClick={async () => {
+                const outcome = await triggerInstallPrompt();
+                if (outcome === "accepted") {
+                  toast.success("MEUTUALS is installing — open it from your home screen.");
+                  setOpen(false);
+                } else if (outcome === "unavailable") {
+                  toast.message("Install not available", {
+                    description: "Use Chrome's menu → Install app instead.",
+                  });
+                }
+              }}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15"
+            >
+              <Download className="h-4 w-4" />
+              Install MEUTUALS on home screen
+            </button>
+          )}
+
+          {androidCanInstall && !installable && (
+            <details className="group mt-3 rounded-2xl border border-border/60 bg-secondary/30 p-3">
+              <summary className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-primary" />
+                  Install MEUTUALS on Android
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Optional — installing gives a fullscreen app and more reliable notifications.
+              </p>
+              <ol className="mt-2 space-y-2">
+                {androidSteps.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-foreground">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      {i + 1}
+                    </span>
+                    <span className="flex items-start gap-2">
+                      <span className="mt-0.5 text-primary">{s.icon}</span>
+                      <span>{s.text}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
+        </div>
+      )}
     </AnimatedModal>
   );
 }

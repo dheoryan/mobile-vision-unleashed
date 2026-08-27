@@ -23,6 +23,7 @@ Run before every PWA release:
 
 ```bash
 npm run check:pwa
+npm run check:push
 npx tsc --noEmit
 npm run build
 ```
@@ -43,6 +44,7 @@ installed-app preferences.
   in-app offline status appears instead of a browser error.
 - Restore the network and confirm the app recovers without clearing the session.
 - Enable notifications from a user gesture and open a notification deep link.
+- Send one private DM and confirm the lock-screen alert does not reveal its text.
 
 ## iPhone — Safari / Home Screen
 
@@ -52,6 +54,8 @@ installed-app preferences.
 - Confirm Settings reports **Installed app**.
 - Enable Web Push only after launching from the Home Screen; verify a notification
   opens its intended destination.
+- Before installation, confirm the browser explains **Add to Home Screen** instead
+  of incorrectly reporting that push is unsupported.
 - Repeat offline/reconnect and update tests on the installed copy.
 
 ## Account switching
@@ -61,6 +65,16 @@ installed-app preferences.
 - Account B must see Venture onboarding and must not inherit Account A's tab,
   Venture mode, open message thread, cached queries, or push subscription.
 - Sign back in as Account A and confirm its non-sensitive preferences return.
+- Interrupt one logout or clear site storage, sign in as Account B, and confirm the
+  existing browser subscription is safely reassigned rather than failing to save.
+
+## Delivery health
+
+- Generate an in-app notification and confirm its `push_status` leaves `pending`.
+  `skipped` is correct when the recipient has no subscriptions; otherwise expect
+  `delivered`, `partial`, or `failed` with matching delivery counters.
+- A configured recipient with zero successful provider deliveries must make the
+  dispatch endpoint return a non-2xx response so platform monitoring can alert.
 
 ## Update behavior
 

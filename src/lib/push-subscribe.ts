@@ -2,6 +2,17 @@
 export const VAPID_PUBLIC_KEY =
   "BJPHTQJ4qyDf9_YrT0HbcZ6GeNMs-3DsV7Awdos-dj1F8FmvqcTMCBs5nSNQ2Uw2nt-uJ8bkHB-Abh-599_wqJk";
 
+export type PushAvailability = "available" | "blocked" | "needs-install" | "unsupported";
+
+export interface PushCapabilitySnapshot {
+  appleMobile: boolean;
+  standalone: boolean;
+  hasServiceWorker: boolean;
+  hasPushManager: boolean;
+  hasNotifications: boolean;
+  permission: NotificationPermission | null;
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -20,11 +31,7 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
 
 export function isPushSupported(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
-  );
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
 export function isStandalonePwa(): boolean {
@@ -42,8 +49,11 @@ export function isStandalonePwa(): boolean {
 export function isIosSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  if (/iPad|iPhone|iPod/.test(ua)) return true;
-  return /Macintosh/.test(ua) && (navigator.maxTouchPoints ?? 0) > 1;
+  const classicIos = /iPad|iPhone|iPod/.test(ua);
+  const desktopModeIpad =
+    (/Macintosh/.test(ua) || navigator.platform === "MacIntel") &&
+    (navigator.maxTouchPoints ?? 0) > 1;
+  return classicIos || desktopModeIpad;
 }
 
 /** Chrome / Firefox / Edge on iOS are WebKit shells and behave the same. */
@@ -66,13 +76,36 @@ export function isAndroid(): boolean {
 export type PushBlocker = "none" | "needs-install" | "unsupported";
 
 export function getPushBlocker(): PushBlocker {
-  if (typeof window === "undefined") return "unsupported";
-  if (isIosSafari() && !isStandalonePwa()) return "needs-install";
-  if (!isPushSupported()) return "unsupported";
+  const availability = getPushAvailability();
+  if (availability === "needs-install") return "needs-install";
+  if (availability === "unsupported") return "unsupported";
   return "none";
 }
 
 export type PushPermission = "default" | "granted" | "denied" | "unsupported";
+
+export function evaluatePushAvailability(snapshot: PushCapabilitySnapshot): PushAvailability {
+  // iOS/iPadOS deliberately hides Push API support from normal browser tabs.
+  // Preserve this state before generic feature detection so the UI can explain
+  // how to install the Home Screen web app instead of saying "unsupported".
+  if (snapshot.appleMobile && !snapshot.standalone) return "needs-install";
+  if (!snapshot.hasServiceWorker || !snapshot.hasPushManager || !snapshot.hasNotifications) {
+    return "unsupported";
+  }
+  return snapshot.permission === "denied" ? "blocked" : "available";
+}
+
+export function getPushAvailability(): PushAvailability {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return "unsupported";
+  return evaluatePushAvailability({
+    appleMobile: isIosSafari(),
+    standalone: isStandalonePwa(),
+    hasServiceWorker: "serviceWorker" in navigator,
+    hasPushManager: "PushManager" in window,
+    hasNotifications: "Notification" in window,
+    permission: "Notification" in window ? Notification.permission : null,
+  });
+}
 
 export function getPushPermission(): PushPermission {
   if (!isPushSupported()) return "unsupported";
@@ -88,7 +121,6 @@ async function getRegistration(): Promise<ServiceWorkerRegistration> {
   // Safari resolves `ready` only once a worker is actually controlling.
   return navigator.serviceWorker.ready;
 }
-
 
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
@@ -126,14 +158,16 @@ export async function subscribeToPush(): Promise<{
     );
   }
 
-
   const reg = await getRegistration();
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
     const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: key.buffer.slice(key.byteOffset, key.byteOffset + key.byteLength) as ArrayBuffer,
+      applicationServerKey: key.buffer.slice(
+        key.byteOffset,
+        key.byteOffset + key.byteLength,
+      ) as ArrayBuffer,
     });
   }
 
@@ -150,6 +184,8 @@ export async function unsubscribeFromPush(): Promise<string | null> {
   const endpoint = sub.endpoint;
   try {
     await sub.unsubscribe();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return endpoint;
 }

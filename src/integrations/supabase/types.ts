@@ -411,6 +411,10 @@ export type Database = {
           message_id: string | null
           post_id: string | null
           preview: string | null
+          push_attempted_at: string | null
+          push_delivered_count: number
+          push_failed_count: number
+          push_status: string
           read_at: string | null
           tribe_id: string | null
           user_id: string
@@ -425,6 +429,10 @@ export type Database = {
           message_id?: string | null
           post_id?: string | null
           preview?: string | null
+          push_attempted_at?: string | null
+          push_delivered_count?: number
+          push_failed_count?: number
+          push_status?: string
           read_at?: string | null
           tribe_id?: string | null
           user_id: string
@@ -439,6 +447,10 @@ export type Database = {
           message_id?: string | null
           post_id?: string | null
           preview?: string | null
+          push_attempted_at?: string | null
+          push_delivered_count?: number
+          push_failed_count?: number
+          push_status?: string
           read_at?: string | null
           tribe_id?: string | null
           user_id?: string
@@ -1315,6 +1327,15 @@ export type Database = {
         Returns: boolean
       }
       chat_attachment_is_in_use: { Args: { _path: string }; Returns: boolean }
+      claim_push_subscription: {
+        Args: {
+          _auth: string
+          _endpoint: string
+          _p256dh: string
+          _user_agent?: string | null
+        }
+        Returns: undefined
+      }
       content_is_blocked: { Args: { value: string }; Returns: boolean }
       current_user_is_moderator: { Args: never; Returns: boolean }
       emit_venture_system_message: {
