@@ -3,9 +3,9 @@ import { Bell, BellOff, X, Smartphone, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  isPushSupported,
-  isStandalonePwa,
-  isIosSafari,
+  isIosThirdPartyBrowser,
+  getPushBlocker,
+
   getPushPermission,
   subscribeToPush,
   unsubscribeFromPush,
@@ -57,20 +57,21 @@ export function EnablePushBanner() {
     setDismissed(true);
   };
 
-  if (!isPushSupported()) return null;
+  const blocker = getPushBlocker();
+  if (blocker === "unsupported") return null;
   if (subscribed) return null;
   if (permission === "denied") return null;
   if (dismissed) return null;
 
   // iOS Safari: must install PWA first.
-  if (isIosSafari() && !isStandalonePwa()) {
+  if (blocker === "needs-install") {
     return (
       <div className="mx-3 mt-3 flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
         <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1 text-xs">
           <p className="font-semibold text-foreground">Get push notifications on iPhone</p>
           <p className="mt-1 text-muted-foreground">
-            Tap Share <span aria-hidden>􀈂</span> → <b>Add to Home Screen</b>, then open MEUTUALS from the home screen and enable notifications there.
+            {isIosThirdPartyBrowser() ? "Open MEUTUALS in Safari, then tap " : "Tap "}Share → <b>Add to Home Screen</b>, then open MEUTUALS from the home screen and enable notifications there.
           </p>
         </div>
         <button onClick={dismiss} aria-label="Dismiss" className="text-muted-foreground hover:text-foreground">
@@ -121,7 +122,26 @@ export function PushSettingsRow() {
     getCurrentSubscription().then((s) => setSubscribed(!!s));
   }, []);
 
-  if (!isPushSupported()) {
+  const blocker = getPushBlocker();
+
+  if (blocker === "needs-install") {
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+        <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <div className="min-w-0 text-[11px]">
+          <p className="text-sm font-semibold text-foreground">Push notifications</p>
+          <p className="mt-1 text-muted-foreground">
+            iPhone and iPad only allow notifications for installed apps.{" "}
+            {isIosThirdPartyBrowser() ? "Open MEUTUALS in Safari, then tap " : "Tap "}
+            Share → <b>Add to Home Screen</b>, open MEUTUALS from the home screen, and enable them
+            there.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (blocker === "unsupported") {
     return (
       <p className="rounded-xl border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
         Push notifications aren't supported on this device or browser.
@@ -130,12 +150,6 @@ export function PushSettingsRow() {
   }
 
   const enable = async () => {
-    if (isIosSafari() && !isStandalonePwa()) {
-      toast.message("Install the app first", {
-        description: "Tap Share → Add to Home Screen, then open MEUTUALS from the home screen.",
-      });
-      return;
-    }
     setLoading(true);
     try {
       const sub = await subscribeToPush();

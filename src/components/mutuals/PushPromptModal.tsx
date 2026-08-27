@@ -9,8 +9,9 @@ import {
   getPushPermission,
   isAndroid,
   isIosSafari,
-  isPushSupported,
+  isIosThirdPartyBrowser,
   isStandalonePwa,
+  getPushBlocker,
   subscribeToPush,
 } from "@/lib/push-subscribe";
 import {
@@ -82,7 +83,7 @@ export function PushPromptModal() {
   // Session prompt on app open.
   useEffect(() => {
     if (authLoading || !user || !profileReady) return;
-    if (!isPushSupported()) return;
+    if (getPushBlocker() === "unsupported") return;
     const timer = window.setTimeout(() => {
       void (async () => {
         const sub = await getCurrentSubscription();
@@ -98,7 +99,7 @@ export function PushPromptModal() {
 
   function tryOpen(t: PushPromptTrigger) {
     if (!user || !profileReady) return;
-    if (!isPushSupported()) return;
+    if (getPushBlocker() === "unsupported") return;
     if (getPushPermission() === "denied") return;
     if (!shouldShowPrompt(user.id, t)) return;
     setTrigger(t);
@@ -145,14 +146,23 @@ export function PushPromptModal() {
   const standalone = isStandalonePwa();
   const ios = isIosSafari();
   const android = isAndroid();
-  const iosNeedsInstall = ios && !standalone;
+  const iosNeedsInstall = getPushBlocker() === "needs-install";
+  const iosOtherBrowser = ios && isIosThirdPartyBrowser();
   const androidCanInstall = android && !standalone;
   const copy = COPY[trigger];
 
   const iosSteps = [
+    ...(iosOtherBrowser
+      ? [
+          {
+            icon: <Smartphone className="h-4 w-4" />,
+            text: "Open MEUTUALS in Safari first — iPhone notifications only work from a Safari-installed app.",
+          },
+        ]
+      : []),
     {
       icon: <Share className="h-4 w-4" />,
-      text: "Tap the Share button in Safari's bottom toolbar.",
+      text: "Tap the Share button in Safari's toolbar.",
     },
     { icon: <Plus className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
     {
