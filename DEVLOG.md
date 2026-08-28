@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Record production push-category verification | `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -221,9 +220,11 @@ Newest first. Append; don't edit past entries.
 - Added a grouped, accessible Settings surface with real persisted switches,
   44 px touch targets, loading and retry states, and clear category descriptions.
 - Added `20260828020000_push_notification_preferences.sql` and
-  `LOVABLE_PUSH_PREFERENCES_RELEASE_VERIFY.sql`. The migration is RED/manual
-  and has not been applied to production; do not publish the matching code
-  before every verification row returns true.
+  `LOVABLE_PUSH_PREFERENCES_RELEASE_VERIFY.sql`. The user applied the migration
+  in production, repaired the table grants to remove `anon` access while
+  preserving authenticated writes and service-role reads, then confirmed all
+  seven release-verification rows return `true`. The matching app code is now
+  eligible to publish.
 - Verification: `npx tsc --noEmit`, focused ESLint, 3/3 preference tests,
   11/11 existing push tests, PWA verification, `git diff --check`, and the full
   Cloudflare production build pass. The signed-in local app also confirms the
