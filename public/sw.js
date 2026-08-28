@@ -1,10 +1,9 @@
 // MEUTUALS service worker: Web Push plus a deliberately small offline shell.
 // Authenticated pages and API responses are never cached.
 
-const SHELL_CACHE = "meutuals-shell-v2";
-const STATIC_CACHE = "meutuals-static-v2";
-// Cloudflare serves public HTML assets at extensionless URLs.
-const OFFLINE_URL = "/offline";
+const SHELL_CACHE = "meutuals-shell-v3";
+const STATIC_CACHE = "meutuals-static-v3";
+const OFFLINE_URL = "/offline.html";
 const PRECACHE = [
   OFFLINE_URL,
   "/manifest.webmanifest",
@@ -15,7 +14,25 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(PRECACHE)));
+  // Push must never depend on the optional offline cache. `cache.addAll()` is
+  // transactional: one unavailable icon used to reject the whole install and
+  // leave PushManager waiting forever on both Safari and Chromium.
+  event.waitUntil(
+    (async () => {
+      try {
+        const cache = await caches.open(SHELL_CACHE);
+        await Promise.allSettled(
+          PRECACHE.map(async (url) => {
+            const response = await fetch(url, { cache: "reload" });
+            if (response.ok) await cache.put(url, response);
+          }),
+        );
+      } catch (_) {
+        // Offline support may be unavailable (private mode/storage pressure),
+        // but the worker must still activate so Web Push can be enabled.
+      }
+    })(),
+  );
 });
 
 self.addEventListener("activate", (event) => {

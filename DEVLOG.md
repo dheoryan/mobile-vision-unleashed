@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Cross-browser push service-worker recovery | `public/sw.js`, `src/lib/push-subscribe.ts`, `scripts/verify-pwa.mjs`, `tests/push-service-worker.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Cross-browser push worker self-repair
+
+- Removed the all-or-nothing `cache.addAll()` dependency from service-worker
+  installation. Offline assets now cache independently, so one missing or
+  transiently unavailable asset cannot prevent Web Push from activating on
+  iOS, Safari, Chromium, or installed desktop apps.
+- Corrected the offline-shell URL to the deployed `/offline.html` asset and
+  versioned the caches so affected devices fetch the repaired worker.
+- Replaced the hanging `navigator.serviceWorker.ready` path with explicit
+  install/activate state tracking. Push enable now promotes a waiting worker
+  and, when a registration remains inactive, unregisters it and retries once
+  automatically instead of asking the user to reload indefinitely.
+- Verification: service-worker syntax, PWA release checks, 8 focused push
+  tests, `npx tsc --noEmit`, `git diff --check`, full Cloudflare production
+  build, and a real Chromium lifecycle check showing the worker `activated`
+  with no installer or waiter.
 
 ### 2026-08-28 — Codex — Stronger shared header glass
 

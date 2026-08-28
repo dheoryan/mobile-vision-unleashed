@@ -17,7 +17,7 @@ export interface PushSubscriptionData {
 
 export type PushEnableStage = "permission" | "service" | "subscription";
 
-const SERVICE_WORKER_TIMEOUT_MS = 10_000;
+const SERVICE_WORKER_TIMEOUT_MS = 12_000;
 const PERMISSION_TIMEOUT_MS = 45_000;
 const SUBSCRIPTION_TIMEOUT_MS = 20_000;
 
@@ -146,61 +146,75 @@ export function getPushPermission(): PushPermission {
   return Notification.permission as PushPermission;
 }
 
-async function getRegistration(): Promise<ServiceWorkerRegistration> {
-  const registration = await withPushTimeout(
-    (async () => {
-      const existing =
-        (await navigator.serviceWorker.getRegistration("/sw.js")) ??
-        (await navigator.serviceWorker.getRegistration("/"));
-      return (
-        existing ??
-        (await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-          updateViaCache: "none",
-        }))
-      );
-    })(),
-    SERVICE_WORKER_TIMEOUT_MS,
-    "The notification service did not start. Reload MEUTUALS and try again.",
-  );
-
+async function waitForActiveWorker(
+  registration: ServiceWorkerRegistration,
+): Promise<ServiceWorkerRegistration> {
   if (registration.active) return registration;
 
-  // `register()` and `getRegistration()` may both return while a worker is
-  // still installing. PushManager exists at that point, but Chromium rejects
-  // subscribe() with "no active Service Worker". A stale first install can
-  // also be waiting with no active predecessor, so explicitly promote it.
   registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+  const worker = registration.installing ?? registration.waiting;
+  if (!worker) throw new Error("The notification service has no worker to start.");
 
-  const activeRegistration = await new Promise<ServiceWorkerRegistration>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new Error("Notifications are still starting. Reload MEUTUALS and try again."));
-    }, SERVICE_WORKER_TIMEOUT_MS);
+  return withPushTimeout(
+    new Promise<ServiceWorkerRegistration>((resolve, reject) => {
+      const inspect = () => {
+        if (registration.active || worker.state === "activated") {
+          worker.removeEventListener("statechange", inspect);
+          resolve(registration);
+          return;
+        }
+        if (worker.state === "installed") {
+          registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+        }
+        if (worker.state === "redundant") {
+          worker.removeEventListener("statechange", inspect);
+          reject(new Error("The notification service worker installation failed."));
+        }
+      };
 
-    void navigator.serviceWorker.ready.then(
-      (readyRegistration) => {
-        window.clearTimeout(timeout);
-        resolve(readyRegistration);
-      },
-      () => {
-        window.clearTimeout(timeout);
-        reject(new Error("The notification service could not start. Reload and try again."));
-      },
+      worker.addEventListener("statechange", inspect);
+      inspect();
+    }),
+    SERVICE_WORKER_TIMEOUT_MS,
+    "The notification service worker did not activate in time.",
+  );
+}
+
+async function getRegistration(): Promise<ServiceWorkerRegistration> {
+  let lastError: unknown;
+
+  // A failed install can leave a registration with no active worker. Repair
+  // that state in-place, then do one clean re-registration if it stays stuck.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const registration = await withPushTimeout(
+      navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+        updateViaCache: "none",
+      }),
+      SERVICE_WORKER_TIMEOUT_MS,
+      "MEUTUALS could not register its notification service.",
     );
-  });
 
-  if (!activeRegistration.active) {
-    throw new Error("The notification service is not active. Reload MEUTUALS and try again.");
+    try {
+      return await waitForActiveWorker(registration);
+    } catch (error) {
+      lastError = error;
+      if (registration.active) return registration;
+      await registration.unregister().catch(() => false);
+    }
   }
-  return activeRegistration;
+
+  throw new Error(
+    lastError instanceof Error
+      ? `MEUTUALS could not repair notifications: ${lastError.message}`
+      : "MEUTUALS could not repair notifications on this device.",
+  );
 }
 
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
   try {
-    const reg =
-      (await navigator.serviceWorker.getRegistration("/sw.js")) ??
-      (await navigator.serviceWorker.getRegistration("/"));
+    const reg = await navigator.serviceWorker.getRegistration("/");
     if (!reg?.active) return null;
     return await reg.pushManager.getSubscription();
   } catch {

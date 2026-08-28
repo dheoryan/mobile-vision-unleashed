@@ -53,7 +53,8 @@ for (const required of [
   'addEventListener("push"',
   'addEventListener("notificationclick"',
   'addEventListener("message"',
-  'const OFFLINE_URL = "/offline"',
+  'const OFFLINE_URL = "/offline.html"',
+  "Promise.allSettled",
 ]) {
   assert(serviceWorker.includes(required), `Service worker is missing ${required}`);
 }
@@ -68,9 +69,10 @@ assert(
   "Push capability detection must preserve iPhone/iPad install guidance",
 );
 for (const required of [
-  "navigator.serviceWorker.ready",
   'updateViaCache: "none"',
   "registration.active",
+  "registration.unregister()",
+  'worker.addEventListener("statechange"',
 ]) {
   assert(
     pushSubscribe.includes(required),
