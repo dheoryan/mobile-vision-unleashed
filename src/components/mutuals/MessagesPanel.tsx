@@ -45,8 +45,10 @@ import { QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
 import { FeatureIllustration } from "./FeatureIllustration";
 import {
   useAnswerHello,
+  useCancelHello,
   useContactStatus,
   useIncomingHellos,
+  useOutgoingHellos,
   useSendHello,
 } from "@/lib/social-store";
 import messagesArt from "@/assets/app-illustrations/messages.webp";
@@ -276,6 +278,7 @@ function Inbox({
       </header>
       <div className="scroll-panel flex-1 overflow-y-auto">
         <IncomingHellos />
+        <SentHellos />
         {isLoading ? (
           <div className="px-3 py-2">
             <ConversationListSkeleton />
@@ -1290,7 +1293,9 @@ function IncomingHellos() {
                       { hello_id: h.id, status: "declined" },
                       {
                         onSuccess: () =>
-                          toast("Hello declined.", { description: "They can't send another." }),
+                          toast("Hello declined.", {
+                            description: "They can try again in 30 days.",
+                          }),
                         onError: (e) => toast.error((e as Error).message),
                       },
                     )
@@ -1300,6 +1305,68 @@ function IncomingHellos() {
                   Decline
                 </button>
               </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function SentHellos() {
+  const hellos = useOutgoingHellos();
+  const cancel = useCancelHello();
+  const rows = hellos.data ?? [];
+
+  if (!rows.length) return null;
+
+  return (
+    <section className="border-b border-border">
+      <p className="label-mono px-5 pb-2 pt-4 text-muted-foreground">
+        {rows.length === 1 ? "1 Hello" : `${rows.length} Hellos`} waiting on a reply
+      </p>
+      <ul className="space-y-2 px-5 pb-4">
+        {rows.map((h) => {
+          const name = h.other?.display_name?.trim() || "Someone";
+          const avatar = h.other?.avatar_url || h.other?.avatar_emoji || "👋";
+          const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
+          const busy = cancel.isPending && cancel.variables?.hello_id === h.id;
+          return (
+            <li key={h.id} className="rounded-2xl border border-border bg-card p-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
+                  {isImg ? (
+                    <img src={avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    avatar
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{name}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    Sent {timeAgoLabel(h.created_at)}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{h.message}</p>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  cancel.mutate(
+                    { hello_id: h.id },
+                    {
+                      onSuccess: () =>
+                        toast(`Hello to ${name} cancelled`, {
+                          description: "You can send them another right away.",
+                        }),
+                      onError: (e) => toast.error((e as Error).message),
+                    },
+                  )
+                }
+                className="mt-3 w-full rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+              >
+                {busy ? "Cancelling…" : "Cancel"}
+              </button>
             </li>
           );
         })}

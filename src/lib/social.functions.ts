@@ -328,7 +328,9 @@ export { listMyNotifications } from "@/lib/notifications.functions";
 // "expired" only ever appears on a superseded row (see
 // hellos_enforce_retry_window) - a retry after 30 days moves the stale
 // pending row here instead of leaving two live rows for the same direction.
-export type HelloStatus = "pending" | "accepted" | "declined" | "expired";
+// "cancelled" is the sender withdrawing their own pending Hello - unlike a
+// decline, it carries no 30-day cooldown and refunds the monthly cap.
+export type HelloStatus = "pending" | "accepted" | "declined" | "expired" | "cancelled";
 
 export type HelloRow = {
   id: string;
@@ -406,6 +408,32 @@ export const answerHello = createServerFn({ method: "POST" })
     return row as HelloRow;
   });
 
+/**
+ * The sender withdrawing their own still-pending Hello. Unlike a decline,
+ * this carries no 30-day cooldown (hellos_enforce_retry_window doesn't gate
+ * on "cancelled" at all - a fresh send is allowed immediately) and refunds
+ * the monthly cap (hellos_capped_sent_this_month excludes cancelled rows).
+ */
+export const cancelHello = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ hello_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as unknown as any;
+    // RLS restricts this update to a participant, and hellos_guard rejects
+    // anyone but the sender setting status to 'cancelled'.
+    const { data: row, error } = await db
+      .from("hellos")
+      .update({ status: "cancelled" })
+      .eq("id", data.hello_id)
+      .eq("sender_id", userId)
+      .select(HELLO_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    return row as HelloRow;
+  });
+
 /** Hellos waiting on this user's answer, with the sender's profile attached. */
 export const listIncomingHellos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -435,6 +463,41 @@ export const listIncomingHellos = createServerFn({ method: "GET" })
     const map = new Map<string, BlockedProfile>();
     for (const p of (profiles ?? []) as BlockedProfile[]) map.set(p.id, p);
     return hellos.map((h) => ({ ...h, other: map.get(h.sender_id) ?? null }));
+  });
+
+/**
+ * Hellos this user sent that are still awaiting an answer, with the
+ * recipient's profile attached. Read-only from the sender's side - the only
+ * action available is cancelHello, not editing or re-sending in place.
+ */
+export const listOutgoingHellos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<HelloWithProfile[]> => {
+    const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as unknown as any;
+    const { data: rows, error } = await db
+      .from("hellos")
+      .select(HELLO_COLS)
+      .eq("sender_id", userId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+
+    const hellos = (rows ?? []) as HelloRow[];
+    if (!hellos.length) return [];
+
+    const ids = Array.from(new Set(hellos.map((h) => h.recipient_id)));
+    const { data: profiles, error: pErr } = await db
+      .from("profiles")
+      .select("id, display_name, handle, avatar_emoji, avatar_url")
+      .in("id", ids);
+    if (pErr) throw new Error(pErr.message);
+
+    const map = new Map<string, BlockedProfile>();
+    for (const p of (profiles ?? []) as BlockedProfile[]) map.set(p.id, p);
+    return hellos.map((h) => ({ ...h, other: map.get(h.recipient_id) ?? null }));
   });
 
 export type MootProfile = {
@@ -543,14 +606,19 @@ export const getContactStatus = createServerFn({ method: "GET" })
 
     // Prefer the relationship-bearing accepted row, then a request that can
     // still be answered, over a row from the direction that's gone quiet.
+    // Cancelled behaves like expired here: it's the sender's own choice to
+    // withdraw, so it shouldn't linger as a "current" state either - the
+    // profile should offer Say hello again immediately, matching that a
+    // cancel carries no retry cooldown.
     let hello: ContactHelloRow | undefined = Array.from(latestByDirection.values())
-      .filter((row) => row.status !== "expired")
+      .filter((row) => row.status !== "expired" && row.status !== "cancelled")
       .sort((a, b) => {
         const rank: Record<HelloStatus, number> = {
           accepted: 0,
           pending: 1,
           declined: 2,
           expired: 3,
+          cancelled: 4,
         };
         return rank[a.status] - rank[b.status];
       })[0];

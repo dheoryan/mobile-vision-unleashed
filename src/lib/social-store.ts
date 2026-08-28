@@ -11,10 +11,12 @@ import {
   toggleLike,
   toggleShare,
   listIncomingHellos,
+  listOutgoingHellos,
   listMyMootProfiles,
   getContactStatus,
   sendHello,
   answerHello,
+  cancelHello,
 } from "@/lib/social.functions";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost } from "@/lib/posts.functions";
@@ -273,6 +275,7 @@ export function useReportContent() {
 // ---------- Hellos ----------
 
 const HELLOS_INCOMING_KEY = ["social", "hellos", "incoming"] as const;
+const HELLOS_OUTGOING_KEY = ["social", "hellos", "outgoing"] as const;
 const CONTACT_STATUS_KEY = ["social", "contact-status"] as const;
 
 /** Everyone the current user is Moots with, for "N of your Moots are here"
@@ -300,6 +303,18 @@ export function useIncomingHellos() {
   });
 }
 
+/** Hellos this user sent that nobody's answered yet. */
+export function useOutgoingHellos() {
+  const fn = useServerFn(listOutgoingHellos);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...HELLOS_OUTGOING_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+}
+
 /**
  * Whether the current user can DM this person, and if not, where a Hello
  * between them stands. Decides which action the profile screen offers.
@@ -321,6 +336,19 @@ export function useSendHello() {
   return useMutation({
     mutationFn: (input: { recipient_id: string; message: string }) => fn({ data: input }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CONTACT_STATUS_KEY });
+      qc.invalidateQueries({ queryKey: HELLOS_OUTGOING_KEY });
+    },
+  });
+}
+
+export function useCancelHello() {
+  const fn = useServerFn(cancelHello);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { hello_id: string }) => fn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: HELLOS_OUTGOING_KEY });
       qc.invalidateQueries({ queryKey: CONTACT_STATUS_KEY });
     },
   });

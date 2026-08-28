@@ -205,6 +205,57 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-28 — Claude — Cancel a Hello, with a real cap refund; Sent list added
+
+- User: add a way to cancel a sent Hello, refund it from the monthly cap
+  when cancelled, and fix the stale "They can't send another" decline copy
+  (wrong since this session's retry-window work - it's 30 days, not
+  forever).
+- The sender previously had **zero** update rights on a `hellos` row - only
+  `"Recipients answer their hellos"` existed. Adding sender-cancel needed
+  real schema work, not just UI:
+  - `20260828070000_hello_cancel_and_refund.sql` (Red - replaces the RLS
+    update policy and a trigger on a table with real rows). New `cancelled`
+    status. Per AGENTS.md landmine 2.1, this deliberately stays **one**
+    UPDATE policy (`sender_id = auth.uid() or recipient_id = auth.uid()`)
+    rather than adding a second permissive one - two policies would let
+    Postgres OR-combine USING/WITH CHECK across both, the exact shape of
+    the Venture self-accept bug. `hellos_guard` now does the real
+    enforcement: only the recipient may set accepted/declined, only the
+    sender may set cancelled, everything else still immutable/one-shot.
+  - `hellos_capped_sent_this_month` now excludes `status <> 'cancelled'` -
+    the refund is just that exclusion, no separate bookkeeping.
+    `hellos_enforce_retry_window` needed **no change**: neither its
+    accepted/pending/declined branches match 'cancelled', so a retry after
+    cancelling already fell through to "allowed" for free - cancelling
+    carries no 30-day cooldown, matching that it's the sender's own choice
+    rather than someone else's "no."
+  - Rehearsed on a throwaway Postgres 16 container seeded with the real
+    pre-migration schema plus a `request.uid`-backed `auth.uid()` stub so
+    the actor-aware trigger logic could actually be exercised as different
+    callers. 7 scenarios: recipient blocked from cancelling, sender
+    cancels successfully, immediate retry allowed after cancel, cancelled
+    hello excluded from the capped count (1, not 2), sender blocked from
+    accepting their own hello, recipient-accepts still works, cancelling an
+    already-decided hello rejected. All 7 passed. 6/6 verify checks
+    (`LOVABLE_HELLO_CANCEL_VERIFY.sql`) pass on a second fresh container.
+- App side: new `cancelHello` and `listOutgoingHellos` in
+  `social.functions.ts` (+ `HelloStatus` gains `cancelled`);
+  `getContactStatus` treats a cancelled row the same as expired - filtered
+  out of ranking, so the profile immediately offers Say hello again rather
+  than showing a stuck state. New `SentHellos` component in
+  `MessagesPanel.tsx`, mirroring `IncomingHellos`'s placement and pattern
+  but read-mostly (no accept/decline, just a Cancel button and "waiting on
+  a reply" framing) - rendered directly below `IncomingHellos` in the same
+  Inbox list view this session's earlier notification-routing fix now
+  correctly reaches. Also fixed the stale decline-toast copy.
+- **Not yet applied to production** - the RLS/trigger migration needs the
+  usual manual SQL-editor step before this app code does anything but 404
+  on `cancelHello`.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (two
+  pre-existing, unrelated findings in `social-store.ts` confirmed again),
+  full Node test suite 73/73, full Cloudflare production build passes.
+
 ### 2026-08-28 — Claude — Fixed: "Review" on a Hello notification led nowhere useful
 
 - User hit a real, live case: received a Hello, tapped "Review" on the
