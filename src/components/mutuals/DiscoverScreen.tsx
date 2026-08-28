@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
+  Bookmark,
   Check,
   ChevronLeft,
   Coffee,
+  Hand,
+  LayoutGrid,
   Loader2,
   MapPin,
   Moon,
@@ -19,12 +22,16 @@ import {
   X,
 } from "lucide-react";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
-import { listDiscoverProfiles, type DiscoverProfile } from "@/lib/profile.functions";
+import {
+  listDiscoverProfiles,
+  listSavedProfiles,
+  type DiscoverProfile,
+} from "@/lib/profile.functions";
 import { useFeedPosts, useTribeMemberCounts, type FeedPost } from "@/lib/posts-store";
 import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { AnimatedModal } from "@/components/ui/animated-modal";
-import { useSocial, useToggleFollow } from "@/lib/social-store";
+import { useSocial, useToggleFollow, useMyMoots } from "@/lib/social-store";
 import { useBlocked } from "@/lib/blocked-store";
 import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -43,6 +50,9 @@ import { TribeMark } from "./TribeMark";
 import { FeatureIllustration } from "./FeatureIllustration";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { ExploreDeck, type ExploreDeckPhase } from "./ExploreDeck";
+import { HelloModal } from "./HelloModal";
+import { AddTribeSheet } from "./AddTribeSheet";
+import type { MootProfile } from "@/lib/social.functions";
 import { Wand2 } from "lucide-react";
 import { useExploreMatches } from "@/lib/explore-store";
 import type { ExploreMatch } from "@/lib/explore.functions";
@@ -130,6 +140,9 @@ export function DiscoverScreen() {
   const [debounced, setDebounced] = useState("");
   const [previewTribe, setPreviewTribe] = useState<Tribe | null>(null);
   const [tribeBrowserOpen, setTribeBrowserOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [browseMenuOpen, setBrowseMenuOpen] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<TribeId | null>(null);
   const [moodPickerOpen, setMoodPickerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
@@ -141,6 +154,7 @@ export function DiscoverScreen() {
   const social = useSocial();
   const blocked = useBlocked();
   const myProfile = useMyProfile();
+  const moots = useMyMoots();
   const discoverFn = useServerFn(listDiscoverProfiles);
   const locationQuery = useMyLocationSettings();
   const saveLocation = useSaveMyLocation();
@@ -266,7 +280,21 @@ export function DiscoverScreen() {
 
   return (
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat">
-      <AppHeader title="Discover" subtitle="Beyond your Tribe" accent="var(--color-primary)" />
+      <AppHeader
+        title="Discover"
+        subtitle="Beyond your Tribe"
+        accent="var(--color-primary)"
+        action={
+          <button
+            type="button"
+            onClick={focusSearch}
+            aria-label="Search people, Tribes, and cities"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+        }
+      />
       <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <div className="mb-2 mt-3 flex shrink-0 items-end justify-between gap-3">
           <div className="min-w-0">
@@ -354,19 +382,11 @@ export function DiscoverScreen() {
             </button>
             <button
               type="button"
-              onClick={() => setTribeBrowserOpen(true)}
-              aria-label="Explore Tribes"
+              onClick={() => setBrowseMenuOpen(true)}
+              aria-label="Browse: Tribes and Saved"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <UsersRound className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={focusSearch}
-              aria-label="Search people, Tribes, and cities"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <Search className="h-4 w-4" />
+              <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -466,6 +486,18 @@ export function DiscoverScreen() {
           setMoodPickerOpen(false);
         }}
       />
+      <BrowseMenuSheet
+        open={browseMenuOpen}
+        onClose={() => setBrowseMenuOpen(false)}
+        onExploreTribes={() => {
+          setBrowseMenuOpen(false);
+          setTribeBrowserOpen(true);
+        }}
+        onSaved={() => {
+          setBrowseMenuOpen(false);
+          setSavedOpen(true);
+        }}
+      />
       <TribeBrowserSheet
         open={tribeBrowserOpen}
         counts={tribeCounts.data}
@@ -476,12 +508,35 @@ export function DiscoverScreen() {
         }}
       />
 
+      <SavedProfilesSheet
+        open={savedOpen}
+        onClose={() => setSavedOpen(false)}
+        following={social.following}
+        onToggleFollow={toggle}
+        followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
+      />
+
       <TribePreviewSheet
         tribe={previewTribe}
         people={people}
         posts={feedQuery.data ?? []}
+        myTribeId={(myProfile?.tribeIds?.[0] as TribeId | undefined) ?? null}
+        moots={moots.data}
         onClose={() => setPreviewTribe(null)}
+        onMove={(tribeId) => {
+          setPreviewTribe(null);
+          setMoveTargetId(tribeId);
+        }}
       />
+      {myProfile && (
+        <AddTribeSheet
+          open={!!moveTargetId}
+          initialTargetId={moveTargetId ?? undefined}
+          onClose={() => setMoveTargetId(null)}
+          profile={myProfile}
+          onJoined={() => setMoveTargetId(null)}
+        />
+      )}
       <NearbyPreferencesSheet
         open={nearbySettingsOpen}
         discoverable={locationQuery.data?.discoverable ?? false}
@@ -565,6 +620,67 @@ function MoodPickerSheet({
   );
 }
 
+/**
+ * Tribes and Saved are both occasional-browse utilities, not part of the
+ * daily Mood/Search loop, so they share one entry point instead of each
+ * taking their own permanent slot in an increasingly crowded control row.
+ */
+function BrowseMenuSheet({
+  open,
+  onClose,
+  onExploreTribes,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onExploreTribes: () => void;
+  onSaved: () => void;
+}) {
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      title="Browse"
+      center
+      contentClassName="mx-4 max-w-xs p-3"
+    >
+      <p className="label-mono px-3 pb-1 pt-2 text-muted-foreground">Browse</p>
+      <button
+        type="button"
+        onClick={onExploreTribes}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+          <UsersRound className="h-4 w-4" />
+        </span>
+        <span>
+          Explore Tribes
+          <span className="block text-[11px] font-normal text-muted-foreground">
+            Preview the rooms behind the people
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onSaved}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+          <Bookmark className="h-4 w-4" />
+        </span>
+        <span>
+          Saved
+          <span className="block text-[11px] font-normal text-muted-foreground">
+            Profiles you've kept for later
+          </span>
+        </span>
+      </button>
+    </AnimatedModal>
+  );
+}
+
 function TribeBrowserSheet({
   open,
   counts,
@@ -638,6 +754,113 @@ function TribeBrowserSheet({
           </div>
         </div>
       </div>
+    </AnimatedModal>
+  );
+}
+
+function SavedProfilesSheet({
+  open,
+  onClose,
+  following,
+  onToggleFollow,
+  followPending,
+}: {
+  open: boolean;
+  onClose: () => void;
+  following: Set<string>;
+  onToggleFollow: (id: string) => void;
+  followPending: string | null;
+}) {
+  const fn = useServerFn(listSavedProfiles);
+  const query = useQuery({
+    queryKey: ["profiles", "saved"],
+    queryFn: () => fn(),
+    enabled: open,
+    staleTime: 10_000,
+  });
+  const people = (query.data ?? []).map(rowToPerson);
+  const [helloTarget, setHelloTarget] = useState<DiscoverPerson | null>(null);
+
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+      title="Saved"
+      // flex-col lives on Content itself, not a `h-full` inner wrapper: a
+      // percentage height only resolves against a parent with a *definite*
+      // height, and `sm:h-auto` (auto is not definite) silently collapsed
+      // that wrapper to its content size instead of Content's bounded box —
+      // the scroll region never got a real height to scroll within, so
+      // Content's own overflow-hidden just clipped whatever didn't fit
+      // instead of it being reachable by scrolling. Definite heights at
+      // every breakpoint closes that off entirely.
+      contentClassName="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden rounded-none border-0 !bg-background sm:h-[85dvh] sm:max-h-[85dvh] sm:rounded-3xl sm:border"
+    >
+      <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Back to today’s five"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <div>
+          <p className="label-mono text-muted-foreground">Inside Discover</p>
+          <h3 className="font-display text-lg font-bold">Saved</h3>
+        </div>
+      </div>
+      <div className="scroll-panel min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        {query.isLoading ? (
+          <PeopleSkeleton />
+        ) : query.isError ? (
+          <button
+            type="button"
+            onClick={() => query.refetch()}
+            className="w-full rounded-2xl border border-border bg-card py-4 text-xs font-semibold text-muted-foreground"
+          >
+            Could not load your saved profiles. Retry
+          </button>
+        ) : people.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+              <Bookmark className="h-6 w-6" />
+            </span>
+            <h4 className="mt-4 font-display text-lg font-bold">Nothing saved yet</h4>
+            <p className="mt-2 max-w-[26ch] text-xs leading-relaxed text-muted-foreground">
+              Tap Save on anyone in Discover to keep them here — no relationship implied, just a
+              private list for later.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {people.map((person) => (
+              <PersonRow
+                key={person.id}
+                person={person}
+                following={following.has(person.id)}
+                pending={followPending === person.id}
+                onToggle={() => onToggleFollow(person.id)}
+                onSayHello={() => setHelloTarget(person)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <HelloModal
+        open={!!helloTarget}
+        onClose={() => setHelloTarget(null)}
+        recipientId={helloTarget?.id ?? ""}
+        recipientName={helloTarget?.name ?? "them"}
+        signals={helloTarget?.signals}
+        // Sending a Hello resolves this person out of Saved (see
+        // listSavedProfiles), so the list needs to refetch rather than
+        // leaving a stale "Say hello" row behind.
+        onSent={() => query.refetch()}
+      />
     </AnimatedModal>
   );
 }
@@ -738,12 +961,18 @@ function TribePreviewSheet({
   tribe,
   people,
   posts,
+  myTribeId,
+  moots,
   onClose,
+  onMove,
 }: {
   tribe: Tribe | null;
   people: DiscoverPerson[];
   posts: FeedPost[];
+  myTribeId: TribeId | null;
+  moots: MootProfile[] | undefined;
   onClose: () => void;
+  onMove: (tribeId: TribeId) => void;
 }) {
   // Keep rendering the last previewed tribe's content while the modal plays its
   // exit animation, even after the parent has already cleared `tribe` to null.
@@ -759,6 +988,12 @@ function TribePreviewSheet({
   const recentPosts = displayTribe
     ? posts.filter((p) => p.tribe_id === displayTribe.id).slice(0, 3)
     : [];
+  // The strongest discovery signal isn't a member count, it's people you
+  // already trust. Reuses Moots rather than adding a second social graph.
+  const mootsHere = displayTribe
+    ? (moots ?? []).filter((m) => (m.tribe_ids ?? []).includes(displayTribe.id))
+    : [];
+  const isHome = !!displayTribe && displayTribe.id === myTribeId;
   return (
     <AnimatedModal
       open={!!tribe}
@@ -793,6 +1028,33 @@ function TribePreviewSheet({
               {members.length} visible registered members
             </p>
 
+            {mootsHere.length > 0 && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
+                <div className="flex -space-x-2">
+                  {mootsHere.slice(0, 4).map((m) => (
+                    <span
+                      key={m.id}
+                      className="h-7 w-7 overflow-hidden rounded-full ring-2 ring-card"
+                      style={{
+                        backgroundColor: `color-mix(in oklab, ${displayTribe.colorVar} 28%, transparent)`,
+                      }}
+                    >
+                      {m.avatar_url ? (
+                        <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-sm">
+                          {m.avatar_emoji}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] font-semibold text-primary">
+                  {mootsHere.length} of your Moots {mootsHere.length === 1 ? "is" : "are"} here
+                </p>
+              </div>
+            )}
+
             <p className="mt-5 label-mono text-muted-foreground">Recent signals</p>
             <ul className="mt-2 space-y-2">
               {recentPosts.length ? (
@@ -822,9 +1084,21 @@ function TribePreviewSheet({
               )}
             </div>
 
+            {isHome ? (
+              <p className="mt-6 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background/30 py-3 text-sm font-semibold text-muted-foreground">
+                <Check className="h-4 w-4 text-primary" /> This is your Tribe
+              </p>
+            ) : (
+              <button
+                onClick={() => onMove(displayTribe.id)}
+                className="mt-6 w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground"
+              >
+                Move to {displayTribe.name}
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="mt-6 w-full rounded-2xl border border-border bg-background/40 py-3 text-sm font-semibold"
+              className="mt-2 w-full rounded-2xl border border-border bg-background/40 py-3 text-sm font-semibold"
             >
               Close preview
             </button>
@@ -862,69 +1136,83 @@ function PersonRow({
   following,
   pending,
   onToggle,
+  onSayHello,
 }: {
   person: DiscoverPerson;
   following: boolean;
   pending: boolean;
   onToggle: () => void;
+  /** Only the Saved sheet passes this — search results stay as-is. */
+  onSayHello?: () => void;
 }) {
   const tribe = tribeById(person.tribeId);
   // The list is the scanning surface, so one reason rather than the deck's
   // three — enough to justify a tap, not so much that rows stop being scannable.
   const reason = person.signals ? matchReasons(person.signals, 1)[0] : undefined;
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-      <span className="relative shrink-0">
-        <AvatarBubble person={person} color={tribe.colorVar} />
-        {person.plus && <PlusBadge />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <p className="truncate text-sm font-semibold">{person.name}</p>
-          {person.allTribeIds.slice(0, 2).map((id) => {
-            const t = tribeById(id);
-            return <TribeBadge key={id} tribe={t} />;
-          })}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-          <span>{person.city || person.handle || "Registered member"}</span>
-          {person.distanceBand && (
-            <span className="inline-flex items-center gap-1 text-primary">
-              <MapPin className="h-3 w-3" /> {person.distanceBand}
-            </span>
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center gap-3">
+        <span className="relative shrink-0">
+          <AvatarBubble person={person} color={tribe.colorVar} />
+          {person.plus && <PlusBadge />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="truncate text-sm font-semibold">{person.name}</p>
+            {person.allTribeIds.slice(0, 2).map((id) => {
+              const t = tribeById(id);
+              return <TribeBadge key={id} tribe={t} />;
+            })}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span>{person.city || person.handle || "Registered member"}</span>
+            {person.distanceBand && (
+              <span className="inline-flex items-center gap-1 text-primary">
+                <MapPin className="h-3 w-3" /> {person.distanceBand}
+              </span>
+            )}
+          </div>
+          {reason && (
+            <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+              {reason.label}
+            </p>
           )}
-        </div>
-        {reason && (
-          <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-            {reason.label}
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+            {person.bio || "Open to meeting people across Tribes."}
           </p>
-        )}
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-          {person.bio || "Open to meeting people across Tribes."}
-        </p>
+        </div>
+        <button
+          onClick={onToggle}
+          disabled={pending}
+          className={cn(
+            "flex min-h-11 min-w-20 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60",
+            following
+              ? "border-accent bg-accent/15 text-accent"
+              : "border-primary bg-primary/15 text-primary",
+          )}
+        >
+          {pending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : following ? (
+            <>
+              <Check className="h-3.5 w-3.5" /> Saved
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-3.5 w-3.5" /> Save
+            </>
+          )}
+        </button>
       </div>
-      <button
-        onClick={onToggle}
-        disabled={pending}
-        className={cn(
-          "flex min-h-11 min-w-20 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60",
-          following
-            ? "border-accent bg-accent/15 text-accent"
-            : "border-primary bg-primary/15 text-primary",
-        )}
-      >
-        {pending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : following ? (
-          <>
-            <Check className="h-3.5 w-3.5" /> Saved
-          </>
-        ) : (
-          <>
-            <UserPlus className="h-3.5 w-3.5" /> Save
-          </>
-        )}
-      </button>
+      {onSayHello && (
+        <button
+          type="button"
+          onClick={onSayHello}
+          className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/10 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <Hand className="h-3.5 w-3.5" /> Say hello
+        </button>
+      )}
     </div>
   );
 }

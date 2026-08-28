@@ -153,6 +153,30 @@ export const getFollowCounts = createServerFn({ method: "GET" })
     return { following: following ?? 0, followers: followers ?? 0 };
   });
 
+// Moots / Hosted / Joined replace Following / Followers / Posts on the profile
+// stat row. All three need to work for someone else's profile, not just your
+// own, and none of the three source tables (hellos, ventures,
+// venture_applications) grant that under their existing RLS - see
+// 20260828030000_profile_relationship_stats.sql for why this has to be an RPC
+// rather than three direct table queries.
+export type ProfileStats = { moots: number; hosted: number; joined: number };
+
+export const getProfileStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid().optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<ProfileStats> => {
+    const { supabase, userId } = context;
+    const target = data.user_id ?? userId;
+    const { data: row, error } = await supabase
+      .rpc("get_profile_stats", { _target_id: target })
+      .single();
+    if (error) throw new Error(error.message);
+    const stats = row as { moots_count: number; hosted_count: number; joined_count: number };
+    return { moots: stats.moots_count, hosted: stats.hosted_count, joined: stats.joined_count };
+  });
+
 export const toggleFollow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => uuidIn.parse(input))
@@ -301,7 +325,10 @@ export { listMyNotifications } from "@/lib/notifications.functions";
  * sender cannot retry. Making "no" final is the point. Sends are capped monthly
  * in the database so a Hello stays a deliberate act rather than a mail merge.
  */
-export type HelloStatus = "pending" | "accepted" | "declined";
+// "expired" only ever appears on a superseded row (see
+// hellos_enforce_retry_window) - a retry after 30 days moves the stale
+// pending row here instead of leaving two live rows for the same direction.
+export type HelloStatus = "pending" | "accepted" | "declined" | "expired";
 
 export type HelloRow = {
   id: string;
@@ -340,9 +367,12 @@ export const sendHello = createServerFn({ method: "POST" })
       .single();
 
     if (error) {
-      // The unique constraint is the "one per direction, ever" rule.
+      // Retry timing, the monthly cap, and "already Moots" all raise as
+      // plain Postgres exceptions from hellos_enforce_retry_window /
+      // hellos_enforce_monthly_cap - error.message is already the right copy.
+      // 23505 is only the defensive backstop against a concurrent double-send.
       if ((error as { code?: string }).code === "23505") {
-        throw new Error("You've already sent this person a Hello.");
+        throw new Error("You already have a Hello pending with this person.");
       }
       throw new Error(error.message);
     }
@@ -407,6 +437,51 @@ export const listIncomingHellos = createServerFn({ method: "GET" })
     return hellos.map((h) => ({ ...h, other: map.get(h.sender_id) ?? null }));
   });
 
+export type MootProfile = {
+  id: string;
+  display_name: string;
+  handle: string | null;
+  avatar_emoji: string;
+  avatar_url: string | null;
+  tribe_ids: string[];
+};
+
+/**
+ * Everyone the current user is Moots with (an accepted Hello, either
+ * direction), with enough profile shape to show "N of your Moots are here"
+ * signals elsewhere - e.g. the Tribe preview in Discover.
+ */
+export const listMyMootProfiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MootProfile[]> => {
+    const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as unknown as any;
+
+    const { data: rows, error } = await db
+      .from("hellos")
+      .select("sender_id, recipient_id")
+      .eq("status", "accepted")
+      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
+    if (error) throw new Error(error.message);
+
+    const ids = Array.from(
+      new Set(
+        ((rows ?? []) as { sender_id: string; recipient_id: string }[]).map((r) =>
+          r.sender_id === userId ? r.recipient_id : r.sender_id,
+        ),
+      ),
+    );
+    if (!ids.length) return [];
+
+    const { data: profiles, error: pErr } = await db
+      .from("profiles")
+      .select("id, display_name, handle, avatar_emoji, avatar_url, tribe_ids")
+      .in("id", ids);
+    if (pErr) throw new Error(pErr.message);
+    return (profiles ?? []) as MootProfile[];
+  });
+
 /**
  * Whether the current user may open a DM with someone, and if not, whether a
  * Hello is already in flight. Drives which action the profile screen offers.
@@ -435,50 +510,84 @@ export const getContactStatus = createServerFn({ method: "GET" })
     });
     if (cErr) throw new Error(cErr.message);
 
+    // A retry can leave several historical rows in one direction (an expired
+    // or declined attempt before a fresh one), so this can no longer assume
+    // at most one row per direction. 20 is generous headroom - retries are
+    // gated 30 days apart, so that's years of history for either direction.
     const { data: helloRows, error: helloError } = await db
       .from("hellos")
-      .select("id, status, sender_id, recipient_id, created_at")
+      .select("id, status, sender_id, recipient_id, created_at, decided_at")
       .or(
         `and(sender_id.eq.${userId},recipient_id.eq.${data.other_id}),` +
           `and(sender_id.eq.${data.other_id},recipient_id.eq.${userId})`,
       )
       .order("created_at", { ascending: false })
-      .limit(2);
+      .limit(20);
     if (helloError) throw new Error(helloError.message);
 
-    // The schema is unique per direction, so two rows can exist for the same
-    // pair. Prefer the relationship-bearing accepted row, then a request that
-    // can still be answered, rather than letting maybeSingle() fail on a valid
-    // two-direction history.
-    const hello = (helloRows ?? [])
-      .slice()
-      .sort((a: { status: HelloStatus }, b: { status: HelloStatus }) => {
-        const rank: Record<HelloStatus, number> = { accepted: 0, pending: 1, declined: 2 };
+    type ContactHelloRow = {
+      id: string;
+      status: HelloStatus;
+      sender_id: string;
+      recipient_id: string;
+      created_at: string;
+      decided_at: string | null;
+    };
+
+    // Rows arrive newest-first, so the first row seen per sender is that
+    // direction's current state; anything after it is superseded history.
+    const latestByDirection = new Map<string, ContactHelloRow>();
+    for (const row of (helloRows ?? []) as ContactHelloRow[]) {
+      if (!latestByDirection.has(row.sender_id)) latestByDirection.set(row.sender_id, row);
+    }
+
+    // Prefer the relationship-bearing accepted row, then a request that can
+    // still be answered, over a row from the direction that's gone quiet.
+    let hello: ContactHelloRow | undefined = Array.from(latestByDirection.values())
+      .filter((row) => row.status !== "expired")
+      .sort((a, b) => {
+        const rank: Record<HelloStatus, number> = {
+          accepted: 0,
+          pending: 1,
+          declined: 2,
+          expired: 3,
+        };
         return rank[a.status] - rank[b.status];
-      })[0] as
-      | {
-          id: string;
-          status: HelloStatus;
-          sender_id: string;
-          recipient_id: string;
-        }
-      | undefined;
+      })[0];
 
-    const { count } = await db
-      .from("hellos")
-      .select("id", { count: "exact", head: true })
-      .eq("sender_id", userId)
-      .gte(
-        "created_at",
-        new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
-      );
+    // hellos_enforce_retry_window only expires a stale pending row when the
+    // sender actually tries to retry (lazy, not on a schedule) - so a
+    // 31-day-old unanswered/declined row can still be sitting here as
+    // "current". If *this viewer* was the sender, treat it as gone so the
+    // profile offers Say hello again instead of a stuck disabled button. A
+    // recipient should always be able to answer an old pending request, so
+    // this only ever unwraps the sender's own view.
+    const RETRY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+    if (hello && hello.sender_id === userId) {
+      const stalePending =
+        hello.status === "pending" &&
+        Date.now() - new Date(hello.created_at).getTime() >= RETRY_WINDOW_MS;
+      const staleDecline =
+        hello.status === "declined" &&
+        !!hello.decided_at &&
+        Date.now() - new Date(hello.decided_at).getTime() >= RETRY_WINDOW_MS;
+      if (stalePending || staleDecline) hello = undefined;
+    }
 
-    const MONTHLY_CAP = 5;
+    // Same predicate the hellos_enforce_monthly_cap trigger enforces, so this
+    // number never drifts from what actually gets rejected at send time:
+    // Tribemates and active Venture co-members don't count against it.
+    const { data: sentThisMonth, error: capError } = await db.rpc("hellos_capped_sent_this_month", {
+      _user_id: userId,
+    });
+    if (capError) throw new Error(capError.message);
+
+    const MONTHLY_CAP = 30;
     return {
       can_message: !!canMessage,
       hello_status: (hello?.status as HelloStatus | undefined) ?? null,
       hello_id: hello?.id ?? null,
       awaiting_my_answer: !!hello && hello.status === "pending" && hello.recipient_id === userId,
-      hellos_left_this_month: Math.max(0, MONTHLY_CAP - (count ?? 0)),
+      hellos_left_this_month: Math.max(0, MONTHLY_CAP - (sentThisMonth ?? 0)),
     };
   });

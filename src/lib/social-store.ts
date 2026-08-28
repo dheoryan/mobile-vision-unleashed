@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getFollowCounts,
+  getProfileStats,
   listMyFollowing,
   listMyLikes,
   listMyShares,
@@ -10,9 +11,10 @@ import {
   toggleLike,
   toggleShare,
   listIncomingHellos,
+  listMyMootProfiles,
   getContactStatus,
   sendHello,
-  answerHello
+  answerHello,
 } from "@/lib/social.functions";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost } from "@/lib/posts.functions";
@@ -21,6 +23,7 @@ const LIKES_KEY = ["social", "likes"] as const;
 const SHARES_KEY = ["social", "shares"] as const;
 const FOLLOWING_KEY = ["social", "following"] as const;
 const FOLLOW_COUNTS_KEY = ["social", "follow-counts"] as const;
+const PROFILE_STATS_KEY = ["social", "profile-stats"] as const;
 
 export function useMyLikes() {
   const fn = useServerFn(listMyLikes);
@@ -53,6 +56,24 @@ export function useFollowCounts() {
     queryKey: [...FOLLOW_COUNTS_KEY, user?.id ?? null],
     queryFn: () => fn(),
     enabled: !!user,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Moots / Hosted / Joined for the profile stat row.
+ * Omit `userId` (or pass `undefined`) for your own profile. Pass `null`
+ * explicitly while a target profile is still loading, so this doesn't fall
+ * back to fetching your own stats in the gap before that id is known.
+ */
+export function useProfileStats(userId?: string | null) {
+  const fn = useServerFn(getProfileStats);
+  const { user } = useAuth();
+  const target = userId === undefined ? user?.id : userId;
+  return useQuery({
+    queryKey: [...PROFILE_STATS_KEY, target ?? null],
+    queryFn: () => fn({ data: { user_id: target! } }),
+    enabled: !!target,
     staleTime: 30_000,
   });
 }
@@ -253,6 +274,19 @@ export function useReportContent() {
 
 const HELLOS_INCOMING_KEY = ["social", "hellos", "incoming"] as const;
 const CONTACT_STATUS_KEY = ["social", "contact-status"] as const;
+
+/** Everyone the current user is Moots with, for "N of your Moots are here"
+ *  signals (e.g. the Tribe preview in Discover). */
+export function useMyMoots() {
+  const fn = useServerFn(listMyMootProfiles);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["social", "moots", user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+}
 
 /** Hellos waiting on this user's answer. */
 export function useIncomingHellos() {

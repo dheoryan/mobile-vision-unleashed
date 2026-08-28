@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Check, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { TRIBES, type TribeId } from "@/lib/mutuals-data";
@@ -23,15 +23,24 @@ export function AddTribeSheet({
   onClose,
   profile,
   onJoined,
+  initialTargetId,
 }: {
   open: boolean;
   onClose: () => void;
   profile: Profile;
   onJoined?: (tribeId: TribeId) => void;
+  /** Skip the Tribe list and jump straight to the confirm step for this one
+   *  — e.g. "Move here" from a Discover Tribe preview instead of Settings'
+   *  full list. */
+  initialTargetId?: TribeId;
 }) {
-  const [confirming, setConfirming] = useState<TribeId | null>(null);
+  const [confirming, setConfirming] = useState<TribeId | null>(initialTargetId ?? null);
   const status = useTribeSwitchStatus();
   const switchTribe = useSwitchTribe();
+
+  useEffect(() => {
+    if (open) setConfirming(initialTargetId ?? null);
+  }, [open, initialTargetId]);
 
   const currentId = profile.tribeIds[0];
   const current = TRIBES.find((t) => t.id === currentId);
@@ -64,12 +73,18 @@ export function AddTribeSheet({
   return (
     <AnimatedModal
       open={open}
-      onOpenChange={(o) => { if (!o) close(); }}
+      onOpenChange={(o) => {
+        if (!o) close();
+      }}
       title="Your Tribe"
       preventClose={switchTribe.isPending}
       contentClassName="p-6"
     >
-      <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
+      <button
+        onClick={close}
+        aria-label="Close"
+        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+      >
         <X className="h-5 w-5" />
       </button>
 
@@ -89,7 +104,13 @@ export function AddTribeSheet({
               onClick={() => commit(target.id, target.name)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
-              {switchTribe.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Moving…</> : `Yes, move to ${target.name}`}
+              {switchTribe.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Moving…
+                </>
+              ) : (
+                `Yes, move to ${target.name}`
+              )}
             </button>
             <button
               onClick={() => setConfirming(null)}
@@ -104,7 +125,8 @@ export function AddTribeSheet({
         <>
           <h2 className="font-display text-xl font-bold">Your Tribe</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            You belong to one Tribe at a time. It's your home feed, your chat, and how others see you.
+            You belong to one Tribe at a time. It's your home feed, your chat, and how others see
+            you.
           </p>
 
           {current && (
@@ -142,7 +164,10 @@ export function AddTribeSheet({
               <p className="label-mono mt-5 text-muted-foreground">Move to another Tribe</p>
               <ul className="mt-2 space-y-2">
                 {others.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 rounded-2xl border border-border bg-background/40 p-3">
+                  <li
+                    key={t.id}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-background/40 p-3"
+                  >
                     <TribeMark tribe={t} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{t.name}</p>
@@ -159,7 +184,8 @@ export function AddTribeSheet({
               </ul>
               {status.data?.available_at === null && status.data.can_switch && (
                 <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Check className="h-3.5 w-3.5 text-primary" /> You can change Tribe freely for now.
+                  <Check className="h-3.5 w-3.5 text-primary" /> You can change Tribe freely for
+                  now.
                 </p>
               )}
             </>

@@ -2048,7 +2048,7 @@ function InviteConnectedUsersPanel({
         <div>
           <p className="label-mono text-muted-foreground">Invite people</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Pick someone you follow, or someone who follows you.
+            Pick someone from your Tribe, or someone you're Moots with.
           </p>
         </div>
         <span className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">
@@ -2061,7 +2061,7 @@ function InviteConnectedUsersPanel({
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search followed / followers"
+          placeholder="Search Tribe / Moots"
           className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
         />
       </div>
@@ -2112,7 +2112,7 @@ function InviteConnectedUsersPanel({
         <p className="mt-3 rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
           {search.trim()
             ? "No people match that search."
-            : "Follow people, or let them follow you, to invite them here."}
+            : "Join a Tribe, or become Moots with someone, to invite them here."}
         </p>
       )}
     </div>
@@ -2172,7 +2172,11 @@ function RelationshipPill({
   relationship: VentureInviteCandidate["relationship"];
 }) {
   const label =
-    relationship === "mutual" ? "Mutual" : relationship === "following" ? "Following" : "Follower";
+    relationship === "same_tribe_moot"
+      ? "Tribe · Moot"
+      : relationship === "moot"
+        ? "Moot"
+        : "Tribe";
   return (
     <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
       {label}

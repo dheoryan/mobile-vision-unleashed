@@ -1,6 +1,6 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listExploreMatches } from "@/lib/explore.functions";
+import { listExploreMatches, recordExploreImpressions } from "@/lib/explore.functions";
 
 export const EXPLORE_PAGE_SIZE = 20;
 
@@ -18,5 +18,13 @@ export function useExploreMatches(enabled = true) {
     getNextPageParam: (last) => last.nextOffset ?? undefined,
     staleTime: 30_000,
     enabled,
+  });
+}
+
+/** Fire-and-forget: no loading/error state a screen needs to react to. */
+export function useRecordExploreImpressions() {
+  const fn = useServerFn(recordExploreImpressions);
+  return useMutation({
+    mutationFn: (shownIds: string[]) => fn({ data: { shown_ids: shownIds } }),
   });
 }

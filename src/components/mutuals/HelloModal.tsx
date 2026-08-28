@@ -6,11 +6,13 @@ import { useSendHello } from "@/lib/social-store";
 import { suggestedOpener, type MatchSignals } from "@/lib/explore-reasons";
 
 /**
- * Compose a Hello — the one message request you get with someone you have no
- * relationship with.
+ * Compose a Hello — the message request you send someone you have no
+ * relationship with yet.
  *
  * The constraints are stated before the user writes rather than after they
- * send: one Hello per person ever, and a monthly allowance. Both are enforced
+ * send: a monthly allowance for cold cross-Tribe contact (Tribemates and
+ * active Venture co-members are exempt), and if it goes unanswered or is
+ * declined, a 30-day wait before trying that person again. Both are enforced
  * in the database, but a limit the user only discovers by hitting it reads as
  * a bug rather than a rule.
  */
@@ -21,6 +23,7 @@ export function HelloModal({
   recipientName,
   hellosLeft,
   signals,
+  onSent,
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,6 +32,9 @@ export function HelloModal({
   hellosLeft?: number;
   /** What Explore matched on, used to offer a first line. */
   signals?: MatchSignals;
+  /** Fires after a successful send, before onClose - for callers that need
+   *  to react to the send itself (e.g. dropping this person from a list). */
+  onSent?: () => void;
 }) {
   const [message, setMessage] = useState("");
   const send = useSendHello();
@@ -54,6 +60,7 @@ export function HelloModal({
             description: "You'll be able to message them if they accept.",
           });
           setMessage("");
+          onSent?.();
           onClose();
         },
         onError: (e) => toast.error((e as Error).message),
@@ -64,12 +71,18 @@ export function HelloModal({
   return (
     <AnimatedModal
       open={open}
-      onOpenChange={(o) => { if (!o) close(); }}
+      onOpenChange={(o) => {
+        if (!o) close();
+      }}
       title={`Say hello to ${recipientName}`}
       preventClose={send.isPending}
       contentClassName="p-6"
     >
-      <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
+      <button
+        onClick={close}
+        aria-label="Close"
+        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+      >
         <X className="h-5 w-5" />
       </button>
 
@@ -80,8 +93,8 @@ export function HelloModal({
         Say hello to {recipientName}
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        You're not in the same Tribe, so this is a one-time request. If they accept,
-        you can message each other normally.
+        You're not in the same Tribe, so this needs their okay first. If they accept, you can
+        message each other normally — and if they don't answer, you can try again in 30 days.
       </p>
 
       <textarea
@@ -108,7 +121,9 @@ export function HelloModal({
             <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">
               Use this opener
             </span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{opener}</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+              {opener}
+            </span>
           </span>
         </button>
       )}
@@ -116,8 +131,8 @@ export function HelloModal({
       <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
         <span>
           {hellosLeft === undefined
-            ? "One Hello per person."
-            : `${hellosLeft} ${hellosLeft === 1 ? "Hello" : "Hellos"} left this month · one per person`}
+            ? "Tribemates and active Venture co-members don't count against your monthly Hellos."
+            : `${hellosLeft} ${hellosLeft === 1 ? "Hello" : "Hellos"} left this month`}
         </span>
         <span>{message.length}/280</span>
       </div>
@@ -127,7 +142,13 @@ export function HelloModal({
         disabled={!message.trim() || send.isPending || hellosLeft === 0}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
       >
-        {send.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</> : "Send Hello"}
+        {send.isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" /> Sending…
+          </>
+        ) : (
+          "Send Hello"
+        )}
       </button>
       {hellosLeft === 0 && (
         <p className="mt-2 text-center text-[11px] text-muted-foreground">

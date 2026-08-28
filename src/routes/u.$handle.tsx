@@ -1,15 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Loader2, Hand, Clock } from "lucide-react";
+import { ArrowLeft, MessageCircle, Hand, Clock } from "lucide-react";
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { listPostsByAuthor } from "@/lib/posts.functions";
-import { getFollowCounts } from "@/lib/social.functions";
-import {
-  useMyFollowing as useFollowing,
-  useToggleFollow,
-  useContactStatus,
-} from "@/lib/social-store";
+import { useProfileStats, useContactStatus } from "@/lib/social-store";
 import { HelloModal } from "@/components/mutuals/HelloModal";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -19,7 +14,6 @@ import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { intentStore } from "@/lib/intent-store";
-import { toast } from "sonner";
 import { INTEREST_OPTIONS, SOCIAL_INTENT_OPTIONS, optionLabel } from "@/lib/profile-options";
 import { TribeMark } from "@/components/mutuals/TribeMark";
 import { AppBootstrapSkeleton, FeedSkeleton } from "@/components/mutuals/Skeleton";
@@ -35,7 +29,6 @@ function PublicProfilePage() {
 
   const profileFn = useServerFn(getProfileByHandle);
   const postsFn = useServerFn(listPostsByAuthor);
-  const countsFn = useServerFn(getFollowCounts);
 
   const profileQ = useQuery({
     queryKey: ["profile-public", handle],
@@ -53,16 +46,7 @@ function PublicProfilePage() {
     staleTime: 15_000,
   });
 
-  const countsQ = useQuery({
-    queryKey: ["social", "follow-counts", profile?.id ?? "none"],
-    queryFn: () => countsFn({ data: { user_id: profile!.id } }),
-    enabled: !!profile?.id,
-    staleTime: 30_000,
-  });
-
-  const followingQ = useFollowing();
-  const isFollowing = !!profile && (followingQ.data?.has(profile.id) ?? false);
-  const toggleFollow = useToggleFollow();
+  const statsQ = useProfileStats(profile?.id ?? null);
   const contact = useContactStatus(isMe ? null : (profile?.id ?? null));
   const [helloOpen, setHelloOpen] = useState(false);
 
@@ -174,39 +158,17 @@ function PublicProfilePage() {
           )}
 
           <div className="mt-5 flex items-stretch border-y border-border">
-            <Stat label="Following" value={String(countsQ.data?.following ?? 0)} />
+            <Stat label="Moots" value={String(statsQ.data?.moots ?? 0)} />
             <span aria-hidden className="w-px bg-border" />
-            <Stat label="Followers" value={String(countsQ.data?.followers ?? 0)} />
+            <Stat label="Hosted" value={String(statsQ.data?.hosted ?? 0)} />
             <span aria-hidden className="w-px bg-border" />
-            <Stat label="Posts" value={String(postsQ.data?.length ?? 0)} />
+            <Stat label="Joined" value={String(statsQ.data?.joined ?? 0)} />
           </div>
 
           {!isMe && (
             <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => {
-                  if (!user) {
-                    navigate({ to: "/login" });
-                    return;
-                  }
-                  toggleFollow.mutate(profile.id, {
-                    onError: (e) => toast.error((e as Error).message),
-                  });
-                }}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-xs font-bold ${isFollowing ? "border border-border bg-background/40 text-foreground" : "bg-primary text-primary-foreground"}`}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserCheck className="h-3.5 w-3.5" /> Following
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-3.5 w-3.5" /> Follow
-                  </>
-                )}
-              </button>
               {/* Private contact outside your Tribe is earned, not assumed.
-                  If a DM isn't open yet, the action is a one-time Hello rather
+                  If a DM isn't open yet, the action is a rationed Hello rather
                   than a dead button — showing someone and then hiding them
                   reads as broken. */}
               {contact.data?.can_message !== false ? (

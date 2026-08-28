@@ -44,8 +44,7 @@ export type ProfileRow = {
 
 const PROFILE_COLS =
   "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan, venture_count";
-const MY_PROFILE_COLS =
-  `${PROFILE_COLS}, age, date_of_birth, adult_verified_at, age_verification_locked_at`;
+const MY_PROFILE_COLS = `${PROFILE_COLS}, age, date_of_birth, adult_verified_at, age_verification_locked_at`;
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -62,9 +61,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
 
 export const getProfileById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: row, error } = await supabase
@@ -78,13 +75,13 @@ export const getProfileById = createServerFn({ method: "GET" })
 
 export const getProfileByHandle = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ handle: z.string().min(1).max(60) }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ handle: z.string().min(1).max(60) }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     // handle may be a uuid (from /u/$id usage) or an actual @handle
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.handle);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      data.handle,
+    );
     let q = supabase.from("profiles").select(PROFILE_COLS);
     q = isUuid ? q.eq("id", data.handle) : q.eq("handle", data.handle.replace(/^@/, ""));
     const { data: row, error } = await q.maybeSingle();
@@ -183,9 +180,7 @@ export const getTribeSwitchStatus = createServerFn({ method: "GET" })
 
 export const switchTribe = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ tribe_id: z.enum(TRIBE_IDS) }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ tribe_id: z.enum(TRIBE_IDS) }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -214,7 +209,6 @@ export const switchTribe = createServerFn({ method: "POST" })
 
     return row.tribe_ids as string[];
   });
-
 
 export type VentureMatch = {
   id: string;
@@ -245,7 +239,9 @@ export const listVentureMatches = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     let q = supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
+      .select(
+        "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan",
+      )
       .neq("id", userId)
       .limit(120);
     if (data.scope === "mine" && data.tribe_ids && data.tribe_ids.length) {
@@ -280,11 +276,15 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
       .select("blocked_id")
       .eq("blocker_id", userId);
     if (blockedError) throw new Error(blockedError.message);
-    const blockedIds = new Set((blockedRows ?? []).map((r: { blocked_id: string }) => r.blocked_id));
+    const blockedIds = new Set(
+      (blockedRows ?? []).map((r: { blocked_id: string }) => r.blocked_id),
+    );
 
     let q = supabase
       .from("profiles")
-      .select("id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan")
+      .select(
+        "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan",
+      )
       .neq("id", userId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -311,12 +311,87 @@ export const listDiscoverProfiles = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * Profiles the current user has Saved in Discover, most recently saved
+ * first. Save (backed by `follows`) is intentionally kept separate from
+ * Moots - a private bookmark, not a relationship - see DEVLOG's Moots
+ * design notes. This is its own list so saving something is actually worth
+ * doing instead of disappearing the moment you scroll past it.
+ *
+ * Resolved entries drop out automatically: once you've sent this person any
+ * Hello (whatever its status), or you already share a Tribe with them, the
+ * "should I say hello?" question this list exists to hold has already been
+ * answered one way or another - keeping them here would just be clutter.
+ * The underlying `follows` row is left alone; this only affects what this
+ * list shows.
+ */
+export const listSavedProfiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<DiscoverProfile[]> => {
+    const { supabase, userId } = context;
+
+    const [
+      { data: saves, error: savesError },
+      { data: blockedRows, error: blockedError },
+      { data: hellosRows, error: hellosError },
+      { data: me, error: meError },
+    ] = await Promise.all([
+      supabase
+        .from("follows")
+        .select("followee_id")
+        .eq("follower_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
+      supabase
+        .from("hellos")
+        .select("sender_id, recipient_id")
+        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`),
+      supabase.from("profiles").select("tribe_ids").eq("id", userId).maybeSingle(),
+    ]);
+    if (savesError) throw new Error(savesError.message);
+    if (blockedError) throw new Error(blockedError.message);
+    if (hellosError) throw new Error(hellosError.message);
+    if (meError) throw new Error(meError.message);
+
+    const blockedIds = new Set(
+      ((blockedRows ?? []) as { blocked_id: string }[]).map((r) => r.blocked_id),
+    );
+    const alreadyHelloedIds = new Set(
+      ((hellosRows ?? []) as { sender_id: string; recipient_id: string }[]).map((r) =>
+        r.sender_id === userId ? r.recipient_id : r.sender_id,
+      ),
+    );
+    const myTribeIds = new Set((me?.tribe_ids as string[] | null) ?? []);
+
+    const ids = ((saves ?? []) as { followee_id: string }[])
+      .map((r) => r.followee_id)
+      .filter((id) => !blockedIds.has(id) && !alreadyHelloedIds.has(id));
+    if (!ids.length) return [];
+
+    const { data: rows, error } = await supabase
+      .from("profiles")
+      .select(
+        "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan",
+      )
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+
+    const byId = new Map(((rows ?? []) as DiscoverProfile[]).map((p) => [p.id, p]));
+    return ids
+      .map((id) => byId.get(id))
+      .filter((p): p is DiscoverProfile => {
+        if (!p) return false;
+        // Same-Tribe is already reachable without a Hello at all - resolved
+        // the moment either of you joins the other's Tribe.
+        return !(p.tribe_ids ?? []).some((t) => myTribeIds.has(t));
+      });
+  });
+
 /** Search profiles by partial @handle / display_name for the @mention picker. */
 export const searchMentionProfiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ q: z.string().max(40) }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ q: z.string().max(40) }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const safe = data.q.replace(/[,()*%]/g, " ").slice(0, 40);

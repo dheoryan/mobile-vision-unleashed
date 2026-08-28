@@ -119,3 +119,28 @@ export const listExploreMatches = createServerFn({ method: "GET" })
       nextOffset: rows.length === limit ? offset + limit : null,
     };
   });
+
+/**
+ * Records that these people were just shown in Today's Five (or a
+ * continuation set), so `list_explore_matches` can push them down the
+ * ranking for a while instead of the same top scorers showing up forever.
+ * Upsert, not an append-only log - only the most recent time matters.
+ */
+export const recordExploreImpressions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ shown_ids: z.array(z.string().uuid()).min(1).max(20) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase.from("explore_impressions").upsert(
+      data.shown_ids.map((shownId) => ({
+        user_id: userId,
+        shown_id: shownId,
+        shown_at: new Date().toISOString(),
+      })),
+      { onConflict: "user_id,shown_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { recorded: data.shown_ids.length };
+  });

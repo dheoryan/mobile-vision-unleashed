@@ -205,6 +205,501 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-28 — Claude — Header settled: Profile drops the bell, everyone else keeps it
+
+- Asked to research how Instagram/Bumble/Pure handle this. The web search
+  itself came back weak (SEO blog content, no real teardowns), but what's
+  reliably known about Instagram specifically contradicted the "bell on
+  every screen" position taken two entries ago: Instagram's activity icon
+  only lives on the Home feed's header, not on Profile/Explore/Reels.
+  Header content changing per-tab is itself an established pattern, not a
+  consistency violation.
+- Final call: **Profile drops Notifications entirely** and its hamburger
+  takes the edge slot instead; **every other screen keeps the bell** at the
+  edge, since none of them have a competing icon wanting that same spot.
+  This retires the two-slot `leftAction`/`rightAction` design from the
+  previous entry - with Profile no longer showing both icons at once, one
+  slot handles every case again.
+- `AppHeader` (`Shared.tsx`) is back to a single `action` prop plus a new
+  `showNotifications` boolean (default `true`, only `false` on Profile).
+  `ProfileScreen.tsx`'s hamburger now passes through `action` directly
+  (rendering at the edge, since nothing else occupies it there anymore).
+  `DiscoverScreen.tsx`'s Search is unchanged - still `action`, still beside
+  a bell that's still shown.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on all
+  three touched files, full Cloudflare production build passes. Not yet
+  exercised live.
+
+### 2026-08-28 — Claude — AppHeader split into left/right action slots
+
+- User pushed back on Notifications anchoring the (only) action edge, citing
+  the common pattern of a hamburger/menu icon living at the edge in other
+  apps. Both things are true at once because they're about different icons:
+  in the apps that pattern comes from, the hamburger *is* the omnipresent
+  global icon, which is why it anchors there. In Meutuals, Notifications is
+  the omnipresent one (every screen); the hamburger only exists on Profile.
+  Same underlying rule, correctly pointed at whichever icon is actually
+  persistent in this app - they're just different icons in different apps.
+- Resolved by giving both a home instead of picking one: `AppHeader`
+  (`Shared.tsx`) now takes `leftAction` and `rightAction` instead of one
+  `action`. `leftAction` is the classic navigation-flavoured edge slot -
+  Profile's hamburger moved there. `rightAction` sits beside Notifications
+  for utility-flavoured icons - Discover's Search stays there, since a
+  search icon conventionally lives near other top-right utility icons, not
+  at a hamburger's edge. Notifications keeps its fixed position on every
+  screen either way; nothing this session's earlier fix already guaranteed
+  is lost.
+- `VenturesScreen.tsx`/`ChatsScreen.tsx`/`TimelineScreen.tsx`/`TribeScreen.tsx`
+  don't pass either slot and needed no changes.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on all three
+  touched files, full Cloudflare production build passes. Not yet exercised
+  live.
+
+### 2026-08-28 — Claude — Notifications anchored at the header's true edge
+
+- User asked which order reads better, Search or Notifications. The real
+  answer wasn't preference: `AppHeader` rendered `<NotificationBell />`
+  before `{action}`, so on any screen carrying a per-screen action (Discover's
+  Search, Profile's Settings shortcut) the bell shifted one slot left of the
+  true edge, while screens without an action left it at the edge - its
+  absolute position moved depending on which screen you were on. Swapped the
+  order in `Shared.tsx` so `{action}` renders first and `NotificationBell`
+  last: the one icon present on every screen now anchors at a fixed
+  position everywhere, and per-screen actions sit before it instead of
+  pushing it around. Fixes Profile's header too, not just Discover's.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Cloudflare production build passes. Not yet exercised live.
+
+### 2026-08-28 — Claude — Search moved into Discover's own header slot
+
+- User's counter-proposal to putting Browse in the global header: use the
+  *existing* per-screen `action` slot on `AppHeader` instead - the same
+  slot Profile already uses for its Settings shortcut ("hamburger"). That
+  slot only renders whatever the calling screen passes, so unlike a
+  hardcoded global icon it only ever appears on Discover; it doesn't
+  reappear as a non-sequitur on Timeline/Chats/etc. Agreed, this sidesteps
+  the objection raised for Browse entirely.
+- Moved Discover's Search trigger into `AppHeader`'s `action` prop, styled
+  identically to Profile's existing header action (44px circular target,
+  same hover/focus treatment). Removed the now-duplicate Search button from
+  Discover's own control row, which drops from 4 icons to 3 (Mood, Area,
+  Browse). `focusSearch()` and the inline search-mode row it triggers are
+  unchanged - only the trigger's location moved.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Cloudflare production build passes. Not yet exercised live.
+
+### 2026-08-28 — Claude — Reverted the doors-screen illustration
+
+- User's live screenshot showed it cramped against the "Back to today's
+  five" footer, not sitting comfortably. Root cause: `FeatureIllustration`'s
+  box is `aspect-[3/4]` regardless of the width override, so even at 150px
+  wide it forces a ~200px-tall box - fine in the "done" phase's mostly-empty
+  layout, not fine here where two cards (mood chips, Find a Venture) already
+  eat most of the vertical space. Reverted; the "humanize" fix needs a
+  different approach for this specific, denser screen rather than copying
+  the done-phase treatment as-is.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Cloudflare production build passes.
+
+### 2026-08-28 — Claude — Doors screen gets the completion illustration; Browse stays out of the global header
+
+- User asked whether Discover's Browse trigger (Tribes + Saved, added this
+  session) should move into the global `AppHeader` beside Notifications.
+  Declined, with reasoning: `AppHeader` renders on every screen (Timeline,
+  Ventures, Chats, Profile, Tribe), so it's reserved for genuinely
+  cross-screen concerns; Browse only means something inside Discover.
+  Moving it would make it a non-sequitur everywhere else. Left as-is in
+  Discover's own control row.
+- User also flagged the "doors" screen (shown after Today's Five completes)
+  as feeling cold - there's a real empty gap between the "Find a Venture"
+  card and the "Back to today's five" footer now that "Enter a Tribe" is
+  gone. Filled it the same way the 2026-08-26 completion-card fix did: the
+  existing transparent Discover illustration, centered in the flexible
+  space, rather than leaving a void. Same `FeatureIllustration`/`discoverArt`
+  already imported in this file for the "done" phase, just reused at a
+  slightly smaller size (150px vs 190px) to fit the doors screen's tighter
+  vertical room.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Cloudflare production build passes.
+
+### 2026-08-28 — Claude — Removed the "Enter a Tribe" door card
+
+- User pushback, correctly: the "doors" screen shown after every completed
+  Today's Five ([ExploreDeck.tsx](src/components/mutuals/ExploreDeck.tsx))
+  had an "Enter a Tribe" card sitting as a peer option next to "Find a
+  Venture" - repeated every single time, framed as an inviting, low-cost
+  action. That's the wrong weight for a decision gated by a 21-day cooldown
+  and deliberately exclusive membership; tapping it never actually switched
+  anyone (it only opened the same preview grid, with the real "Move here"
+  confirm step still a layer deeper), but showing it that often, that
+  casually, nudges toward tribe-switching being a repeatable browsing
+  choice rather than the rare, considered one it's designed to be.
+- It was also newly redundant: Discover's Browse menu (this session, same
+  day) already gives Explore Tribes a permanent, always-reachable home, so
+  this card wasn't adding reach, only repetition.
+- Removed the card; "Find a Venture" is now the sole full-width action in
+  that section instead of half of a two-column grid. Left the *other*
+  `onExploreTribes` call site alone - the final "done" screen (reached once
+  per session, at most, after finishing both the primary five and a
+  continuation set) already uses neutral "Explore Tribes" copy and isn't
+  the repeated-nudge pattern being objected to.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (also
+  dropped the now-unused `UsersRound` import), full Cloudflare production
+  build passes.
+
+### 2026-08-28 — Claude — Explore freshness live; Discover control row decluttered
+
+- User confirmed `LOVABLE_EXPLORE_FRESHNESS_VERIFY.sql` returned all `true`
+  in production - the recency-penalized `list_explore_matches` and
+  `explore_impressions` from the previous entry are live.
+- Built the control-row consolidation discussed in chat: Explore Tribes and
+  Saved (both occasional-browse utilities, not part of the daily Mood/Search
+  loop) now share one `BrowseMenuSheet` behind a single icon, instead of
+  each holding a permanent slot. Row goes from 5 icons (Mood, Area, Tribes,
+  Saved, Search) to 4 (Mood, Area, Search, Browse). Mood and Area stay
+  separate and visible on purpose - they're state indicators (active lens,
+  current radius), not just navigation, so folding them away would hide
+  state rather than just declutter. Pure UI, no data/query changes -
+  `BrowseMenuSheet` just opens the same existing `TribeBrowserSheet` /
+  `SavedProfilesSheet` instances.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Cloudflare production build passes. Not yet exercised live.
+
+### 2026-08-28 — Claude — Today's Five freshness: recency-penalized ranking
+
+- Built the server-side option discussed for the "same top-8 forever"
+  problem in `curateForMood` (see the previous entry). A soft penalty, not a
+  hard exclusion: someone shown in the last 3 days loses 40 points, 4-13
+  days ago loses 15, 14+ days or never shown loses nothing. A genuinely
+  strong match can still surface even if shown yesterday; a small Tribe
+  with few candidates never runs dry from over-aggressive filtering.
+- `20260828060000_explore_impressions_freshness.sql` (Red - new RLS policy,
+  even though the table itself is new):
+  - New `explore_impressions(user_id, shown_id, shown_at)` table, owner-only
+    RLS (`for all using/with check (user_id = auth.uid())`), recency index.
+    Upsert semantics - "last shown," not an append-only log.
+  - `list_explore_matches` gets one addition on top of the last known-good
+    version (20260820190650): a left join to the caller's own impressions,
+    and the tiered penalty subtracted from score before the existing
+    `least(score, 100)` (now also floored at 0 with `greatest(...)`). The
+    `me`/`candidates`/`measured`/`scored` shape, distance math, venture
+    lateral join, and the ORDER BY/pagination contract are all unchanged -
+    written as a diff against the deployed function, not a rewrite, so it's
+    reviewable as one.
+- New `recordExploreImpressions` server function (`explore.functions.ts`) -
+  upserts the shown ids, fire-and-forget. `ExploreDeck.tsx` calls it once
+  each time the resolved primary five or a continuation five actually
+  changes (keyed on the joined id set, not `dayKey` alone, so it doesn't
+  re-fire on every unrelated re-render).
+- Rehearsed against a throwaway Postgres 16 container seeded with the exact
+  pre-migration `list_explore_matches` body plus a `request.uid`-backed
+  stub of `auth.uid()` so the SECURITY DEFINER function's caller-scoping
+  could actually be exercised. Four profiles with identical underlying
+  match strength, shown 1/10/20 days ago and never: got the exact expected
+  scores (0/25/40/40), and confirmed the never-shown one outranks the
+  shown-yesterday one in the function's own returned order. All 8 verify
+  checks (`LOVABLE_EXPLORE_FRESHNESS_VERIFY.sql`) pass on a second fresh
+  container.
+- **Not yet applied to production.**
+- Verification: `npx tsc --noEmit` clean (added the new table + confirmed
+  `list_explore_matches`'s existing type entry needs no change, since its
+  signature and return columns are untouched), targeted ESLint clean, full
+  Cloudflare production build passes.
+
+### 2026-08-28 — Claude — Tribe preview gains Moots signal and a Move CTA; Explore card photo enlarged
+
+- **Tribe preview redesign.** `TribePreviewSheet` (Discover → Explore Tribes →
+  tap a Tribe) previously just showed a member count, a few recent posts, and
+  "Close preview" - no way to act on curiosity. Added:
+  - **"N of your Moots are here"** - the strongest available discovery
+    signal, reusing Moots rather than inventing a second social graph. New
+    `listMyMootProfiles` in `social.functions.ts` (+ `useMyMoots` hook)
+    resolves the current user's accepted Hellos to lightweight profiles
+    (id/name/avatar/tribe_ids); the sheet filters to whoever's in the
+    previewed Tribe. **No migration needed** - reads the caller's own
+    `hellos` rows under existing RLS.
+  - **A real "Move to [Tribe]" CTA**, or "This is your Tribe" when
+    previewing your own. `AddTribeSheet` (previously Settings-only) gained
+    an optional `initialTargetId` prop that jumps straight to its existing
+    confirm step (cooldown display, consequences copy, mutation - all
+    reused, not duplicated) instead of showing the full Tribe list. Discover
+    now mounts its own `AddTribeSheet` instance, opened from the preview.
+    Two entry points to switch Tribe now exist deliberately: Settings (full
+    list) and Discover's preview (single-Tribe jump).
+- **Explore card photo enlarged.** User flagged visible empty space below
+  the "Why you might click" checklist and above the action buttons on the
+  primary Today's Five card. The photo stage was a fixed 45% of card height
+  regardless of how short the bio/reasons text was; bumped to 52%
+  (`ExploreDeck.tsx`, one line) since the text region was already
+  over-provisioned. Left the two chevron nav buttons in the same file alone
+  - they have unrelated local uncommitted changes in flight.
+- Discussed but not yet built (see chat): Today's Five freshness (current
+  rotation is day-seeded but capped to a window of the top 8 ranked
+  candidates - fine for a small pool, means most people never surface in a
+  larger one; fix needs "already shown recently" tracking, client-only via
+  localStorage or a proper server-side impressions table) and whether
+  Discover's Search still earns its spot in an increasingly crowded control
+  row (Mood/Area/Tribes/Saved/Search).
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on every
+  touched file (`AddTribeSheet.tsx` had pre-existing formatting drift
+  cleared by `--fix` since the file was substantively edited; nothing
+  touched in `ExploreDeck.tsx` beyond the one intended line). Full
+  Cloudflare production build passes. Not yet exercised live.
+
+### 2026-08-28 — Claude — Saved list gets a follow-up action and drops resolved entries
+
+- User's question: what happens after someone saves a profile - what makes
+  the list stay useful as it grows? Landed on two changes, deliberately
+  excluding any reminder/nudge mechanic (that's the manufactured-urgency
+  pattern this app has consistently avoided elsewhere).
+- **Say hello, right in the row.** `PersonRow` gained an optional
+  `onSayHello` prop - when passed, a full-width "Say hello" button renders
+  below the existing content, opening the real `HelloModal`. Omitted
+  everywhere else (search results), so this only appears in the Saved
+  sheet; the row's existing layout is byte-identical when the prop isn't
+  passed. `HelloModal` itself gained an optional `onSent` callback (fires
+  after a successful send, before `onClose`) so callers can react to the
+  send itself - the Saved sheet uses it to refetch.
+- **Resolved entries drop out of the list automatically.** `listSavedProfiles`
+  now excludes anyone the user already has *any* `hellos` row with
+  (whatever its status - once you've acted, the "should I say hello"
+  question is answered) and anyone who already shares a Tribe with the user
+  (already reachable without a Hello at all). The underlying `follows` row
+  is untouched - this is a display filter, not a delete, so re-saving or
+  toggling elsewhere is unaffected. **No migration needed** - both new
+  reads (`hellos` scoped to the caller, `profiles.tribe_ids` for the caller)
+  already work under existing RLS.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on all three
+  touched files (`profile.functions.ts`'s one remaining finding is the
+  pre-existing, unrelated `any`-cast at line 155), full Cloudflare
+  production build passes. Not yet exercised live.
+
+### 2026-08-28 — Claude — Saved sheet couldn't scroll to its last rows
+
+- User reported (with a screenshot, `localhost:8082`, signed in) that the new
+  Saved sheet's list could not be scrolled to the bottom.
+- Could not reproduce directly - no signed-in session available here, and
+  the browser tab reached is signed out. Diagnosed from the code instead.
+- Likely cause: `SavedProfilesSheet`'s scroll region lived inside an inner
+  `<div className="flex h-full min-h-0 flex-col">` wrapper - copied from
+  `TribeBrowserSheet`, which never had enough content to expose this. A
+  percentage height (`h-full`) only resolves against a parent with a
+  *definite* height. The wrapper's parent (`AnimatedModal`'s `Content`) used
+  `sm:h-auto` at wider viewports, and `auto` isn't definite - so `h-full`
+  silently collapsed to the wrapper's own content size instead of Content's
+  bounded box. `flex-1`/`overflow-y-auto` on the list then had no real
+  height to scroll within, and Content's own `overflow-hidden` just clipped
+  whatever didn't fit, with no way to reach it.
+- Fix: moved `flex flex-col` onto `Content` itself via `contentClassName`
+  (no more percentage-height wrapper), and replaced `sm:h-auto sm:max-h-[90dvh]`
+  with a definite `sm:h-[85dvh] sm:max-h-[85dvh]` - so the flex column has a
+  real bounded height at every breakpoint, not just on mobile. Scoped to
+  this one sheet only; `TribeBrowserSheet`/`NearbyPreferencesSheet` use the
+  same older pattern and weren't touched, since they aren't reported broken
+  and changing shared-shaped code without a failing case to verify against
+  is how regressions happen.
+- **Not verified live** - this is a reasoned fix for the most likely cause,
+  not a confirmed one. Needs a retest on a real signed-in session.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (`--fix`
+  only reformatted this sheet's own indentation after the restructure - no
+  other file touched), full Cloudflare production build passes.
+
+### 2026-08-28 — Claude — Saved-list screen in Discover
+
+- Fourth and last slice of the Moots-replaces-Follow design: a way to
+  actually browse who you've Saved, closing the gap left by keeping Save
+  (backed by `follows`) deliberately separate from Moots. Before this there
+  was a Save/Saved toggle on every Discover card but no list anywhere to see
+  what you'd saved.
+- New `listSavedProfiles` in `profile.functions.ts`: your `follows` rows,
+  most-recently-saved first, resolved to full profile rows (same shape as
+  `listDiscoverProfiles`), blocked accounts filtered the same way that
+  function already does. **No migration needed** - `follows`/`blocks`/
+  `profiles` reads all already work under existing RLS for this shape of
+  query (same pattern `listDiscoverProfiles` already uses).
+- Added a bookmark icon button to Discover's compact controls row (next to
+  Mood / Area / Tribes / Search) opening a new `SavedProfilesSheet` - the
+  same full-height sheet pattern as `TribeBrowserSheet`, reusing the
+  existing `PersonRow` card and Save-toggle wiring rather than building a
+  new list component. Did not touch `ExploreDeck.tsx` (it has unrelated
+  local changes in flight) - this lives entirely in `DiscoverScreen.tsx`'s
+  search-mode machinery instead.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on both
+  files (ran `eslint --fix` on `profile.functions.ts` for pre-existing
+  formatting drift elsewhere in the file - `git diff -w` confirms nothing
+  beyond whitespace changed outside the new function), full Cloudflare
+  production build passes. Not yet exercised in a live browser session.
+
+### 2026-08-28 — Claude — Venture invite eligibility moved off the follow graph
+
+- Third slice of the Moots-replaces-Follow design. A host could previously
+  only invite people they followed or were followed by
+  (`ventures.functions.ts:860-863`, old). Confirmed replacement rule (user,
+  2026-08-28): **same Tribe is always inviteable, or already Moots with the
+  host in any Tribe** - no fresh Hello required either way.
+- Replaced `fetchConnectionIds` (queried `follows`) with
+  `fetchInviteEligibleIds`: host's own `tribe_ids` (via the existing
+  `fetchProfiles` helper) drive a `profiles.tribe_ids` overlap query for
+  same-Tribe candidates, unioned with the host's own accepted `hellos` rows
+  (either direction) for Moots. Both queries run entirely inside existing
+  RLS - `hellos` is scoped to rows the host is already a participant in, and
+  `profiles` reads were already broadly open. **No migration needed for this
+  one** - pure application-layer change.
+- `VentureInviteRelationship` changed from `"following" | "follower" |
+  "mutual"` to `"same_tribe" | "moot" | "same_tribe_moot"`; the invite
+  eligibility check in `inviteUserToVenture` now reads
+  `sameTribe.has(target) || moots.has(target)` instead of the follow-graph
+  check, with matching copy ("You can only invite people in your Tribe, or
+  people you're Moots with.").
+- Updated the invite picker in `VenturesScreen.tsx`: panel copy, search
+  placeholder, empty state, and `RelationshipPill` labels ("Tribe" / "Moot" /
+  "Tribe · Moot") all moved off follow language.
+- No existing test coverage of this eligibility logic before or after (the
+  old follow-based version had none either) - the `createServerFn` handlers
+  aren't structured for lightweight mocking the way `listVentureParticipants`
+  is. Verified by tracing the RLS each new query runs under instead; real
+  device/two-account acceptance of the actual invite flow remains open.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (no findings
+  on either touched file), full Cloudflare production build passes.
+
+### 2026-08-28 — Claude — Hosted/Joined now only count completed Ventures
+
+- User caught that `get_profile_stats` (from the profile-stats work earlier
+  today, already live in production) counted **Hosted** the moment a Venture
+  was created and **Joined** the moment an application was accepted -
+  neither required the Venture to have actually happened. A cancelled or
+  still-upcoming Venture already inflated both numbers.
+- Decision: both now require `ventures.status = 'closed'`, matching how the
+  rest of the app already treats a closed Venture as the real, done thing
+  (Venture Memories, the Moot recap). Moots is untouched - an accepted Hello
+  is already a deliberate two-way action with no earlier "not yet happened"
+  phase.
+- `20260828050000_profile_stats_completed_ventures_only.sql` replaces
+  `get_profile_stats` in place (same signature, same grants) rather than
+  editing the already-applied `20260828030000` file - that one's live in
+  production and stays as history. Added
+  `LOVABLE_PROFILE_STATS_COMPLETED_VERIFY.sql`.
+- Rehearsed against a throwaway Postgres 16 container: applied the original
+  function body first (as if `20260828030000` had already run), then this
+  migration on top, then seeded one profile with a closed + open + full
+  hosted Venture and a closed + open + full accepted application - got the
+  expected `hosted=1, joined=1` instead of `3, 3`. All 6 verify checks pass
+  on a second fresh container.
+- No app-side change needed - the client only calls the RPC and never
+  encoded the counting rule itself.
+- **Not yet applied to production.**
+
+### 2026-08-28 — Claude — Hello retry window + context-split monthly cap
+
+- Second slice of the Moots-replaces-Follow design. Confirmed shape (user,
+  2026-08-28): a Hello that goes unanswered or is declined can be retried
+  **30 days** later, *except* if the recipient has blocked the sender, which
+  keeps blocking every send unconditionally until they unblock — that part
+  needed no new code, since the existing `hellos` insert policy's
+  `not has_blocked(...)` check already covers it and this migration never
+  touches that policy. The flat 5/month cap becomes a **context-split 30**:
+  it only counts cold cross-Tribe contact — a Hello to a Tribemate or an
+  active shared Venture co-member no longer touches it at all.
+- Schema (`20260828040000_hello_retry_and_split_cap.sql`, Red — drops a
+  unique constraint and replaces triggers on a table with real rows):
+  - Dropped `hellos_one_per_pair`. A retry is a **new row** in the same
+    direction, not a mutated old one — `hellos.status` gained `'expired'`
+    for a superseded row, and a partial unique index
+    (`hellos_one_pending_per_pair ... where status='pending'`) is the hard
+    backstop against two live pending rows for one direction.
+  - New `trg_hellos_retry_window` (before insert): looks up the latest row
+    for that exact direction; blocks the insert if it's `accepted`
+    (permanent), or `pending`/`declined` and still inside the 30-day window;
+    otherwise allows it — and if the superseded row was a stale `pending`,
+    flips it to `expired` as part of the same trigger so exactly one live
+    row per direction ever exists. Expiry is lazy (happens on the next send
+    attempt), not scheduled.
+  - New `hello_is_capped(sender, recipient)` — same-Tribe or active-shared-
+    Venture is `false` (uncapped); everything else `true`. Reused by both
+    the replaced `hellos_enforce_monthly_cap` trigger (now capped at 30, not
+    5) and a new `hellos_capped_sent_this_month(user)` function, so the "N
+    left this month" number shown to the user can never drift from what the
+    trigger actually enforces.
+- App side (`social.functions.ts`): `getContactStatus` now reads the
+  **latest row per direction** rather than assuming at most one row ever
+  existed (a retry can leave several historical rows), and — since expiry is
+  lazy — if *this viewer* is the one who sent a Hello that's now 30+ days
+  stale (pending or declined), it's presented as if there's no active Hello
+  at all, so the profile offers Say hello again instead of a stuck disabled
+  button. A recipient can still answer an old pending request regardless of
+  age; that path is unchanged. `hellos_left_this_month` now calls
+  `hellos_capped_sent_this_month` instead of a flat count. Updated
+  `HelloModal.tsx` and the public-profile copy that assumed "one Hello per
+  person, ever."
+- Added `LOVABLE_HELLO_RETRY_CAP_VERIFY.sql`. Rehearsed against a throwaway
+  Postgres 16 container seeded with the real pre-migration `hellos` schema
+  (inline check constraint, named unique constraint, both existing triggers)
+  plus stub `is_venture_host`/`is_venture_member`. All 8 verify checks
+  passed. Ran 13 functional scenarios end to end: first Hello allowed;
+  immediate retry while pending blocked; retry allowed + old row auto-
+  expired after backdating 31 days; immediate retry after decline blocked;
+  retry allowed 31 days after decline; resend after accepted blocked
+  permanently; same-Tribe and active-shared-Venture both correctly uncapped;
+  closed Venture does **not** exempt; exactly 30 capped sends allowed, 31st
+  rejected; an uncapped-context send still succeeds even with the capped
+  count maxed out. All 13 passed (one test's own setup bug on the first run,
+  not the migration — a sender profile row was never inserted; fixed the
+  test and reran clean).
+- **Not yet applied to production** — needs the manual SQL-editor step
+  before the matching app code takes effect; until then Hello still runs on
+  the old flat-5, no-retry rules.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on every
+  real source file touched (ran `eslint --fix` on `social.functions.ts` and
+  `HelloModal.tsx` to clear formatting-only findings in the touched regions;
+  `git diff -w` confirms it changed nothing beyond whitespace), full
+  Cloudflare production build passes.
+
+### 2026-08-28 — Claude — Profile stat row: Moots / Hosted / Joined
+
+- First slice of the Moots-replaces-Follow design (full journey, retry rules,
+  and split cap discussed with the user but not yet built — this is scoped to
+  the stat row only). Public profile (`u.$handle.tsx`) and own Profile both
+  now show **Moots | Hosted | Joined**, replacing Following/Followers (and,
+  on the public profile, Posts). The Follow button and Following/Followers
+  stat are removed from the public profile entirely; Say hello / Message /
+  Hello sent / Hello received / Not accepting is now the only relationship
+  action there.
+- Hosted/Joined intentionally split rather than one combined "Ventures"
+  number — organizing vs. showing up are different facts, and it's a cheap
+  head start on the still-unresolved Host program question in
+  `MEUTUALS_PRODUCTION_AUDIT.md`.
+- None of the three numbers were readable for an arbitrary *other* profile
+  under existing RLS (`hellos`, `ventures`, and `venture_applications` are all
+  scoped to the caller). Added `public.get_profile_stats(uuid)`, one
+  `SECURITY DEFINER STABLE` function in the same family as
+  `is_venture_scope_visible`/`can_direct_message`, returning only the three
+  integers — never which Hellos or Ventures. This is additive (new function,
+  new grant on that function only, nothing else touched) — Green by
+  `CHANGE_PROTOCOL.md`, but grants are involved so treat the apply step the
+  same as the other pending migrations below: paste and verify before relying
+  on it.
+- `profiles.venture_count` (hosted-only, trigger-maintained) was **not**
+  reused for "Hosted" — it's the free-tier Venture-creation quota counter
+  (`ProfileScreen.tsx`'s "X of 3 free Ventures left this month"), a different
+  concern that happens to currently hold the same number. Left it alone;
+  Hosted/Joined/Moots are computed fresh in the new function.
+- Added `20260828030000_profile_relationship_stats.sql` and
+  `LOVABLE_PROFILE_STATS_VERIFY.sql`. Rehearsed against a throwaway
+  Postgres 16 container with stub tables matching the real `hellos` /
+  `ventures` / `venture_applications` column names (the local Supabase stack
+  is retired) — migration applied cleanly, all 4 verify checks passed, and a
+  seeded functional test (2 accepted Hellos + 1 pending, 2 hosted Ventures +
+  1 by someone else, 1 accepted + 1 pending + 1 declined application) returned
+  the exact expected `(2, 2, 1)`. **Not yet applied to production** — needs
+  the usual manual SQL-editor step before the matching app code actually
+  shows real numbers instead of zeroes.
+- Verification: `npx tsc --noEmit` clean (after adding the `get_profile_stats`
+  entry to `types.ts` by hand, since codegen can't run until the migration is
+  live), targeted ESLint clean on every real source file touched (`types.ts`
+  itself has pre-existing repo-wide semicolon-style noise, confirmed
+  unrelated to this change and left alone), and the full Cloudflare
+  production build passes.
+
 ### 2026-08-28 — Codex — Profile and push release reconciled for production
 
 - Fetched immediately before release and normally merged the three newer

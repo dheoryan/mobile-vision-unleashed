@@ -19,7 +19,6 @@ import {
   MapPin,
   MessageCircle,
   Shuffle,
-  UsersRound,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
@@ -31,6 +30,7 @@ import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { useContactStatus } from "@/lib/social-store";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
 import { curateForMood, curateUnseenForMood, type ExploreMood } from "@/lib/explore-moods";
+import { useRecordExploreImpressions } from "@/lib/explore-store";
 import { intentStore } from "@/lib/intent-store";
 import { cn } from "@/lib/utils";
 
@@ -147,6 +147,22 @@ export function ExploreDeck({
       `${dayKey}:continuation:${continuationMood}`,
     );
   }, [continuationMood, dayKey, excludedPrimaryIds, people]);
+
+  // So tomorrow's ranking can push today's five down instead of showing the
+  // same top scorers forever (list_explore_matches applies the penalty).
+  // Fire-and-forget, gated on the actual id set rather than dayKey alone so
+  // this doesn't re-fire every time `people` re-renders with the same five.
+  const recordImpressions = useRecordExploreImpressions();
+  const primaryIdsKey = primaryPeople.map((p) => p.id).join(",");
+  useEffect(() => {
+    if (primaryPeople.length) recordImpressions.mutate(primaryPeople.map((p) => p.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primaryIdsKey]);
+  const continuationIdsKey = continuationPeople.map((p) => p.id).join(",");
+  useEffect(() => {
+    if (continuationPeople.length) recordImpressions.mutate(continuationPeople.map((p) => p.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [continuationIdsKey]);
 
   const currentPeople = phase === "continuation" ? continuationPeople : primaryPeople;
   const person = phase === "primary" || phase === "continuation" ? currentPeople[index] : null;
@@ -316,30 +332,22 @@ export function ExploreDeck({
           </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        {/* Which Tribe you belong to is a considered, 21-day-cooldown
+            decision — not a casual browsing option to re-surface as a peer
+            of "meet more people" every time a five finishes. Explore Tribes
+            already has a permanent home in Discover's Browse menu; it
+            doesn't also need a seat here. */}
+        <div className="mt-3">
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-            className="flex min-h-[6.25rem] flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex min-h-[6.25rem] w-full flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <CalendarPlus className="h-5 w-5 text-primary" />
             <span>
               <span className="block text-sm font-semibold">Find a Venture</span>
               <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
                 Start with a real plan
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={onExploreTribes}
-            className="flex min-h-[6.25rem] flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <UsersRound className="h-5 w-5 text-primary" />
-            <span>
-              <span className="block text-sm font-semibold">Enter a Tribe</span>
-              <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
-                Meet through a room
               </span>
             </span>
           </button>
@@ -451,7 +459,7 @@ export function ExploreDeck({
             className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
           >
             <div
-              className="relative h-[45%] min-h-[13rem] shrink-0 overflow-hidden bg-card"
+              className="relative h-[52%] min-h-[14rem] shrink-0 overflow-hidden bg-card"
               style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 24%, var(--card))` }}
             >
               <img
@@ -630,9 +638,9 @@ export function ExploreDeck({
             type="button"
             onClick={back}
             aria-label={`Previous introduction before ${person.name}`}
-            className="absolute left-3 top-[22.5%] z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            className="absolute left-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:left-3 sm:top-[22.5%] sm:h-14"
           >
-            <ChevronLeft className="h-8 w-8" strokeWidth={2.25} />
+            <ChevronLeft className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
           </button>
         )}
         <button
@@ -645,9 +653,9 @@ export function ExploreDeck({
                 : "Finish today’s introductions"
               : `Next introduction after ${person.name}`
           }
-          className="absolute right-3 top-[22.5%] z-10 flex h-14 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+          className="absolute right-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:right-3 sm:top-[22.5%] sm:h-14"
         >
-          <ChevronRight className="h-8 w-8" strokeWidth={2.25} />
+          <ChevronRight className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
         </button>
       </div>
 

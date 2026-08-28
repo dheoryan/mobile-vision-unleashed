@@ -186,6 +186,24 @@ export type Database = {
           },
         ]
       }
+      explore_impressions: {
+        Row: {
+          shown_at: string
+          shown_id: string
+          user_id: string
+        }
+        Insert: {
+          shown_at?: string
+          shown_id: string
+          user_id: string
+        }
+        Update: {
+          shown_at?: string
+          shown_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -1400,6 +1418,14 @@ export type Database = {
         Returns: undefined
       }
       expire_venue_coordinates: { Args: never; Returns: number }
+      get_profile_stats: {
+        Args: { _target_id: string }
+        Returns: {
+          hosted_count: number
+          joined_count: number
+          moots_count: number
+        }[]
+      }
       has_blocked: {
         Args: { _target: string; _viewer: string }
         Returns: boolean
@@ -1407,6 +1433,14 @@ export type Database = {
       has_venture_application: {
         Args: { _user_id: string; _venture_id: string }
         Returns: boolean
+      }
+      hello_is_capped: {
+        Args: { _recipient: string; _sender: string }
+        Returns: boolean
+      }
+      hellos_capped_sent_this_month: {
+        Args: { _user_id: string }
+        Returns: number
       }
       is_tribe_member:
         | { Args: { p_tribe_id: string; p_user_id: string }; Returns: boolean }

@@ -15,11 +15,16 @@ export function AppHeader({
   title,
   subtitle,
   action,
+  showNotifications = true,
 }: {
   title: string;
   subtitle?: string;
   accent: string;
   action?: React.ReactNode;
+  /** Profile is the one screen that drops the bell in favour of its own
+   *  hamburger taking the edge slot. Every other screen keeps it - a
+   *  hamburger and a bell both wanting the edge only comes up here. */
+  showNotifications?: boolean;
 }) {
   return (
     <header
@@ -37,8 +42,8 @@ export function AppHeader({
         </div>
         <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
         <div className="flex items-center gap-1 justify-self-end">
-          <NotificationBell />
           {action}
+          {showNotifications && <NotificationBell />}
         </div>
       </div>
     </header>

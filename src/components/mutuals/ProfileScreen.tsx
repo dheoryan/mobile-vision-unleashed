@@ -7,7 +7,7 @@ import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { useMyPosts, useMySavedPosts } from "@/lib/posts-store";
 import { useMyHostedVentures } from "@/lib/ventures-store";
-import { useFollowCounts } from "@/lib/social-store";
+import { useProfileStats } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
 import { ProfilePostHistory } from "./ProfilePostHistory";
 import { timeAgo } from "@/lib/time";
@@ -53,7 +53,7 @@ export function ProfileScreen({
   const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
   const isPlus = isPlusEffective(profile.plan);
   const showPlanCard = MONETIZATION_ENABLED;
-  const followCounts = useFollowCounts();
+  const profileStats = useProfileStats();
   const profileCompletion = [
     Boolean(profile.handle),
     Boolean(profile.city),
@@ -77,6 +77,7 @@ export function ProfileScreen({
         title="Profile"
         subtitle="You"
         accent={tribe.colorVar}
+        showNotifications={false}
         action={
           <Link
             to="/settings"
@@ -95,7 +96,7 @@ export function ProfileScreen({
           <div className="flex items-center gap-4">
             <span className="relative">
               <span
-                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-card text-4xl ring-2"
+                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
                 style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
               >
                 {profile.avatar?.startsWith("data:") || profile.avatar?.startsWith("http") ? (
@@ -183,14 +184,16 @@ export function ProfileScreen({
 
           {/* Three numbers in three identical rounded boxes was the most
               generic element left. Hairline rules carry the same grouping with
-              none of the packaging. Content is unchanged on purpose — which
-              three numbers belong here is still open. */}
+              none of the packaging. Moots replaces the asymmetric Follow
+              graph; Hosted/Joined split what "Ventures" used to flatten into
+              one number, since organizing and showing up are different facts
+              about someone. */}
           <div className="mt-5 flex items-stretch border-y border-border">
-            <Stat label="Following" value={String(followCounts.data?.following ?? 0)} />
+            <Stat label="Moots" value={String(profileStats.data?.moots ?? 0)} />
             <span aria-hidden className="w-px bg-border" />
-            <Stat label="Followers" value={String(followCounts.data?.followers ?? 0)} />
+            <Stat label="Hosted" value={String(profileStats.data?.hosted ?? 0)} />
             <span aria-hidden className="w-px bg-border" />
-            <Stat label="Ventures" value={String(profile.ventureCount)} />
+            <Stat label="Joined" value={String(profileStats.data?.joined ?? 0)} />
           </div>
 
           <button

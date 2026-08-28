@@ -121,7 +121,7 @@ export type VentureCoordination = {
   statuses: VentureArrivalState[];
 };
 
-export type VentureInviteRelationship = "following" | "follower" | "mutual";
+export type VentureInviteRelationship = "same_tribe" | "moot" | "same_tribe_moot";
 
 export type VentureInviteCandidate = VentureProfileLite & {
   relationship: VentureInviteRelationship;
@@ -520,27 +520,40 @@ function ventureRowIsComplete(venture: VentureDbRow): boolean {
   );
 }
 
-async function fetchConnectionIds(db: any, userId: string) {
-  const [followingResult, followerResult] = await Promise.all([
-    db.from("follows").select("followee_id").eq("follower_id", userId),
-    db.from("follows").select("follower_id").eq("followee_id", userId),
+// Who a host may invite: anyone sharing a Tribe with them (Tribemates are
+// already reachable, no relationship needs proving), or anyone they're
+// already Moots with regardless of Tribe. Replaces the old follow-graph
+// check - Moots is a decided, reciprocal, opt-in primitive; the asymmetric
+// follow graph never needed to gate anything as consequential as a Venture
+// invite in the first place.
+async function fetchInviteEligibleIds(db: any, hostId: string) {
+  const hostProfile = (await fetchProfiles(db, [hostId])).get(hostId);
+  const hostTribeIds = hostProfile?.tribe_ids ?? [];
+
+  const [tribeResult, mootsResult] = await Promise.all([
+    hostTribeIds.length
+      ? db.from("profiles").select("id").overlaps("tribe_ids", hostTribeIds).neq("id", hostId)
+      : Promise.resolve({ data: [] as { id: string }[], error: null }),
+    db
+      .from("hellos")
+      .select("sender_id, recipient_id")
+      .eq("status", "accepted")
+      .or(`sender_id.eq.${hostId},recipient_id.eq.${hostId}`),
   ]);
 
-  if (followingResult.error) throw new Error(followingResult.error.message);
-  if (followerResult.error) throw new Error(followerResult.error.message);
+  if (tribeResult.error) throw new Error(tribeResult.error.message);
+  if (mootsResult.error) throw new Error(mootsResult.error.message);
 
-  const following = new Set<string>(
-    ((followingResult.data ?? []) as Array<{ followee_id: string | null }>)
-      .map((row) => row.followee_id)
-      .filter(Boolean) as string[],
+  const sameTribe = new Set<string>(
+    ((tribeResult.data ?? []) as Array<{ id: string }>).map((row) => row.id),
   );
-  const followers = new Set<string>(
-    ((followerResult.data ?? []) as Array<{ follower_id: string | null }>)
-      .map((row) => row.follower_id)
-      .filter(Boolean) as string[],
+  const moots = new Set<string>(
+    ((mootsResult.data ?? []) as Array<{ sender_id: string; recipient_id: string }>).map((row) =>
+      row.sender_id === hostId ? row.recipient_id : row.sender_id,
+    ),
   );
 
-  return { following, followers, all: uniq([...following, ...followers]) };
+  return { sameTribe, moots, all: uniq([...sameTribe, ...moots]) };
 }
 
 export const listOpenVentures = createServerFn({ method: "GET" })
@@ -800,7 +813,7 @@ export const listVentureInviteCandidates = createServerFn({ method: "GET" })
     const venture = await fetchVentureOrThrow(db, data.venture_id);
     if (venture.user_id !== userId) throw new Error("Only the host can invite people.");
 
-    const connections = await fetchConnectionIds(db, userId);
+    const connections = await fetchInviteEligibleIds(db, userId);
     const candidateIds = connections.all.filter((id) => id !== userId);
     if (!candidateIds.length) return [];
 
@@ -821,10 +834,10 @@ export const listVentureInviteCandidates = createServerFn({ method: "GET" })
       .map((id) => {
         const profile = profiles.get(id);
         if (!profile) return null;
-        const isFollowing = connections.following.has(id);
-        const isFollower = connections.followers.has(id);
+        const isSameTribe = connections.sameTribe.has(id);
+        const isMoot = connections.moots.has(id);
         const relationship: VentureInviteRelationship =
-          isFollowing && isFollower ? "mutual" : isFollowing ? "following" : "follower";
+          isSameTribe && isMoot ? "same_tribe_moot" : isMoot ? "moot" : "same_tribe";
         return {
           ...profile,
           relationship,
@@ -855,12 +868,11 @@ export const inviteUserToVenture = createServerFn({ method: "POST" })
       throw new Error("This Venture is already full.");
     }
 
-    const connections = await fetchConnectionIds(db, userId);
-    const isConnected =
-      connections.following.has(data.target_user_id) ||
-      connections.followers.has(data.target_user_id);
-    if (!isConnected)
-      throw new Error("You can only invite people you follow or people who follow you.");
+    const connections = await fetchInviteEligibleIds(db, userId);
+    const isEligible =
+      connections.sameTribe.has(data.target_user_id) || connections.moots.has(data.target_user_id);
+    if (!isEligible)
+      throw new Error("You can only invite people in your Tribe, or people you're Moots with.");
 
     const { data: existingRaw, error: existingError } = await db
       .from("venture_applications")
