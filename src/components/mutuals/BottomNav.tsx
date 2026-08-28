@@ -38,7 +38,14 @@ export function BottomNav({
   chatsBadge?: number;
 }) {
   return (
-    <nav className="glass fixed bottom-0 left-0 right-0 z-30 border-t border-border">
+    <nav
+      className="glass fixed bottom-0 left-0 right-0 z-30 border-t border-border"
+      style={{
+        background: "color-mix(in oklab, var(--color-background) 56%, transparent)",
+        backdropFilter: "blur(24px) saturate(160%)",
+        WebkitBackdropFilter: "blur(24px) saturate(160%)",
+      }}
+    >
       <ul className="mx-auto flex max-w-md items-stretch justify-between px-1.5 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-1.5">
         {tabs.map(({ key, label, icon: Icon }) => {
           const isActive = active === key;

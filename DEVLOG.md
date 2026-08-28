@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Bottom navigation glass parity | `src/components/mutuals/BottomNav.tsx`, `tests/mobile-safe-area.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Bottom navigation glass parity
+
+- Matched the fixed bottom navigation to the shared app header's 56% tint,
+  24 px blur, and 160% saturation, including the WebKit-prefixed filter for
+  iOS Home Screen mode. The frosted surface continues through the device's
+  bottom safe area while icons and labels remain unfiltered foreground content.
+- Added a source parity test covering both glass surfaces and the navigation's
+  safe-area padding.
+- Verification: 3 focused tests, `npx tsc --noEmit`, `git diff --check`, and
+  the full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — Cross-browser push worker self-repair
 
