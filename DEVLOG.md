@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Cross-browser push service-worker recovery | `public/sw.js`, `src/lib/push-subscribe.ts`, `scripts/verify-pwa.mjs`, `tests/push-service-worker.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
