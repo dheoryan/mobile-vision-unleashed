@@ -114,8 +114,7 @@
 @layer utilities {
   .bg-habitat {
     background:
-      radial-gradient(ellipse 80% 60% at 100% 0%, color-mix(in oklab, var(--color-primary) 12%, transparent) 0%, transparent 60%),
-      radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in oklab, var(--color-accent) 18%, transparent) 0%, transparent 55%),
+      radial-gradient(ellipse 85% 55% at 90% -10%, color-mix(in oklab, var(--color-primary) 7%, transparent) 0%, transparent 62%),
       var(--color-background);
   }
   /* Scroll containers inside panels and sheets.

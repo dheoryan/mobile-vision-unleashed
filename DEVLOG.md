@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Habitat background glow restraint | `src/styles.css`, `tests/habitat-background.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Restrained habitat atmosphere
+
+- Removed the global lower-left accent glow from `.bg-habitat`, leaving the
+  lower viewport neutral so the bottom glass navigation no longer sits over a
+  persistent colored halo.
+- Reduced the remaining primary top glow from 12% to 7% and moved its center
+  partly above the viewport for a quieter atmospheric edge rather than a
+  visible radiant patch.
+- Verification: focused background contract test, `npx tsc --noEmit`,
+  `git diff --check`, and the full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — Visible profile handles
 
