@@ -681,6 +681,47 @@ export type Database = {
         }
         Relationships: []
       }
+      push_notification_preferences: {
+        Row: {
+          created_at: string
+          messages_mentions: boolean
+          new_posts: boolean
+          social_activity: boolean
+          tribe_activity: boolean
+          updated_at: string
+          user_id: string
+          venture_activity: boolean
+        }
+        Insert: {
+          created_at?: string
+          messages_mentions?: boolean
+          new_posts?: boolean
+          social_activity?: boolean
+          tribe_activity?: boolean
+          updated_at?: string
+          user_id: string
+          venture_activity?: boolean
+        }
+        Update: {
+          created_at?: string
+          messages_mentions?: boolean
+          new_posts?: boolean
+          social_activity?: boolean
+          tribe_activity?: boolean
+          updated_at?: string
+          user_id?: string
+          venture_activity?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           action: string | null

@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Durable push-notification categories | push preference migration/functions/store/UI, push dispatcher, generated DB types, focused tests | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,29 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Durable push-notification categories
+
+- Added five persisted, per-member Web Push categories: Messages & mentions,
+  Venture activity, Comments & reactions, Tribe activity, and New Tribe posts.
+  High-intent categories default on; the highest-volume new-post category
+  defaults off. The in-app activity inbox remains complete regardless.
+- Added authenticated server functions plus an optimistic TanStack Query store;
+  identity comes only from JWT-verified context and the new table is protected
+  by owner-only SELECT/INSERT/UPDATE RLS with an updated-at trigger.
+- The public dispatch worker now maps every supported notification kind to one
+  category and records the delivery as skipped when that member disabled it.
+  Preference lookup failures fail closed rather than bypassing an opt-out.
+- Added a grouped, accessible Settings surface with real persisted switches,
+  44 px touch targets, loading and retry states, and clear category descriptions.
+- Added `20260828020000_push_notification_preferences.sql` and
+  `LOVABLE_PUSH_PREFERENCES_RELEASE_VERIFY.sql`. The migration is RED/manual
+  and has not been applied to production; do not publish the matching code
+  before every verification row returns true.
+- Verification: `npx tsc --noEmit`, focused ESLint, 3/3 preference tests,
+  11/11 existing push tests, PWA verification, `git diff --check`, and the full
+  Cloudflare production build pass. The signed-in local app also confirms the
+  pre-migration fallback renders safely.
 
 ### 2026-08-28 — Codex — Adaptive push-notification settings UX
 

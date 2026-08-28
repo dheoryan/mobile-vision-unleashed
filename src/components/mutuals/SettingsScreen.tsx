@@ -41,6 +41,7 @@ import { DeleteAccountModal } from "./DeleteAccountModal";
 import { DiscoveryRadiusSlider } from "./DiscoveryRadiusSlider";
 import { FeatureIllustration } from "./FeatureIllustration";
 import { PushSettingsRow } from "./EnablePushBanner";
+import { PushCategorySettings } from "./PushCategorySettings";
 import { PwaInstallRow } from "./PwaInstallRow";
 import { EditProfileModal } from "./ProfileScreen";
 import { AppBootstrapSkeleton, PeopleSkeleton, Skeleton } from "./Skeleton";
@@ -333,6 +334,7 @@ function NotificationsSettings() {
         detail="Choose whether MEUTUALS can reach you when the app is closed."
       />
       <PushSettingsRow />
+      <PushCategorySettings />
     </div>
   );
 }

@@ -2,6 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { buildPushCopy, type PushNotificationKind } from "@/lib/push-payload";
+import {
+  allowsPushKind,
+  DEFAULT_PUSH_PREFERENCES,
+  type PushPreferences,
+} from "@/lib/push-preferences";
 import { VAPID_PUBLIC_KEY } from "@/lib/push-subscribe";
 
 type PushDeliveryStatus = "skipped" | "delivered" | "partial" | "failed";
@@ -106,6 +111,41 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
               ? `${kind}-${notif.id}`
               : `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
         };
+
+        // Missing rows intentionally use product defaults. A preference lookup
+        // failure fails closed so a temporary database problem cannot bypass a
+        // member's explicit opt-out.
+        const { data: storedPreferences, error: preferencesError } = await supabaseAdmin
+          .from("push_notification_preferences")
+          .select("messages_mentions, venture_activity, social_activity, tribe_activity, new_posts")
+          .eq("user_id", notif.user_id)
+          .maybeSingle();
+        if (preferencesError) {
+          await recordDelivery(notif.id, "failed", 0, 1);
+          console.error(
+            "[push] preference lookup failed",
+            JSON.stringify({ notificationId: notif.id, code: preferencesError.code }),
+          );
+          return new Response(
+            JSON.stringify({ delivered: 0, reason: "preference_lookup_failed" }),
+            {
+              status: 502,
+              headers: { "content-type": "application/json" },
+            },
+          );
+        }
+
+        const preferences: PushPreferences = {
+          ...DEFAULT_PUSH_PREFERENCES,
+          ...(storedPreferences ?? {}),
+        };
+        if (!allowsPushKind(kind, preferences)) {
+          await recordDelivery(notif.id, "skipped", 0, 0);
+          return new Response(JSON.stringify({ delivered: 0, reason: "category_disabled" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
 
         // Fetch this user's subscriptions
         const { data: subs, error: subsError } = await supabaseAdmin
