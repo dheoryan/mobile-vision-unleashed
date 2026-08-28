@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Adaptive push-notification settings UX | `src/components/mutuals/EnablePushBanner.tsx`, notification UI tests | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Adaptive push-notification settings UX
+
+- Replaced the binary push setting with one adaptive card covering device
+  checking, intentionally off, connected, newly enabled, permission blocked,
+  install required, unsupported/insecure, and connection-repair states.
+- Existing subscriptions are reconciled before declaring the device active;
+  granted permission without a subscription becomes an actionable repair
+  state, while an explicit device opt-out is remembered locally and remains
+  off instead of being misdiagnosed as broken.
+- Removed success/error toast dependence from the enable path in favor of
+  inline, consumer-facing feedback, a short success confirmation, calm amber
+  recovery, and a full 44 px touch target around the compact active switch.
+- Verified the real signed-in settings route in Chrome at localhost, including
+  detection of a granted-but-disconnected browser. `npx tsc --noEmit`, focused
+  ESLint, 11/11 push tests, PWA verification, `git diff --check`, and the full
+  Cloudflare production build pass.
 
 ### 2026-08-28 — User + Codex — Mobile UX and expanded reactions released through Git
 

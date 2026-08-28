@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, X, Smartphone, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AlertTriangle, Bell, BellOff, Check, X, Smartphone, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   isStandalonePwa,
   isIosSafari,
+  isAndroid,
   getPushAvailability,
   getPushPermission,
   subscribeToPush,
@@ -18,6 +19,7 @@ import {
 import { saveSubscription, deleteSubscription } from "@/lib/push.functions";
 
 const DISMISS_KEY = "mutuals.push-banner.dismissed-session";
+const DEVICE_DISABLED_KEY = "mutuals.push.device-disabled";
 const SAVE_TIMEOUT_MS = 15_000;
 
 type EnableProgress = PushEnableStage | "saving" | null;
@@ -167,8 +169,10 @@ export function EnablePushBanner() {
 
 export function PushSettingsRow() {
   const [permission, setPermission] = useState<PushPermission>("unsupported");
-  const [availability, setAvailability] = useState<PushAvailability>("unsupported");
-  const [subscribed, setSubscribed] = useState(false);
+  const [availability, setAvailability] = useState<PushAvailability | null>(null);
+  const [status, setStatus] = useState<"checking" | "off" | "active" | "success" | "repair">(
+    "checking",
+  );
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<EnableProgress>(null);
   const save = useServerFn(saveSubscription);
@@ -177,51 +181,105 @@ export function PushSettingsRow() {
   saveRef.current = save;
 
   useEffect(() => {
-    setAvailability(getPushAvailability());
-    setPermission(getPushPermission());
-    void getCurrentSubscriptionData().then(async (sub) => {
-      if (!sub) return;
+    let cancelled = false;
+
+    const reconcile = async () => {
+      const nextAvailability = getPushAvailability();
+      const nextPermission = getPushPermission();
+      setAvailability(nextAvailability);
+      setPermission(nextPermission);
+
+      if (nextAvailability !== "available" || nextPermission === "denied") {
+        setStatus("off");
+        return;
+      }
+
+      const sub = await getCurrentSubscriptionData();
+      if (cancelled) return;
+      if (!sub) {
+        let intentionallyDisabled = false;
+        try {
+          intentionallyDisabled = localStorage.getItem(DEVICE_DISABLED_KEY) === "1";
+        } catch {
+          /* ignore */
+        }
+        setStatus(nextPermission === "granted" && !intentionallyDisabled ? "repair" : "off");
+        return;
+      }
+
       try {
         await saveRef.current({
           data: { ...sub, userAgent: navigator.userAgent.slice(0, 500) },
         });
-        setSubscribed(true);
+        if (cancelled) return;
+        try {
+          localStorage.removeItem(DEVICE_DISABLED_KEY);
+        } catch {
+          /* ignore */
+        }
+        setStatus("active");
       } catch {
-        setSubscribed(false);
+        if (!cancelled) setStatus("repair");
       }
-    });
+    };
+
+    void reconcile();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (status !== "success") return;
+    const timer = window.setTimeout(() => setStatus("active"), 2200);
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
+  const deviceLabel = isIosSafari()
+    ? "this iPhone or iPad"
+    : isAndroid()
+      ? "this Android device"
+      : "this browser";
 
   if (availability === "needs-install") {
     return (
-      <div className="rounded-xl border border-primary/30 bg-primary/[0.06] p-3">
-        <div className="flex items-start gap-3">
-          <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <div>
-            <p className="text-sm font-semibold">Install to enable notifications</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              On iOS or iPadOS 16.4 and later, open Share → Add to Home Screen. Launch MEUTUALS from
-              its new icon, then return here to enable push.
+      <div className="overflow-hidden rounded-2xl border border-primary/30 bg-background">
+        <div className="flex items-start gap-3 p-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <Smartphone className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-sm font-semibold">Install to turn on notifications</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Add MEUTUALS to your Home Screen, open it from the new icon, then return here.
             </p>
           </div>
         </div>
+        <p className="border-t border-border px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+          On iPhone or iPad: tap Share → Add to Home Screen.
+        </p>
       </div>
     );
   }
 
   if (availability === "unsupported") {
     return (
-      <p className="rounded-xl border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
-        Push notifications aren't supported on this device or browser.
-      </p>
+      <NotificationStateCard
+        icon={<BellOff className="h-5 w-5" />}
+        title="Notifications unavailable"
+        detail="This device or browser does not support web notifications."
+      />
     );
   }
 
   if (availability === "insecure") {
     return (
-      <p className="rounded-xl border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
-        Push requires a secure HTTPS connection. Open the published MEUTUALS app to enable it.
-      </p>
+      <NotificationStateCard
+        icon={<AlertTriangle className="h-5 w-5" />}
+        title="Open the secure MEUTUALS app"
+        detail="Notifications can only be connected from the published HTTPS app."
+        tone="warning"
+      />
     );
   }
 
@@ -233,6 +291,7 @@ export function PushSettingsRow() {
       return;
     }
     setLoading(true);
+    setStatus("checking");
     try {
       const sub = await subscribeToPush(setProgress);
       setProgress("saving");
@@ -248,11 +307,19 @@ export function PushSettingsRow() {
         SAVE_TIMEOUT_MS,
         "MEUTUALS could not save this device in time. Check your connection and try again.",
       );
-      setSubscribed(true);
+      try {
+        localStorage.removeItem(DEVICE_DISABLED_KEY);
+      } catch {
+        /* ignore */
+      }
       setPermission("granted");
-      toast.success("Push notifications enabled.");
-    } catch (err) {
-      toast.error("Could not enable push", { description: (err as Error).message });
+      setAvailability(getPushAvailability());
+      setStatus("success");
+    } catch {
+      const nextPermission = getPushPermission();
+      setPermission(nextPermission);
+      setAvailability(getPushAvailability());
+      setStatus(nextPermission === "denied" ? "off" : "repair");
     } finally {
       setProgress(null);
       setLoading(false);
@@ -270,8 +337,12 @@ export function PushSettingsRow() {
           /* ignore */
         }
       }
-      setSubscribed(false);
-      toast.success("Push notifications disabled on this device.");
+      try {
+        localStorage.setItem(DEVICE_DISABLED_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      setStatus("off");
     } catch (err) {
       toast.error("Could not disable", { description: (err as Error).message });
     } finally {
@@ -279,37 +350,183 @@ export function PushSettingsRow() {
     }
   };
 
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold">Push notifications</p>
-        <p className="text-[11px] text-muted-foreground">
-          {subscribed
-            ? "On for this device."
-            : availability === "blocked" || permission === "denied"
-              ? "Blocked. Enable them in your browser site settings."
-              : "Off. Get notified when MEUTUALS is closed."}
-        </p>
+  const blocked = availability === "blocked" || permission === "denied";
+  const connecting = loading || status === "checking";
+
+  if (blocked) {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-destructive/30 bg-background">
+        <div className="flex items-start gap-3 p-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+            <BellOff className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-sm font-semibold">Notifications are blocked</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Allow notifications for MEUTUALS in your device or browser settings.
+            </p>
+          </div>
+        </div>
+        <details className="group border-t border-border px-4 py-3">
+          <summary className="cursor-pointer list-none text-xs font-semibold text-primary">
+            How to unblock notifications
+          </summary>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            Open this app’s notification permissions, choose Allow, then return here and try again.
+          </p>
+        </details>
       </div>
-      {subscribed ? (
-        <button
-          onClick={disable}
-          disabled={loading}
-          className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+    );
+  }
+
+  if (status === "success") {
+    return (
+      <NotificationStateCard
+        icon={<Check className="h-5 w-5" />}
+        title="Notifications are on"
+        detail="You’ll hear about important activity while MEUTUALS is closed."
+        tone="success"
+        live
+      />
+    );
+  }
+
+  if (status === "repair" && !connecting) {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-primary/30 bg-background">
+        <div className="flex items-start gap-3 p-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-sm font-semibold">Notifications need attention</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {deviceLabel[0].toUpperCase() + deviceLabel.slice(1)} lost its connection.
+            </p>
+          </div>
+        </div>
+        <div className="border-t border-border p-3">
+          <button
+            type="button"
+            onClick={enable}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+          >
+            <Bell className="h-4 w-4" />
+            Repair connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-background">
+      <div className="flex items-center gap-3 p-4">
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+            status === "active"
+              ? "bg-emerald-500/10 text-emerald-400"
+              : "bg-primary/15 text-primary"
+          }`}
         >
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <BellOff className="h-3 w-3" />}
-          Turn off
-        </button>
-      ) : (
-        <button
-          onClick={enable}
-          disabled={loading || availability === "blocked" || permission === "denied"}
-          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
-          <span aria-live="polite">{progressLabel(progress, "Enable")}</span>
-        </button>
+          {connecting ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : status === "active" ? (
+            <Bell className="h-5 w-5" />
+          ) : (
+            <BellOff className="h-5 w-5" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold">Push notifications</p>
+            {status === "active" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> On
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground" aria-live="polite">
+            {connecting
+              ? progressLabel(progress, "Checking this device…")
+              : status === "active"
+                ? `Active on ${deviceLabel}.`
+                : "Keep up with messages and Ventures when MEUTUALS is closed."}
+          </p>
+        </div>
+        {status === "active" && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked="true"
+            aria-label="Turn off push notifications on this device"
+            onClick={disable}
+            disabled={loading}
+            className="relative h-11 w-12 shrink-0 disabled:opacity-50"
+          >
+            <span className="absolute inset-x-0 top-2 h-7 rounded-full bg-primary transition-colors">
+              <span className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary-foreground shadow-sm" />
+            </span>
+          </button>
+        )}
+      </div>
+      {status !== "active" && !connecting && (
+        <div className="border-t border-border p-3">
+          <button
+            type="button"
+            onClick={enable}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+          >
+            <Bell className="h-4 w-4" />
+            Turn on notifications
+          </button>
+        </div>
       )}
+    </div>
+  );
+}
+
+function NotificationStateCard({
+  icon,
+  title,
+  detail,
+  tone = "neutral",
+  live = false,
+}: {
+  icon: ReactNode;
+  title: string;
+  detail: string;
+  tone?: "neutral" | "warning" | "success";
+  live?: boolean;
+}) {
+  const toneClass =
+    tone === "success"
+      ? "border-emerald-500/30 bg-emerald-500/5"
+      : tone === "warning"
+        ? "border-primary/30 bg-primary/[0.04]"
+        : "border-border bg-background";
+  const iconClass =
+    tone === "success"
+      ? "bg-emerald-500/10 text-emerald-400"
+      : tone === "warning"
+        ? "bg-primary/15 text-primary"
+        : "bg-secondary text-muted-foreground";
+
+  return (
+    <div
+      role={live ? "status" : undefined}
+      aria-live={live ? "polite" : undefined}
+      className={`flex items-start gap-3 rounded-2xl border p-4 ${toneClass}`}
+    >
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${iconClass}`}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 pt-0.5">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{detail}</p>
+      </div>
     </div>
   );
 }
