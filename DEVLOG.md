@@ -205,6 +205,32 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-28 — Claude — Moots/Explore/header session pushed to production (`fc50643`)
+
+- Circular Profile avatar (`rounded-md` → `rounded-full`), then released the
+  whole session's work at the user's direction.
+- Confirmed all four migrations from this session were already applied and
+  verified true by the user before pushing (`20260828030000`, `040000`,
+  `050000`, `060000`) - no app code shipping ahead of schema it depends on.
+- Fetched `origin/main` immediately before release and confirmed a clean
+  fast-forward with no remote commits to reconcile (both at `756e599`).
+- Ran the full Node test suite (`node --test tests/*.test.ts`): 73/73 pass,
+  including the existing Explore rotation tests against the untouched
+  client-side `curateForMood`. Plus `npx tsc --noEmit`, targeted ESLint, and
+  the full Cloudflare production build - all clean.
+- Staged only this session's actual work; kept unrelated local `.env`
+  (two Google Maps keys - `GOOGLE_MAPS_SERVER_KEY` must never enter the
+  tracked file per this repo's own rule), `package-lock.json`, `styles.css`,
+  and `tests/push-notifications.test.ts` out of the commit, matching the
+  release discipline already established in this file's earlier entries.
+- Pushed `fc50643` to `main` (24 files, +1918/-243). GitHub's push output
+  surfaced a pre-existing Dependabot warning (28 vulnerabilities across the
+  dependency tree) - not introduced by this session, `package-lock.json`
+  was never touched; worth a look separately, not a release blocker.
+- Lovable should auto-rebuild and publish from this push; the usual
+  post-Lovable-session drift check (`LOVABLE_SQL_EDITOR_PASTE.sql` step 4)
+  is still worth running before the next database change.
+
 ### 2026-08-28 — Claude — Header settled: Profile drops the bell, everyone else keeps it
 
 - Asked to research how Instagram/Bumble/Pure handle this. The web search
