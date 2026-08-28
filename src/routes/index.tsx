@@ -257,6 +257,13 @@ function App() {
       case "tab":
         snapshot = { tab: targetTab ?? "feed" };
         break;
+      case "chats-inbox":
+        // No userId: opens MessagesPanel's list view (IncomingHellos lives
+        // there), not a specific thread - can_direct_message is still false
+        // for a Hello nobody's answered yet, so a Thread would just render
+        // empty with a composer that fails on send.
+        snapshot = { tab: "chats", layer: { kind: "messages" } };
+        break;
     }
 
     restoreNavigation(snapshot);

@@ -7,7 +7,8 @@ export type NotificationHomeTarget =
   | "venture"
   | "venture-chat"
   | "tribe"
-  | "tab";
+  | "tab"
+  | "chats-inbox";
 
 export type NotificationHomeTab = "feed" | "discover" | "ventures" | "chats";
 
@@ -27,6 +28,7 @@ const TARGETS = new Set<NotificationHomeTarget>([
   "venture-chat",
   "tribe",
   "tab",
+  "chats-inbox",
 ]);
 const TABS = new Set<NotificationHomeTab>(["feed", "discover", "ventures", "chats"]);
 
@@ -57,6 +59,8 @@ export function parseNotificationHomeSearch(
     const tab = boundedString(search.tab);
     return tab && isNotificationTab(tab) ? { notification, tab } : {};
   }
+
+  if (notification === "chats-inbox") return { notification };
 
   const target = boundedString(search.target);
   if (!target) return {};
@@ -102,6 +106,8 @@ export function notificationHomeSearch(
       return { notification: "tribe", target: destination.tribeId };
     case "tab":
       return { notification: "tab", tab: destination.tab };
+    case "chatsInbox":
+      return { notification: "chats-inbox" };
     case "profile":
       return null;
   }

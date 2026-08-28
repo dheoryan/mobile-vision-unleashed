@@ -205,6 +205,40 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-28 — Claude — Fixed: "Review" on a Hello notification led nowhere useful
+
+- User hit a real, live case: received a Hello, tapped "Review" on the
+  notification, and had no way to actually accept or decline it.
+- Traced the full pipeline (`notification-presenter.ts` →
+  `notification-navigation.ts` → `routes/index.tsx`): a `hello` notification
+  resolved to `{ kind: "tab", tab: "chats" }`, which only switches the
+  bottom tab. `ChatsScreen.tsx` has no awareness of pending Hellos at all -
+  the actual accept/decline UI (`IncomingHellos`) only renders inside
+  `MessagesPanel`'s list view, which needs its own `messages` layer opened
+  and never was. Reusing the `dm` destination instead (like
+  `hello_accepted` does) would have been worse: `Thread` has no
+  contact-status awareness either, so it would render an empty thread with
+  a composer that fails on send, since `can_direct_message` is still false
+  for an unanswered Hello.
+- Added a new `chatsInbox` destination end to end: `NotificationDestination`
+  union, `notificationHomeSearch`/`parseNotificationHomeSearch` (new
+  `chats-inbox` URL target, no `target` param needed), and the route
+  effect now opens `{ tab: "chats", layer: { kind: "messages" } }` - no
+  userId, so `MessagesPanel` opens in list mode where `IncomingHellos`
+  lives, instead of trying to open a specific thread.
+- No server-side push changes needed - push taps already funnel through
+  this same client-side pipeline via `/notifications?open=<id>`
+  (`openedFromPush` in `notifications.tsx`), so this fixes both in-app taps
+  and push taps at once.
+- Found via this: `tests/notification-presenter.test.ts` had a test
+  asserting the old, broken destination as correct. Updated it to expect
+  `chatsInbox`, and added roundtrip coverage for the new `chats-inbox`
+  search target.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73 (was 72/73 before the test update - one true regression
+  test, not a flake), full Cloudflare production build passes. **Not yet
+  pushed** - separate from the session release in the entry below.
+
 ### 2026-08-28 — Claude — Moots/Explore/header session pushed to production (`fc50643`)
 
 - Circular Profile avatar (`rounded-md` → `rounded-full`), then released the

@@ -15,7 +15,12 @@ export type NotificationDestination =
   | { kind: "venture"; ventureId: string; mode: "host" | "yours" }
   | { kind: "ventureChat"; ventureId: string }
   | { kind: "tribe"; tribeId: string }
-  | { kind: "tab"; tab: "feed" | "discover" | "ventures" | "chats" };
+  | { kind: "tab"; tab: "feed" | "discover" | "ventures" | "chats" }
+  /** A Hello you haven't answered yet has no DM thread to open ("dm" would
+   *  render Thread against someone can_direct_message still says no to) -
+   *  this opens MessagesPanel's list view instead, where IncomingHellos
+   *  actually lives. */
+  | { kind: "chatsInbox" };
 
 const CONVERSATION_KINDS = new Set<NotificationKind>(["message", "hello", "hello_accepted"]);
 const VENTURE_KINDS = new Set<NotificationKind>([
@@ -86,7 +91,7 @@ export function notificationDestination(item: NotificationRow): NotificationDest
       ? { kind: "profile", actorId: item.actor_id }
       : { kind: "tab", tab: "discover" };
   }
-  if (item.kind === "hello") return { kind: "tab", tab: "chats" };
+  if (item.kind === "hello") return { kind: "chatsInbox" };
   if (item.kind === "hello_accepted" || item.kind === "message") {
     return item.actor_id ? { kind: "dm", actorId: item.actor_id } : { kind: "tab", tab: "chats" };
   }

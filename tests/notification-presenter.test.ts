@@ -39,11 +39,15 @@ test("high-intent activity gets specific actions and stable categories", () => {
 });
 
 test("every high-intent kind resolves to its actionable context", () => {
+  // A Hello nobody's answered yet has no DM thread to open - "dm" would
+  // render an empty Thread whose composer fails on send, since
+  // can_direct_message is still false. It needs MessagesPanel's list view,
+  // where IncomingHellos actually lives.
   assert.deepEqual(
     notificationDestination(
       notification({ kind: "hello", actor_id: "00000000-0000-4000-8000-000000000001" }),
     ),
-    { kind: "tab", tab: "chats" },
+    { kind: "chatsInbox" },
   );
   assert.deepEqual(
     notificationDestination(
@@ -123,6 +127,10 @@ test("home destinations survive a route change and reject incomplete URLs", () =
   );
   assert.deepEqual(parseNotificationHomeSearch({ notification: "dm" }), {});
   assert.deepEqual(parseNotificationHomeSearch({ notification: "tab", tab: "profile" }), {});
+  assert.deepEqual(notificationHomeSearch({ kind: "chatsInbox" }), { notification: "chats-inbox" });
+  assert.deepEqual(parseNotificationHomeSearch({ notification: "chats-inbox" }), {
+    notification: "chats-inbox",
+  });
 });
 
 test("unread activity remains in New even when it is old", () => {
