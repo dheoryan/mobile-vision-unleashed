@@ -20,7 +20,7 @@ export function AppHeader({
   accent: string;
 }) {
   return (
-    <header className="glass sticky top-0 z-20 border-b border-border">
+    <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
       <div className="mx-auto grid max-w-md grid-cols-[1fr_auto_1fr] items-center px-5 py-3">
         <div className="min-w-0 justify-self-start leading-tight">
           <p className="label-mono truncate text-muted-foreground">{subtitle ?? "Meutuals"}</p>

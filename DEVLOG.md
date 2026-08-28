@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | iOS Home Screen status-bar safe area | `src/components/mutuals/Shared.tsx`, `tests/mobile-safe-area.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — iOS Home Screen header safe area
+
+- Fixed the shared app header used by Timeline, Discover, Ventures, Chats,
+  Profile, and the tab-mounted Tribe screen so its content begins below
+  `safe-area-inset-top` in iOS standalone mode. The glass header background
+  still extends behind the translucent status bar, but titles, logo, and
+  notification controls no longer do.
+- Added a source contract test and confirmed Tailwind emits the safe-area rule.
+  Verification: 4 focused mobile tests, `npx tsc --noEmit`, `git diff --check`,
+  and the full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — Mobile chat viewport, post media, and notification audience
 
