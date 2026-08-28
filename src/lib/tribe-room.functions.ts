@@ -295,6 +295,9 @@ export const toggleTribeRoomReaction = createServerFn({ method: "POST" })
           "interested",
           "heart",
           "laugh",
+          "wow",
+          "sad",
+          "like",
           "support",
           "time_1",
           "time_2",
@@ -415,13 +418,12 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
         interestedIds,
         (existingApplications ?? []).map((row: { applicant_id: string }) => row.applicant_id),
         userId,
-      )
-        .map((applicantId) => ({
-          venture_id: venture.id,
-          applicant_id: applicantId,
-          status: "invited",
-          message: "Interested in the Tribe plan",
-        }));
+      ).map((applicantId) => ({
+        venture_id: venture.id,
+        applicant_id: applicantId,
+        status: "invited",
+        message: "Interested in the Tribe plan",
+      }));
 
       if (invitations.length > 0) {
         const { error: inviteError } = await supabase

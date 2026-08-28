@@ -19,11 +19,14 @@ test("reply triggers only after the released bubble crosses the threshold", () =
 });
 
 test("chat reaction controls render native emoji instead of outline icons", () => {
-  const source = readFileSync(
+  const componentSource = readFileSync(
     new URL("../src/components/mutuals/ChatMessageActions.tsx", import.meta.url),
     "utf8",
   );
+  const vocabularySource = readFileSync(new URL("../src/lib/chat.ts", import.meta.url), "utf8");
 
-  for (const emoji of ["❤️", "😂", "🤝"]) assert.ok(source.includes(emoji));
-  for (const icon of ["Heart", "Laugh", "HandHeart"]) assert.equal(source.includes(icon), false);
+  for (const emoji of ["❤️", "😂", "😮", "😢", "👍", "🤝"])
+    assert.ok(vocabularySource.includes(emoji));
+  for (const icon of ["Heart", "Laugh", "HandHeart"])
+    assert.equal(componentSource.includes(icon), false);
 });

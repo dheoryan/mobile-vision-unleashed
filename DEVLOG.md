@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Expanded durable chat reactions | `src/lib/chat.ts`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/components/mutuals/ChatMessageActions.tsx`, `src/components/mutuals/TribeScreen.tsx`, `tests/chat.test.ts`, `tests/chat-interactions.test.ts`, `tests/tribe-room.test.ts`, `supabase/migrations/20260828010000_expand_chat_reactions.sql`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Expanded durable chat reactions
+
+- Expanded the shared Tribe, Venture, and DM reaction vocabulary from three to
+  six distinct choices: `❤️` Love, `😂` Funny, `😮` Wow, `😢` Sad, `👍` Like,
+  and `🤝` Support. Labels remain available to assistive technology.
+- Centralized the reaction order, emoji, labels, type guard, and zero-count
+  shape in `src/lib/chat.ts` so the picker, durable count chips, optimistic
+  state, server validation, and message readers cannot drift independently.
+- Kept 44 px touch targets in a single compact row; on unusually narrow
+  screens the tray scrolls horizontally without exposing a scrollbar.
+- Added `20260828010000_expand_chat_reactions.sql` to widen both persisted
+  reaction constraints and the Tribe contextual-reaction trigger without
+  changing participant authorization or ownership. This RED/manual migration
+  has not been applied to production.
+- Validation: 11 focused chat and Tribe Room tests, `npx tsc --noEmit`,
+  `git diff --check`, and `npm run build` pass.
 
 ### 2026-08-28 — Codex — Emoji reactions and release-to-reply gesture
 

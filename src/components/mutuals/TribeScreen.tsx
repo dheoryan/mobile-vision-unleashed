@@ -21,7 +21,7 @@ import {
 } from "@/lib/tribe-room";
 import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
 import { ChatMessageActions } from "./ChatMessageActions";
-import type { ChatReaction } from "@/lib/chat";
+import { CHAT_REACTIONS, isChatReaction } from "@/lib/chat";
 import { ChatComposer } from "./ChatComposer";
 import { useTribeMembers } from "@/lib/tribe-members-store";
 import type { TribeMemberSummary } from "@/lib/tribe-members";
@@ -377,8 +377,6 @@ function isTribeRoomSchemaUnavailable(error: { code?: string; message?: string }
     (error.message ?? "").toLowerCase().includes("room_kind")
   );
 }
-
-const CHAT_REACTIONS = ["heart", "laugh", "support"] as const;
 
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -882,12 +880,12 @@ function GroupChat({
                     reactions={{
                       heart: m.reactions.heart,
                       laugh: m.reactions.laugh,
+                      wow: m.reactions.wow,
+                      sad: m.reactions.sad,
+                      like: m.reactions.like,
                       support: m.reactions.support,
                     }}
-                    myReactions={m.my_reactions.filter(
-                      (reaction): reaction is ChatReaction =>
-                        reaction === "heart" || reaction === "laugh" || reaction === "support",
-                    )}
+                    myReactions={m.my_reactions.filter(isChatReaction)}
                     disabled={!canChat}
                     onToggleOpen={() =>
                       setReactionOpenFor((current) => (current === m.id ? null : m.id))

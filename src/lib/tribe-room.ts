@@ -7,6 +7,9 @@ export type TribeRoomReaction =
   | "interested"
   | "heart"
   | "laugh"
+  | "wow"
+  | "sad"
+  | "like"
   | "support"
   | "time_1"
   | "time_2"
@@ -17,6 +20,9 @@ export const emptyTribeRoomReactions = (): Record<TribeRoomReaction, number> => 
   interested: 0,
   heart: 0,
   laugh: 0,
+  wow: 0,
+  sad: 0,
+  like: 0,
   support: 0,
   time_1: 0,
   time_2: 0,
