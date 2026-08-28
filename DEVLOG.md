@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Mobile chat keyboard/media, post lightbox/mentions, Tribe-only post notification audience | `src/routes/__root.tsx`, `src/hooks/use-visual-viewport.ts`, `src/components/mutuals/{ChatComposer,TribeScreen,MessagesPanel,PostCard,PostMediaLightbox}.tsx`, `src/lib/{posts.functions,post-mentions}.ts`, `supabase/migrations/20260828010000_scope_new_post_notifications.sql`, focused tests | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
