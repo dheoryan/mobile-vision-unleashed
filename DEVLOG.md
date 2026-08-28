@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | 2026-08-28 production release | `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — User + Codex — Mobile UX and expanded reactions released through Git
+
+- The user manually applied
+  `supabase/migrations/20260828010000_expand_chat_reactions.sql` in production
+  and confirmed it succeeded before the matching frontend release.
+- Fetched `origin/main` immediately before release and confirmed a clean
+  fast-forward with no remote commits to reconcile. The release includes the
+  mobile chat/media pass, iOS safe-area and shared glass refinements, push
+  worker self-repair, visible profile handles, the restrained habitat glow,
+  reliable full-screen photo controls, release-to-reply gestures, and the
+  six-reaction chat vocabulary.
+- Built an isolated worktree from the exact release commit so unrelated local
+  `.env`, lockfile, Explore, style, push-test, and untracked artifact changes
+  could not enter verification or the Git deployment.
+- Release gates: 70/70 Node tests, PWA verification, `npx tsc --noEmit`,
+  `git diff --check origin/main...HEAD`, and the complete Cloudflare production
+  build all pass.
 
 ### 2026-08-28 — Codex — Expanded durable chat reactions
 
