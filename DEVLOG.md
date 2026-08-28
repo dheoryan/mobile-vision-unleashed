@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Move Profile settings action into the app header | `DEVLOG.md`, `src/components/mutuals/Shared.tsx`, `src/components/mutuals/NotificationBell.tsx`, `src/components/mutuals/ProfileScreen.tsx` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,15 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Profile settings moved into the global header
+
+- Removed the floating gear from the Profile identity block and added a
+  Profile-only menu action immediately beside Notifications in `AppHeader`.
+- Standardized both header actions to accessible 44 px circular touch targets
+  with matching hover and keyboard-focus treatment.
+- Verification: `git diff --check`, focused ESLint, `npx tsc --noEmit`, the
+  profile identity test, and the full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — Durable push-notification categories
 

@@ -14,10 +14,12 @@ import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
 export function AppHeader({
   title,
   subtitle,
+  action,
 }: {
   title: string;
   subtitle?: string;
   accent: string;
+  action?: React.ReactNode;
 }) {
   return (
     <header
@@ -36,6 +38,7 @@ export function AppHeader({
         <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
         <div className="flex items-center gap-1 justify-self-end">
           <NotificationBell />
+          {action}
         </div>
       </div>
     </header>

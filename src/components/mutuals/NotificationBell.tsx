@@ -8,7 +8,7 @@ export function NotificationBell() {
     <Link
       to="/notifications"
       aria-label="Notifications"
-      className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      className="relative flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <Bell className="h-5 w-5" />
       {unread > 0 && (

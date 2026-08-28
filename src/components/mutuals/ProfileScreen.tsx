@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings, Edit3, Bookmark, Zap, X, Loader2, Check, LocateFixed } from "lucide-react";
+import { Menu, Edit3, Bookmark, Zap, X, Loader2, Check, LocateFixed } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
@@ -73,19 +73,25 @@ export function ProfileScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title="Profile" subtitle="You" accent={tribe.colorVar} />
+      <AppHeader
+        title="Profile"
+        subtitle="You"
+        accent={tribe.colorVar}
+        action={
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <Menu className="h-5 w-5" />
+          </Link>
+        }
+      />
       <main className="mx-auto max-w-md px-5">
         {/* No card. Identity sits directly on the ground — the gradient panel
             was the softest, most generic element on the screen, and a card
             around the thing that IS the page adds a frame around a frame. */}
         <section className="relative mt-5">
-          <Link
-            to="/settings"
-            aria-label="Settings"
-            className="absolute -top-2 right-0 flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
           <div className="flex items-center gap-4">
             <span className="relative">
               <span
