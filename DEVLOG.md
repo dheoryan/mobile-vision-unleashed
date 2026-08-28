@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Post image lightbox close control | `src/components/mutuals/PostMediaLightbox.tsx`, `tests/post-media-lightbox.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,20 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Reliable post lightbox controls
+
+- Separated the full-screen post photo's pointer-capturing zoom/pan surface
+  from its top and bottom controls. Touch browsers can no longer redirect the
+  close-button tap to the image gesture layer; the same protection covers the
+  zoom and reset controls.
+- Kept the close control at a 44 px touch target and explicitly layered both
+  control bars above the photo surface.
+- Added a regression contract covering the gesture/control separation and the
+  close button's hit target.
+- Validation: `node --test --test-isolation=none
+  tests/post-media-lightbox.test.ts`, `npx tsc --noEmit`, `git diff --check`,
+  and `npm run build` pass.
 
 ### 2026-08-28 — Codex — Restrained habitat atmosphere
 

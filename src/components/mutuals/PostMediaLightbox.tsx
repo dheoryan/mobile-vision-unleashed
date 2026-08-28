@@ -104,24 +104,30 @@ export function PostMediaLightbox({
       contentClassName="h-[100dvh] max-w-none overflow-hidden rounded-none border-0 bg-black sm:rounded-none"
       zIndex={80}
     >
-      <div
-        className="relative flex h-full w-full touch-none select-none items-center justify-center overflow-hidden bg-black"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerEnd}
-        onPointerCancel={onPointerEnd}
-        onWheel={onWheel}
-        onDoubleClick={() => changeScale(scale > 1 ? 1 : 2.5)}
-      >
-        <img
-          src={src}
-          alt={alt}
-          draggable={false}
-          className="max-h-full max-w-full object-contain will-change-transform"
-          style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})` }}
-        />
+      <div className="relative h-full w-full overflow-hidden bg-black">
+        <div
+          data-lightbox-gesture-surface
+          className="absolute inset-0 flex touch-none select-none items-center justify-center"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
+          onWheel={onWheel}
+          onDoubleClick={() => changeScale(scale > 1 ? 1 : 2.5)}
+        >
+          <img
+            src={src}
+            alt={alt}
+            draggable={false}
+            className="max-h-full max-w-full object-contain will-change-transform"
+            style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})` }}
+          />
+        </div>
 
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/75 to-transparent px-3 pb-10 pt-[max(12px,env(safe-area-inset-top))]">
+        <div
+          data-lightbox-controls="top"
+          className="absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/75 to-transparent px-3 pb-10 pt-[max(12px,env(safe-area-inset-top))]"
+        >
           <p className="rounded-full bg-black/45 px-3 py-1.5 text-xs text-white/80">
             Pinch or double-tap to zoom
           </p>
@@ -135,7 +141,10 @@ export function PostMediaLightbox({
           </button>
         </div>
 
-        <div className="absolute bottom-[max(16px,env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/70 p-1 text-white backdrop-blur-md">
+        <div
+          data-lightbox-controls="bottom"
+          className="absolute bottom-[max(16px,env(safe-area-inset-bottom))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/70 p-1 text-white backdrop-blur-md"
+        >
           <button
             type="button"
             onClick={() => changeScale(scale - 0.5)}
