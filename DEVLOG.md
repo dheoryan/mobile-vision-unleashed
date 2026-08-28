@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Emoji chat reactions and swipe-to-reply polish | `src/components/mutuals/ChatMessageActions.tsx`, `src/hooks/use-swipe-reply.ts`, `src/components/mutuals/ChatComposer.tsx`, `tests/chat-interactions.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
