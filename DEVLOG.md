@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Expanded durable chat reactions | `src/lib/chat.ts`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/components/mutuals/ChatMessageActions.tsx`, `src/components/mutuals/TribeScreen.tsx`, `tests/chat.test.ts`, `tests/chat-interactions.test.ts`, `supabase/migrations/20260828010000_expand_chat_reactions.sql`, `DEVLOG.md` | 2026-08-28 |
+| Codex | Expanded durable chat reactions | `src/lib/chat.ts`, `src/lib/tribe-room.ts`, `src/lib/tribe-room.functions.ts`, `src/components/mutuals/ChatMessageActions.tsx`, `src/components/mutuals/TribeScreen.tsx`, `tests/chat.test.ts`, `tests/chat-interactions.test.ts`, `tests/tribe-room.test.ts`, `supabase/migrations/20260828010000_expand_chat_reactions.sql`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
