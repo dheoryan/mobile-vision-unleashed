@@ -9,6 +9,7 @@ import { VenturesScreen } from "@/components/mutuals/VenturesScreen";
 import { ProfileScreen } from "@/components/mutuals/ProfileScreen";
 import { ChatsScreen } from "@/components/mutuals/ChatsScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
+import { HelloRequestsSheet } from "@/components/mutuals/HelloRequestsSheet";
 import type { VentureParty } from "@/lib/ventures-store";
 import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import { TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
@@ -108,6 +109,7 @@ function App() {
   const [tab, setTab] = useState<TabKey>("feed");
   const [tabOwnerId, setTabOwnerId] = useState<string | null>(null);
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [helloRequestsOpen, setHelloRequestsOpen] = useState(false);
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
   const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
   const [openPostId, setOpenPostId] = useState<string | null>(null);
@@ -134,6 +136,7 @@ function App() {
     setTribeChatOpen(snapshot.layer?.kind === "tribe");
     setInitialTribe(snapshot.layer?.kind === "tribe" ? snapshot.layer.tribeId : undefined);
     setMessagesOpen(snapshot.layer?.kind === "messages");
+    setHelloRequestsOpen(snapshot.layer?.kind === "helloRequests");
     setOpenThreadUser(snapshot.layer?.kind === "messages" ? (snapshot.layer.userId ?? null) : null);
     setOpenVentureChat(
       snapshot.layer?.kind === "messages" ? (snapshot.layer.venture ?? null) : null,
@@ -190,6 +193,7 @@ function App() {
     setTab(restoredTab);
     setTabOwnerId(userId);
     setMessagesOpen(false);
+    setHelloRequestsOpen(false);
     setOpenThreadUser(null);
     setOpenVentureChat(null);
     setOpenPostId(null);
@@ -258,11 +262,11 @@ function App() {
         snapshot = { tab: targetTab ?? "feed" };
         break;
       case "chats-inbox":
-        // No userId: opens MessagesPanel's list view (IncomingHellos lives
-        // there), not a specific thread - can_direct_message is still false
-        // for a Hello nobody's answered yet, so a Thread would just render
-        // empty with a composer that fails on send.
-        snapshot = { tab: "chats", layer: { kind: "messages" } };
+        // Not a specific thread - can_direct_message is still false for a
+        // Hello nobody's answered yet, so a Thread would just render empty
+        // with a composer that fails on send. HelloRequestsSheet is the
+        // dedicated home for both incoming and sent Hello activity.
+        snapshot = { tab: "chats", layer: { kind: "helloRequests" } };
         break;
     }
 
@@ -479,6 +483,9 @@ function App() {
         onOpenThread={(userId) => {
           pushNavigation({ tab: "chats", layer: { kind: "messages", userId } });
         }}
+        onOpenHelloRequests={() =>
+          pushNavigation({ tab: "chats", layer: { kind: "helloRequests" } })
+        }
         initialVentureId={pendingVentureChatId}
         onInitialVentureConsumed={() => setPendingVentureChatId(null)}
       />
@@ -520,6 +527,7 @@ function App() {
           openWithVenture={openVentureChat}
           onOpenProfile={(handle) => navigate({ to: "/u/$handle", params: { handle } })}
         />
+        <HelloRequestsSheet open={helloRequestsOpen} onClose={() => closeLayer("helloRequests")} />
       </>
     );
   }
@@ -545,6 +553,7 @@ function App() {
         openWithVenture={openVentureChat}
         onOpenProfile={(handle) => navigate({ to: "/u/$handle", params: { handle } })}
       />
+      <HelloRequestsSheet open={helloRequestsOpen} onClose={() => closeLayer("helloRequests")} />
       <CommentsModal
         open={!!openPostId}
         onClose={() => closeLayer("post")}

@@ -43,14 +43,7 @@ import { toast } from "sonner";
 import { useSwipeReply } from "@/hooks/use-swipe-reply";
 import { QuotedBlock, parseQuotedMessage } from "./ReplyPreview";
 import { FeatureIllustration } from "./FeatureIllustration";
-import {
-  useAnswerHello,
-  useCancelHello,
-  useContactStatus,
-  useIncomingHellos,
-  useOutgoingHellos,
-  useSendHello,
-} from "@/lib/social-store";
+import { useAnswerHello, useContactStatus, useSendHello } from "@/lib/social-store";
 import messagesArt from "@/assets/app-illustrations/messages.webp";
 import { SafetyMenu } from "./SafetyMenu";
 import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
@@ -277,8 +270,6 @@ function Inbox({
         </button>
       </header>
       <div className="scroll-panel flex-1 overflow-y-auto">
-        <IncomingHellos />
-        <SentHellos />
         {isLoading ? (
           <div className="px-3 py-2">
             <ConversationListSkeleton />
@@ -1226,151 +1217,6 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
   );
 }
 
-/**
- * Hellos waiting on an answer, pinned above the inbox.
- *
- * A request that arrives with no obvious place to answer it is the same as no
- * request at all, so this sits at the top of Messages rather than behind a
- * separate screen. Accepting opens a normal thread; declining is final, which
- * is stated before the user taps.
- */
-function IncomingHellos() {
-  const hellos = useIncomingHellos();
-  const answer = useAnswerHello();
-  const rows = hellos.data ?? [];
-
-  if (!rows.length) return null;
-
-  return (
-    <section className="border-b border-border bg-primary/5">
-      <p className="label-mono px-5 pb-2 pt-4 text-muted-foreground">
-        {rows.length === 1 ? "1 Hello" : `${rows.length} Hellos`} waiting
-      </p>
-      <ul className="space-y-2 px-5 pb-4">
-        {rows.map((h) => {
-          const name = h.other?.display_name?.trim() || "Someone";
-          const avatar = h.other?.avatar_url || h.other?.avatar_emoji || "👋";
-          const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
-          const busy = answer.isPending && answer.variables?.hello_id === h.id;
-          return (
-            <li key={h.id} className="rounded-2xl border border-border bg-card p-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
-                  {isImg ? (
-                    <img src={avatar} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    avatar
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{name}</p>
-                  {h.other?.handle && (
-                    <p className="truncate text-[11px] text-muted-foreground">@{h.other.handle}</p>
-                  )}
-                </div>
-              </div>
-              <p className="mt-2 text-sm text-foreground">{h.message}</p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    answer.mutate(
-                      { hello_id: h.id, status: "accepted" },
-                      {
-                        onSuccess: () => toast.success(`You can now message ${name}`),
-                        onError: (e) => toast.error((e as Error).message),
-                      },
-                    )
-                  }
-                  className="flex-1 rounded-full bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-                >
-                  Accept
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    answer.mutate(
-                      { hello_id: h.id, status: "declined" },
-                      {
-                        onSuccess: () =>
-                          toast("Hello declined.", {
-                            description: "They can try again in 30 days.",
-                          }),
-                        onError: (e) => toast.error((e as Error).message),
-                      },
-                    )
-                  }
-                  className="flex-1 rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
-                >
-                  Decline
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-function SentHellos() {
-  const hellos = useOutgoingHellos();
-  const cancel = useCancelHello();
-  const rows = hellos.data ?? [];
-
-  if (!rows.length) return null;
-
-  return (
-    <section className="border-b border-border">
-      <p className="label-mono px-5 pb-2 pt-4 text-muted-foreground">
-        {rows.length === 1 ? "1 Hello" : `${rows.length} Hellos`} waiting on a reply
-      </p>
-      <ul className="space-y-2 px-5 pb-4">
-        {rows.map((h) => {
-          const name = h.other?.display_name?.trim() || "Someone";
-          const avatar = h.other?.avatar_url || h.other?.avatar_emoji || "👋";
-          const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
-          const busy = cancel.isPending && cancel.variables?.hello_id === h.id;
-          return (
-            <li key={h.id} className="rounded-2xl border border-border bg-card p-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
-                  {isImg ? (
-                    <img src={avatar} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    avatar
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{name}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    Sent {timeAgoLabel(h.created_at)}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{h.message}</p>
-              <button
-                disabled={busy}
-                onClick={() =>
-                  cancel.mutate(
-                    { hello_id: h.id },
-                    {
-                      onSuccess: () =>
-                        toast(`Hello to ${name} cancelled`, {
-                          description: "You can send them another right away.",
-                        }),
-                      onError: (e) => toast.error((e as Error).message),
-                    },
-                  )
-                }
-                className="mt-3 w-full rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
-              >
-                {busy ? "Cancelling…" : "Cancel"}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
+// IncomingHellos/SentHellos moved to HelloRequestsSheet.tsx - a request that
+// only surfaced when this panel happened to already be open (deep link or
+// an existing thread) was, in practice, no request at all. See DEVLOG.

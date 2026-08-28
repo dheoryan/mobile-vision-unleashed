@@ -6,7 +6,8 @@ export type AppTab = "feed" | "discover" | "ventures" | "chats" | "profile";
 export type AppLayer =
   | { kind: "tribe"; tribeId?: TribeId }
   | { kind: "messages"; userId?: string | null; venture?: VentureParty | null }
-  | { kind: "post"; postId: string; commentId?: string | null };
+  | { kind: "post"; postId: string; commentId?: string | null }
+  | { kind: "helloRequests" };
 
 export type AppNavigationSnapshot = {
   tab: AppTab;

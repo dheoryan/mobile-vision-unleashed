@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, UsersRound, Zap } from "lucide-react";
+import { Hand, MessageCircle, UsersRound, Zap } from "lucide-react";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
 import { tribeById } from "@/lib/mutuals-data";
@@ -8,6 +8,7 @@ import type { Profile } from "./Onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useThreads } from "@/lib/messages-store";
+import { useIncomingHellos } from "@/lib/social-store";
 import { useMyJoinedVentures, useMyHostedVentures } from "@/lib/ventures-store";
 import type { VentureParty } from "@/lib/ventures.functions";
 import { useBlocked } from "@/lib/blocked-store";
@@ -200,6 +201,7 @@ export function ChatsScreen({
   onOpenTribeChat,
   onOpenVentureChat,
   onOpenThread,
+  onOpenHelloRequests,
   initialVentureId,
   onInitialVentureConsumed,
 }: {
@@ -207,11 +209,14 @@ export function ChatsScreen({
   onOpenTribeChat: () => void;
   onOpenVentureChat: (venture: VentureParty) => void;
   onOpenThread: (userId: string) => void;
+  onOpenHelloRequests: () => void;
   initialVentureId?: string | null;
   onInitialVentureConsumed?: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const blocked = useBlocked();
+  const incomingHellos = useIncomingHellos();
+  const helloRequestCount = incomingHellos.data?.length ?? 0;
 
   const tribe = profile.tribeIds.length ? tribeById(profile.tribeIds[0]) : null;
   const tribeQuery = useTribeChatSummary(tribe?.name ?? null);
@@ -283,7 +288,28 @@ export function ChatsScreen({
 
   return (
     <div className="min-h-screen bg-habitat pb-24">
-      <AppHeader title="Chats" subtitle="Rooms" accent="var(--color-primary)" />
+      <AppHeader
+        title="Chats"
+        subtitle="Rooms"
+        accent="var(--color-primary)"
+        action={
+          <button
+            type="button"
+            onClick={onOpenHelloRequests}
+            aria-label={
+              helloRequestCount > 0 ? `Hellos - ${helloRequestCount} waiting on you` : "Hellos"
+            }
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <Hand className="h-5 w-5" />
+            {helloRequestCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+                {helloRequestCount > 9 ? "9+" : helloRequestCount}
+              </span>
+            )}
+          </button>
+        }
+      />
 
       <main className="mx-auto max-w-md px-5">
         {/* Ordered by permanence, not recency: the Tribe room is singular and

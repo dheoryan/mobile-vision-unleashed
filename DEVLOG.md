@@ -205,6 +205,40 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-28 — Claude — Hellos moved to their own reachable sheet, split into two tabs
+
+- User asked where the Sent list actually lived, which surfaced a real gap:
+  the only way to reach `IncomingHellos`/`SentHellos` at all was tapping a
+  Hello notification. `ChatsScreen.tsx` renders its own thread list and
+  always jumps straight into a specific conversation - there was no button
+  anywhere that opened `MessagesPanel`'s list view on its own. Confirmed by
+  request, then asked for a persistent entry point with the two lists as
+  proper tabs instead of stacked sections.
+- New `HelloRequestsSheet.tsx` - a dedicated full-height sheet (same
+  definite-height `contentClassName` pattern fixed earlier for the Saved
+  sheet, not the older percentage-height one) with **Requests** and **Sent**
+  tabs, each carrying a count badge. Moved `IncomingHellos`/`SentHellos`'s
+  row-rendering here wholesale rather than duplicating it, and deleted the
+  originals (plus their now-unused imports) from `MessagesPanel.tsx`, which
+  no longer renders any Hello content in its own list view.
+- New entry point: a Hand-icon button in `ChatsScreen`'s own header
+  (`AppHeader`'s `action` slot, the same pattern Discover's Search and
+  Profile's Settings already use), badged with the incoming-request count -
+  reachable anytime, not just right after a notification.
+- Wired through the root navigation system rather than local state, since
+  the notification routing from two entries ago also needs to open this
+  same sheet: added `{ kind: "helloRequests" }` to `AppLayer`
+  (`app-navigation.ts`), `helloRequestsOpen` state derived in
+  `restoreNavigation` exactly like `messagesOpen`, and the `chats-inbox`
+  notification case now points at this layer instead of `messages`.
+- No migration - pure application restructuring on top of last entry's
+  schema work.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean across all
+  five touched/new files (`--fix` cleared formatting-only findings in the
+  new code, confirmed via a second `tsc` pass that nothing broke), full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live.
+
 ### 2026-08-28 — Claude — Cancel a Hello, with a real cap refund; Sent list added
 
 - User: add a way to cancel a sent Hello, refund it from the monthly cap
