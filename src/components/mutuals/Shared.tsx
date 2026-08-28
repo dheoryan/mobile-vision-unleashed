@@ -20,7 +20,14 @@ export function AppHeader({
   accent: string;
 }) {
   return (
-    <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
+    <header
+      className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]"
+      style={{
+        background: "color-mix(in oklab, var(--color-background) 56%, transparent)",
+        backdropFilter: "blur(24px) saturate(160%)",
+        WebkitBackdropFilter: "blur(24px) saturate(160%)",
+      }}
+    >
       <div className="mx-auto grid max-w-md grid-cols-[1fr_auto_1fr] items-center px-5 py-3">
         <div className="min-w-0 justify-self-start leading-tight">
           <p className="label-mono truncate text-muted-foreground">{subtitle ?? "Meutuals"}</p>

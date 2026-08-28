@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Shared iOS header glass refinement | `src/components/mutuals/Shared.tsx`, `tests/mobile-safe-area.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,16 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Stronger shared header glass
+
+- Strengthened the shared app header glass treatment to a visible 24 px blur
+  with 160% saturation and a lighter 56% background tint, so content moving
+  beneath the header and iOS status-bar area reads as frosted glass.
+- Kept the WebKit-prefixed backdrop filter for iOS Home Screen mode and
+  preserved the safe-area inset correction.
+- Verification: 2 focused tests, `npx tsc --noEmit`, `git diff --check`, and
+  the full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — iOS Home Screen header safe area
 
