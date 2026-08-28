@@ -11,7 +11,7 @@ import {
   type ProfileRow,
 } from "@/lib/profile.functions";
 import { useAuth } from "@/lib/auth-context";
-import type { AvailabilityId, InterestId, SocialIntentId } from "@/lib/profile-options";
+import type { AvailabilityId, GenderId, InterestId, SocialIntentId } from "@/lib/profile-options";
 
 const PROFILE_QUERY_KEY = ["my-profile"] as const;
 
@@ -28,6 +28,7 @@ export function rowToProfile(row: ProfileRow | null): Profile | null {
     interests: (row.interests ?? []) as InterestId[],
     socialIntents: (row.social_intents ?? []) as SocialIntentId[],
     availability: (row.availability ?? []) as AvailabilityId[],
+    gender: (row.gender ?? null) as GenderId | null,
     plan: row.plan,
     ventureCount: row.venture_count ?? 0,
   };
@@ -68,6 +69,7 @@ export type ProfilePatch = Partial<{
   interests: InterestId[];
   social_intents: SocialIntentId[];
   availability: AvailabilityId[];
+  gender: GenderId | null;
 }>;
 
 export function useUpdateProfile() {
@@ -131,6 +133,7 @@ export function profileToPatch(p: Profile) {
     interests: p.interests,
     social_intents: p.socialIntents,
     availability: p.availability,
+    gender: p.gender,
   };
 }
 

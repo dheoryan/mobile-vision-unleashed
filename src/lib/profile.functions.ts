@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { AVAILABILITY_IDS, INTEREST_IDS, SOCIAL_INTENT_IDS } from "@/lib/profile-options";
+import {
+  AVAILABILITY_IDS,
+  GENDER_IDS,
+  INTEREST_IDS,
+  SOCIAL_INTENT_IDS,
+} from "@/lib/profile-options";
 
 /** Canonical Tribe ids. Exported so other server functions can validate against
  *  the same enum instead of accepting a free-form string. */
@@ -18,6 +23,7 @@ const updateSchema = z.object({
   interests: z.array(z.enum(INTEREST_IDS)).max(8).optional(),
   social_intents: z.array(z.enum(SOCIAL_INTENT_IDS)).max(3).optional(),
   availability: z.array(z.enum(AVAILABILITY_IDS)).max(4).optional(),
+  gender: z.enum(GENDER_IDS).nullable().optional(),
   // plan is intentionally NOT user-editable. Plan upgrades must go through a
   // trusted server flow (payment verification) — not the profile update endpoint.
 });
@@ -38,12 +44,13 @@ export type ProfileRow = {
   interests: string[];
   social_intents: string[];
   availability: string[];
+  gender: string | null;
   plan: "free" | "plus";
   venture_count: number;
 };
 
 const PROFILE_COLS =
-  "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, plan, venture_count";
+  "id, display_name, handle, city, bio, avatar_emoji, avatar_url, tribe_ids, interests, social_intents, availability, gender, plan, venture_count";
 const MY_PROFILE_COLS = `${PROFILE_COLS}, age, date_of_birth, adult_verified_at, age_verification_locked_at`;
 
 export const getMyProfile = createServerFn({ method: "GET" })

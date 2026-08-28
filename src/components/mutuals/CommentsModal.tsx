@@ -195,7 +195,7 @@ export function CommentsModal({
                 onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
                 placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
-                className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm"
               />
               <button
                 onClick={send}

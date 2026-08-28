@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Hand, MessageCircle, UsersRound, Zap } from "lucide-react";
+import { Hand, MessageCircle, Plus, UsersRound, X, Zap } from "lucide-react";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
 import { tribeById } from "@/lib/mutuals-data";
@@ -8,7 +8,8 @@ import type { Profile } from "./Onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useThreads } from "@/lib/messages-store";
-import { useIncomingHellos } from "@/lib/social-store";
+import { useIncomingHellos, useMyMoots } from "@/lib/social-store";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMyJoinedVentures, useMyHostedVentures } from "@/lib/ventures-store";
 import type { VentureParty } from "@/lib/ventures.functions";
 import { useBlocked } from "@/lib/blocked-store";
@@ -214,6 +215,7 @@ export function ChatsScreen({
   onInitialVentureConsumed?: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
+  const [mootsPickerOpen, setMootsPickerOpen] = useState(false);
   const blocked = useBlocked();
   const incomingHellos = useIncomingHellos();
   const helloRequestCount = incomingHellos.data?.length ?? 0;
@@ -469,6 +471,14 @@ export function ChatsScreen({
           </>
         )}
 
+        {!isLoading && !nothingAtAll && showDirect && threads.length === 0 && (
+          <div className="mt-6 rounded-2xl border border-dashed border-border p-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              No direct messages yet. Tap "New message" to start one with a Moot.
+            </p>
+          </div>
+        )}
+
         {!isLoading && nothingAtAll && (
           <div className="mt-10 rounded-2xl border border-dashed border-border p-8 text-center">
             <MessageCircle className="mx-auto h-6 w-6 text-muted-foreground" />
@@ -479,6 +489,115 @@ export function ChatsScreen({
           </div>
         )}
       </main>
+
+      {/* Fixed to the viewport but width-matched to the centered max-w-md
+          column and right-aligned within it - a raw viewport-edge FAB would
+          drift away from the content on anything wider than a phone. Same
+          pattern as Ventures' Host FAB. Visible regardless of filter -
+          starting a new DM isn't specific to already being on Direct. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-md justify-end px-5">
+        <button
+          type="button"
+          onClick={() => setMootsPickerOpen(true)}
+          aria-label="New message"
+          className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
+        >
+          <Plus className="h-4 w-4" /> New message
+        </button>
+      </div>
+
+      <MootsPickerSheet
+        open={mootsPickerOpen}
+        onClose={() => setMootsPickerOpen(false)}
+        onSelect={(userId) => {
+          setMootsPickerOpen(false);
+          onOpenThread(userId);
+        }}
+      />
     </div>
+  );
+}
+
+/**
+ * Who to start a DM with - everyone you're Moots with, not just people you
+ * already have a thread with. A side drawer rather than a rising sheet or
+ * centered dialog: this is a list you browse alongside the Direct filter
+ * you came from, not a thing that should take over the whole screen.
+ */
+function MootsPickerSheet({
+  open,
+  onClose,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (userId: string) => void;
+}) {
+  const moots = useMyMoots();
+  const rows = moots.data ?? [];
+
+  return (
+    <AnimatedModal
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+      title="New message"
+      side="right"
+      contentClassName="flex flex-col"
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+        <h3 className="font-display text-lg font-bold">Moots</h3>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="scroll-panel min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        {moots.isLoading ? (
+          <p className="text-center text-xs text-muted-foreground">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
+            No Moots yet. Accept a Hello, and they'll show up here to message.
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {rows.map((m) => {
+              const name = m.display_name?.trim() || "Someone";
+              const avatar = m.avatar_url || m.avatar_emoji || "👋";
+              const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
+              return (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(m.id)}
+                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
+                      {isImg ? (
+                        <img src={avatar} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        avatar
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{name}</p>
+                      {m.handle && (
+                        <p className="truncate text-[11px] text-muted-foreground">@{m.handle}</p>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </AnimatedModal>
   );
 }

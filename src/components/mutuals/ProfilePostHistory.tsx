@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { Search, X, ArrowUpDown } from "lucide-react";
 import type { FeedPost } from "@/lib/posts-store";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
 import { PostCard } from "./PostCard";
-import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 type SortKey = "newest" | "oldest" | "likes";
@@ -14,7 +12,6 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
   const [tribeFilter, setTribeFilter] = useState<string | null>(null);
-  const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   const tribes = useMemo(() => {
     const set = new Set(posts.map((p) => p.tribe_id));
@@ -44,8 +41,6 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
     }
     return [...map.entries()];
   }, [filtered]);
-
-  const openPost = filtered.find((p) => p.id === openPostId) ?? null;
 
   const cycleSort = () => {
     setSort((s) => (s === "newest" ? "oldest" : s === "oldest" ? "likes" : "newest"));
@@ -84,12 +79,20 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
 
         {tribes.length > 1 && (
           <div className="flex flex-wrap gap-1.5">
-            <Chip active={tribeFilter === null} onClick={() => setTribeFilter(null)}>All</Chip>
+            <Chip active={tribeFilter === null} onClick={() => setTribeFilter(null)}>
+              All
+            </Chip>
             {tribes.map((tid) => {
               const t = tribeById(tid as TribeId);
               return (
-                <Chip key={tid} active={tribeFilter === tid} onClick={() => setTribeFilter(tid)} color={t.colorVar}>
-                  <TribeMark tribe={t} size="xs" />{t.name}
+                <Chip
+                  key={tid}
+                  active={tribeFilter === tid}
+                  onClick={() => setTribeFilter(tid)}
+                  color={t.colorVar}
+                >
+                  <TribeMark tribe={t} size="xs" />
+                  {t.name}
                 </Chip>
               );
             })}
@@ -106,65 +109,48 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
           {grouped.map(([month, items]) => (
             <div key={month}>
               <p className="label-mono mb-2 text-muted-foreground">{month}</p>
-              <ul className="space-y-2">
-                {items.map((p) => {
-                  const t = tribeById(p.tribe_id as TribeId);
-                  return (
-                    <li key={p.id}>
-                      <button
-                        onClick={() => setOpenPostId(p.id)}
-                        className="flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-3 text-left transition hover:bg-secondary/40"
-                      >
-                        <TribeMark tribe={t} size="sm" className="mt-0.5 flex-none" />
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-sm">{p.content || "(no text)"}</p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {timeAgo(p.created_at)} · ♥ {p.likes_count} · 💬 {p.replies_count}
-                          </p>
-                        </div>
-                        {p.image_url && (
-                          <img src={p.image_url} alt="" className="h-12 w-12 flex-none rounded-lg object-cover" />
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="space-y-3">
+                {items.map((p) => (
+                  <PostCard key={p.id} post={p} showTribe />
+                ))}
+              </div>
             </div>
           ))}
         </div>
-      )}
-
-      {openPost && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setOpenPostId(null)} />
-          <div className="scroll-panel relative mx-auto max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-background p-4 sm:rounded-3xl animate-rise">
-            <button
-              onClick={() => setOpenPostId(null)}
-              aria-label="Close post"
-              className="absolute right-3 top-3 z-10 rounded-full bg-card p-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <PostCard post={openPost} showTribe />
-          </div>
-        </div>,
-        document.body,
       )}
     </div>
   );
 }
 
-
-function Chip({ active, onClick, color, children }: { active: boolean; onClick: () => void; color?: string; children: React.ReactNode }) {
+function Chip({
+  active,
+  onClick,
+  color,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color?: string;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
       className={cn(
         "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
-        active ? "border-transparent text-foreground" : "border-border text-muted-foreground hover:text-foreground",
+        active
+          ? "border-transparent text-foreground"
+          : "border-border text-muted-foreground hover:text-foreground",
       )}
-      style={active ? { backgroundColor: color ? `color-mix(in oklab, ${color} 32%, transparent)` : "var(--secondary)" } : undefined}
+      style={
+        active
+          ? {
+              backgroundColor: color
+                ? `color-mix(in oklab, ${color} 32%, transparent)`
+                : "var(--secondary)",
+            }
+          : undefined
+      }
     >
       {children}
     </button>

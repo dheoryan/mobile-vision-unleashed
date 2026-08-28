@@ -34,7 +34,7 @@ export function HelloRequestsSheet({ open, onClose }: { open: boolean; onClose: 
         if (!nextOpen) onClose();
       }}
       title="Hellos"
-      contentClassName="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden rounded-none border-0 !bg-background sm:h-[85dvh] sm:max-h-[85dvh] sm:rounded-3xl sm:border"
+      contentClassName="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden rounded-none border-0 !bg-background data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:h-[85dvh] sm:max-h-[85dvh] sm:rounded-3xl sm:border"
     >
       <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
         <button

@@ -49,9 +49,12 @@ import {
   SOCIAL_INTENT_OPTIONS,
   toggleSelection,
   type AvailabilityId,
+  type GenderId,
   type InterestId,
   type SocialIntentId,
 } from "@/lib/profile-options";
+import { GenderSelect } from "./GenderSelect";
+import { defaultAvatarUrl } from "@/lib/default-avatar";
 import {
   requestBrowserLocation,
   type BrowserLocation,
@@ -72,6 +75,7 @@ export interface Profile {
   interests: InterestId[];
   socialIntents: SocialIntentId[];
   availability: AvailabilityId[];
+  gender: GenderId | null;
   plan: "free" | "plus";
   ventureCount: number;
 }
@@ -104,6 +108,7 @@ export function Onboarding({
   const [interests, setInterests] = useState<InterestId[]>([]);
   const [socialIntents, setSocialIntents] = useState<SocialIntentId[]>([]);
   const [availability, setAvailability] = useState<AvailabilityId[]>([]);
+  const [gender, setGender] = useState<GenderId | null>(null);
   const [radiusKm, setRadiusKm] = useState<LocationRadiusKm>(15);
   const [location, setLocation] = useState<BrowserLocation | null>(null);
   const [locating, setLocating] = useState(false);
@@ -174,7 +179,11 @@ export function Onboarding({
   };
 
   const finish = () => {
-    if (!tribeId) return;
+    if (!tribeId || !gender) return;
+    // Only stand in for a photo the person never took the time to add -
+    // never override an actual upload.
+    const isCustomAvatar = avatar.startsWith("data:") || avatar.startsWith("http");
+    const resolvedAvatar = isCustomAvatar ? avatar : (defaultAvatarUrl(tribeId, gender) ?? avatar);
     onDone(
       {
         tribeIds: [tribeId],
@@ -182,10 +191,11 @@ export function Onboarding({
         handle,
         city: city.trim(),
         bio: bio.trim(),
-        avatar,
+        avatar: resolvedAvatar,
         interests,
         socialIntents,
         availability,
+        gender,
         plan: "free",
         ventureCount: 0,
       },
@@ -512,10 +522,11 @@ export function Onboarding({
                     : "Letters, numbers, underscore"
                 }
               />
+              <GenderSelect value={gender} onChange={setGender} hint="Shown on your profile" />
             </div>
             <div className="mt-auto pt-8">
               <PrimaryButton
-                disabled={!name.trim() || !handleValid || uploading}
+                disabled={!name.trim() || !handleValid || !gender || uploading}
                 onClick={() => setStep(3)}
               >
                 Build my social signal <ArrowRight className="h-4 w-4" />

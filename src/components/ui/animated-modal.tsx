@@ -20,6 +20,7 @@ export function AnimatedModal({
   title,
   contentClassName = "",
   center = false,
+  side,
   preventClose = false,
   zIndex = 50,
 }: {
@@ -31,11 +32,19 @@ export function AnimatedModal({
   contentClassName?: string;
   /** Always centered (no bottom-sheet-on-mobile behavior) — used for compact confirm-style dialogs. */
   center?: boolean;
+  /** Slides in flush against the screen edge instead of rising from the
+   *  bottom or centering - for a list you're browsing alongside whatever's
+   *  behind it (e.g. picking someone to message), not a thing that takes
+   *  over the screen's attention the way a sheet or confirm dialog does.
+   *  Takes precedence over `center` when both are given. */
+  side?: "right";
   /** Block outside-click / Escape from closing (e.g. while a mutation is in flight). */
   preventClose?: boolean;
   zIndex?: number;
 }) {
-  const block = (e: Event) => { if (preventClose) e.preventDefault(); };
+  const block = (e: Event) => {
+    if (preventClose) e.preventDefault();
+  };
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -47,7 +56,11 @@ export function AnimatedModal({
         <div
           className={cn(
             "pointer-events-none fixed inset-0 flex justify-center",
-            center ? "items-center px-4" : "items-end sm:items-center",
+            side === "right"
+              ? "items-stretch justify-end"
+              : center
+                ? "items-center px-4"
+                : "items-end sm:items-center",
           )}
           style={{ zIndex }}
         >
@@ -58,7 +71,13 @@ export function AnimatedModal({
             className={cn(
               "pointer-events-auto relative mx-auto w-full max-w-md border border-border bg-card duration-150",
               "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-              center ? "rounded-3xl shadow-2xl" : "rounded-t-3xl sm:rounded-3xl",
+              side === "right"
+                ? ""
+                : center
+                  ? "rounded-3xl shadow-2xl"
+                  : "rounded-t-3xl sm:rounded-3xl",
+              side === "right" &&
+                "mx-0 h-full max-w-xs rounded-none border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
               contentClassName,
             )}
           >

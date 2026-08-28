@@ -82,6 +82,7 @@ export function SettingsScreen({
   const [editOpen, setEditOpen] = useState(false);
   const [tribeOpen, setTribeOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) void navigate({ to: "/login" });
@@ -91,11 +92,28 @@ export function SettingsScreen({
   if (!user || !profile) return null;
 
   const goBack = () => {
-    window.history.back();
+    // Internal panel switches (account/notifications/etc back to "main")
+    // stay on this same mounted route via a search param, so they don't
+    // get a push/pop animation - only true entrance/exit into Settings
+    // does. Mirror the slide-in on mount with a slide-out here: play it,
+    // then let the browser actually navigate once it's done.
+    if (view !== "main") {
+      window.history.back();
+      return;
+    }
+    setClosing(true);
+    window.setTimeout(() => window.history.back(), 200);
   };
 
   return (
-    <div className="min-h-dvh bg-habitat text-foreground">
+    <div
+      className={cn(
+        "min-h-dvh bg-habitat text-foreground motion-safe:duration-200 motion-safe:ease-out motion-reduce:animate-none",
+        closing
+          ? "motion-safe:animate-out motion-safe:slide-out-to-right"
+          : "motion-safe:animate-in motion-safe:slide-in-from-right",
+      )}
+    >
       <header className="glass sticky top-0 z-30 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="mx-auto grid min-h-14 max-w-md grid-cols-[3rem_1fr_3rem] items-center px-2">
           <button
@@ -239,10 +257,13 @@ function SettingsHome({
         >
           <LogOut className="h-4 w-4" /> Log out
         </button>
+      </div>
+
+      <div className="mt-6">
         <button
           type="button"
           onClick={onDelete}
-          className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
         >
           <Trash2 className="h-4 w-4" /> Delete account
         </button>

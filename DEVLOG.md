@@ -205,6 +205,476 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Non-binary default avatars complete the set
+
+- User sent the 5 non-binary illustrations (one per Tribe, deliberately
+  featureless silhouettes rather than a gendered face) - matched them to
+  Codex's already-staged `src/assets/default-profile-avatars-nonbinary/`
+  (byte-confirmed via `wolf-nonbinary.png`), same as the man/woman set
+  turned out to be Codex's Indonesian folder.
+- Same treatment as before: resized 1254x1254 source PNGs (~1.4-1.65MB
+  each) down to 400x400 with `sharp`, landing at 22-39KB each - into
+  `public/default-avatars/{tribe}-nonbinary.png`.
+- Wiring was a one-line change exactly as planned when the man/woman set
+  shipped: `GENDER_FILE_SUFFIX` in `default-avatar.ts` went from
+  `Partial<Record<GenderId, ...>>` (man/woman only, non_binary missing on
+  purpose) to a full `Record<GenderId, string>` with `non_binary:
+  "nonbinary"` added - no changes to `Onboarding.tsx` or
+  `EditProfileModal`, both already call `defaultAvatarUrl()`
+  unconditionally for whatever gender was picked. Dropped the now-dead
+  `if (!suffix) return null` check, since indexing a total `Record` can no
+  longer produce undefined.
+- All 15 illustrations (5 Tribes x 3 genders) are now wired end to end.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes,
+  confirmed all 15 files present in `.output/public/default-avatars/`.
+  Not yet exercised live or deployed.
+
+### 2026-08-29 — Codex — Non-binary Tribe default-profile avatar artwork
+
+- Created `src/assets/default-profile-avatars-nonbinary/` with one true featureless silhouette avatar for each Tribe.
+- Rebuilt the set from the approved Tribe default-avatar masks so the Wolf, Koi, Cat, Owl, and Bee mask designs remain consistent; no profile fallback behavior changed.
+
+### 2026-08-29 — Claude — Tribe+gender default avatars (man/woman; non-binary pending)
+
+- User sent the 10 illustrations from Codex's Indonesian avatar set
+  (confirmed by byte-matching `wolf-male.png` against
+  `src/assets/default-profile-avatars-indonesian/`, distinct from the
+  earlier non-Indonesian set in `default-profile-avatars/`) and asked for
+  it to replace the generic leaf-emoji default - shown when someone
+  hasn't uploaded a real photo, matched to their actual Tribe and gender.
+- Source files were 1254x1254 / ~1.6-2.3MB each - fine as source art, way
+  too heavy to serve as an everyday avatar rendered at 40-96px across
+  post cards, chat threads, and Discover cards app-wide. Resized to
+  400x400 and PNG-compressed with `sharp` (already a project dependency)
+  before touching any app code: ~48-79KB each now, a ~25-30x reduction
+  with no visible quality loss at avatar scale. Output lives in
+  `public/default-avatars/{tribe}-{male|female}.png` (10 files).
+- Deliberately NOT imported through Vite's `src/assets` pipeline: that
+  produces content-hashed URLs that may not be root-absolute or start
+  with "http" depending on dev vs. build, and the image-vs-emoji check
+  used everywhere in this codebase
+  (`avatar.startsWith("data:") || avatar.startsWith("http")`) requires
+  exactly that. Serving from `public/` (same convention already used for
+  `favicon.png`, referenced root-relatively in `__root.tsx`) gives a
+  stable path, and `defaultAvatarUrl()` (`src/lib/default-avatar.ts`)
+  qualifies it with `window.location.origin` at the point of use so it
+  always satisfies that check - zero changes needed to the many existing
+  avatar-render call sites across the app.
+- Wired at exactly two points, both "never overrides a real upload,
+  only stands in for one that was never taken":
+  - `Onboarding.tsx`'s `finish()` - if the person didn't set a custom
+    avatar in step 2, swap the placeholder for
+    `defaultAvatarUrl(tribeId, gender)` before submitting.
+  - `ProfileScreen.tsx`'s `EditProfileModal` Save - same swap, but only
+    fires the moment gender transitions from unset to set
+    (`!profile.gender && gender`), so an existing account that completes
+    the "Finish your profile" nudge (added earlier this session) gets
+    upgraded from the emoji too, without ever re-triggering on some later
+    unrelated edit and clobbering a real photo someone since uploaded.
+- Non-binary has no art yet (next batch incoming per the user).
+  `defaultAvatarUrl()` returns null for any gender without a mapped file,
+  and both call sites already fall back to the plain avatar/emoji in that
+  case - so this degrades safely today and the third set can drop in
+  later as a pure addition to `GENDER_FILE_SUFFIX`, no logic changes.
+- Scoped to Onboarding + the gender-set moment only - deliberately not
+  wired into the Tribe-switch flow (an existing account changing Tribe
+  keeps its current avatar rather than getting re-matched), matching how
+  narrowly gender itself was scoped this session.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (one
+  pre-existing, unrelated fast-refresh warning in `Onboarding.tsx`), full
+  Node test suite 73/73, full Cloudflare production build passes and
+  confirmed `.output/public/default-avatars/` contains all 10 files. Not
+  yet exercised live or deployed.
+
+### 2026-08-29 — Claude — Gender-immutability trigger applied to production
+
+- User ran `20260829020000_gender_immutable.sql` in the Supabase SQL
+  editor: "Query succeeded. No rows returned." The
+  `enforce_gender_immutable_before_update` trigger is now live - gender
+  can be set once per account and never reassigned or cleared after that,
+  matching what was rehearsed. Both gender migrations are now applied;
+  the whole feature is code-complete and unblocked, still queued for
+  deploy along with everything else built this session.
+
+### 2026-08-29 — Claude — Gender is immutable once set
+
+- User: make sure gender can't be changed after it's picked once.
+  Client-side-only enforcement is trivially bypassable (direct API call),
+  so this needed real, server-side enforcement - the DB is the source of
+  truth, not the UI.
+- `supabase/migrations/20260829020000_gender_immutable.sql`: a plain
+  `BEFORE UPDATE` trigger (`enforce_gender_immutable_before_update`) that
+  raises if `old.gender is not null and new.gender is distinct from
+  old.gender` - blocks both reassigning to a different value and clearing
+  back to NULL. First-time sets (`old.gender is null`) and no-op re-saves
+  of the same value (e.g. clicking Save in Edit profile without touching
+  gender) both pass through untouched. Mirrors the existing
+  `date_of_birth` immutability trigger
+  (`20260820000900_enforce_adult_verification.sql`) - same shape, without
+  the age-computation logic that field also needs.
+- This is a **trigger**, i.e. Red per `CHANGE_PROTOCOL.md` (unlike the
+  additive column migration before it, which was Green) - needs manual
+  application via the Supabase SQL editor, same as before.
+- Rehearsed on a throwaway Postgres 16 container replaying both gender
+  migrations in sequence (had to add stub `anon`/`authenticated`/
+  `service_role` roles this time, since the trigger function's `revoke
+  execute from anon, authenticated` line needs them to exist - a vanilla
+  Postgres image doesn't have them, Supabase's does). Confirmed: first-
+  time set succeeds, an unrelated field update with gender left untouched
+  succeeds, changing an already-set gender to a different value is
+  rejected, clearing an already-set gender to NULL is also rejected, and
+  the value never actually moved after either rejected attempt. Container
+  removed after.
+- Client UX: `GenderSelect.tsx` gained a `locked` prop - once locked, the
+  three pills go `disabled`, dim to `opacity-60`, and a small `Lock`-icon
+  caption explains why ("Can't be changed once set"). Wired to
+  `locked={Boolean(profile.gender)}` in `EditProfileModal`
+  (`ProfileScreen.tsx`) only - Onboarding never passes it, since gender is
+  always unset there (first-time setup, free to change your mind before
+  submitting). The lock is UX only, explicitly commented as such in the
+  component - the trigger above is what actually enforces it.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (one
+  formatting issue in the new `GenderSelect.tsx` code I wrote this session,
+  fixed via `--fix`), full Node test suite 73/73, full Cloudflare
+  production build passes. Migration not yet applied to production - see
+  chat for the SQL to run by hand.
+
+### 2026-08-29 — Codex — Indonesian Tribe default-profile avatar artwork
+
+- Created `src/assets/default-profile-avatars-indonesian/` as a second complete avatar set: Indonesian male and female illustrations for each of the five Tribes.
+- Preserved the MEUTUALS editorial screen-print language and face-worn Tribe masks. Kept it separate from the original set; no fallback behavior changed.
+
+### 2026-08-29 — Claude — Gender picker: dedicated single-select, not the shared checkbox grid
+
+- User's screenshot showed all three gender pills rendering with a
+  checkmark at once - reusing the multi-select `ChoiceGroup` pill grid
+  (built for interests/social intents/availability) for a single-choice
+  field surfaced a real bug: that component always renders an icon per
+  option regardless of selection (`OPTION_ICONS[id] ?? Check`), and
+  gender's ids have no custom icon mapped, so every option fell back to
+  the same checkmark - looking checked whether it was selected or not.
+  A checkbox grid is also the wrong shape for an exactly-one choice
+  question in the first place, independent of that bug.
+- New `GenderSelect.tsx`: a plain three-way segmented row, `role="radio"`/
+  `aria-checked`, no icon at all - just the label, active state carried
+  entirely by border/background color. Replaces the `ChoiceGroup`/
+  `ProfileChoiceGroup` usage for gender in both `Onboarding.tsx` (step 2)
+  and `ProfileScreen.tsx`'s `EditProfileModal`, single source of truth for
+  the control so the two don't drift.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (one
+  pre-existing, unrelated fast-refresh warning in `Onboarding.tsx`), full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Existing accounts get a nudge to set gender
+
+- User's question after the migration landed: how do people who
+  onboarded before this feature existed actually find out they can set
+  it? They could already reach it via Edit profile - that part shipped
+  with the field itself - but it was never wired into the "Finish your
+  profile" completion banner (`ProfileScreen.tsx`), so anyone who'd
+  already completed the old 6-field checklist (handle/city/bio/interests/
+  social intents/availability) would see `profileCompletion === max` and
+  never see the banner again, even with gender unset. Passive
+  availability isn't the same as being told about it.
+- Added `Boolean(profile.gender)` as a 7th criterion and introduced
+  `PROFILE_FIELD_COUNT` (was a hardcoded `6` in three places: the
+  threshold, the "N left" count, and the progress-bar percentage) so the
+  banner reappears with "1 left" for every already-onboarded account
+  until they set a gender, same mechanism that already nudges people to
+  fill in missing interests/bio/etc.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  deployed.
+
+### 2026-08-29 — Claude — Gender migration applied to production
+
+- User ran `20260829010000_profile_gender.sql` in the Supabase SQL editor.
+  First attempt showed "Query failed - Request was cancelled" (a client-
+  side interrupt, not a Postgres error - no error detail was returned).
+  Second attempt: "Query succeeded. No rows returned." - the `gender`
+  column and its allow-list CHECK are now live in production, matching
+  what was rehearsed. Full feature (schema, Onboarding, Edit profile,
+  public display) is code-complete and now unblocked; still queued for
+  deploy along with everything else built this session.
+
+### 2026-08-29 — Codex — Tribe default-profile avatar artwork
+
+- Created ten square default-profile illustrations in
+  `src/assets/default-profile-avatars/`: a male and female version for each
+  Iron Wolf, Mindful Koi, Studio Cat, Night Owl, and Honeybee.
+- The set follows the current MEUTUALS editorial screen-print language: black
+  ground, warm-ivory portraiture, printed ink texture, Tribe color accents,
+  and a Tribe half-mask worn across the eyes. The images are artwork-only;
+  avatar fallback wiring remains a separate decision because the profile model
+  also supports a non-binary gender value.
+
+### 2026-08-29 — Claude — Added gender to profiles
+
+- New optional-single-value profile attribute: Woman / Man / Non-binary
+  (user's explicit choice - no "prefer not to say", a fixed 3-option list).
+  Public on the profile (same treatment as interests/social intents, not
+  the private treatment age/date_of_birth get), required going forward at
+  signup, editable afterward like every other trait.
+- No existing single-choice column pattern in `profiles` - every other
+  fixed-option field (`interests`, `social_intents`, `availability`) is a
+  `text[]` with a `cardinality <= N` + allow-list `CHECK`. Gender is
+  inherently single-select, so it's a plain nullable `text` column with a
+  simpler `gender is null or gender in (...)` CHECK instead - no array,
+  no enum type (matches the CHECK-over-pg-enum convention already used
+  everywhere else in this table). Migration:
+  `supabase/migrations/20260829010000_profile_gender.sql`. Green per
+  `CHANGE_PROTOCOL.md` (new column, no RLS/trigger/grant/row-rewrite) -
+  rehearsed on a throwaway Postgres 16 container (stub `profiles` table
+  matching the real column set, one pre-existing NULL-gender row to
+  simulate a legacy account) confirming: legacy rows read back NULL
+  cleanly, all three values insert, NULL still inserts (so editing other
+  fields never forces a value onto an existing account), and an invalid
+  value is rejected by the CHECK. Container removed after.
+- Reused the existing `ChoiceGroup`/`ProfileChoiceGroup` pill-grid
+  component for both the Onboarding step and Edit profile, passing
+  `selected={gender ? [gender] : []}` and an `onToggle` that always
+  replaces rather than toggling off - single-select via the existing
+  multi-select component rather than introducing the unused shadcn
+  `radio-group`/`select` primitives for a single field.
+- Required only at onboarding (step 2, alongside name/handle - gated the
+  same way `handleValid` already gates that step's Next button), not
+  retroactively on existing accounts: `EditProfileModal`'s Save button is
+  NOT gated on gender being set, so a pre-existing account can still save
+  other edits without being forced to pick one immediately. Existing rows
+  simply stay NULL (and therefore don't show the pill on their profile)
+  until they set it themselves.
+- Surfaced on both the owner's own profile (`ProfileScreen.tsx`) and the
+  public profile page (`u.$handle.tsx`) in the existing mono meta line
+  (city · gender · Tribe), only rendered when set.
+- `src/integrations/supabase/types.ts` (the generated Supabase types file)
+  had to be hand-edited to add `gender` to the `profiles` Row/Insert/
+  Update shapes - this file isn't regenerated from the live DB in this
+  environment, and prior migrations in this session (`suspended_at`,
+  `tribe_changed_at`, etc.) already established hand-editing it as the
+  way to keep `tsc` accurate until someone re-runs the Supabase codegen
+  against production.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on every
+  substantively-touched file (pre-existing prettier drift in
+  `profile-options.ts` and a pre-existing `any` cast in
+  `profile.functions.ts` confirmed unchanged via `git stash` diff, left
+  alone), full Node test suite 73/73, full Cloudflare production build
+  passes. Not yet applied to production - migration SQL needs to be run
+  by hand (see chat), and not yet exercised live in Onboarding/Edit
+  profile in a browser.
+
+### 2026-08-29 — Claude — Dropped the "Danger zone" label
+
+- User's reaction to a screenshot ("really danger zone?") was right - that
+  label is a GitHub-repo-settings cliché and clashes with every other
+  section header in this screen (`You`, `Discovery`, `Sign-in` - plain
+  nouns, no dramatics). Removed the label from the Delete-account block
+  added in the entry below; the `mt-6` gap and the `border-destructive/30
+  bg-destructive/5` tinted outline already do the job of separating it
+  from Log out without needing a caption to announce it.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean.
+
+### 2026-08-29 — Claude — Hellos slide animation, Settings back-button exit, iOS input-zoom fix
+
+- Hellos sheet now slides in/out from the right, matching the treatment
+  already on the Moots picker drawer and Settings' page entrance: added
+  `data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right`
+  to `HelloRequestsSheet`'s `contentClassName`. Didn't reach for
+  `AnimatedModal`'s `side="right"` prop directly - that also pulls in
+  `max-w-xs`/`h-full`/`border-l`, sized for a compact browsing drawer, and
+  Hellos is deliberately a full-screen takeover sheet. Radix already drives
+  both directions via `data-state`, so the close (via the sheet's own
+  ChevronLeft button) needed no extra wiring.
+- Settings only had a slide-in on mount; its `goBack` called
+  `window.history.back()` immediately, so leaving via the header's back
+  arrow had no matching exit animation. Added a `closing` state: at
+  `view === "main"` (actually leaving Settings, not just popping an
+  internal account/notifications/etc panel - those stay on the same
+  mounted route via a search param and were already excluded from the
+  entrance animation for the same reason) it now flips the root div to
+  `slide-out-to-right`, waits 200ms to match the animation's own duration,
+  then calls `history.back()`.
+- iOS input-focus zoom: Mobile Safari zooms the page when a focused
+  input/textarea's computed font-size is under 16px. `CommentsModal`'s
+  comment box was a bare `text-sm` (14px) with no responsive escape -
+  unlike `ChatComposer`'s `text-base sm:text-sm`, which already avoided
+  this. Fixed that one input directly, but the app has ~40 other text
+  inputs across Ventures/Tribe/Profile/etc, so rather than hunt each one
+  added a global safety net in `styles.css`: under
+  `@supports (-webkit-touch-callout: none)` (WebKit-only, so this never
+  fires in Chrome/Android) combined with `(hover: none) and
+  (pointer: coarse)` (excludes desktop Safari), force
+  `input, textarea, select { font-size: 16px; }`. Confirmed via user
+  screenshot showing the zoomed/overlapping layout on an actual iPhone
+  (Comments sheet, keyboard up).
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on all
+  substantively-touched files (pre-existing prettier drift in
+  `CommentsModal.tsx` confirmed unchanged before/after via `git stash`
+  diff, left alone per standing practice), full Node test suite 73/73,
+  full Cloudflare production build passes. Could not verify the animation
+  or the iOS fix live in this session - the Browser pane failed to
+  composite frames (no display available) - so these are unverified in an
+  actual iOS Safari session; worth a real-device check before/after
+  deploy.
+
+### 2026-08-29 — Claude — Log out / Delete account no longer sit flush together
+
+- User's screenshot showed both buttons directly adjacent inside one
+  container, same `min-h-12` full-width sizing, zero gap between them -
+  "too blunt, user can accidentally click it." The concern is real: Delete
+  account is the single irreversible action in Settings, sitting one tap
+  away from the routine Log out with no visual or spatial signal that it's
+  different in kind.
+- `DeleteAccountModal.tsx` already gates actual deletion behind a two-step
+  confirm (`confirming` state flips the button from "Delete my account" to
+  a separate "Yes, permanently delete" press, plus a Cancel), so the fix
+  here is purely about the entry point, not adding a redundant confirm.
+- Split the single container into two: Log out keeps its existing plain
+  row treatment; Delete account moved into its own block below with a
+  `mt-6` gap, a small "Danger zone" label (`text-destructive/70`, same
+  `label-mono` treatment as other `SettingsGroup` headers) and a
+  `border-destructive/30 bg-destructive/5` tinted outline so it visually
+  reads as a distinct, more deliberate action rather than a same-weight
+  sibling of Log out.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-28 — Claude — Settings slides in from the right on open
+
+- User: opening Settings should feel like a push, not an instant cut.
+  Settings is a real route (`/settings`), not a modal, so this doesn't go
+  through `AnimatedModal` - added `motion-safe:animate-in
+  motion-safe:slide-in-from-right` directly to `SettingsScreen`'s root
+  element (same tw-animate-css utility class already used for the Moots
+  picker drawer, just triggered by mount instead of a Radix `data-state`).
+  Scoped intentionally to the initial Profile → Settings entrance only:
+  the root element mounts once for that navigation and stays mounted while
+  switching between internal panels (account/notifications/nearby/etc, all
+  driven by a `view` search param on the same route), so this doesn't
+  replay on every internal panel switch - respects `prefers-reduced-motion`
+  via `motion-reduce:animate-none`.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live.
+
+### 2026-08-28 — Claude — Own-profile post history now renders full PostCards
+
+- User's screenshot comparison made the real problem obvious: someone
+  else's public profile already shows full `PostCard`s (proper avatar,
+  icons, full-width image) - your own profile's Posts tab showed a
+  compact row (emoji glyphs, a 48px thumbnail) that opened a modal with the
+  real card on tap. Two different visual languages for the same content.
+- Fixed by rendering `PostCard` directly in `ProfilePostHistory.tsx`'s
+  grouped list, same as the public profile already does - not by patching
+  the compact row's icons/thumbnail size. Kept the search bar, sort cycle,
+  and Tribe-filter chips exactly as they were (genuinely useful for
+  browsing a large personal history, doesn't belong on someone else's
+  profile) and removed the now-redundant tap-to-open-modal machinery
+  (`openPostId` state, the portal-rendered detail sheet) since every post
+  is already fully rendered and interactive in place.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (`--fix`
+  cleared pre-existing formatting drift elsewhere in the file, confirmed
+  via a second `tsc` pass that nothing broke), full Node test suite 73/73,
+  full Cloudflare production build passes. Not yet exercised live.
+
+### 2026-08-28 — Claude — Public profile avatar made circular too
+
+- User caught the miss: the earlier "make the Profile avatar circular" fix
+  only touched `ProfileScreen.tsx` (your own profile) - `u.$handle.tsx`
+  (someone else's public profile) still had the old `rounded-md` on the
+  same-sized header avatar, so your own vs. everyone else's looked
+  inconsistent. Fixed there too; grepped for every large profile-header
+  avatar sharing this exact styling to confirm no third instance was
+  missed (the Edit Profile picker preview was already circular).
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live.
+
+### 2026-08-28 — Claude — DM thread header now opens the other person's profile
+
+- User: tapping the header of a 1:1 DM (avatar/name/city) did nothing -
+  wanted it to open that person's profile, same as everywhere else in the
+  app. Traced it: `MessagesPanel`'s own top-level `onOpenProfile` prop
+  already existed and was already wired through to `VenturePartyThread`,
+  but the plain 1:1 `Thread` component neither accepted nor received it -
+  the header was static text with no affordance at all.
+- Added `onOpenProfile` to `Thread`'s props, wrapped the avatar/name/city
+  block in a button that calls it with `other?.handle || otherId` (handle
+  when set, falls back to the raw id - `getProfileByHandle` already accepts
+  either, same fallback pattern used elsewhere in the app), and passed the
+  prop through at the `<Thread>` call site. The existing `SafetyMenu`
+  button stays a separate, unaffected sibling.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live.
+
+### 2026-08-28 — Claude — New message FAB visible on every filter, not just Direct
+
+- User: fine for it to show regardless of which filter is active. Dropped
+  the `filter === "direct"` guard - starting a new DM isn't really specific
+  to already being on the Direct tab. No other changes.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live.
+
+### 2026-08-28 — Claude — New message became a FAB, matching Ventures' Host button
+
+- User: use a FAB instead of the inline full-width button. Reused Ventures'
+  existing Host FAB exactly (`VenturesScreen.tsx:396`) rather than
+  reinventing one - same `fixed inset-x-0 bottom-24 z-30 mx-auto max-w-md
+  justify-end` wrapper (width-matched and right-aligned within the centered
+  content column, not the raw viewport edge - the documented fix from the
+  2026-08-21 "Host became a FAB" entry, since a viewport-edge FAB drifts
+  away from the content on anything wider than a phone) and the same
+  `pointer-events-none` wrapper / `pointer-events-auto` button split so the
+  invisible full-width strip doesn't eat taps meant for the list underneath.
+  Still only shown when the Direct filter is active - same scope as before,
+  just a different visual treatment.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live.
+
+### 2026-08-28 — Claude — Moots picker: a side drawer for starting new DMs
+
+- User asked to move Direct chats off the unified Chats list onto their own
+  screen, and separately wanted a Moots list. First proposal (a fully
+  separate "Direct" screen) was rightly rejected - it would have added a
+  navigation hop to the single most frequent action (checking existing
+  DMs). Landed on the narrower version instead: leave the existing filter
+  pills (All/Tribe/Ventures/Direct) exactly as they are - zero added
+  friction to reach a thread you already have - and add a **"New message"**
+  button, visible only when the Direct filter is active, that opens a
+  picker over everyone the user is Moots with (not just people they've
+  already messaged).
+- User then asked for that picker to be a side drawer, not the app's usual
+  floating/bottom-sheet modal. `AnimatedModal` (`animated-modal.tsx`) is the
+  one primitive every modal in this app goes through per AGENTS.md, so
+  extended it with a `side="right"` mode rather than reaching for the
+  shadcn `sheet.tsx` scaffold already sitting unused in the repo (confirmed
+  unused - its only importer, `sidebar.tsx`, is also never wired into the
+  real app). Borrowed the exact positioning/slide classes from that unused
+  scaffold as a reference (`inset-y-0 right-0 h-full ... slide-in-from-right`)
+  since they're the correct, already-available tw-animate-css utilities,
+  without touching the scaffold file itself.
+- One real bug caught before it shipped: the base rounding ternary emitted
+  `sm:rounded-3xl` unconditionally, and a plain `rounded-none` override
+  doesn't cancel a responsive-variant class in Tailwind's conflict
+  resolution - the drawer would have kept rounded corners at ≥640px width.
+  Fixed by making the ternary itself side-aware, so no conflicting class is
+  emitted in the first place.
+- New `MootsPickerSheet` in `ChatsScreen.tsx`, listing `useMyMoots()`
+  (reused as-is from the Tribe-preview work), tapping someone closes the
+  drawer and opens a thread with them via the existing `onOpenThread`.
+  Also added an explicit empty state for the Direct filter with zero
+  threads, since the generic "No conversations yet" state only fires when
+  every section is empty.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (`--fix`
+  cleared pre-existing formatting drift in `animated-modal.tsx`, confirmed
+  via a second `tsc` pass), full Node test suite 73/73, full Cloudflare
+  production build passes. Not yet exercised live.
+
 ### 2026-08-28 — Claude — Hellos moved to their own reachable sheet, split into two tabs
 
 - User asked where the Sent list actually lived, which surfaced a real gap:

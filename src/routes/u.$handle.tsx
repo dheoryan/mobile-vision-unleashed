@@ -14,7 +14,12 @@ import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { intentStore } from "@/lib/intent-store";
-import { INTEREST_OPTIONS, SOCIAL_INTENT_OPTIONS, optionLabel } from "@/lib/profile-options";
+import {
+  GENDER_OPTIONS,
+  INTEREST_OPTIONS,
+  SOCIAL_INTENT_OPTIONS,
+  optionLabel,
+} from "@/lib/profile-options";
 import { TribeMark } from "@/components/mutuals/TribeMark";
 import { AppBootstrapSkeleton, FeedSkeleton } from "@/components/mutuals/Skeleton";
 
@@ -101,7 +106,7 @@ function PublicProfilePage() {
           <div className="flex items-center gap-4">
             <span className="relative">
               <span
-                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-card text-4xl ring-2"
+                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
                 style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
               >
                 {isImg ? (
@@ -125,6 +130,12 @@ function PublicProfilePage() {
                   a location paragraph plus a pill. */}
               <p className="label-mono mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">
                 <span>{profile.city || "Somewhere"}</span>
+                {profile.gender && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>
+                  </>
+                )}
                 <span aria-hidden>·</span>
                 <span style={{ color: tribe.colorVar }}>{tribe.name}</span>
                 {otherTribes.map((t) => (

@@ -29,6 +29,12 @@ export const AVAILABILITY_OPTIONS = [
   { id: "spontaneous", label: "Spontaneous plans" },
 ] as const;
 
+export const GENDER_OPTIONS = [
+  { id: "woman", label: "Woman" },
+  { id: "man", label: "Man" },
+  { id: "non_binary", label: "Non-binary" },
+] as const;
+
 export const INTEREST_IDS = INTEREST_OPTIONS.map((option) => option.id) as [
   (typeof INTEREST_OPTIONS)[number]["id"],
   ...(typeof INTEREST_OPTIONS)[number]["id"][],
@@ -41,10 +47,15 @@ export const AVAILABILITY_IDS = AVAILABILITY_OPTIONS.map((option) => option.id) 
   (typeof AVAILABILITY_OPTIONS)[number]["id"],
   ...(typeof AVAILABILITY_OPTIONS)[number]["id"][],
 ];
+export const GENDER_IDS = GENDER_OPTIONS.map((option) => option.id) as [
+  (typeof GENDER_OPTIONS)[number]["id"],
+  ...(typeof GENDER_OPTIONS)[number]["id"][],
+];
 
 export type InterestId = (typeof INTEREST_OPTIONS)[number]["id"];
 export type SocialIntentId = (typeof SOCIAL_INTENT_OPTIONS)[number]["id"];
 export type AvailabilityId = (typeof AVAILABILITY_OPTIONS)[number]["id"];
+export type GenderId = (typeof GENDER_OPTIONS)[number]["id"];
 
 export function optionLabel(
   options: ReadonlyArray<{ id: string; label: string }>,

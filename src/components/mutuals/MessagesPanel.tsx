@@ -178,7 +178,7 @@ export function MessagesPanel({
             onClose={onClose}
           />
         ) : (
-          <Thread otherId={threadId} onBack={onClose} />
+          <Thread otherId={threadId} onBack={onClose} onOpenProfile={onOpenProfile} />
         )}
       </div>
     </div>
@@ -984,7 +984,15 @@ function VenturePartyThread({
   );
 }
 
-function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
+function Thread({
+  otherId,
+  onBack,
+  onOpenProfile,
+}: {
+  otherId: string;
+  onBack: () => void;
+  onOpenProfile?: (handle: string) => void;
+}) {
   const { user } = useAuth();
   const { data: other } = useProfileById(otherId);
   const { data: msgs, isLoading } = useThreadMessages(otherId);
@@ -1053,16 +1061,23 @@ function Thread({ otherId, onBack }: { otherId: string; onBack: () => void }) {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">
-            {other?.display_name?.trim() || "Someone"}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            {tribe.name}
-            {other?.city ? ` · ${other.city}` : ""}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => onOpenProfile?.(other?.handle || otherId)}
+          disabled={!onOpenProfile}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left disabled:cursor-default"
+        >
+          <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">
+              {other?.display_name?.trim() || "Someone"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {tribe.name}
+              {other?.city ? ` · ${other.city}` : ""}
+            </p>
+          </div>
+        </button>
         <SafetyMenu
           targetName={other?.display_name?.trim() || other?.handle || "this user"}
           targetUserId={otherId}

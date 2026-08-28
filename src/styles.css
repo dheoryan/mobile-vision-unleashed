@@ -91,7 +91,31 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { color-scheme: dark; }
+  html {
+    color-scheme: dark;
+    /* Mobile Safari may enlarge text after rotation or when it decides a
+       column is wider than the visual viewport. That turns the same feed into
+       two different density systems across iPhones and can force labels into
+       neighbouring controls. Keep the authored responsive type scale while
+       preserving the user's browser zoom. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* Mobile Safari zooms the whole page in when a focused text input's
+     computed font-size is under 16px - it treats that as "too small to
+     read" and helpfully enlarges the viewport, which on a fixed chat/
+     comment composer just misaligns everything until the user pinches back
+     out. `-webkit-touch-callout` is WebKit-only (no Chrome/Android
+     support), and `pointer: coarse` + no hover keeps this off desktop
+     Safari, so this only ever fires on the iOS devices that actually have
+     the bug. */
+  @supports (-webkit-touch-callout: none) {
+    @media (hover: none) and (pointer: coarse) {
+      input, textarea, select {
+        font-size: 16px;
+      }
+    }
+  }
   html, body, #root { height: 100%; }
   body {
     background-color: var(--color-background);

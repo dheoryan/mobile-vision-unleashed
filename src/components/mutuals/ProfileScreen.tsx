@@ -21,14 +21,18 @@ import { CompactListSkeleton } from "./Skeleton";
 import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 import {
   AVAILABILITY_OPTIONS,
+  GENDER_OPTIONS,
   INTEREST_OPTIONS,
   SOCIAL_INTENT_OPTIONS,
   optionLabel,
   toggleSelection,
   type AvailabilityId,
+  type GenderId,
   type InterestId,
   type SocialIntentId,
 } from "@/lib/profile-options";
+import { GenderSelect } from "./GenderSelect";
+import { defaultAvatarUrl } from "@/lib/default-avatar";
 import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
 import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
@@ -61,7 +65,9 @@ export function ProfileScreen({
     profile.interests.length >= 2,
     profile.socialIntents.length >= 1,
     profile.availability.length >= 1,
+    Boolean(profile.gender),
   ].filter(Boolean).length;
+  const PROFILE_FIELD_COUNT = 7;
 
   const myPostsQuery = useMyPosts();
   const myPosts = myPostsQuery.data ?? [];
@@ -128,6 +134,12 @@ export function ProfileScreen({
                   this gives it structural work rather than decoration. */}
               <p className="label-mono mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">
                 <span>{profile.city || "Somewhere"}</span>
+                {profile.gender && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>
+                  </>
+                )}
                 <span aria-hidden>·</span>
                 <span style={{ color: tribe.colorVar }}>{tribe.name}</span>
                 {otherTribes.map((t) => (
@@ -161,7 +173,7 @@ export function ProfileScreen({
             </div>
           )}
 
-          {profileCompletion < 6 && (
+          {profileCompletion < PROFILE_FIELD_COUNT && (
             <button
               type="button"
               onClick={() => setEditOpen(true)}
@@ -171,12 +183,12 @@ export function ProfileScreen({
                 {/* A percentage is a number with no verb — it nags without
                     telling you what to do. The bar still shows progress. */}
                 <span className="font-semibold">Finish your profile</span>
-                <span className="text-primary">{6 - profileCompletion} left</span>
+                <span className="text-primary">{PROFILE_FIELD_COUNT - profileCompletion} left</span>
               </div>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
                 <span
                   className="block h-full rounded-full bg-primary"
-                  style={{ width: `${(profileCompletion / 6) * 100}%` }}
+                  style={{ width: `${(profileCompletion / PROFILE_FIELD_COUNT) * 100}%` }}
                 />
               </div>
             </button>
@@ -578,6 +590,7 @@ export function EditProfileModal({
   const [interests, setInterests] = useState<InterestId[]>(profile.interests);
   const [socialIntents, setSocialIntents] = useState<SocialIntentId[]>(profile.socialIntents);
   const [availability, setAvailability] = useState<AvailabilityId[]>(profile.availability);
+  const [gender, setGender] = useState<GenderId | null>(profile.gender);
   const [uploading, setUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -717,6 +730,7 @@ export function EditProfileModal({
             multiline
             hint={`${bio.length}/140`}
           />
+          <GenderSelect value={gender} onChange={setGender} locked={Boolean(profile.gender)} />
           <ProfileChoiceGroup
             label="Interests"
             options={INTEREST_OPTIONS}
@@ -752,18 +766,30 @@ export function EditProfileModal({
               availability.length < 1 ||
               uploading
             }
-            onClick={() =>
+            onClick={() => {
+              // Same "never override a real photo" rule as Onboarding, plus:
+              // only apply it the moment gender goes from unset to set, so a
+              // person who already replaced the illustration with a real
+              // photo doesn't get it silently swapped back on some later
+              // unrelated edit.
+              const isCustomAvatar = avatar.startsWith("data:") || avatar.startsWith("http");
+              const justSetGender = !profile.gender && !!gender;
+              const resolvedAvatar =
+                !isCustomAvatar && justSetGender
+                  ? (defaultAvatarUrl(profile.tribeIds[0] ?? null, gender) ?? avatar)
+                  : avatar;
               onSave({
                 name: name.trim(),
                 handle,
                 city: city.trim(),
                 bio,
-                avatar,
+                avatar: resolvedAvatar,
                 interests,
                 socialIntents,
                 availability,
-              })
-            }
+                gender,
+              });
+            }}
             className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             {uploading ? "Saving photo…" : "Save changes"}
