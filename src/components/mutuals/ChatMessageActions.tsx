@@ -1,11 +1,11 @@
-import { HandHeart, Heart, Laugh, Reply } from "lucide-react";
+import { Reply } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatReaction, ChatReactionCounts } from "@/lib/chat";
 
 const ACTIONS = [
-  { id: "heart" as const, label: "Love", Icon: Heart },
-  { id: "laugh" as const, label: "Funny", Icon: Laugh },
-  { id: "support" as const, label: "Support", Icon: HandHeart },
+  { id: "heart" as const, label: "Love", emoji: "❤️" },
+  { id: "laugh" as const, label: "Funny", emoji: "😂" },
+  { id: "support" as const, label: "Support", emoji: "🤝" },
 ];
 
 interface ChatMessageActionsProps {
@@ -43,7 +43,7 @@ export function ChatMessageActions({
           role="toolbar"
           aria-label={`Actions for ${senderName}'s message`}
         >
-          {ACTIONS.map(({ id, label, Icon }) => (
+          {ACTIONS.map(({ id, label, emoji }) => (
             <button
               key={id}
               type="button"
@@ -55,7 +55,9 @@ export function ChatMessageActions({
                 myReactions.includes(id) && "bg-secondary text-foreground",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <span aria-hidden className="text-[19px] leading-none">
+                {emoji}
+              </span>
             </button>
           ))}
           <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
@@ -72,7 +74,7 @@ export function ChatMessageActions({
 
       {ACTIONS.some(({ id }) => reactions[id] > 0) && (
         <div className={cn("relative z-10 -mt-2 flex flex-wrap gap-1 px-1", mine && "justify-end")}>
-          {ACTIONS.filter(({ id }) => reactions[id] > 0).map(({ id, label, Icon }) => (
+          {ACTIONS.filter(({ id }) => reactions[id] > 0).map(({ id, label, emoji }) => (
             <button
               key={id}
               type="button"
@@ -85,7 +87,10 @@ export function ChatMessageActions({
                 myReactions.includes(id) && "border-primary/60 text-foreground",
               )}
             >
-              <Icon className="h-3 w-3" /> {reactions[id]}
+              <span aria-hidden className="text-sm leading-none">
+                {emoji}
+              </span>
+              {reactions[id]}
             </button>
           ))}
         </div>

@@ -1,25 +1,39 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
-const SWIPE_THRESHOLD = 56;
-const MAX_DRAG = 80;
-const LONG_PRESS_MS = 450;
+export const SWIPE_REPLY_THRESHOLD = 48;
+const MAX_DRAG = 72;
+const DRAG_RESISTANCE = 0.82;
+
+export function swipeReplyOffset(deltaX: number) {
+  return Math.min(MAX_DRAG, Math.max(0, deltaX * DRAG_RESISTANCE));
+}
+
+export function shouldTriggerSwipeReply(offset: number) {
+  return offset >= SWIPE_REPLY_THRESHOLD;
+}
 
 /**
- * Swipe-right or long-press (~450ms) to trigger a "Reply" action,
- * with a haptic tap and a translated bubble. Mirrors the gesture used
- * in CommentsModal so chat surfaces feel consistent.
+ * Swipe a message to the right and release to reply. The bubble follows the
+ * finger with resistance, reveals the reply affordance, then snaps home. A
+ * normal action-menu Reply remains available for keyboard and desktop users.
  */
 export function useSwipeReply(onTrigger: () => void, disabled = false) {
   const [dragX, setDragX] = useState(0);
   const startX = useRef<number | null>(null);
   const startY = useRef<number | null>(null);
+  const activePointer = useRef<number | null>(null);
   const axis = useRef<"x" | "y" | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const triggered = useRef(false);
+  const dragXRef = useRef(0);
+  const suppressClick = useRef(false);
 
   const fire = () => {
-    if (triggered.current || disabled) return;
-    triggered.current = true;
+    if (disabled) return;
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
         navigator.vibrate?.(15);
@@ -30,26 +44,26 @@ export function useSwipeReply(onTrigger: () => void, disabled = false) {
     onTrigger();
   };
 
-  const clearLongPress = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
-  const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {
+  const onPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
     if (disabled) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("a, button, input, textarea")) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    activePointer.current = e.pointerId;
     startX.current = e.clientX;
     startY.current = e.clientY;
     axis.current = null;
-    triggered.current = false;
-    clearLongPress();
-    longPressTimer.current = setTimeout(fire, LONG_PRESS_MS);
+    dragXRef.current = 0;
+    suppressClick.current = false;
   };
 
-  const onPointerMove = (e: React.PointerEvent<HTMLElement>) => {
-    if (startX.current == null || startY.current == null) return;
+  const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
+    if (
+      activePointer.current !== e.pointerId ||
+      startX.current == null ||
+      startY.current == null
+    )
+      return;
     const dx = e.clientX - startX.current;
     const dy = e.clientY - startY.current;
     if (axis.current == null) {
@@ -57,34 +71,57 @@ export function useSwipeReply(onTrigger: () => void, disabled = false) {
       axis.current = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
     }
     if (axis.current === "y") {
-      clearLongPress();
       return;
     }
-    clearLongPress();
-    const next = Math.max(0, Math.min(MAX_DRAG, dx));
+    if (e.cancelable) e.preventDefault();
+    const next = swipeReplyOffset(dx);
+    dragXRef.current = next;
     setDragX(next);
-    if (next >= SWIPE_THRESHOLD) fire();
   };
 
-  const endDrag = () => {
-    clearLongPress();
+  const finishDrag = (e: ReactPointerEvent<HTMLElement>, allowReply: boolean) => {
+    if (activePointer.current !== e.pointerId) return;
+    const shouldReply = allowReply && shouldTriggerSwipeReply(dragXRef.current);
+    suppressClick.current = dragXRef.current > 6;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    activePointer.current = null;
     startX.current = null;
     startY.current = null;
     axis.current = null;
+    dragXRef.current = 0;
     setDragX(0);
+    if (shouldReply) fire();
   };
 
-  useEffect(() => () => clearLongPress(), []);
+  const endDrag = (e: ReactPointerEvent<HTMLElement>) => finishDrag(e, true);
+  const cancelDrag = (e: ReactPointerEvent<HTMLElement>) => finishDrag(e, false);
+
+  const onClickCapture = (e: ReactMouseEvent<HTMLElement>) => {
+    if (!suppressClick.current) return;
+    suppressClick.current = false;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  useEffect(() => {
+    if (!disabled) return;
+    activePointer.current = null;
+    dragXRef.current = 0;
+    setDragX(0);
+  }, [disabled]);
 
   return {
     dragX,
-    peekOpacity: Math.min(1, dragX / SWIPE_THRESHOLD),
+    peekOpacity: Math.min(1, dragX / SWIPE_REPLY_THRESHOLD),
+    ready: shouldTriggerSwipeReply(dragX),
     handlers: {
       onPointerDown,
       onPointerMove,
       onPointerUp: endDrag,
-      onPointerCancel: endDrag,
-      onPointerLeave: endDrag,
+      onPointerCancel: cancelDrag,
+      onClickCapture,
     },
   };
 }

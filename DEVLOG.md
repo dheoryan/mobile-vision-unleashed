@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Emoji chat reactions and swipe-to-reply polish | `src/components/mutuals/ChatMessageActions.tsx`, `src/components/mutuals/ChatComposer.tsx`, `src/components/mutuals/MessagesPanel.tsx`, `src/components/mutuals/TribeScreen.tsx`, `src/hooks/use-swipe-reply.ts`, `tests/chat-interactions.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Emoji reactions and release-to-reply gesture
+
+- Replaced the Love, Funny, and Support outline glyphs in the shared chat
+  reaction tray and count chips with native `❤️`, `😂`, and `🤝` emoji across
+  Tribe, Venture, and DM chat.
+- Reworked the shared swipe gesture to match familiar messaging behavior: the
+  bubble follows a rightward drag with resistance, reveals and scales the Reply
+  affordance, triggers only when released beyond the threshold, gives haptic
+  feedback where supported, and snaps home. Long press no longer replies.
+- Protected links and buttons from pointer capture and suppresses the bubble's
+  normal click action after a drag. The existing action-menu Reply remains for
+  keyboard and desktop access.
+- Reply selection now focuses the shared composer, including Tribe chat which
+  previously showed the reply preview without moving focus to the input.
+- Validation: `node --test --test-isolation=none tests/chat.test.ts
+  tests/chat-interactions.test.ts`, `npx tsc --noEmit`, `git diff --check`, and
+  `npm run build` pass.
 
 ### 2026-08-28 — Codex — Reliable post lightbox controls
 

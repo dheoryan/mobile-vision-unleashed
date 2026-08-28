@@ -53,7 +53,16 @@ export function ChatComposer({
 }: ChatComposerProps) {
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const previousReplyId = useRef<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const nextReplyId = replyTo?.id ?? null;
+    if (nextReplyId && nextReplyId !== previousReplyId.current) {
+      inputRef?.current?.focus({ preventScroll: true });
+    }
+    previousReplyId.current = nextReplyId;
+  }, [inputRef, replyTo?.id]);
 
   useEffect(() => {
     if (!selectedImage) {

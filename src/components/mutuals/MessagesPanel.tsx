@@ -90,7 +90,7 @@ function MessageSwipeRow({
   onReply: () => void;
   className?: string;
 }) {
-  const { dragX, peekOpacity, handlers } = useSwipeReply(onReply, disabled);
+  const { dragX, peekOpacity, ready, handlers } = useSwipeReply(onReply, disabled);
   return (
     <div className={cn("relative select-none", className)}>
       {dragX > 4 && (
@@ -99,8 +99,11 @@ function MessageSwipeRow({
           style={{ opacity: peekOpacity }}
         >
           <span
-            className="flex h-7 w-7 items-center justify-center rounded-full"
-            style={{ backgroundColor: `color-mix(in oklab, ${accentColor} 28%, transparent)` }}
+            className="flex h-7 w-7 items-center justify-center rounded-full transition-transform"
+            style={{
+              backgroundColor: `color-mix(in oklab, ${accentColor} 28%, transparent)`,
+              transform: `scale(${ready ? 1.12 : 0.9})`,
+            }}
           >
             <Reply className="h-3.5 w-3.5" />
           </span>
