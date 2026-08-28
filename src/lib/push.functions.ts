@@ -18,7 +18,7 @@ export const saveSubscription = createServerFn({ method: "POST" })
       _endpoint: data.endpoint,
       _p256dh: data.p256dh,
       _auth: data.auth,
-      _user_agent: data.userAgent ?? null,
+      _user_agent: data.userAgent ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
