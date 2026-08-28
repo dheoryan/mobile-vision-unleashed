@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Profile handle visibility | `src/components/mutuals/ProfileScreen.tsx`, `src/routes/u.$handle.tsx`, `tests/profile-identity.test.ts`, `DEVLOG.md` | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,16 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Visible profile handles
+
+- Added the normalized `@handle` directly beneath the display name in both
+  the signed-in user's profile identity block and public profile pages. Handles
+  with a legacy leading `@` still render with exactly one prefix.
+- Kept the handle visually secondary to the display name and ahead of the
+  city/Tribe metadata, with truncation for narrow mobile layouts.
+- Verification: focused identity test, `npx tsc --noEmit`, `git diff --check`,
+  and the full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — Bottom navigation glass parity
 

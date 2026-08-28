@@ -132,6 +132,11 @@ function PublicProfilePage() {
               <h2 className="font-display text-2xl font-bold leading-tight">
                 {profile.display_name || "Someone"}
               </h2>
+              {profile.handle && (
+                <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
+                  @{profile.handle.replace(/^@/, "")}
+                </p>
+              )}
               {/* Same treatment as your own Profile: one mono line instead of
                   a location paragraph plus a pill. */}
               <p className="label-mono mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">

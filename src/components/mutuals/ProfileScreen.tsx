@@ -111,6 +111,11 @@ export function ProfileScreen({
                   </span>
                 )}
               </div>
+              {profile.handle && (
+                <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
+                  @{profile.handle.replace(/^@/, "")}
+                </p>
+              )}
               {/* One mono line instead of a location paragraph plus a pill.
                   Space Mono was already the strongest thing in the type stack;
                   this gives it structural work rather than decoration. */}
