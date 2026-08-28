@@ -1338,11 +1338,15 @@ export type Database = {
           _auth: string
           _endpoint: string
           _p256dh: string
-          _user_agent?: string | null
+          _user_agent?: string
         }
         Returns: undefined
       }
       content_is_blocked: { Args: { value: string }; Returns: boolean }
+      content_mentions_user: {
+        Args: { _content: string; _user_id: string }
+        Returns: boolean
+      }
       current_user_is_moderator: { Args: never; Returns: boolean }
       emit_venture_system_message: {
         Args: {
