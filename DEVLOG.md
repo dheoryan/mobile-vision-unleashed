@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Reconcile Lovable changes and deploy profile/push release | `DEVLOG.md`, release merge conflicts only | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Profile and push release reconciled for production
+
+- Fetched immediately before release and normally merged the three newer
+  Lovable commits (`d1a52da`, `1c022d1`, `bb640da`) in an isolated worktree.
+  Their generated Supabase typing and push-function type correction merge
+  cleanly with the notification-category and Profile header work.
+- The release keeps unrelated local `.env`, lockfile, Explore, CSS, and test
+  edits outside Git.
+- Verification on the merged release: focused ESLint, `npx tsc --noEmit`,
+  `git diff --check`, 15/15 profile and push tests, PWA release checks, and the
+  full Cloudflare production build pass.
 
 ### 2026-08-28 — Codex — Profile settings moved into the global header
 
