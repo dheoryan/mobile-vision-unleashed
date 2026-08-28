@@ -78,7 +78,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+      },
       { name: "theme-color", content: "#0F0F0F" },
       // iOS ignores the manifest for standalone launches; these three are what
       // give it a dark status bar and a real splash instead of a white flash.
@@ -87,18 +91,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "MEUTUALS" },
       { name: "mobile-web-app-capable", content: "yes" },
       { title: "MEUTUALS — Your tribe is waiting" },
-      { name: "description", content: "Connect with people who share your interests, then meet up in the real world. 21+ only." },
+      {
+        name: "description",
+        content:
+          "Connect with people who share your interests, then meet up in the real world. 21+ only.",
+      },
       { property: "og:title", content: "MEUTUALS — Your tribe is waiting" },
       {
         property: "og:description",
-        content: "Connect with people who share your interests, then meet up in the real world. 21+ only.",
+        content:
+          "Connect with people who share your interests, then meet up in the real world. 21+ only.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "MEUTUALS — Your tribe is waiting" },
       {
         name: "twitter:description",
-        content: "Connect with people who share your interests, then meet up in the real world. 21+ only.",
+        content:
+          "Connect with people who share your interests, then meet up in the real world. 21+ only.",
       },
       {
         property: "og:image",

@@ -35,6 +35,7 @@ import {
   endsChatGroup,
   startsChatGroup,
 } from "@/lib/chat-grouping";
+import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 
 function SwipeReplyRow({
   children,
@@ -115,6 +116,7 @@ export function TribeScreen({
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
   const [roomView, setRoomView] = useState<TribeRoomView>("chat");
   const [membersOpen, setMembersOpen] = useState(false);
+  const visualViewport = useVisualViewport(true);
 
   useEffect(() => {
     if (!profile.tribeIds.includes(activeTribe)) setActiveTribe(profile.tribeIds[0]);
@@ -131,7 +133,10 @@ export function TribeScreen({
   const members = membersQuery.data?.members ?? [];
 
   return (
-    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat overscroll-none">
+    <div
+      className="flex min-h-0 flex-col overflow-hidden bg-habitat overscroll-none"
+      style={visualViewportStyle(visualViewport)}
+    >
       {onBack && (
         <header className="glass z-30 shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
           <div className="flex w-full items-center gap-3 px-4 py-2">
@@ -155,8 +160,6 @@ export function TribeScreen({
               </h1>
               <span className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-                <span className="shrink-0">You're home</span>
-                <span aria-hidden="true">·</span>
                 <UsersRound className="h-3 w-3 shrink-0" />
                 <span className="truncate">
                   {onlineMemberIds.size} online · {membersQuery.data?.total ?? members.length}{" "}
@@ -301,9 +304,6 @@ function TribeRoomIdentity({
     <section className="mt-4 flex items-center gap-3 border-b border-border/70 pb-3">
       <TribeMark tribe={tribe} size="md" decorative={false} />
       <div className="min-w-0 flex-1">
-        <p className="label-mono flex items-center gap-1.5 text-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> You're home
-        </p>
         <h2 className="truncate font-display text-xl font-bold leading-tight">{tribe.name}</h2>
         <RoomMemberStatus
           liveMembers={liveMembers}

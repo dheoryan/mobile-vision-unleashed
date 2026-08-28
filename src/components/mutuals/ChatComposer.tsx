@@ -80,7 +80,7 @@ export function ChatComposer({
 
   return (
     <div
-      className={`relative shrink-0 border-t border-border/70 bg-background/90 px-3 py-2 backdrop-blur-md ${outerClassName ?? ""}`}
+      className={`relative min-w-0 shrink-0 border-t border-border/70 bg-background/90 px-3 py-2 backdrop-blur-md ${outerClassName ?? ""}`}
     >
       {accessory}
       {replyTo && onCancelReply && (
@@ -92,7 +92,7 @@ export function ChatComposer({
         />
       )}
       {selectedImage && previewUrl && (
-        <div className="mb-2 flex items-center gap-3 rounded-xl border border-border bg-card p-2">
+        <div className="mb-2 flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2">
           <img
             src={previewUrl}
             alt="Selected attachment"
@@ -153,7 +153,7 @@ export function ChatComposer({
           placeholder={placeholder}
           aria-label={placeholder}
           disabled={disabled || sending}
-          className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-60"
+          className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none disabled:opacity-60 sm:text-sm"
         />
         <button
           type="button"

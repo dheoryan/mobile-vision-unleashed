@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Mobile chat keyboard/media, post lightbox/mentions, Tribe-only post notification audience | `src/routes/__root.tsx`, `src/hooks/use-visual-viewport.ts`, `src/components/mutuals/{ChatComposer,TribeScreen,MessagesPanel,PostCard,PostMediaLightbox}.tsx`, `src/lib/{posts.functions,post-mentions}.ts`, `supabase/migrations/20260828010000_scope_new_post_notifications.sql`, focused tests | 2026-08-28 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,25 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-28 — Codex — Mobile chat viewport, post media, and notification audience
+
+- Made Tribe, Venture, and DM chat shells follow the actual visual viewport
+  while mobile keyboards are open, opted supporting browsers into
+  `interactive-widget=resizes-content`, and kept composer inputs at 16 px on
+  mobile to prevent focus zoom. Attachment previews are now width-contained.
+- Removed the “You're home” copy from both Tribe header variants.
+- Added a Radix-backed full-screen post photo viewer with pinch, drag, wheel,
+  double-tap, reset, and explicit zoom controls. Post `@handles` now render as
+  highlighted, keyboard-focusable profile links without treating emails as
+  mentions.
+- Added `20260828010000_scope_new_post_notifications.sql`: public posts retain
+  reciprocal-follow fan-out, while Tribe-only post notifications require the
+  recipient to belong to the post's Tribe. The migration still needs to be
+  applied before the notification correction is live.
+- Verification: 15 focused tests, `npx tsc --noEmit`, `git diff --check`, a
+  full Cloudflare production build, and a read-only localhost viewport check
+  pass.
 
 ### 2026-08-27 — Codex — Tribe header normalized to chat shell metrics
 

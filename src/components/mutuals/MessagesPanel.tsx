@@ -71,6 +71,7 @@ import {
   endsChatGroup,
   startsChatGroup,
 } from "@/lib/chat-grouping";
+import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -134,6 +135,7 @@ export function MessagesPanel({
 }) {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [ventureThread, setVentureThread] = useState<VentureParty | null>(null);
+  const visualViewport = useVisualViewport(open);
 
   useEffect(() => {
     if (!open) {
@@ -155,7 +157,7 @@ export function MessagesPanel({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-x-0 z-50" style={visualViewportStyle(visualViewport)}>
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-0 mx-auto flex max-w-md flex-col bg-background shadow-2xl">
         {ventureThread ? (

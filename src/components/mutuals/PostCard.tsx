@@ -1,5 +1,16 @@
 import { useRef, useState } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, ImagePlus, X, Loader2, Bookmark } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  ImagePlus,
+  X,
+  Loader2,
+  Bookmark,
+} from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
 import { Link } from "@tanstack/react-router";
@@ -15,6 +26,8 @@ import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
+import { splitPostMentions } from "@/lib/post-mentions";
+import { PostMediaLightbox } from "./PostMediaLightbox";
 
 const MAX_IMG_BYTES = 5 * 1024 * 1024;
 
@@ -60,6 +73,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const [editImagePath, setEditImagePath] = useState<string | null>(post.image_path);
   const [editImageUrl, setEditImageUrl] = useState<string | null>(post.image_url);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -103,8 +117,14 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f || !user) return;
-    if (!f.type.startsWith("image/")) { toast.error("Only image files."); return; }
-    if (f.size > MAX_IMG_BYTES) { toast.error("Image too large", { description: "Max 5 MB." }); return; }
+    if (!f.type.startsWith("image/")) {
+      toast.error("Only image files.");
+      return;
+    }
+    if (f.size > MAX_IMG_BYTES) {
+      toast.error("Image too large", { description: "Max 5 MB." });
+      return;
+    }
     setUploading(true);
     try {
       const path = await uploadPostImage(user.id, f);
@@ -130,7 +150,11 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             {author.plus && <PlusBadge />}
           </span>
         ) : (
-          <Link to="/u/$handle" params={{ handle: post.author?.handle || post.author_id }} className="relative shrink-0">
+          <Link
+            to="/u/$handle"
+            params={{ handle: post.author?.handle || post.author_id }}
+            className="relative shrink-0"
+          >
             <Avatar value={author.avatar} tribeColor={tribe.colorVar} />
             {author.plus && <PlusBadge />}
           </Link>
@@ -140,9 +164,17 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             {isMine ? (
               <p className="truncate text-sm font-semibold">{author.name}</p>
             ) : (
-              <Link to="/u/$handle" params={{ handle: post.author?.handle || post.author_id }} className="truncate text-sm font-semibold hover:underline">{author.name}</Link>
+              <Link
+                to="/u/$handle"
+                params={{ handle: post.author?.handle || post.author_id }}
+                className="truncate text-sm font-semibold hover:underline"
+              >
+                {author.name}
+              </Link>
             )}
-            {author.handle && <span className="text-xs text-muted-foreground">{author.handle}</span>}
+            {author.handle && (
+              <span className="text-xs text-muted-foreground">{author.handle}</span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             {showTribe && (
@@ -157,7 +189,10 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         {post.tag && (
           <span
             className="label-mono rounded-full px-2 py-1"
-            style={{ color: tribe.colorVar, backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 16%, transparent)` }}
+            style={{
+              color: tribe.colorVar,
+              backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 16%, transparent)`,
+            }}
           >
             {post.tag}
           </span>
@@ -175,11 +210,17 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-9 z-40 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                  <button onClick={startEdit} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary">
+                  <button
+                    onClick={startEdit}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
+                  >
                     <Pencil className="h-3.5 w-3.5" /> Edit post
                   </button>
                   <button
-                    onClick={() => { setMenuOpen(false); setConfirmDel(true); }}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmDel(true);
+                    }}
                     className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Delete post
@@ -189,7 +230,12 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             )}
           </div>
         ) : (
-          <SafetyMenu targetName={author.name} targetUserId={post.author_id} targetPostId={post.id} kind="post" />
+          <SafetyMenu
+            targetName={author.name}
+            targetUserId={post.author_id}
+            targetPostId={post.id}
+            kind="post"
+          />
         )}
       </header>
 
@@ -206,7 +252,10 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             <div className="relative overflow-hidden rounded-xl border border-border">
               <img src={editImageUrl} alt="" className="block max-h-72 w-full object-cover" />
               <button
-                onClick={() => { setEditImagePath(null); setEditImageUrl(null); }}
+                onClick={() => {
+                  setEditImagePath(null);
+                  setEditImageUrl(null);
+                }}
                 aria-label="Remove image"
                 className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background"
               >
@@ -221,11 +270,21 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               disabled={uploading}
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
-              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5" />
+              )}
               {uploading ? "Uploading…" : editImagePath ? "Replace" : "Add photo"}
             </button>
             <span className="text-[10px] text-muted-foreground">{editText.length}/280</span>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickFile}
+            />
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <button
@@ -245,13 +304,38 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
       ) : (
         <>
           {post.content && (
-            <p className="mt-3 font-sans text-[15px] leading-relaxed text-foreground">{post.content}</p>
+            <p className="mt-3 whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-foreground">
+              {splitPostMentions(post.content).map((segment, index) =>
+                segment.handle ? (
+                  <Link
+                    key={`${segment.text}-${index}`}
+                    to="/u/$handle"
+                    params={{ handle: segment.handle }}
+                    className="rounded-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {segment.text}
+                  </Link>
+                ) : (
+                  <span key={`${segment.text}-${index}`}>{segment.text}</span>
+                ),
+              )}
+            </p>
           )}
 
           {post.image_url && (
-            <div className="mt-3 overflow-hidden rounded-xl border border-border">
-              <img src={post.image_url} alt="" className="block h-auto max-h-96 w-full object-cover" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setMediaOpen(true)}
+              className="group mt-3 block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`Open ${author.name}'s photo full screen`}
+            >
+              <img
+                src={post.image_url}
+                alt={`${author.name}'s post`}
+                className="block h-auto max-h-96 w-full object-cover transition-transform duration-200 group-hover:scale-[1.01]"
+              />
+            </button>
           )}
         </>
       )}
@@ -264,12 +348,11 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           }}
           className={cn(
             "flex items-center gap-1.5 text-xs transition-colors",
-            liked ? "text-rose-400" : "hover:text-foreground"
+            liked ? "text-rose-400" : "hover:text-foreground",
           )}
           aria-pressed={liked}
         >
-          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />{" "}
-          {post.likes_count}
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} /> {post.likes_count}
         </button>
         <button
           onClick={() => setCommentsOpen(true)}
@@ -278,8 +361,13 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
         </button>
         <button
-          onClick={() => { if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id); }}
-          className={cn("ml-auto flex items-center gap-1.5 text-xs transition-colors", saved ? "text-amber-400" : "hover:text-foreground")}
+          onClick={() => {
+            if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
+          }}
+          className={cn(
+            "ml-auto flex items-center gap-1.5 text-xs transition-colors",
+            saved ? "text-amber-400" : "hover:text-foreground",
+          )}
           aria-label={saved ? "Unsave post" : "Save post"}
           aria-pressed={saved}
         >
@@ -294,45 +382,57 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           aria-label="Share post"
           aria-pressed={shared}
         >
-          <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} />{" "}
-          {post.shares_count}
+          <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} /> {post.shares_count}
         </button>
       </footer>
 
       <CommentsModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />
 
+      {post.image_url && (
+        <PostMediaLightbox
+          open={mediaOpen}
+          onClose={() => setMediaOpen(false)}
+          src={post.image_url}
+          alt={`${author.name}'s post photo`}
+        />
+      )}
+
       <AnimatedModal
         open={confirmDel}
-        onOpenChange={(o) => { if (!o) setConfirmDel(false); }}
+        onOpenChange={(o) => {
+          if (!o) setConfirmDel(false);
+        }}
         title="Delete this post?"
         center
         contentClassName="mx-4 max-w-sm p-5"
       >
-          <h3 className="font-display text-base font-bold">Delete this post?</h3>
-          <p className="mt-1 text-xs text-muted-foreground">This can't be undone. Comments and likes will be removed.</p>
-          <div className="mt-4 flex justify-end gap-2">
-            <button
-              onClick={() => setConfirmDel(false)}
-              className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                setConfirmDel(false);
-                deletePost.mutate(
-                  { id: post.id },
-                  {
-                    onSuccess: () => toast.success("Post deleted"),
-                    onError: (e) => toast.error((e as Error).message),
-                  },
-                );
-              }}
-              className="rounded-full bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground"
-            >
-              Delete
-            </button>
-          </div>
+        <h3 className="font-display text-base font-bold">Delete this post?</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          This can't be undone. Comments and likes will be removed.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={() => setConfirmDel(false)}
+            className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              setConfirmDel(false);
+              deletePost.mutate(
+                { id: post.id },
+                {
+                  onSuccess: () => toast.success("Post deleted"),
+                  onError: (e) => toast.error((e as Error).message),
+                },
+              );
+            }}
+            className="rounded-full bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground"
+          >
+            Delete
+          </button>
+        </div>
       </AnimatedModal>
     </article>
   );
