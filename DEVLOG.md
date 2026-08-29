@@ -205,6 +205,37 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Composer redesign: segmented audience pill, "What's the signal?", 500-char cap
+
+- User asked for a UI/UX pass on the composer's empty state, which had
+  three stacked headers (eyebrow, title, audience question) before the
+  text box. Mocked it up as an artifact first, styled with the app's real
+  tokens (not generic placeholder colors) - single "New post" title
+  instead of a redundant "What's happening?" repeating it, and a compact
+  segmented pill for the audience choice instead of two bordered two-line
+  cards. User approved, then asked for catchier Gen Z-appropriate copy and
+  a 500-char cap to match Threads.
+- Kept the catchy-copy request scoped to where voice actually belongs:
+  the placeholder ("What's the signal?", picked from three options after
+  a mockup round) - left "New post" and "Who sees this?" as plain
+  functional labels, since those need to be instantly parseable, not
+  clever. Ties into the app's existing "Signal"/"Send Signal" vocabulary
+  rather than generic slang that would clash with it or age badly.
+- `AudienceSegment` replaces the old `AudienceOption` card component - a
+  rounded-full two-up toggle, active side filled with the tribe's own
+  color (or `--primary` amber for The Wild) and `text-primary-foreground`,
+  mirroring the exact contrast convention the Send Signal button already
+  used. Verified both active states live - tribe violet and Wild amber
+  both read fine with the existing near-black `--primary-foreground`.
+- 280 -> 500 everywhere it was enforced: `createSchema`/`editSchema` in
+  posts.functions.ts (server-side, the actual boundary), the composer's
+  `slice(0, 500)` + counter, and PostCard's edit-flow textarea + counter.
+  Verified live by injecting 510 characters directly into the textarea -
+  correctly clamped to 500/500, not just visually capped at the display
+  layer.
+- No migration involved - pure client + one Zod schema max() change, no
+  new columns (posts.content was already a plain unbounded text column).
+
 ### 2026-08-29 — Claude — Production migrations applied; carousel had a real bug the local rehearsal couldn't catch
 
 - User ran all four pending migrations (comment hide, comment unhide,

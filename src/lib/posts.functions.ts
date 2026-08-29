@@ -289,7 +289,7 @@ const imagePathSchema = z.string().regex(POST_IMAGE_PATH, "Invalid post image pa
 
 const createSchema = z.object({
   tribe_id: z.string().min(1).max(40),
-  content: z.string().max(280).default(""),
+  content: z.string().max(500).default(""),
   image_paths: z.array(imagePathSchema).max(10).optional().default([]),
   tag: z.string().max(40).nullable().optional(),
   audience: z.enum(["tribe", "all"]).default("tribe"),
@@ -351,7 +351,7 @@ export const createPost = createServerFn({ method: "POST" })
 
 const editSchema = z.object({
   id: z.string().uuid(),
-  content: z.string().max(280),
+  content: z.string().max(500),
   image_paths: z.array(imagePathSchema).max(10).optional(),
 });
 

@@ -16,6 +16,7 @@ import {
 } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { ImageStrip, type ComposedImage } from "./ImageStrip";
+import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 const MAX_IMAGES = 10;
@@ -220,27 +221,27 @@ export function ComposerModal({
         </div>
       ) : (
         <>
-          <p className="label-mono text-muted-foreground">New post</p>
-          <h2 className="font-display text-xl font-bold">What's happening?</h2>
+          <h2 className="font-display text-lg font-bold">What's the signal?</h2>
 
           {/* Audience picker. Stated in terms of who can see it, not where it
-            files — that is the question the user is actually asking. */}
+            files — that is the question the user is actually asking. A
+            segmented pill instead of two bordered cards: same explicit
+            choice, same two options, just not a third of the sheet before
+            you've typed a word. */}
           <div className="mt-4">
             <p className="label-mono text-muted-foreground">Who sees this?</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <AudienceOption
+            <div className="mt-2 flex gap-[3px] rounded-full bg-secondary p-[3px]">
+              <AudienceSegment
                 active={effectiveAudience === "tribe"}
                 onClick={() => setAudience("tribe")}
                 accent={tribe.colorVar}
-                title={tribe.name}
-                sub="Your Tribe only"
+                label={tribe.name}
               />
-              <AudienceOption
+              <AudienceSegment
                 active={effectiveAudience === "all"}
                 onClick={() => setAudience("all")}
                 accent="var(--primary)"
-                title="The Wild"
-                sub="Everyone on MEUTUALS"
+                label="The Wild"
               />
             </div>
           </div>
@@ -253,7 +254,7 @@ export function ComposerModal({
               rows={4}
               value={text}
               onChange={(event) => {
-                const next = event.target.value.slice(0, 280);
+                const next = event.target.value.slice(0, 500);
                 setText(next);
                 setCaret(Math.min(event.target.selectionStart ?? next.length, next.length));
               }}
@@ -261,7 +262,7 @@ export function ComposerModal({
               onKeyUp={(event) =>
                 setCaret(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
               }
-              placeholder="Share a plan, invite someone with @, or post a small thing…"
+              placeholder="Say the thing."
               className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </div>
@@ -307,7 +308,7 @@ export function ComposerModal({
                 Camera
               </button>
             </div>
-            <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
+            <span className="text-[11px] text-muted-foreground">{text.length}/500</span>
             <input
               ref={fileRef}
               type="file"
@@ -342,33 +343,29 @@ export function ComposerModal({
   );
 }
 
-function AudienceOption({
+function AudienceSegment({
   active,
   onClick,
   accent,
-  title,
-  sub,
+  label,
 }: {
   active: boolean;
   onClick: () => void;
   accent: string;
-  title: string;
-  sub: string;
+  label: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="rounded-2xl border p-3 text-left transition-colors"
-      style={
-        active
-          ? { borderColor: accent, background: `color-mix(in oklab, ${accent} 14%, transparent)` }
-          : { borderColor: "var(--border)" }
-      }
+      className={cn(
+        "min-h-9 flex-1 truncate rounded-full text-sm font-semibold transition-colors",
+        active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+      style={active ? { backgroundColor: accent } : undefined}
     >
-      <p className="truncate text-sm font-semibold">{title}</p>
-      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{sub}</p>
+      {label}
     </button>
   );
 }

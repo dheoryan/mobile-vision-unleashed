@@ -395,7 +395,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             autoFocus
             rows={3}
             value={editText}
-            onChange={(e) => setEditText(e.target.value.slice(0, 280))}
+            onChange={(e) => setEditText(e.target.value.slice(0, 500))}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
           {editImages.length > 0 && (
@@ -426,7 +426,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
                   ? `Add more (${editImages.length}/${MAX_IMAGES})`
                   : "Add photo"}
             </button>
-            <span className="text-[10px] text-muted-foreground">{editText.length}/280</span>
+            <span className="text-[10px] text-muted-foreground">{editText.length}/500</span>
             <input
               ref={fileRef}
               type="file"
