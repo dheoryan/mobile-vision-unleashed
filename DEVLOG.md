@@ -205,6 +205,42 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Production migrations applied; carousel had a real bug the local rehearsal couldn't catch
+
+- User ran all four pending migrations (comment hide, comment unhide,
+  post_multi_image, post_multi_image_storage) in the Supabase SQL editor
+  themselves - "all Query succeeded." Verified live rather than taking
+  that as the finish line: posted a real multi-photo test post
+  (`[verification test - deleting shortly]`, two synthetic canvas-generated
+  photos) to the actual Studio Cat Tribe.
+- Found a real bug the Docker rehearsal was never going to catch, because
+  it's a pure CSS/client bug, not a database one: photo 2 of 2 rendered as
+  solid black in both the feed carousel and the lightbox. Confirmed the
+  image itself was fine first (`naturalWidth` correct, `complete: true`,
+  and opening the raw signed URL directly showed the photo perfectly) -
+  this ruled out storage/RLS and pointed straight at rendering.
+- Root cause: `translateX(N%)` resolves against the *element's own width*,
+  not its visible container. Both `PostImageCarousel` (PostCard.tsx) and
+  `PostMediaLightbox.tsx` size their sliding track at `images.length * 100%`
+  of the container, then moved it with `-index * 100%` - correct only by
+  coincidence for index 0 (`-0%` is `0%` regardless of basis), and wrong by
+  a full extra container-width per index for everything else. A 2-photo
+  post's second slide landed two container-widths left of center - not
+  just off-screen, off past where the first slide would have been.
+  Textbook "worked in my one manual test, broke on real data" - the
+  earlier live check only ever exercised index 0.
+- Fixed by scaling the per-index step (and, in the lightbox, the drag
+  offset too, since that one's expressed in the same % unit) down to one
+  slide's actual share of the track: `100 / images.length`. Re-verified
+  live on the same test post - photo 2 renders correctly via swipe, tap,
+  and the lightbox's desktop prev/next arrows; edit flow re-opened and
+  showed both photos correctly in the reorder strip. Deleted the test post
+  afterward.
+- Also flagged for the user: run order matters for future reference -
+  `20260829140100`'s storage policy calls `post_image_path_exists()`,
+  defined in `20260829140000`, so the multi-image files had to go in
+  timestamp order. They did; all four are live now.
+
 ### 2026-08-29 — Claude — Multi-photo posts (Threads-style carousel), up to 10 per post
 
 - User asked for Threads-style multi-photo posts. Asked two scope

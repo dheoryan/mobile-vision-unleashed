@@ -151,6 +151,15 @@ export function PostMediaLightbox({
     setPageDragX(0);
   };
 
+  // The track is `images.length * 100%` wide, so a percentage transform on
+  // it resolves against that full width, not one photo's width - moving by
+  // a flat `-100%` per index would skip an extra photo on every page past
+  // the first (index 0's `-0%` happened to look right regardless, which is
+  // exactly how this stayed hidden). One photo's share of the track is
+  // `100 / images.length`; scale both the index step and the drag offset
+  // (also a fraction of the track once expressed in the same %) by that.
+  const slideUnit = images.length ? 100 / images.length : 100;
+
   return (
     <AnimatedModal
       open={open}
@@ -174,7 +183,7 @@ export function PostMediaLightbox({
           onWheel={onWheel}
           onDoubleClick={() => changeScale(scale > 1 ? 1 : 2.5)}
           style={{
-            transform: `translate3d(${-index * 100 + (containerWidth.current ? (pageDragX / containerWidth.current) * 100 : 0)}%, 0, 0)`,
+            transform: `translate3d(${slideUnit * (-index + (containerWidth.current ? pageDragX / containerWidth.current : 0))}%, 0, 0)`,
             transition: paging ? "none" : "transform 220ms ease-out",
             width: `${images.length * 100}%`,
           }}

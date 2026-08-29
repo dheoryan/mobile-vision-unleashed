@@ -95,7 +95,13 @@ function PostImageCarousel({
         }}
         className="flex touch-pan-y"
         style={{
-          transform: `translate3d(calc(${-index * 100}% + ${dragX}px), 0, 0)`,
+          // The track itself is `images.length * 100%` wide, so a percentage
+          // transform on it resolves against that full width, not one
+          // slide's width - `-100%` would jump two slides on a 2-photo
+          // post. Scale the per-index step down to one slide's share of the
+          // track (100 / images.length) so each index moves exactly one
+          // slide. The drag term stays in raw px, which is basis-independent.
+          transform: `translate3d(calc(${(-index * 100) / images.length}% + ${dragX}px), 0, 0)`,
           transition: dragging ? "none" : "transform 200ms ease-out",
           width: `${images.length * 100}%`,
         }}
