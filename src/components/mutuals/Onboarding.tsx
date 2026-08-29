@@ -562,8 +562,9 @@ export function Onboarding({
                           {city || "Area found"}
                         </p>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                          Updates only when you ask. MEUTUALS never tracks location in the
-                          background.
+                          Refreshes automatically each time you open MEUTUALS, so your distance to
+                          others stays accurate. Other members only ever see a distance band, never
+                          your exact coordinates.
                         </p>
                       </div>
                     </div>

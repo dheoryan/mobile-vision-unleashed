@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, Edit3, Bookmark, Zap, X, Loader2, Check, LocateFixed } from "lucide-react";
+import { Menu, Bookmark, Zap, X, Loader2, Check, LocateFixed, MapPin, Grid3x3 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
@@ -103,22 +103,22 @@ export function ProfileScreen({
         {/* No card. Identity sits directly on the ground — the gradient panel
             was the softest, most generic element on the screen, and a card
             around the thing that IS the page adds a frame around a frame. */}
-        <section className="relative mt-5">
-          <div className="flex items-center gap-4">
-            <span className="relative">
+        <section className="relative mt-6">
+          <div className="flex items-start gap-5">
+            <span className="relative shrink-0">
               {hasPhotoAvatar ? (
                 <button
                   type="button"
                   onClick={() => setAvatarLightboxOpen(true)}
                   aria-label="View profile photo"
-                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card ring-2 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card shadow-lg ring-2 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
                 >
                   <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
                 </button>
               ) : (
                 <span
-                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
+                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card text-5xl shadow-lg ring-2"
                   style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
                 >
                   {profile.avatar}
@@ -126,9 +126,9 @@ export function ProfileScreen({
               )}
               {showPlusBadge(profile.plan) && <PlusBadge size="md" />}
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 pt-2">
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-2xl font-bold leading-tight">
+                <h2 className="font-display text-[26px] font-bold leading-tight">
                   {profile.name || "You"}
                 </h2>
                 {showPlusBadge(profile.plan) && (
@@ -137,50 +137,97 @@ export function ProfileScreen({
                   </span>
                 )}
               </div>
+              {/* Handle stays directly under the name, no interruption - the
+                  pairing every social app trains people to expect. Tribe
+                  gets its own line right after instead of wedging between
+                  them. */}
               {profile.handle && (
                 <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
                   @{profile.handle.replace(/^@/, "")}
                 </p>
               )}
-              {/* One mono line instead of a location paragraph plus a pill.
-                  Space Mono was already the strongest thing in the type stack;
-                  this gives it structural work rather than decoration. */}
-              <p className="label-mono mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">
-                <span>{profile.city || "Somewhere"}</span>
-                {profile.gender && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>
-                  </>
-                )}
-                <span aria-hidden>·</span>
-                <span style={{ color: tribe.colorVar }}>{tribe.name}</span>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span
+                  className="label-mono inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
+                  style={{
+                    backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
+                    color: tribe.colorVar,
+                  }}
+                >
+                  <TribeMark tribe={tribe} size="xs" decorative={false} />
+                  {tribe.name}
+                </span>
                 {otherTribes.map((t) => (
                   <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
                 ))}
-              </p>
+              </div>
             </div>
+            {/* Edit profile lives beside the identity it edits, not buried
+                below bio/tags/stats - the one action on your own profile
+                should be the first thing your thumb finds, not the last. */}
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="shrink-0 rounded-full border border-border px-4 py-2 text-xs font-bold hover:bg-card"
+            >
+              Edit profile
+            </button>
           </div>
-          {profile.bio && <p className="mt-4 text-sm text-muted-foreground">{profile.bio}</p>}
+          {profile.bio && (
+            <p className="mt-5 text-sm font-semibold text-foreground">{profile.bio}</p>
+          )}
+
+          {/* Quick facts, Twitter/LinkedIn-style: small muted icon+text right
+              under the bio, not bold colorful badges - these are things
+              people expect to see immediately, not decoration competing
+              with the tags below. Tribe lives up by the name instead (see
+              above) - it's MEUTUALS' identity concept, not a plain fact
+              like these, so a colored outlier here read as a mistake. */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" />
+              {profile.city || "Somewhere"}
+            </span>
+            {profile.gender && <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>}
+          </div>
+
+          {/* Bio and facts flow straight into stats, same as the reference -
+              nothing else competes for attention between them. Tags (their
+              own labeled sections, not more of the same) come after. */}
+          <div className="mt-6 flex items-stretch">
+            <Stat label="Moots" value={String(profileStats.data?.moots ?? 0)} />
+            <Stat label="Hosted" value={String(profileStats.data?.hosted ?? 0)} />
+            <Stat label="Joined" value={String(profileStats.data?.joined ?? 0)} />
+          </div>
 
           {(profile.socialIntents.length > 0 || profile.interests.length > 0) && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-6 space-y-4">
               {profile.socialIntents.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {profile.socialIntents.map((intent) => (
-                    <ProfileTag
-                      key={intent}
-                      label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
-                      accent
-                    />
-                  ))}
+                <div>
+                  {/* label-mono + muted, same treatment as the Stat labels
+                      above - so the heading recedes and the bold, colorful
+                      pills below it read as the actual content instead of
+                      competing with it in near-equal weight. */}
+                  <p className="label-mono text-muted-foreground">Here for</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {profile.socialIntents.map((intent) => (
+                      <ProfileTag
+                        key={intent}
+                        label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
+                        accent
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
               {profile.interests.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {profile.interests.slice(0, 5).map((interest) => (
-                    <ProfileTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />
-                  ))}
+                <div>
+                  <p className="label-mono text-muted-foreground">Interests</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {profile.interests.slice(0, 5).map((interest) => (
+                      <ProfileTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -206,27 +253,6 @@ export function ProfileScreen({
               </div>
             </button>
           )}
-
-          {/* Three numbers in three identical rounded boxes was the most
-              generic element left. Hairline rules carry the same grouping with
-              none of the packaging. Moots replaces the asymmetric Follow
-              graph; Hosted/Joined split what "Ventures" used to flatten into
-              one number, since organizing and showing up are different facts
-              about someone. */}
-          <div className="mt-5 flex items-stretch border-y border-border">
-            <Stat label="Moots" value={String(profileStats.data?.moots ?? 0)} />
-            <span aria-hidden className="w-px bg-border" />
-            <Stat label="Hosted" value={String(profileStats.data?.hosted ?? 0)} />
-            <span aria-hidden className="w-px bg-border" />
-            <Stat label="Joined" value={String(profileStats.data?.joined ?? 0)} />
-          </div>
-
-          <button
-            onClick={() => setEditOpen(true)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold hover:bg-card"
-          >
-            <Edit3 className="h-3.5 w-3.5" /> Edit profile
-          </button>
         </section>
 
         {showPlanCard && (
@@ -318,16 +344,18 @@ export function ProfileScreen({
         {/* The tab row IS the section header. It used to be a dynamic
             SectionTitle ("Your posts" / "Saved" / "Ventures") next to three
             icon-only pills — which both said the same thing twice and left the
-            icons undecipherable until you tapped one. Words, underlined, no
-            separate heading. */}
-        <div className="mb-5 mt-8 flex items-center gap-6 border-b border-border">
-          <TabBtn active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
+            icons undecipherable until you tapped one. Word + icon together
+            fixes the "undecipherable" half of that without reintroducing the
+            redundant-heading half — full width so each tab gets an equal,
+            deliberate target instead of a left-packed cluster. */}
+        <div className="mb-5 mt-8 flex border-b border-border">
+          <TabBtn icon={Grid3x3} active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
             Posts
           </TabBtn>
-          <TabBtn active={gridTab === "saved"} onClick={() => setGridTab("saved")}>
+          <TabBtn icon={Bookmark} active={gridTab === "saved"} onClick={() => setGridTab("saved")}>
             Saved
           </TabBtn>
-          <TabBtn active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
+          <TabBtn icon={Zap} active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
             Ventures
           </TabBtn>
         </div>
@@ -477,10 +505,12 @@ export function ProfileScreen({
 }
 
 function TabBtn({
+  icon: Icon,
   active,
   onClick,
   children,
 }: {
+  icon: typeof Bookmark;
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -489,12 +519,13 @@ function TabBtn({
     <button
       onClick={onClick}
       className={cn(
-        "min-h-11 pb-2.5 text-xs transition-colors",
+        "flex min-h-11 flex-1 items-center justify-center gap-1.5 pb-2.5 text-xs transition-colors",
         active
           ? "font-bold text-primary shadow-[inset_0_-2px_0_var(--color-primary)]"
           : "text-muted-foreground hover:text-foreground",
       )}
     >
+      <Icon className="h-3.5 w-3.5" />
       {children}
     </button>
   );
@@ -502,11 +533,11 @@ function TabBtn({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex-1 py-3.5 pl-4 first:pl-0">
-      <p className="font-display text-[22px] font-bold leading-none tracking-tight tabular-nums">
+    <div className="flex-1 text-center">
+      <p className="font-display text-2xl font-bold leading-none tracking-tight tabular-nums">
         {value}
       </p>
-      <p className="label-mono mt-1.5 text-muted-foreground">{label}</p>
+      <p className="label-mono mt-2 text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -571,7 +602,8 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
         </button>
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-        Updates only when you tap Update. MEUTUALS does not track your location in the background.
+        Tap Update to refresh it now - it also refreshes automatically each time you open MEUTUALS.
+        Other members only ever see a distance band, never your exact coordinates.
       </p>
     </div>
   );
@@ -581,10 +613,8 @@ function ProfileTag({ label, accent = false }: { label: string; accent?: boolean
   return (
     <span
       className={cn(
-        "rounded-full border px-2.5 py-1 text-[10px] font-semibold",
-        accent
-          ? "border-primary/30 bg-primary/10 text-primary"
-          : "border-border bg-background/50 text-muted-foreground",
+        "rounded-full px-3 py-1.5 text-xs font-semibold",
+        accent ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground",
       )}
     >
       {label}
@@ -752,6 +782,12 @@ export function EditProfileModal({
             multiline
             hint={`${bio.length}/140`}
           />
+        </div>
+
+        {/* Its own group with a bit more room than the text fields above -
+            multi-row pill groups read as cramped at the same tight rhythm
+            that works fine for single-line inputs. */}
+        <div className="space-y-4 pt-4">
           <GenderSelect value={gender} onChange={setGender} locked={Boolean(profile.gender)} />
           <ProfileChoiceGroup
             label="Interests"
@@ -1135,7 +1171,7 @@ function ProfileChoiceGroup({
 }) {
   return (
     <fieldset>
-      <legend className="label-mono text-muted-foreground">{label}</legend>
+      <legend className="font-display text-sm font-bold text-foreground">{label}</legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((option) => {
           const active = selected.includes(option.id);
@@ -1146,10 +1182,10 @@ function ProfileChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "min-h-10 rounded-full border px-3 py-2 text-[11px] font-semibold",
+                "min-h-10 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98]",
                 active
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-background text-muted-foreground",
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/70",
               )}
             >
               {active && <Check className="mr-1 inline h-3 w-3" />}

@@ -21,7 +21,7 @@ import { rowToProfile, useProfileRow, useUpdateProfile, profileToPatch } from "@
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { AgeVerification } from "@/components/mutuals/AgeVerification";
-import { useSaveMyLocation } from "@/lib/location-store";
+import { useAutoRefreshLocationOnSession, useSaveMyLocation } from "@/lib/location-store";
 import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
 import type { TribeVentureDraft } from "@/lib/tribe-room";
 import { useAnnounceTribeVenture } from "@/lib/tribe-room-store";
@@ -105,6 +105,10 @@ function App() {
   const saveLocation = useSaveMyLocation();
 
   const profile = rowToProfile(profileQuery.data ?? null);
+  // Only for people already through Onboarding - the hook's own
+  // `discoverable` check is the real gate, but there's no reason to even
+  // query location settings for someone who hasn't finished signing up yet.
+  useAutoRefreshLocationOnSession(profile ? userId : undefined);
 
   const [tab, setTab] = useState<TabKey>("feed");
   const [tabOwnerId, setTabOwnerId] = useState<string | null>(null);

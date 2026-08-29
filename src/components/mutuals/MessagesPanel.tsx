@@ -615,6 +615,7 @@ function VenturePartyThread({
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isComplete = useVentureComplete(venture);
   const chatReactions = useOptimisticChatReactions("venture");
@@ -650,7 +651,19 @@ function VenturePartyThread({
 
   useEffect(() => {
     if (!msgs?.length) return;
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    // See the DM Thread's identical comment below - scrollIntoView on a
+    // sentinel, after a double rAF, measures the real post-transition
+    // layout instead of a scrollHeight read that can be stale.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, [msgs, isComplete]);
 
   const submit = async () => {
@@ -938,6 +951,7 @@ function VenturePartyThread({
           )}
           {isComplete && <VentureMootRecap venture={venture} />}
         </div>
+        <div ref={bottomRef} />
       </div>
 
       <div className={cn("shrink-0", isComplete && "p-3")}>
@@ -1005,6 +1019,7 @@ function Thread({
   const [uploading, setUploading] = useState(false);
   const tribe = tribeOf(other?.tribe_ids);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatReactions = useOptimisticChatReactions("dm");
   const unreadIncomingIds = (msgs ?? [])
@@ -1022,7 +1037,23 @@ function Thread({
 
   useEffect(() => {
     if (!lastMessageId) return;
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    // A plain scrollTo(scrollHeight) here reads a stale height when this
+    // runs while the sheet is still mid open-transition (or an image in
+    // the last few messages hasn't laid out yet) - it lands short of the
+    // real bottom, which is exactly the "opens scrolled up a bit" bug.
+    // scrollIntoView on a sentinel measures the actual current layout
+    // instead, and the double rAF gives the transition/images one more
+    // paint to settle before that measurement happens.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, [lastMessageId, otherId]);
 
   const submit = async () => {
@@ -1212,6 +1243,7 @@ function Thread({
             );
           })
         )}
+        <div ref={bottomRef} />
       </div>
 
       <ChatComposer

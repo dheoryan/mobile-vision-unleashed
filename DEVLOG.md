@@ -205,6 +205,319 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Profile identity block: bigger avatar, more room, after many rounds of small tweaks not landing
+
+- User: "still didn't like this layout," no specifics. After this many
+  rounds of incremental adjustment in the same area, asked which of a
+  short list of concrete issues it actually was rather than guess an
+  eighth variation - picked three: overall vibe/polish, avatar not
+  carrying enough visual weight, still too cramped. Notably not the
+  purple-color option, so left that alone.
+- Those three point at the same fix: small spacing nudges weren't going
+  to solve "not enough presence" or "still cramped" - needed a more
+  decisive pass, not another 1-2px adjustment.
+  - Avatar: 80px -> 96px (`h-20 w-20` -> `h-24 w-24`), plus `shadow-lg` on
+    the ring for a bit of depth/definition it didn't have before.
+  - Name: `text-2xl` (24px) -> `text-[26px]`, proportional to the bigger
+    avatar instead of looking undersized next to it.
+  - Every gap in the identity block opened up: avatar-to-text `gap-4` ->
+    `gap-5`, section top `mt-5` -> `mt-6`, bio `mt-4` -> `mt-5`, stats and
+    tags `mt-5` -> `mt-6`.
+  - Stat numbers `text-[22px]` -> `text-2xl`, matching the larger overall
+    scale, with a touch more gap to their labels (`mt-1.5` -> `mt-2`).
+  - Left the deliberate "no card, identity sits directly on the ground"
+    decision from earlier this session alone - not reversing a documented
+    prior choice on a vague "vibe" complaint without it being specifically
+    raised.
+- Applied identically to `ProfileScreen.tsx` and `u.$handle.tsx`, same
+  reasoning as every other profile-area change this session - includes
+  syncing both files' `Stat` component and switching `u.$handle.tsx`'s
+  identity row from `items-center` to the `items-start` + `pt-2` pattern
+  already used on `ProfileScreen.tsx`, so a taller stacked name/handle/
+  Tribe column doesn't look misaligned against the now-bigger avatar.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — "Edit" button copy back to "Edit profile"
+
+- User: change the copy. `ProfileScreen.tsx`'s top-of-card button read
+  "Edit" (shortened when it moved next to the name earlier this session);
+  changed back to "Edit profile" for zero ambiguity, matching the earlier
+  design-review note that flagged this as an easy option either way.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Full design-review pass on the profile identity block
+
+- User asked for a full analysis of the identity block, then asked to fix
+  the three real issues out of it (left the "already solid" / "minor,
+  not urgent" items from that review alone, matching what was actually
+  asked):
+  1. Name -> Tribe -> Handle order broke the Name+handle pairing every
+     social app trains people to expect, since Tribe wrapped onto its own
+     line between them. Reordered to Name (+PLUS) -> handle (adjacent,
+     no interruption) -> Tribe badge on its own line after.
+  2. "Here for"/"Interests" headings (`font-display text-sm font-bold`)
+     sat too close in visual weight to the bold, colorful pills below
+     them, so the heading didn't clearly read as a heading. Switched both
+     to `label-mono text-muted-foreground` - the same treatment already
+     used for the Stat labels on the same screen, so the heading recedes
+     and the pills read as the actual content.
+  3. Bio-to-facts spacing (`mt-2`) was noticeably tighter than every other
+     gap on the page (`mt-4`/`mt-5`). Bumped to `mt-3` - still a touch
+     closer than the stats/tags gaps below it (bio+facts read as one
+     "about" block), but no longer reads as simply inconsistent.
+- Applied identically to `ProfileScreen.tsx` and `u.$handle.tsx`, same
+  reasoning as every other profile-area change this session.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Posts/Saved/Ventures tabs go full width, gain icons
+
+- User: make the profile's grid tab row full width and add relevant icons.
+- Worth noting: a past design pass had deliberately removed icons from
+  these exact tabs, per the comment still sitting above them
+  ("icon-only pills... said the same thing twice and left the icons
+  undecipherable until you tapped one"). That objection was about
+  icon-only tabs; pairing icon with the label it already had doesn't
+  reintroduce it, so this isn't a case of just reverting old work
+  blindly - left the comment in place but updated it to explain why
+  icon+label is fine where icon-alone wasn't.
+- `TabBtn` gained an `icon` prop and `flex-1 justify-center` so all three
+  tabs share the row's full width equally instead of clustering
+  left-packed with a manual gap. Icons: `Grid3x3` for Posts (the standard
+  post-grid mark), `Bookmark` for Saved (already imported, already the
+  literal meaning), `Zap` for Ventures - the same icon `BottomNav.tsx`
+  already uses for the main Ventures tab, kept for one consistent meaning
+  app-wide rather than picking a different mark for the same concept.
+- Own profile only (`ProfileScreen.tsx`) - the public profile page
+  (`u.$handle.tsx`) has no Saved/Ventures tabs to match, just a flat Posts
+  list.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (ran
+  `--fix` for the multi-line import wrap - my own new code, not
+  pre-existing drift), full Node test suite 73/73, full Cloudflare
+  production build passes. Not yet exercised live or deployed.
+
+### 2026-08-29 — Claude — Tribe badge moved next to the name
+
+- User asked where Tribe belonged; recommended next to the name rather
+  than in the plain-text facts row it had just been placed in, since it
+  was the one colored item in an otherwise muted-gray row and read like a
+  mistake - Tribe is MEUTUALS' identity concept, closer to a verification
+  badge than a demographic fact like city/gender. This app already has
+  exactly that pattern for the PLUS badge, so Tribe now uses the same
+  treatment right beside it.
+- `ProfileScreen.tsx` and `u.$handle.tsx`: added a small `label-mono`
+  pill next to the name (`TribeMark` + Tribe name, tinted with the
+  Tribe's own color via the same `color-mix` treatment used elsewhere
+  this session), matching `PlusBadge`'s exact visual weight. Any
+  additional Tribes (`otherTribes`) moved up alongside it as small marks.
+  Removed Tribe entirely from the facts row below the bio, which now only
+  carries city and gender - genuinely just plain, uniformly muted facts.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Split facts from tags, positioned like Twitter/LinkedIn + Bumble/Hinge
+
+- User asked for a placement recommendation grounded in real social-app
+  conventions rather than another blind guess. Researched and proposed:
+  Twitter/LinkedIn put quick facts (location, etc.) right under the bio,
+  before stats, as small muted icon+text - not bold badges, since they're
+  facts people expect immediately, not decoration. Bumble/Hinge treat
+  interest tags as their own distinct labeled section, positioned lower,
+  separate from core identity. Confirmed the split with the user before
+  implementing (two prior attempts in this same area had both missed).
+- City/gender/Tribe facts moved back up to directly under the bio (before
+  stats, matching Twitter's location line), restyled from bold
+  `bg-secondary` pills to small `text-xs text-muted-foreground` inline
+  text with a MapPin icon - Tribe keeps its brand color as the one accent
+  in the row, since it's MEUTUALS' actual identity concept, not just a
+  fact like the others.
+- Interest/intent tags stay below stats (public profile: below the
+  contact action too), but now each gets a real section heading - "Here
+  for" and "Interests", the exact category names already used in Edit
+  profile - instead of two unlabeled pill rows that read as one blob.
+- Applied identically to `ProfileScreen.tsx` and `u.$handle.tsx`, same
+  reasoning as every other profile-area change this session: the two
+  screens share this exact layout and should not drift apart.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Profile identity block reordered: bio flows straight into stats
+
+- User: "still far from the references." Re-examined the reference against
+  the previous attempt and found the actual gap wasn't styling - it was
+  structure. The reference's top card is just avatar+name+action, one
+  short bio, then straight into stats - nothing else. Ours still had a
+  full badge row (city/gender/Tribe) and two rows of interest/intent tags
+  stacked between handle and stats, which is what kept making it read as
+  cluttered no matter how the individual pills were restyled.
+- Asked which of three options to take (move the extra info below stats,
+  shrink it in place, or drop it from this screen) rather than guess a
+  third time - user chose moving it below stats.
+- Reordered both `ProfileScreen.tsx` and `u.$handle.tsx` identically:
+  avatar/name/handle (+ Edit, or the Message/Say-hello action on the
+  public profile) -> bio -> stats, with the city/gender/Tribe badges and
+  interest/intent tags now appearing after stats instead of before -
+  matches the reference's hierarchy (nothing between bio and stats) while
+  keeping every piece of information on the page, just reordered. On the
+  public profile, kept the contact action (Message/Say hello/pending)
+  immediately after stats, before the badges/tags - that's the actual
+  decision a visitor needs to make, so it stays prominent the same way
+  Edit does on your own profile, and only the purely descriptive content
+  moved down.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Profile top area restructured after a reference screenshot
+
+- User shared a UI/UX-designer reference concept (dribbble-style profile
+  card: avatar+name row with an action button at top, then a clean
+  divider-free three-column stats row) and asked to move the own-Profile
+  top area toward it, keeping the Posts/Saved/Ventures tabs untouched.
+- Moved "Edit profile" from a full-width button below the stats row up
+  onto the same row as the avatar/name - the one action on your own
+  profile is now the first thing available, not the last thing after
+  scrolling past bio/tags/stats, matching where the reference puts its
+  equivalent action. Removed the now-duplicate old bottom button entirely
+  (`Edit3` import along with it, now unused).
+- Stats row (`Moots`/`Hosted`/`Joined`): dropped the `border-y` +
+  `w-px` divider lines between columns and centered each `Stat`'s number/
+  label instead of left-padding it - matches the reference's plain,
+  divider-free three-column layout more closely than the hairline-rule
+  treatment from an earlier session's design pass. Applied the identical
+  change to `u.$handle.tsx`'s stat row and `Stat` component (same shared
+  duplicate pattern as every other profile-area change this session), so
+  the two profile screens don't drift apart - did NOT move that screen's
+  own action button (Message/Say hello/pending state) up to the header
+  row, since it carries more visual weight and more possible states than
+  a compact "Edit" pill and reads better as its own full-width row below
+  the identity block, the way it already was.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed - another visual/taste call, worth a look
+  before assuming it lands the way the reference intended.
+
+### 2026-08-29 — Claude — Profile visual overhaul: bolder chips, badges instead of a text wall
+
+- User: "layout still sucks, make it like Bumble" (Edit profile's option
+  pills) and "still not appealing and too many text" (the profile header).
+  Both pointed at the same underlying thing: the whole profile read as a
+  form/data-dump - tiny washed-out outline pills (`bg-primary/10`, 10-11px
+  text), tiny all-caps tracked-mono section labels, and a dense inline
+  `city · gender · Tribe` string competing as one wall of small gray text
+  right under the name.
+- Tag/option pills, everywhere they appear (`ProfileTag` in
+  `ProfileScreen.tsx`, `SignalTag` in `u.$handle.tsx`, `ProfileChoiceGroup`
+  and `GenderSelect` in Edit profile): dropped the outline-plus-10%-tint
+  treatment for a real solid fill on the active/accent state
+  (`bg-primary text-primary-foreground`) and a visible `bg-secondary` (not
+  a translucent `bg-background/50`) when inactive - bigger text (10-11px
+  -> xs/11px), more padding. Section legends (`Interests`, `Gender`, etc.)
+  switched from `label-mono` tiny uppercase tracking to the same
+  `font-display text-sm font-bold` treatment `SectionTitle` already uses
+  elsewhere in the app, reading as an actual heading instead of a form
+  field label.
+- The `city · gender · Tribe` mono line, on both profile screens: replaced
+  with individual fact badges (`bg-secondary` rounded-full chips, one per
+  fact, city getting a small MapPin icon, Tribe keeping its own color via
+  `color-mix`) instead of one run-on string of small gray text - same
+  information, but each fact now has its own visual boundary and a touch
+  of color instead of blending into the next. This reverses an explicit
+  design decision from earlier this session (a comment there said
+  "One mono line instead of a location paragraph plus a pill" was a
+  deliberate choice) - the user's actual reaction to seeing it live takes
+  priority over that earlier reasoning holding up.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed - genuinely a visual/taste call this time,
+  more than the earlier bug-fix entries, so worth a look before assuming
+  it lands.
+
+### 2026-08-29 — Claude — Location now auto-refreshes once per session for opted-in users
+
+- User asked to auto-update location "using session cookies as a
+  trigger." Flagged before building it: the app's own copy says, in two
+  places, "MEUTUALS never tracks location in the background" - a silent
+  per-session refresh would make that false. Confirmed with the user this
+  was the intended behavior (silent, no prompt) rather than a re-prompt
+  flow, then built it and rewrote both places that made the old promise
+  rather than ship code that makes the app's UI lie to users.
+- New `useAutoRefreshLocationOnSession(userId)` in `location-store.ts`:
+  once per browser session (guarded by `sessionStorage`, cleared when the
+  tab/window closes - the closest real boundary to "session cookie" this
+  app has, and avoids re-firing on every component remount or on every
+  background token refresh while a tab stays open for hours), silently
+  calls the existing `requestBrowserLocation()` +
+  `saveMyLocation`/`useSaveMyLocation` pipeline already used by the
+  manual "Use my current area" / "Update" buttons - no new server
+  function, no new consent path.
+- Deliberately scoped to people who are already `discoverable = true`
+  (opted into Nearby discovery at least once already): calling
+  `getCurrentPosition()` for someone who has never granted geolocation
+  permission pops the browser's own native permission prompt out of
+  nowhere on app open, which is neither silent nor something to do
+  without the explicit tap that flow already requires. Failures
+  (permission revoked since, GPS unavailable) are swallowed - this is
+  background upkeep, not a user-initiated action, so there's nothing to
+  show an error toast about. Wired into `routes/index.tsx`'s `App()`,
+  only once a profile exists (post-Onboarding).
+- Rewrote the two places that promised the opposite
+  (`Onboarding.tsx`'s "Current area confirmed" card, `ProfileScreen.tsx`'s
+  `CityField`) to describe what's actually true now: refreshes
+  automatically on open, still only ever shown to others as a distance
+  band. Grepped the rest of the app for the same claim to make sure
+  nothing else was left saying it - nothing was.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (ran
+  `--fix` on the four substantively-edited files - new code, not
+  pre-existing drift), full Node test suite 73/73, full Cloudflare
+  production build passes. No DB/migration changes - reuses the existing
+  `profile_locations` table and `saveMyLocation` function as-is. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Chat scroll-to-latest, heavier bio, Edit-profile pill consistency
+
+- iOS chat report: opening a thread didn't land scrolled to the latest
+  message. Both `Thread` components in `MessagesPanel.tsx` (DM and
+  Venture chat) computed `scrollRef.current.scrollHeight` and set
+  `scrollTop` to it directly - reads a stale height when the effect fires
+  while the containing sheet is still mid open-transition, or before a
+  just-loaded image in the last few messages has laid out, landing short
+  of the real bottom. Replaced with a `<div ref={bottomRef} />` sentinel
+  at the true end of the list plus `scrollIntoView({ behavior: "auto",
+  block: "end" })`, fired after a double `requestAnimationFrame` so the
+  transition/images get one more paint to settle before the measurement
+  happens. Same fix applied to both Thread components since they shared
+  the identical bug.
+- Bio text on both profile screens (`ProfileScreen.tsx`, `u.$handle.tsx`)
+  bumped from default weight + muted color to `font-semibold
+  text-foreground`, matching what "heavy text weight" meant on the
+  screenshot - same one-line change in both places since they render the
+  exact same markup.
+- Edit profile's Gender control didn't match the Interests/Here for/
+  Usually free pills right below it: `rounded-xl` vs `rounded-full`,
+  different height/text-size/inactive-background, and no checkmark on the
+  active option. Unified `GenderSelect.tsx` to `ProfileChoiceGroup`'s
+  pill shape, sizing, and a genuinely conditional (`active &&`) checkmark
+  - safe to add here, unlike the original Onboarding `ChoiceGroup` bug
+  this component was built to avoid, since that bug was an
+  unconditionally-rendered icon, not a conditional one. Kept
+  `GenderSelect`'s equal-width 3-column layout and lock/disabled
+  treatment, since those are intentional and unrelated to the visual
+  mismatch. Also gave the four option groups (Gender + the three pill
+  groups) their own `space-y-4` cluster, separated by `pt-4` from the
+  text-input fields above - multi-row pill groups read as cramped at the
+  same tight rhythm that works fine for single-line inputs.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
 ### 2026-08-29 — Claude — Instagram-style profile photo viewer
 
 - User asked for tapping a profile picture to behave like Instagram's.

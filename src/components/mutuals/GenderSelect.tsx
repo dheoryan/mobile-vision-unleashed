@@ -1,15 +1,20 @@
-import { Lock } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GENDER_OPTIONS, type GenderId } from "@/lib/profile-options";
 
 /**
  * A dedicated single-select control for gender, not a reuse of the
- * multi-select `ChoiceGroup` pill grid used for interests/social intents/
- * availability. That component always renders an icon per option (falling
- * back to a checkmark for anything without a custom one, which gender
- * doesn't have) regardless of selection state, so every option reads as
- * "checked" - and a checkbox grid is the wrong shape for an exactly-one
- * choice in the first place. This is a plain radio-style segmented row.
+ * multi-select `ChoiceGroup` pill grid used in Onboarding for interests/
+ * social intents/availability - that component always renders an icon per
+ * option (falling back to a checkmark for anything without a custom one,
+ * which gender doesn't have) regardless of selection state, so every
+ * option read as "checked". This is a plain radio-style row instead
+ * (exactly one always selected, never zero), but shares the same pill
+ * shape/sizing/checkmark language as `ProfileChoiceGroup` (the Interests/
+ * Here for/Usually free groups right below it in Edit profile) - its
+ * checkmark is genuinely conditional on `active`, so it doesn't have the
+ * Onboarding component's bug, and matching it keeps every option group in
+ * that form looking like one consistent design instead of two.
  */
 export function GenderSelect({
   value,
@@ -29,7 +34,7 @@ export function GenderSelect({
   return (
     <fieldset disabled={locked}>
       <div className="flex items-center justify-between gap-3">
-        <legend className="label-mono text-muted-foreground">Gender</legend>
+        <legend className="font-display text-sm font-bold text-foreground">Gender</legend>
         {hint && !locked && <span className="text-[10px] text-muted-foreground">{hint}</span>}
       </div>
       <div className="mt-2 flex gap-2">
@@ -44,14 +49,14 @@ export function GenderSelect({
               disabled={locked}
               onClick={() => onChange(option.id)}
               className={cn(
-                "min-h-11 flex-1 rounded-xl border px-3 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100",
+                "min-h-10 flex-1 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100",
                 active
-                  ? "border-primary bg-primary/15 text-primary shadow-sm"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                locked &&
-                  "cursor-not-allowed opacity-60 hover:border-border hover:text-muted-foreground",
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/70",
+                locked && "cursor-not-allowed opacity-60 hover:bg-secondary",
               )}
             >
+              {active && <Check className="mr-1 inline h-3 w-3" />}
               {option.label}
             </button>
           );
