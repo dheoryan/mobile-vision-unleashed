@@ -213,6 +213,14 @@ function SentTab({ loading, rows }: { loading: boolean; rows: HelloWithProfile[]
         const avatar = h.other?.avatar_url || h.other?.avatar_emoji || "👋";
         const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
         const busy = cancel.isPending && cancel.variables?.hello_id === h.id;
+        // A Hello has no expiry and nobody nudges the recipient, so a
+        // pending one can otherwise look identical whether it's been an
+        // hour or a month - the honest elapsed time plus a "still waiting"
+        // note past two weeks is the fix, not inventing an auto-expiry.
+        const daysPending = Math.floor(
+          (Date.now() - new Date(h.created_at).getTime()) / 86_400_000,
+        );
+        const stale = daysPending >= 14;
         return (
           <li key={h.id} className="rounded-2xl border border-border bg-card p-3">
             <div className="flex items-center gap-3">
@@ -226,11 +234,16 @@ function SentTab({ loading, rows }: { loading: boolean; rows: HelloWithProfile[]
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{name}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
-                  Sent {timeAgoLabel(h.created_at)}
+                  Sent {timeAgoLabel(h.created_at)} · no response yet
                 </p>
               </div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{h.message}</p>
+            {stale && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Still no reply after {daysPending} days. You can cancel and try again anytime.
+              </p>
+            )}
             <button
               disabled={busy}
               onClick={() =>

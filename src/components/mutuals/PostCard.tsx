@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   Heart,
   MessageCircle,
@@ -6,10 +6,9 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  ImagePlus,
-  X,
   Loader2,
   Bookmark,
+  ImagePlus,
 } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
@@ -22,14 +21,117 @@ import { useSocial, useToggleLike, useMyShares, useToggleShare } from "@/lib/soc
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { uploadPostImage } from "@/lib/uploads";
+import { compressImage } from "@/lib/image-compress";
 import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { splitPostMentions } from "@/lib/post-mentions";
 import { PostMediaLightbox } from "./PostMediaLightbox";
+import { ImageStrip, type ComposedImage } from "./ImageStrip";
 
-const MAX_IMG_BYTES = 5 * 1024 * 1024;
+const MAX_IMG_BYTES = 15 * 1024 * 1024;
+const MAX_IMAGES = 10;
+
+/** The feed-card version of the carousel: swipe to page, dot indicator,
+ *  tap opens the full-screen lightbox at whichever photo is centered. No
+ *  zoom here - that's the lightbox's job once you've committed to looking
+ *  closer. */
+function PostImageCarousel({
+  images,
+  alt,
+  onOpen,
+}: {
+  images: string[];
+  alt: string;
+  onOpen: (index: number) => void;
+}) {
+  const [index, setIndex] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const moved = useRef(false);
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    startX.current = event.clientX;
+    setDragging(true);
+    moved.current = false;
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    const dx = event.clientX - startX.current;
+    if (Math.abs(dx) > 6) moved.current = true;
+    const atStart = index === 0 && dx > 0;
+    const atEnd = index === images.length - 1 && dx < 0;
+    setDragX(atStart || atEnd ? dx * 0.35 : dx);
+  };
+
+  const endDrag = () => {
+    if (!dragging) return;
+    setDragging(false);
+    const width = containerRef.current?.clientWidth || 1;
+    if (Math.abs(dragX) > Math.min(60, width * 0.2)) {
+      if (dragX < 0 && index < images.length - 1) setIndex((i) => i + 1);
+      else if (dragX > 0 && index > 0) setIndex((i) => i - 1);
+    }
+    setDragX(0);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative mt-3 overflow-hidden rounded-xl border border-border bg-black"
+    >
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClick={() => {
+          if (!moved.current) onOpen(index);
+        }}
+        className="flex touch-pan-y"
+        style={{
+          transform: `translate3d(calc(${-index * 100}% + ${dragX}px), 0, 0)`,
+          transition: dragging ? "none" : "transform 200ms ease-out",
+          width: `${images.length * 100}%`,
+        }}
+      >
+        {images.map((src, i) => (
+          <div key={src} className="shrink-0" style={{ width: `${100 / images.length}%` }}>
+            <img
+              src={src}
+              alt={i === 0 ? alt : ""}
+              draggable={false}
+              className="block h-auto max-h-96 w-full select-none object-cover"
+            />
+          </div>
+        ))}
+      </div>
+      {images.length > 1 && (
+        <>
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+            {index + 1}/{images.length}
+          </span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+            {images.map((src, i) => (
+              <span
+                key={src}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === index ? "w-4 bg-white" : "w-1.5 bg-white/50",
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function Avatar({ value, tribeColor }: { value: string; tribeColor: string }) {
   const isImg = value.startsWith("data:") || value.startsWith("http");
@@ -70,18 +172,36 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
-  const [editImagePath, setEditImagePath] = useState<string | null>(post.image_path);
-  const [editImageUrl, setEditImageUrl] = useState<string | null>(post.image_url);
+  const [editImages, setEditImages] = useState<ComposedImage[]>(() =>
+    post.image_paths.map((path, i) => ({ path, previewUrl: post.images[i] ?? "" })),
+  );
   const [confirmDel, setConfirmDel] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [mediaIndex, setMediaIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   const share = async () => {
     if (post.id.startsWith("tmp-")) return;
+    const url = `${window.location.origin}/p/${post.id}`;
+
+    // Prefer the OS share sheet - a copied link is the fallback, not the
+    // default, since it's the more effortful of the two for the person
+    // sharing and a weaker distribution channel for the app.
+    if (navigator.share) {
+      try {
+        await navigator.share({ url });
+        toggleShare.mutate(post.id);
+        return;
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") return; // picker dismissed, not a share
+        // any other failure falls through to the clipboard path below
+      }
+    }
+
     toggleShare.mutate(post.id);
     try {
-      await navigator.clipboard?.writeText(`${window.location.origin}/p/${post.id}`);
+      await navigator.clipboard?.writeText(url);
       toast.success(shared ? "Unshared" : "Link copied");
     } catch {
       toast.success(shared ? "Unshared" : "Shared");
@@ -91,20 +211,22 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const startEdit = () => {
     setMenuOpen(false);
     setEditText(post.content);
-    setEditImagePath(post.image_path);
-    setEditImageUrl(post.image_url);
+    setEditImages(post.image_paths.map((path, i) => ({ path, previewUrl: post.images[i] ?? "" })));
     setEditing(true);
   };
 
   const saveEdit = () => {
     const t = editText.trim();
-    if (!t && !editImagePath) {
+    if (!t && editImages.length === 0) {
       toast.error("Post can't be empty.");
       return;
     }
-    const imageChanged = editImagePath !== post.image_path;
+    const currentPaths = editImages.map((img) => img.path);
+    const original = post.image_paths;
+    const imagesChanged =
+      currentPaths.length !== original.length || currentPaths.some((p, i) => p !== original[i]);
     editPost.mutate(
-      { id: post.id, content: t, ...(imageChanged ? { image_path: editImagePath } : {}) },
+      { id: post.id, content: t, ...(imagesChanged ? { image_paths: currentPaths } : {}) },
       {
         onSuccess: () => toast.success("Post updated"),
         onError: (e) => toast.error((e as Error).message),
@@ -113,28 +235,50 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
     setEditing(false);
   };
 
-  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!f || !user) return;
-    if (!f.type.startsWith("image/")) {
-      toast.error("Only image files.");
+    if (!files.length || !user) return;
+
+    const room = MAX_IMAGES - editImages.length;
+    if (room <= 0) {
+      toast.error(`Up to ${MAX_IMAGES} photos per post.`);
       return;
     }
-    if (f.size > MAX_IMG_BYTES) {
-      toast.error("Image too large", { description: "Max 5 MB." });
-      return;
+    const toUpload = files.slice(0, room);
+    if (files.length > room) {
+      toast(`Only added ${room} of ${files.length} — ${MAX_IMAGES} photos per post max.`);
     }
+    for (const f of toUpload) {
+      if (!f.type.startsWith("image/")) {
+        toast.error("Only image files.");
+        return;
+      }
+      if (f.size > MAX_IMG_BYTES) {
+        toast.error("Image too large", { description: "Max 15 MB per photo." });
+        return;
+      }
+    }
+
     setUploading(true);
     try {
-      const path = await uploadPostImage(user.id, f);
-      setEditImagePath(path);
-      setEditImageUrl(URL.createObjectURL(f));
+      const uploaded = await Promise.all(
+        toUpload.map(async (f) => {
+          const compressed = await compressImage(f, { maxDimension: 2048, quality: 0.85 });
+          const path = await uploadPostImage(user.id, compressed);
+          return { path, previewUrl: URL.createObjectURL(compressed) };
+        }),
+      );
+      setEditImages((cur) => [...cur, ...uploaded]);
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
     } finally {
       setUploading(false);
     }
+  };
+
+  const removeEditImage = (index: number) => {
+    setEditImages((cur) => cur.filter((_, i) => i !== index));
   };
 
   return (
@@ -248,26 +392,21 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             onChange={(e) => setEditText(e.target.value.slice(0, 280))}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
-          {editImageUrl && (
-            <div className="relative overflow-hidden rounded-xl border border-border">
-              <img src={editImageUrl} alt="" className="block max-h-72 w-full object-cover" />
-              <button
-                onClick={() => {
-                  setEditImagePath(null);
-                  setEditImageUrl(null);
-                }}
-                aria-label="Remove image"
-                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+          {editImages.length > 0 && (
+            <ImageStrip
+              images={editImages}
+              onReorder={setEditImages}
+              onRemove={removeEditImage}
+              onAddMore={() => fileRef.current?.click()}
+              canAddMore={editImages.length < MAX_IMAGES}
+              uploading={uploading}
+            />
           )}
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || editImages.length >= MAX_IMAGES}
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
               {uploading ? (
@@ -275,15 +414,20 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               ) : (
                 <ImagePlus className="h-3.5 w-3.5" />
               )}
-              {uploading ? "Uploading…" : editImagePath ? "Replace" : "Add photo"}
+              {uploading
+                ? "Uploading…"
+                : editImages.length > 0
+                  ? `Add more (${editImages.length}/${MAX_IMAGES})`
+                  : "Add photo"}
             </button>
             <span className="text-[10px] text-muted-foreground">{editText.length}/280</span>
             <input
               ref={fileRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
-              onChange={onPickFile}
+              onChange={onPickFiles}
             />
           </div>
           <div className="flex justify-end gap-2 pt-1">
@@ -323,19 +467,15 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             </p>
           )}
 
-          {post.image_url && (
-            <button
-              type="button"
-              onClick={() => setMediaOpen(true)}
-              className="group mt-3 block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label={`Open ${author.name}'s photo full screen`}
-            >
-              <img
-                src={post.image_url}
-                alt={`${author.name}'s post`}
-                className="block h-auto max-h-96 w-full object-cover transition-transform duration-200 group-hover:scale-[1.01]"
-              />
-            </button>
+          {post.images.length > 0 && (
+            <PostImageCarousel
+              images={post.images}
+              alt={`${author.name}'s post`}
+              onOpen={(index) => {
+                setMediaIndex(index);
+                setMediaOpen(true);
+              }}
+            />
           )}
         </>
       )}
@@ -386,13 +526,19 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         </button>
       </footer>
 
-      <CommentsModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />
+      <CommentsModal
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+        postId={post.id}
+        isPostOwner={isMine}
+      />
 
-      {post.image_url && (
+      {post.images.length > 0 && (
         <PostMediaLightbox
           open={mediaOpen}
           onClose={() => setMediaOpen(false)}
-          src={post.image_url}
+          images={post.images}
+          initialIndex={mediaIndex}
           alt={`${author.name}'s post photo`}
         />
       )}

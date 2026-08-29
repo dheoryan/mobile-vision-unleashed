@@ -18,10 +18,18 @@ export type FeedPost = {
   tribe_id: string;
   audience: "tribe" | "all";
   content: string;
-  /** Short-lived signed URL for rendering. Never persisted. */
+  /** Short-lived signed URL for the cover photo (first image). Never persisted. */
   image_url: string | null;
-  /** Private storage object path, used only when the author edits the post. */
+  /** Private storage object path for the cover photo, used only when the author edits the post. */
   image_path: string | null;
+  /** Every photo on the post, in order, as short-lived signed URLs. Empty for
+   *  text-only posts; a single-entry array duplicates `image_url` for a
+   *  one-photo post rather than being a special case to check for. */
+  images: string[];
+  /** The same photos as `images`, as raw storage paths in the same order -
+   *  what an edit needs to hand back to set_post_images without re-uploading
+   *  photos that didn't change. Never render these; they aren't URLs. */
+  image_paths: string[];
   tag: string | null;
   likes_count: number;
   replies_count: number;
@@ -58,10 +66,7 @@ async function attachAuthors<T extends { author_id: string }>(
 ): Promise<(T & { author: AuthorLite | null })[]> {
   if (!rows.length) return [];
   const ids = Array.from(new Set(rows.map((r) => r.author_id)));
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(AUTHOR_COLS)
-    .in("id", ids);
+  const { data, error } = await supabase.from("profiles").select(AUTHOR_COLS).in("id", ids);
   if (error) throw new Error(error.message);
   const map = new Map<string, AuthorLite>();
   for (const a of (data ?? []) as AuthorLite[]) map.set(a.id, a);
@@ -78,10 +83,15 @@ export async function attachPostImageUrls<T extends { image_url: string | null }
     return rows.map((row) => ({ ...row, image_path: null }));
   }
 
-  const { data, error } = await supabase.storage.from(POST_IMAGE_BUCKET).createSignedUrls(paths, 3600);
+  const { data, error } = await supabase.storage
+    .from(POST_IMAGE_BUCKET)
+    .createSignedUrls(paths, 3600);
   if (error) throw new Error(error.message);
   const urlsByPath = new Map(
-    (data ?? []).map((item: { path: string; signedUrl: string | null }) => [item.path, item.signedUrl]),
+    (data ?? []).map((item: { path: string; signedUrl: string | null }) => [
+      item.path,
+      item.signedUrl,
+    ]),
   );
 
   return rows.map((row) => {
@@ -94,13 +104,80 @@ export async function attachPostImageUrls<T extends { image_url: string | null }
   });
 }
 
+// Multi-photo carousel data, kept separate from attachPostImageUrls (which
+// only ever resolves the single legacy `image_url` cover field) rather than
+// merged into it - ProfileScreen and notifications only ever want the cover
+// photo and have no reason to pay for signing every photo on every post
+// they touch.
+async function attachPostImages<T extends { id: string }>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  rows: T[],
+): Promise<Map<string, { urls: string[]; paths: string[] }>> {
+  const postIds = rows.map((r) => r.id);
+  if (!postIds.length) return new Map();
+  const { data: imgRows, error } = await supabase.rpc("list_post_images_for_posts", {
+    _post_ids: postIds,
+  });
+  if (error) {
+    // Unlike hideComment/unhideComment (gated behind a user clicking a
+    // specific button, so their absence only breaks that one action),
+    // this function backs every post read - listFeed, getPostById,
+    // listMyPosts, all of it. If 20260829140000's migration hasn't
+    // reached production yet but this code has, throwing here would take
+    // the entire feed down instead of just leaving multi-photo posts
+    // showing their cover only. PGRST202 is PostgREST's "function isn't in
+    // the schema cache" - i.e. exactly "this migration isn't live yet" -
+    // so only that one is swallowed; anything else still fails loudly.
+    if (error.code === "PGRST202") return new Map();
+    throw new Error(error.message);
+  }
+  // Already ordered by (post_id, position) - see 20260829140000's RPC.
+  const rowsTyped = (imgRows ?? []) as { post_id: string; path: string }[];
+  if (!rowsTyped.length) return new Map();
+
+  const paths = Array.from(new Set(rowsTyped.map((r) => r.path)));
+  const { data: signed, error: signError } = await supabase.storage
+    .from(POST_IMAGE_BUCKET)
+    .createSignedUrls(paths, 3600);
+  if (signError) throw new Error(signError.message);
+  const urlByPath = new Map<string, string | null>(
+    (signed ?? []).map((item: { path: string; signedUrl: string | null }) => [
+      item.path,
+      item.signedUrl,
+    ]),
+  );
+
+  const byPost = new Map<string, { urls: string[]; paths: string[] }>();
+  for (const r of rowsTyped) {
+    const url = urlByPath.get(r.path);
+    if (!url) continue;
+    const entry = byPost.get(r.post_id) ?? { urls: [], paths: [] };
+    entry.urls.push(url);
+    entry.paths.push(r.path);
+    byPost.set(r.post_id, entry);
+  }
+  return byPost;
+}
+
 async function hydratePosts(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rows: any[],
 ): Promise<FeedPost[]> {
-  return attachPostImageUrls(supabase, await attachAuthors(supabase, rows)) as Promise<FeedPost[]>;
+  const [withUrls, imagesByPost] = await Promise.all([
+    attachPostImageUrls(supabase, await attachAuthors(supabase, rows)),
+    attachPostImages(supabase, rows),
+  ]);
+  return withUrls.map((p) => {
+    const multi = imagesByPost.get(p.id);
+    return {
+      ...p,
+      images: multi?.urls ?? (p.image_url ? [p.image_url] : []),
+      image_paths: multi?.paths ?? (p.image_path ? [p.image_path] : []),
+    };
+  }) as FeedPost[];
 }
 
 async function getRepliesCount(
@@ -119,8 +196,7 @@ async function getRepliesCount(
 const POST_COLS =
   "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
 
-const COMMENT_COLS =
-  "id, post_id, author_id, content, created_at, parent_id, mentions";
+const COMMENT_COLS = "id, post_id, author_id, content, created_at, parent_id, mentions";
 
 /**
  * Two feeds, two audiences, no overlap.
@@ -196,9 +272,7 @@ export const listMyPosts = createServerFn({ method: "GET" })
 
 export const listPostsByAuthor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ author_id: z.string().uuid() }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ author_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: rows, error } = await supabase
@@ -211,10 +285,12 @@ export const listPostsByAuthor = createServerFn({ method: "GET" })
     return hydratePosts(supabase, rows ?? []);
   });
 
+const imagePathSchema = z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200);
+
 const createSchema = z.object({
   tribe_id: z.string().min(1).max(40),
   content: z.string().max(280).default(""),
-  image_path: z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200).nullable().optional(),
+  image_paths: z.array(imagePathSchema).max(10).optional().default([]),
   tag: z.string().max(40).nullable().optional(),
   audience: z.enum(["tribe", "all"]).default("tribe"),
   mentions: z.array(z.string().uuid()).max(20).optional().default([]),
@@ -225,19 +301,22 @@ export const createPost = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    if (!data.content.trim() && !data.image_path) {
+    if (!data.content.trim() && data.image_paths.length === 0) {
       throw new Error("Post can't be empty");
     }
-    if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
-      throw new Error("Post images must belong to the author");
+    for (const path of data.image_paths) {
+      if (!path.startsWith(`${userId}/`)) {
+        throw new Error("Post images must belong to the author");
+      }
     }
+    const coverImage = data.image_paths[0] ?? null;
     let result = await supabase
       .from("posts")
       .insert({
         author_id: userId,
         tribe_id: data.tribe_id,
         content: data.content,
-        image_url: data.image_path ?? null,
+        image_url: coverImage,
         tag: data.tag ?? null,
         audience: data.audience,
         mentions: data.mentions,
@@ -251,7 +330,7 @@ export const createPost = createServerFn({ method: "POST" })
           author_id: userId,
           tribe_id: data.tribe_id,
           content: data.content,
-          image_url: data.image_path ?? null,
+          image_url: coverImage,
           tag: data.tag ?? null,
           audience: data.audience,
         })
@@ -260,13 +339,20 @@ export const createPost = createServerFn({ method: "POST" })
     }
     const { data: row, error } = result;
     if (error) throw new Error(error.message);
+    if (data.image_paths.length > 0) {
+      const { error: imgError } = await supabase.rpc("set_post_images", {
+        _post_id: row.id,
+        _paths: data.image_paths,
+      });
+      if (imgError) throw new Error(imgError.message);
+    }
     return (await hydratePosts(supabase, [row]))[0];
   });
 
 const editSchema = z.object({
   id: z.string().uuid(),
   content: z.string().max(280),
-  image_path: z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200).nullable().optional(),
+  image_paths: z.array(imagePathSchema).max(10).optional(),
 });
 
 export const editPost = createServerFn({ method: "POST" })
@@ -274,11 +360,13 @@ export const editPost = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => editSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
-      throw new Error("Post images must belong to the author");
+    for (const path of data.image_paths ?? []) {
+      if (!path.startsWith(`${userId}/`)) {
+        throw new Error("Post images must belong to the author");
+      }
     }
     const patch: { content: string; image_url?: string | null } = { content: data.content };
-    if (data.image_path !== undefined) patch.image_url = data.image_path;
+    if (data.image_paths !== undefined) patch.image_url = data.image_paths[0] ?? null;
     const { data: row, error } = await supabase
       .from("posts")
       .update(patch)
@@ -286,6 +374,13 @@ export const editPost = createServerFn({ method: "POST" })
       .select(POST_COLS)
       .single();
     if (error) throw new Error(error.message);
+    if (data.image_paths !== undefined) {
+      const { error: imgError } = await supabase.rpc("set_post_images", {
+        _post_id: data.id,
+        _paths: data.image_paths,
+      });
+      if (imgError) throw new Error(imgError.message);
+    }
     return (await hydratePosts(supabase, [row]))[0];
   });
 
@@ -318,12 +413,14 @@ export const listComments = createServerFn({ method: "GET" })
 export const addComment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({
-      post_id: z.string().uuid(),
-      content: z.string().min(1).max(500),
-      parent_id: z.string().uuid().nullable().optional(),
-      mentions: z.array(z.string().uuid()).max(20).optional(),
-    }).parse(input),
+    z
+      .object({
+        post_id: z.string().uuid(),
+        content: z.string().min(1).max(500),
+        parent_id: z.string().uuid().nullable().optional(),
+        mentions: z.array(z.string().uuid()).max(20).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -340,7 +437,10 @@ export const addComment = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     const [withAuthor] = await attachAuthors(supabase, [row as any]);
-    return { ...(withAuthor as CommentRow), replies_count: await getRepliesCount(supabase, data.post_id) };
+    return {
+      ...(withAuthor as CommentRow),
+      replies_count: await getRepliesCount(supabase, data.post_id),
+    };
   });
 
 // ---------- Saved posts (bookmarks) ----------
@@ -370,10 +470,7 @@ export const listMySavedPosts = createServerFn({ method: "GET" })
     if (e1) throw new Error(e1.message);
     const ids = ((saves ?? []) as { post_id: string }[]).map((r) => r.post_id);
     if (!ids.length) return [] as FeedPost[];
-    const { data: rows, error: e2 } = await supabase
-      .from("posts")
-      .select(POST_COLS)
-      .in("id", ids);
+    const { data: rows, error: e2 } = await supabase.from("posts").select(POST_COLS).in("id", ids);
     if (e2) throw new Error(e2.message);
     const orderedRows = ids
       .map((id) => (rows ?? []).find((r: { id: string }) => r.id === id))
@@ -446,4 +543,57 @@ export const deleteComment = createServerFn({ method: "POST" })
     const { error } = await supabase.from("comments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { id: data.id, post_id: postId, replies_count: await getRepliesCount(supabase, postId) };
+  });
+
+// For a post's author removing someone else's comment on their own post -
+// a hide, not a delete, so it's reversible and moderators still see it. The
+// RPC itself enforces post ownership; this is not a stub of that check.
+export const hideComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: existing, error: lookupError } = await supabase
+      .from("comments")
+      .select("post_id")
+      .eq("id", data.id)
+      .single();
+    if (lookupError) throw new Error(lookupError.message);
+    const postId = existing.post_id as string;
+    const { error } = await supabase.rpc("hide_own_post_comment", { _comment_id: data.id });
+    if (error) throw new Error(error.message);
+    return { id: data.id, post_id: postId };
+  });
+
+// Only surfaces comments this viewer hid themselves - the RPC scopes it
+// that way (moderation_hidden_by = auth.uid()), not "every hidden comment
+// on my post," since a moderator's hide isn't the post owner's to review
+// or reverse.
+export const listHiddenComments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ post_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase.rpc("list_hidden_comments_on_my_post", {
+      _post_id: data.post_id,
+    });
+    if (error) throw new Error(error.message);
+    return (await attachAuthors(supabase, rows ?? [])) as CommentRow[];
+  });
+
+export const unhideComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: existing, error: lookupError } = await supabase
+      .from("comments")
+      .select("post_id")
+      .eq("id", data.id)
+      .single();
+    if (lookupError) throw new Error(lookupError.message);
+    const postId = existing.post_id as string;
+    const { error } = await supabase.rpc("unhide_own_post_comment", { _comment_id: data.id });
+    if (error) throw new Error(error.message);
+    return { id: data.id, post_id: postId };
   });

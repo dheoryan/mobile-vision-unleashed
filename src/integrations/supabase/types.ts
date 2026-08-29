@@ -1445,6 +1445,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: number
       }
+      hide_own_post_comment: {
+        Args: { _comment_id: string }
+        Returns: undefined
+      }
       is_tribe_member:
         | { Args: { p_tribe_id: string; p_user_id: string }; Returns: boolean }
         | { Args: { p_tribe_key: string; p_user_id: string }; Returns: boolean }
@@ -1477,12 +1481,36 @@ export type Database = {
           shared_interests: string[]
         }[]
       }
+      list_hidden_comments_on_my_post: {
+        Args: { _post_id: string }
+        Returns: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          mentions: string[]
+          moderation_hidden_at: string | null
+          moderation_hidden_by: string | null
+          parent_id: string | null
+          post_id: string
+        }[]
+      }
       list_nearby_profile_matches: {
         Args: { _limit?: number }
         Returns: {
           distance_band: string
           match_score: number
           profile_id: string
+        }[]
+      }
+      list_post_images_for_posts: {
+        Args: { _post_ids: string[] }
+        Returns: {
+          created_at: string
+          id: string
+          path: string
+          position: number
+          post_id: string
         }[]
       }
       list_venture_distance_bands: {
@@ -1518,9 +1546,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      post_image_path_exists: { Args: { _path: string }; Returns: boolean }
+      set_post_images: {
+        Args: { _paths: string[]; _post_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       tribe_switch_available_at: { Args: { _user_id: string }; Returns: string }
+      unhide_own_post_comment: {
+        Args: { _comment_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_plan: "free" | "plus"

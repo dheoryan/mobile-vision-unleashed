@@ -1,10 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { X, Send, AlertTriangle, MessageSquare, Trash2, Reply } from "lucide-react";
+import {
+  X,
+  Send,
+  AlertTriangle,
+  MessageSquare,
+  Trash2,
+  EyeOff,
+  Eye,
+  ChevronDown,
+  Reply,
+} from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
 import { SafetyMenu } from "./SafetyMenu";
-import { useComments, useAddComment, useDeleteComment, type CommentRow } from "@/lib/posts-store";
+import {
+  useComments,
+  useAddComment,
+  useDeleteComment,
+  useHideComment,
+  useHiddenComments,
+  useUnhideComment,
+  type CommentRow,
+} from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +30,7 @@ import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
+import { cn } from "@/lib/utils";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
@@ -60,11 +79,18 @@ export function CommentsModal({
   onClose,
   postId,
   highlightCommentId,
+  isPostOwner = false,
 }: {
   open: boolean;
   onClose: () => void;
   postId: string | null;
   highlightCommentId?: string | null;
+  /** Lets the post's author hide someone else's comment on it, separate
+   *  from the delete action every commenter already has on their own. Only
+   *  wired at the call site that has this cheaply (PostCard already knows
+   *  whether the viewer owns the post) - omitted elsewhere rather than
+   *  fetching the post just to answer this one question. */
+  isPostOwner?: boolean;
 }) {
   const me = useMyProfile();
   const { user } = useAuth();
@@ -77,6 +103,13 @@ export function CommentsModal({
   const commentsQuery = useComments(open ? postId : null);
   const addComment = useAddComment(postId ?? "");
   const deleteComment = useDeleteComment(postId ?? "");
+  const hideComment = useHideComment(postId ?? "");
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  // Only fetched once the panel is actually opened - most posts have
+  // nothing hidden, so this shouldn't be a query that fires every time any
+  // comments modal opens.
+  const hiddenQuery = useHiddenComments(postId ?? "", open && isPostOwner && hiddenOpen);
+  const unhideComment = useUnhideComment(postId ?? "");
   const { register, registry } = useMentionRegistry();
   const picker = useMentionPicker(text, caret);
 
@@ -204,6 +237,64 @@ export function CommentsModal({
         </button>
       </header>
 
+      {isPostOwner && (
+        <div className="shrink-0 border-b border-border">
+          <button
+            type="button"
+            onClick={() => setHiddenOpen((v) => !v)}
+            className="flex w-full items-center gap-1.5 px-5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            Comments you've hidden
+            <ChevronDown
+              className={cn("h-3.5 w-3.5 transition-transform", hiddenOpen && "rotate-180")}
+            />
+          </button>
+          {hiddenOpen && (
+            <div className="max-h-40 space-y-2 overflow-y-auto px-5 pb-3">
+              {hiddenQuery.isLoading ? (
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              ) : hiddenQuery.isError ? (
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">Couldn't load this.</p>
+                  <button
+                    onClick={() => hiddenQuery.refetch()}
+                    className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : !hiddenQuery.data?.length ? (
+                <p className="text-xs text-muted-foreground">
+                  Nothing here - comments you hide on this post will show up in this list.
+                </p>
+              ) : (
+                hiddenQuery.data.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold">
+                        {c.author?.display_name || "Someone"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{c.content}</p>
+                    </div>
+                    <button
+                      onClick={() => unhideComment.mutate(c.id)}
+                      disabled={unhideComment.isPending && unhideComment.variables === c.id}
+                      className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                    >
+                      <Eye className="h-3 w-3" /> Unhide
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
         {commentsQuery.isLoading ? (
           <SkeletonList tribeColor={tribeColor} />
@@ -236,6 +327,8 @@ export function CommentsModal({
               meName={me?.name?.trim() || "You"}
               onReply={startReply}
               onDelete={(id) => deleteComment.mutate(id)}
+              isPostOwner={isPostOwner}
+              onHide={(id) => hideComment.mutate(id)}
             />
           ))
         )}
@@ -295,6 +388,8 @@ function CommentNode({
   meName,
   onReply,
   onDelete,
+  isPostOwner,
+  onHide,
 }: {
   c: CommentRow;
   replies: CommentRow[];
@@ -304,6 +399,8 @@ function CommentNode({
   meName: string;
   onReply: (c: CommentRow) => void;
   onDelete: (id: string) => void;
+  isPostOwner: boolean;
+  onHide: (id: string) => void;
 }) {
   return (
     <div>
@@ -315,6 +412,8 @@ function CommentNode({
         meName={meName}
         onReply={onReply}
         onDelete={onDelete}
+        isPostOwner={isPostOwner}
+        onHide={onHide}
       />
       {replies.length > 0 && (
         <div className="mt-2 space-y-2 border-l border-border/60 pl-4">
@@ -328,6 +427,8 @@ function CommentNode({
               meName={meName}
               onReply={onReply}
               onDelete={onDelete}
+              isPostOwner={isPostOwner}
+              onHide={onHide}
             />
           ))}
         </div>
@@ -366,6 +467,8 @@ function CommentItem({
   meName,
   onReply,
   onDelete,
+  isPostOwner,
+  onHide,
 }: {
   c: CommentRow;
   tribeColor: string;
@@ -374,6 +477,8 @@ function CommentItem({
   meName: string;
   onReply: (c: CommentRow) => void;
   onDelete: (id: string) => void;
+  isPostOwner: boolean;
+  onHide: (id: string) => void;
 }) {
   const mine = !!meId && c.author_id === meId;
   const isPending = c.id.startsWith("tmp-");
@@ -529,6 +634,16 @@ function CommentItem({
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {!mine && !isPending && isPostOwner && (
+          <button
+            onClick={() => onHide(c.id)}
+            aria-label="Hide comment from your post"
+            title="Hide from your post"
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <EyeOff className="h-3.5 w-3.5" />
           </button>
         )}
         {!mine && !isPending && (

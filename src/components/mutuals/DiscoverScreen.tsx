@@ -258,6 +258,10 @@ export function DiscoverScreen() {
         : deckPhase === "done"
           ? "Today’s introductions"
           : "Today’s five";
+  // A sparse candidate pool means curateForMood simply has fewer than 5
+  // people to rank - not a bug, but worth naming plainly instead of letting
+  // the deck quietly show 2 or 3 cards with no explanation.
+  const isSparseDeck = todaysPeople.length > 0 && todaysPeople.length < 5;
   const deckSectionHint =
     deckPhase === "doors"
       ? `${todaysPeople.length} considered · nobody rejected`
@@ -265,7 +269,9 @@ export function DiscoverScreen() {
         ? "A new direction · no repeats"
         : deckPhase === "done"
           ? "Continue with a room or plan"
-          : `${todaysPeople.length} picked for ${selectedMoodLabel.toLowerCase()}`;
+          : isSparseDeck
+            ? `Only ${todaysPeople.length} to show today · check back as more people join`
+            : `${todaysPeople.length} picked for ${selectedMoodLabel.toLowerCase()}`;
 
   const focusSearch = () => {
     setSearchOpen(true);

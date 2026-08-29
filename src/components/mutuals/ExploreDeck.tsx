@@ -286,7 +286,8 @@ export function ExploreDeck({
 
   if (phase === "doors") {
     const choices = CONTINUATION_MOODS.filter((option) => option.id !== mood);
-    const primarySetLabel = primaryPeople.length === 5 ? "Today’s five" : "Today’s set";
+    const primarySetLabel =
+      primaryPeople.length === 5 ? "Today’s five" : `Today’s ${primaryPeople.length}`;
     return (
       <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
         <div className="shrink-0">

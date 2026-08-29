@@ -6,13 +6,16 @@ import {
   deleteComment,
   deletePost,
   editPost,
+  hideComment,
   listComments,
   listFeed,
+  listHiddenComments,
   listMyPosts,
   listMySavedIds,
   listMySavedPosts,
   getTribeMemberCounts,
   toggleSavePost,
+  unhideComment,
   type CommentRow,
   type FeedPost,
 } from "@/lib/posts.functions";
@@ -135,25 +138,28 @@ export function useCreatePost() {
     mutationFn: (input: {
       tribe_id: string;
       content: string;
-      image_path?: string | null;
-      image_preview_url?: string | null;
+      image_paths?: string[];
+      image_preview_urls?: string[];
       audience?: "tribe" | "all";
       mentions?: string[];
     }) => {
-      const { image_preview_url: _preview, ...data } = input;
+      const { image_preview_urls: _preview, ...data } = input;
       return fn({ data });
     },
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["posts"] });
       const tempId = `tmp-${Date.now()}`;
+      const previews = input.image_preview_urls ?? [];
       const optimistic: FeedPost = {
         id: tempId,
         author_id: user?.id ?? "me",
         tribe_id: input.tribe_id,
         audience: input.audience ?? "tribe",
         content: input.content,
-        image_url: input.image_preview_url ?? null,
-        image_path: input.image_path ?? null,
+        image_url: previews[0] ?? null,
+        image_path: input.image_paths?.[0] ?? null,
+        images: previews,
+        image_paths: input.image_paths ?? [],
         tag: null,
         likes_count: 0,
         replies_count: 0,
@@ -178,9 +184,7 @@ export function useCreatePost() {
       return { tempId };
     },
     onSuccess: (saved, _input, ctx) => {
-      patchListsWith(qc, (rows) =>
-        rows.map((p) => (p.id === ctx?.tempId ? saved : p)),
-      );
+      patchListsWith(qc, (rows) => rows.map((p) => (p.id === ctx?.tempId ? saved : p)));
     },
     onError: (_e, _i, ctx) => {
       if (ctx?.tempId) {
@@ -195,7 +199,7 @@ export function useEditPost() {
   const fn = useServerFn(editPost);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: string; content: string; image_path?: string | null }) =>
+    mutationFn: (input: { id: string; content: string; image_paths?: string[] }) =>
       fn({ data: input }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["posts"] });
@@ -204,11 +208,20 @@ export function useEditPost() {
         rows.map((p) => {
           if (p.id !== input.id) return p;
           snapshot.push(p);
+          if (input.image_paths === undefined) {
+            return { ...p, content: input.content };
+          }
+          // Optimistic edit can't show real signed URLs for the new set
+          // (those only exist after the server resolves them) - clearing
+          // to empty and letting onSettled's refetch fill it back in is
+          // more honest than showing stale photos under new content.
           return {
             ...p,
             content: input.content,
-            image_path: input.image_path === undefined ? p.image_path : input.image_path,
-            image_url: input.image_path === undefined ? p.image_url : null,
+            image_url: null,
+            image_path: null,
+            images: [],
+            image_paths: [],
           };
         }),
       );
@@ -216,9 +229,7 @@ export function useEditPost() {
     },
     onError: (_e, _i, ctx) => {
       if (!ctx) return;
-      patchListsWith(qc, (rows) =>
-        rows.map((p) => ctx.snapshot.find((s) => s.id === p.id) ?? p),
-      );
+      patchListsWith(qc, (rows) => rows.map((p) => ctx.snapshot.find((s) => s.id === p.id) ?? p));
     },
     onSettled: () => invalidateAllPostLists(qc),
   });
@@ -297,10 +308,7 @@ export function useAddComment(postId: string) {
         mentions: obj.mentions ?? [],
         author: null,
       };
-      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [
-        ...(cur ?? []),
-        optimistic,
-      ]);
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [...(cur ?? []), optimistic]);
       patchListsWith(qc, (rows) =>
         rows.map((p) => (p.id === postId ? { ...p, replies_count: p.replies_count + 1 } : p)),
       );
@@ -340,7 +348,10 @@ export function useDeleteComment(postId: string) {
       let removed: CommentRow | undefined;
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
         (cur ?? []).filter((c) => {
-          if (c.id === id) { removed = c; return false; }
+          if (c.id === id) {
+            removed = c;
+            return false;
+          }
           return true;
         }),
       );
@@ -368,6 +379,69 @@ export function useDeleteComment(postId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+    },
+  });
+}
+
+// For a post's author hiding someone else's comment on their own post - a
+// non-destructive counterpart to useDeleteComment (which only ever acts on
+// your own comments). The row stays on the server; it just optimistically
+// disappears from this viewer's list the same way a delete does.
+export function useHideComment(postId: string) {
+  const fn = useServerFn(hideComment);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => fn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: COMMENTS_KEY(postId) });
+      let removed: CommentRow | undefined;
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
+        (cur ?? []).filter((c) => {
+          if (c.id === id) {
+            removed = c;
+            return false;
+          }
+          return true;
+        }),
+      );
+      return { removed };
+    },
+    onError: (_e, _i, ctx) => {
+      if (!ctx?.removed) return;
+      const r = ctx.removed;
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [...(cur ?? []), r]);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+      qc.invalidateQueries({ queryKey: HIDDEN_COMMENTS_KEY(postId) });
+    },
+  });
+}
+
+const HIDDEN_COMMENTS_KEY = (postId: string) => ["comments", postId, "hidden"] as const;
+
+// A post owner's own view of what they've hidden on this post - not shown
+// in the main comment list at all, since RLS hides these from everyone but
+// moderators (including the person who hid them). Only fetched when that
+// panel is actually opened.
+export function useHiddenComments(postId: string, enabled: boolean) {
+  const fn = useServerFn(listHiddenComments);
+  return useQuery({
+    queryKey: HIDDEN_COMMENTS_KEY(postId),
+    queryFn: () => fn({ data: { post_id: postId } }),
+    enabled: enabled && !!postId && !postId.startsWith("tmp-"),
+    staleTime: 10_000,
+  });
+}
+
+export function useUnhideComment(postId: string) {
+  const fn = useServerFn(unhideComment);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => fn({ data: { id } }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+      qc.invalidateQueries({ queryKey: HIDDEN_COMMENTS_KEY(postId) });
     },
   });
 }

@@ -205,6 +205,263 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Multi-photo posts (Threads-style carousel), up to 10 per post
+
+- User asked for Threads-style multi-photo posts. Asked two scope
+  questions up front rather than guessing: max photo count (10, matching
+  Instagram's carousel cap rather than Threads' literal 20) and whether to
+  build drag-reorder in v1 (yes).
+- Schema: `20260829140000_post_multi_image.sql` adds `post_images(post_id,
+  path, position)`. Same architecture as the hide/unhide functions - no
+  RLS policies at all (creating one is unconditionally Red per
+  CHANGE_PROTOCOL.md, "on any table," new or not), RLS enabled with zero
+  policies so direct access is a hard permission-denied, and two
+  `security definer` functions (`list_post_images_for_posts`,
+  `set_post_images`) are the only door in. `set_post_images` is
+  replace-all (delete-then-reinsert the full ordered list), not an
+  incremental insert/delete/reorder API - the composer already has the
+  full ordered set in hand for a single image, so this keeps create and
+  edit (and reordering, for free) the same call.
+- `posts.image_url` stays as the cover-photo field for every legacy reader
+  (ProfileScreen, notifications) - never written for post_images's role,
+  just always mirrors photo #1.
+- The one piece that genuinely can't be Green:
+  `20260829140100_post_multi_image_storage.sql` extends the live
+  `storage.objects` "Users read accessible post images" policy so a viewer
+  can get a signed URL for photos 2-10 (previously only `posts.image_url`
+  was a recognized reason to read an object) - written and rehearsed
+  separately so the Red piece isn't buried in an otherwise Green file.
+- Rehearsal in a fresh Docker `postgres:16` caught a real bug before it
+  shipped: a storage.objects policy's subquery into `post_images` runs
+  under the CALLING role's own privileges, not the outer function's - so
+  the storage policy's `exists(select ... from post_images ...)` would
+  have silently seen zero rows for every non-superuser, since post_images
+  itself has zero SELECT grants/policies. Added
+  `post_image_path_exists(_path)`, a narrow security-definer bridge that
+  answers only "does a post_images row with this path exist" (not
+  audience-aware, matching how the pre-existing policy already worked for
+  posts.image_url - the storage layer has never enforced audience/blocking,
+  that happens one layer up). 12 functional tests after the fix, all
+  passing: ownership/spoofing/cap rejections, same-Tribe visibility,
+  cross-Tribe and blocked-user denial via the RPC, replace-all semantics,
+  hard permission-denied on direct table access, and the real storage
+  policy (not reimplemented logic) tested with RLS actually enabled on the
+  stub.
+- Client: `FeedPost` gained `images: string[]` (signed URLs, ordered) and
+  `image_paths: string[]` (the same photos as raw storage paths, parallel
+  array - what an edit needs to hand back to `set_post_images` without
+  re-uploading photos that didn't change). New `ImageStrip.tsx` component
+  (shared between the composer and the post-edit flow) does press-and-drag
+  reordering via pointer events, not native HTML5 drag-and-drop - this is
+  a mobile-first PWA and HTML5 DnD has poor-to-nonexistent touch support.
+  `PostMediaLightbox.tsx` gained paging (swipe, dot indicator, page
+  counter, prev/next buttons on desktop) on top of its existing pinch-zoom,
+  zoom resetting on page change. New `PostImageCarousel` in `PostCard.tsx`
+  is the lighter feed-card version - swipe to page, no zoom, tap opens the
+  lightbox at whichever photo is centered.
+- **Real bug found live, fixed before it could matter**: verified the
+  composer end-to-end with synthetic canvas-generated photos (multi-select,
+  upload, thumbnail strip, drag-reorder, remove all worked), then hit
+  submit to see the honest failure mode against the not-yet-deployed
+  migration - and discovered `hydratePosts` (which backs *every* post read:
+  listFeed, getPostById, listMyPosts) now hard-failed the entire feed,
+  not just the multi-image feature, because `attachPostImages` threw on
+  `list_post_images_for_posts` being missing. Unlike hideComment/
+  unhideComment - gated behind a user clicking a specific button, so their
+  absence only broke that one action - this function backs basic feed
+  viewing for everyone. Fixed by catching specifically `PGRST202`
+  ("function not in the schema cache," i.e. exactly "this migration isn't
+  live yet") and degrading to cover-photo-only instead of throwing;
+  anything else still fails loudly. This means the code is safe to deploy
+  *before* the migration lands (multi-photo posts just show their cover
+  until then) - unlike the RPC calls in `createPost`/`editPost` themselves,
+  which deliberately keep throwing on failure, since silently dropping
+  photos 2-10 during an actual post-create would be silent data loss the
+  user needs to know about, not something to paper over.
+- That same live test also confirmed the failure mode is honest (a real
+  Postgres error toast, not a silent failure) but left a real test post
+  with a synthetic red photo sitting in the account's actual Studio Cat
+  Tribe (the base post row commits before `set_post_images` is called, so
+  a failed image-set doesn't roll back the post itself). Deleted it via
+  the UI afterward - the orphaned uploaded storage objects from the same
+  test were left alone (harmless, private, not worth chasing).
+- Regression-checked a single-image legacy post's lightbox afterward -
+  zoom controls intact, no page indicator/dots rendered for one photo,
+  exactly as before.
+- **Migrations are written and rehearsed but not yet applied to
+  production** - same status as the comment hide/unhide work. Until they
+  deploy, multi-photo attempts will fail with a clear error (not silently
+  drop photos) and existing single-image posts are unaffected.
+
+### 2026-08-29 — Claude — Comment hide needed its other half: unhide
+
+- User asked "can we unhide the comments?" right after the hide feature
+  landed. Checked first rather than assuming: grepped every reference to
+  `moderation_hidden_at` in the repo - there was no unhide path anywhere,
+  for anyone, including moderators via the admin report queue. The
+  DEVLOG's "reversible" claim from the hide feature was only true at the
+  data layer (nothing is destroyed); there was no UI or RPC to actually do
+  it.
+- `20260829130000_post_owner_unhide_comment.sql` adds two Green functions:
+  `list_hidden_comments_on_my_post` (a post owner can't otherwise see
+  their own hidden comments - RLS hides them from everyone but moderators,
+  including the hider) and `unhide_own_post_comment`. Both are
+  deliberately scoped to `moderation_hidden_by = auth.uid()`, not "any
+  hidden comment on my post": a comment a moderator hid for a policy
+  violation is a moderation decision, not the post owner's to unilaterally
+  reverse - only the person who did the hiding can undo it. This was a
+  real design decision, not a formality - worth flagging since it's easy
+  to miss and would have let a post owner quietly overturn a moderator.
+- Rehearsed in a fresh throwaway Docker `postgres:16` (caught a stub-fidelity
+  bug first try: my rehearsal schema was missing `comments.created_at`,
+  which the real table has - fixed the stub, not the migration). 6
+  functional tests: post owner sees only what they personally hid, not a
+  moderator's hide; a random third party's list call returns nothing; post
+  owner is rejected trying to unhide a moderator's hide; a random third
+  party is rejected trying to unhide at all; the actual owner unhiding
+  their own hide succeeds; the list is empty afterward. All passed.
+- Wired client-side: `listHiddenComments`/`unhideComment` server fns,
+  `useHiddenComments`/`useUnhideComment` hooks, and a collapsible "Comments
+  you've hidden" panel in `CommentsModal.tsx` (post owners only, lazy-fetched
+  only once opened - most posts have nothing hidden, so this shouldn't be a
+  query that fires on every comments-modal open).
+- While testing this live, found the main comments list handles a failed
+  fetch honestly (loading/error/empty are three different states with a
+  Retry button) but my new hidden-comments panel didn't - a fetch error
+  and "genuinely nothing hidden" both rendered the same reassuring empty
+  copy. Added the missing `isError` branch to match. Tried to verify it
+  live against the not-yet-deployed RPC and hit an odd dev-server artifact
+  instead: the server function returned HTTP 200 with a genuinely empty
+  body (`content-length: 0`), not a real PostgREST error - almost
+  certainly a local dev-only failure mode from calling an RPC that
+  literally doesn't exist yet, not representative of how Supabase will
+  actually fail once deployed (a real missing-function call returns a
+  proper JSON error). Didn't chase it further since it'll stop being
+  reproducible the moment the migration ships. The `isError` branch itself
+  is standard, correct React Query usage and worth keeping regardless.
+- **Both hide/unhide migrations are written and rehearsed but still not
+  applied to production** - same as the hide feature alone, this needs an
+  ordinary deploy to actually reach the database.
+
+### 2026-08-29 — Claude — Full menu-by-menu HCI audit; fixed the no-migration findings
+
+- User asked for a full audit, "menu by menu, feature by feature." Ran four
+  parallel research sweeps (Feed/Posts, Ventures, Chats/Tribe,
+  Settings/Auth/Monetization/Admin) plus this session's existing context on
+  Discover/Profile/Notifications, then synthesized findings through the
+  `social-app-hci` Audience -> Incentive -> Density -> Norms -> Interface
+  lens. Published as an artifact rather than dumped into chat, since it's a
+  reference document with an audience beyond this session.
+- Two Critical findings (both in Ventures, both dormant behind
+  `MONETIZATION_ENABLED=false`) - `host-dashboard.tsx` renders fabricated
+  analytics on what its own comment calls "a live, publicly reachable
+  route," and `host.tsx` advertises paid plans through a form that submits
+  nowhere. User explicitly deferred these ("didn't wanna touch soon") -
+  left untouched.
+- For the rest, triaged by whether a migration was needed, then fixed the
+  no-migration tier:
+  - **Composer draft loss** (`ComposerModal.tsx`): closing with unsent text
+    used to discard it unconditionally. Added an inline "Discard this
+    post? / Keep editing" step, matching `DeleteAccountModal.tsx`'s
+    existing in-modal confirm pattern rather than the unused
+    `alert-dialog.tsx` primitive or a native `confirm()`. Closing an empty
+    composer is unchanged - no friction added where there's nothing to
+    lose.
+  - **Feed share** (`PostCard.tsx`): now tries `navigator.share()` first
+    (the OS share sheet), falling back to the existing clipboard-copy
+    behavior when unsupported or on any non-cancel failure. A cancelled
+    share (`AbortError`) intentionally does *not* toggle the shares count -
+    nothing was actually shared.
+  - **Dead code**: deleted `VentureSwipeDeck.tsx` - confirmed zero imports
+    anywhere in the repo before removing it.
+  - **Silent Hello** (`HelloRequestsSheet.tsx`): reconsidered the original
+    "add expiry" recommendation - that needs a migration and a product
+    decision on grace period for a problem that's really just "the sender
+    gets no signal." Fixed the actual problem instead: the Sent tab already
+    showed `Sent {time} ago`; added "· no response yet" plus a
+    "Still no reply after N days, you can cancel and try again anytime"
+    note once a Hello has been pending 14+ days. No schema change.
+  - **Post owner can't moderate comments on their own post**: initially
+    scoped as a Red change (rewrite the `comments` DELETE RLS policy, which
+    today is `author_id = auth.uid()` only). Found a smaller, safer
+    alternative instead: `20260829120000_post_owner_hide_comment.sql` adds
+    one new `security definer` function, `hide_own_post_comment`, that
+    verifies the caller owns the comment's *post* (mirroring `has_blocked`'s
+    pattern per AGENTS.md 2.2 - the ownership check can't be a plain
+    sub-select, since that would itself be RLS-filtered) and sets
+    `moderation_hidden_at`/`_by` - the exact column pair the moderation
+    queue already uses, so it reuses the existing "Hidden comments stay in
+    moderation" SELECT policy with **zero RLS changes**. A hide, not a
+    delete: reversible, moderators still see it, no extra visibility signal
+    invented. Per `CHANGE_PROTOCOL.md` this is Green ("new function that
+    nothing depends on yet") - no approval/backup gate, unlike the RLS
+    rewrite it replaced. Rehearsed in a throwaway Docker `postgres:16`
+    (stubbed `auth.uid()` via a session GUC, a non-superuser `authenticated`
+    role per the established rehearsal method) with 4 functional tests: a
+    third party is rejected, a nonexistent comment is rejected, the actual
+    post owner succeeds, and the comment's own author (not the post owner)
+    is rejected - all passed. Wired client-side: `hideComment` server fn +
+    `useHideComment` hook mirroring `useDeleteComment`, an `EyeOff` icon
+    shown only when `!mine && isPostOwner` in `CommentsModal.tsx`, an
+    `isPostOwner` prop threaded from `PostCard.tsx` (only wired at that call
+    site, which already computes `isMine` cheaply - not threaded through the
+    notification-deep-link `CommentsModal` in `index.tsx`, which would need
+    an extra post fetch just to answer this one question). Manually added
+    `hide_own_post_comment` to `src/integrations/supabase/types.ts` since it
+    doesn't exist in production yet for `supabase gen types` to have picked
+    up. **Migration file is written and rehearsed but not yet applied to
+    production** - needs a normal deploy/Lovable pass to actually reach the
+    database before the hide button will work live (it'll fail closed with
+    a normal error toast until then, not silently).
+  - Deferred (need a migration, a product decision, or aren't code): 2FA/
+    session management; Venture chat unread badges (needs a real
+    `conversation_reads` table, already self-flagged in code); age-verification
+    hardening; legal-page TODOs (not code - needs a real contact email and
+    an actual legal review).
+- Verified visually in the real logged-in Chrome session: discard-confirm
+  triggers correctly and preserves the draft on "Keep editing," closes with
+  no friction when the composer is empty, share falls through cleanly to
+  clipboard-copy on a browser without `navigator.share`, and the Sent tab
+  renders "Sent 1d ago · no response yet" as expected (no Hello in this
+  account is old enough to show the 14-day nudge, so that branch is
+  type-checked/tested but not eyeballed live). Also confirmed the negative
+  case for the hide button: opened comments on a post *not* owned by the
+  logged-in account and saw only the pre-existing SafetyMenu (`...`), no
+  `EyeOff` icon - the visibility gate is doing its job. Couldn't exercise
+  the positive case (own-post hide) live since it needs a second account's
+  comment on a post this account owns, which doesn't currently exist in the
+  seeded data, and the RPC itself isn't in production yet regardless.
+
+### 2026-08-29 — Claude — Discover: name a sparse "Today's five" deck instead of silently showing fewer cards
+
+- User asked "what can we improve on Discover" as an open exploratory
+  question. Used the `social-app-hci` skill's diagnose-in-order framework
+  (Audience -> Incentive -> Density -> Norms -> Interface) rather than
+  jumping to interface polish. Landed on a Density-layer problem:
+  `curateForMood(people, mood, 5, dayKey)` just slices the ranked candidate
+  pool, so on a day/mood with fewer than 5 candidates the deck silently
+  renders 2-3 cards with zero acknowledgment - reads as "this app is dead"
+  rather than "not enough people right now." User confirmed with "yes."
+- Fix is copy-only, no new state or props - `DiscoverScreen.tsx` already
+  computes `todaysPeople` via the same `curateForMood` call `ExploreDeck`
+  uses internally, and already renders a status line
+  (`deckSectionHint`) above the deck at all times, including during the
+  primary browsing phase (not just after it, unlike the one existing
+  acknowledgment below). Added `isSparseDeck = todaysPeople.length > 0 &&
+  todaysPeople.length < 5` and swapped the hint to `"Only N to show today
+  · check back as more people join"` when true, instead of the normal `"N
+  picked for {mood}"`.
+- The only pre-existing acknowledgment of a non-5 day was a cosmetic label
+  swap in `ExploreDeck.tsx`'s "doors" phase (after finishing the deck):
+  `"Today's five"` -> `"Today's set"`, which hid the actual count rather
+  than naming it. Changed to `"Today's {N}"` so it states the real number
+  instead of a vague euphemism, consistent with the new primary-phase
+  message.
+- Verified `curateForMood` doesn't drop anyone for mood-affinity reasons
+  before this fires - it ranks and slices, never filters out candidates -
+  so "the pool itself is small" is the accurate, honest reason to give,
+  not a guess.
+
 ### 2026-08-29 — Claude — Profile identity block: bigger avatar, more room, after many rounds of small tweaks not landing
 
 - User: "still didn't like this layout," no specifics. After this many

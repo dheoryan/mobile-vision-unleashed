@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Camera, Loader2 } from "lucide-react";
+import { X, ImagePlus, Camera, Loader2, AlertTriangle } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost } from "@/lib/posts-store";
 import { uploadPostImage } from "@/lib/uploads";
@@ -15,20 +15,30 @@ import {
   type MentionProfile,
 } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
+import { ImageStrip, type ComposedImage } from "./ImageStrip";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
+const MAX_IMAGES = 10;
 
 export type Audience = "tribe" | "all";
 
 export function ComposerModal({
-  open, onClose, tribeId, initialAudience = "tribe",
-}: { open: boolean; onClose: () => void; tribeId: TribeId; initialAudience?: Audience }) {
+  open,
+  onClose,
+  tribeId,
+  initialAudience = "tribe",
+}: {
+  open: boolean;
+  onClose: () => void;
+  tribeId: TribeId;
+  initialAudience?: Audience;
+}) {
   const { user } = useAuth();
   const [text, setText] = useState("");
-  const [imagePath, setImagePath] = useState<string | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [images, setImages] = useState<ComposedImage[]>([]);
   const [uploading, setUploading] = useState(false);
   const [caret, setCaret] = useState(0);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -55,9 +65,10 @@ export function ComposerModal({
   const reset = () => {
     setText("");
     setCaret(0);
-    setImagePath(null);
-    setImagePreviewUrl(null);
+    images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setImages([]);
     setAudience(initialAudience);
+    setConfirmDiscard(false);
   };
 
   const pickMention = (profile: MentionProfile) => {
@@ -74,14 +85,14 @@ export function ComposerModal({
 
   const submit = () => {
     const t = text.trim();
-    if (!t && !imagePath) return;
+    if (!t && images.length === 0) return;
     if (uploading) return;
     createPost.mutate(
       {
         tribe_id: tribeId,
         content: t,
-        image_path: imagePath ?? null,
-        image_preview_url: imagePreviewUrl ?? null,
+        image_paths: images.map((img) => img.path),
+        image_preview_urls: images.map((img) => img.previewUrl),
         audience: effectiveAudience,
         mentions: collectMentionIds(t, registry),
       },
@@ -99,18 +110,41 @@ export function ComposerModal({
     onClose();
   };
 
-  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!f || !user) return;
-    if (!f.type.startsWith("image/")) { toast.error("Only image files."); return; }
-    if (f.size > MAX_BYTES) { toast.error("Image too large", { description: "Max 15 MB." }); return; }
+    if (!files.length || !user) return;
+
+    const room = MAX_IMAGES - images.length;
+    if (room <= 0) {
+      toast.error(`Up to ${MAX_IMAGES} photos per post.`);
+      return;
+    }
+    const toUpload = files.slice(0, room);
+    if (files.length > room) {
+      toast(`Only added ${room} of ${files.length} — ${MAX_IMAGES} photos per post max.`);
+    }
+    for (const f of toUpload) {
+      if (!f.type.startsWith("image/")) {
+        toast.error("Only image files.");
+        return;
+      }
+      if (f.size > MAX_BYTES) {
+        toast.error("Image too large", { description: "Max 15 MB per photo." });
+        return;
+      }
+    }
+
     setUploading(true);
     try {
-      const compressed = await compressImage(f, { maxDimension: 2048, quality: 0.85 });
-      const path = await uploadPostImage(user.id, compressed);
-      setImagePath(path);
-      setImagePreviewUrl(URL.createObjectURL(compressed));
+      const uploaded = await Promise.all(
+        toUpload.map(async (f) => {
+          const compressed = await compressImage(f, { maxDimension: 2048, quality: 0.85 });
+          const path = await uploadPostImage(user.id, compressed);
+          return { path, previewUrl: URL.createObjectURL(compressed) };
+        }),
+      );
+      setImages((cur) => [...cur, ...uploaded]);
     } catch (err) {
       toast.error("Upload failed", { description: (err as Error).message });
     } finally {
@@ -118,131 +152,202 @@ export function ComposerModal({
     }
   };
 
-  const close = () => { reset(); onClose(); };
+  const removeImage = (index: number) => {
+    setImages((cur) => {
+      const removed = cur[index];
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return cur.filter((_, i) => i !== index);
+    });
+  };
+
+  const hasDraft = text.trim().length > 0 || images.length > 0;
+
+  // Closing used to discard whatever was typed with no warning - a stray
+  // tap on the backdrop or the X threw away a half-written post outright.
+  // Only interrupt the close when there's actually something to lose.
+  const close = () => {
+    if (hasDraft && !confirmDiscard) {
+      setConfirmDiscard(true);
+      return;
+    }
+    reset();
+    onClose();
+  };
 
   return (
     <AnimatedModal
       open={open}
-      onOpenChange={(o) => { if (!o) close(); }}
+      onOpenChange={(o) => {
+        if (!o) close();
+      }}
       title={`New post — ${effectiveAudience === "all" ? "The Wild" : tribe.name}`}
       contentClassName="p-6"
     >
-        <button onClick={close} aria-label="Close" className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">
-          <X className="h-5 w-5" />
-        </button>
-        <p className="label-mono text-muted-foreground">New post</p>
-        <h2 className="font-display text-xl font-bold">What's happening?</h2>
+      <button
+        onClick={close}
+        aria-label="Close"
+        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+      >
+        <X className="h-5 w-5" />
+      </button>
 
-        {/* Audience picker. Stated in terms of who can see it, not where it
+      {confirmDiscard ? (
+        <div className="relative">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
+            <AlertTriangle className="h-6 w-6" />
+          </span>
+          <h2 className="mt-4 font-display text-xl font-bold leading-tight">Discard this post?</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            What you've written so far will be lost.
+          </p>
+          <div className="mt-5 flex flex-col gap-2">
+            <button
+              onClick={() => {
+                reset();
+                onClose();
+              }}
+              className="w-full rounded-2xl bg-destructive py-3.5 text-sm font-semibold text-destructive-foreground"
+            >
+              Discard post
+            </button>
+            <button
+              onClick={() => setConfirmDiscard(false)}
+              className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Keep editing
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="label-mono text-muted-foreground">New post</p>
+          <h2 className="font-display text-xl font-bold">What's happening?</h2>
+
+          {/* Audience picker. Stated in terms of who can see it, not where it
             files — that is the question the user is actually asking. */}
-        <div className="mt-4">
-          <p className="label-mono text-muted-foreground">Who sees this?</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <AudienceOption
-              active={effectiveAudience === "tribe"}
-              onClick={() => setAudience("tribe")}
-              accent={tribe.colorVar}
-              title={tribe.name}
-              sub="Your Tribe only"
-            />
-            <AudienceOption
-              active={effectiveAudience === "all"}
-              onClick={() => setAudience("all")}
-              accent="var(--primary)"
-              title="The Wild"
-              sub="Everyone on MEUTUALS"
+          <div className="mt-4">
+            <p className="label-mono text-muted-foreground">Who sees this?</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <AudienceOption
+                active={effectiveAudience === "tribe"}
+                onClick={() => setAudience("tribe")}
+                accent={tribe.colorVar}
+                title={tribe.name}
+                sub="Your Tribe only"
+              />
+              <AudienceOption
+                active={effectiveAudience === "all"}
+                onClick={() => setAudience("all")}
+                accent="var(--primary)"
+                title="The Wild"
+                sub="Everyone on MEUTUALS"
+              />
+            </div>
+          </div>
+
+          <div className="relative mt-4">
+            <MentionSuggestions suggestions={mentionPicker.suggestions} onPick={pickMention} />
+            <textarea
+              ref={textRef}
+              autoFocus
+              rows={4}
+              value={text}
+              onChange={(event) => {
+                const next = event.target.value.slice(0, 280);
+                setText(next);
+                setCaret(Math.min(event.target.selectionStart ?? next.length, next.length));
+              }}
+              onClick={(event) => setCaret(event.currentTarget.selectionStart ?? 0)}
+              onKeyUp={(event) =>
+                setCaret(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
+              }
+              placeholder="Share a plan, invite someone with @, or post a small thing…"
+              className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </div>
-        </div>
 
-        <div className="relative mt-4">
-          <MentionSuggestions suggestions={mentionPicker.suggestions} onPick={pickMention} />
-          <textarea
-            ref={textRef}
-            autoFocus
-            rows={4}
-            value={text}
-            onChange={(event) => {
-              const next = event.target.value.slice(0, 280);
-              setText(next);
-              setCaret(Math.min(event.target.selectionStart ?? next.length, next.length));
+          {images.length > 0 && (
+            <ImageStrip
+              images={images}
+              onReorder={setImages}
+              onRemove={removeImage}
+              onAddMore={() => fileRef.current?.click()}
+              canAddMore={images.length < MAX_IMAGES}
+              uploading={uploading}
+            />
+          )}
+
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading || images.length >= MAX_IMAGES}
+                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-4 w-4" />
+                )}
+                {uploading
+                  ? "Uploading…"
+                  : images.length > 0
+                    ? `Add more (${images.length}/${MAX_IMAGES})`
+                    : "Gallery"}
+              </button>
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                disabled={uploading || images.length >= MAX_IMAGES}
+                aria-label="Take photo"
+                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+              >
+                <Camera className="h-4 w-4" />
+                Camera
+              </button>
+            </div>
+            <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={onPickFiles}
+            />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={onPickFiles}
+            />
+          </div>
+
+          <button
+            onClick={submit}
+            disabled={!text.trim() && images.length === 0}
+            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+            style={{
+              backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar,
             }}
-            onClick={(event) => setCaret(event.currentTarget.selectionStart ?? 0)}
-            onKeyUp={(event) =>
-              setCaret(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
-            }
-            placeholder="Share a plan, invite someone with @, or post a small thing…"
-            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-          />
-        </div>
-
-        {imagePreviewUrl && (
-          <div className="relative mt-3 overflow-hidden rounded-xl border border-border">
-            <img src={imagePreviewUrl} alt="Attached preview" className="block max-h-72 w-full object-cover" />
-            <button
-              onClick={() => { setImagePath(null); setImagePreviewUrl(null); }}
-              aria-label="Remove image"
-              className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
-            >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-              {uploading ? "Uploading…" : imagePath ? "Replace" : "Gallery"}
-            </button>
-            <button
-              type="button"
-              onClick={() => cameraRef.current?.click()}
-              disabled={uploading}
-              aria-label="Take photo"
-              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
-            >
-              <Camera className="h-4 w-4" />
-              Camera
-            </button>
-          </div>
-          <span className="text-[11px] text-muted-foreground">{text.length}/280</span>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onPickFile}
-          />
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={onPickFile}
-          />
-        </div>
-
-        <button
-          onClick={submit}
-          disabled={!text.trim() && !imagePath}
-          className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
-          style={{ backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar }}
-        >
-          Send Signal
-        </button>
+          >
+            Send Signal
+          </button>
+        </>
+      )}
     </AnimatedModal>
   );
 }
 
 function AudienceOption({
-  active, onClick, accent, title, sub,
+  active,
+  onClick,
+  accent,
+  title,
+  sub,
 }: {
   active: boolean;
   onClick: () => void;
