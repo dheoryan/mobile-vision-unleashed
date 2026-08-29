@@ -68,7 +68,7 @@ async function attachAuthors<T extends { author_id: string }>(
   return rows.map((r) => ({ ...r, author: map.get(r.author_id) ?? null }));
 }
 
-async function attachPostImageUrls<T extends { image_url: string | null }>(
+export async function attachPostImageUrls<T extends { image_url: string | null }>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   rows: T[],

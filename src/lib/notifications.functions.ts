@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { AuthorLite } from "@/lib/posts.functions";
+import { attachPostImageUrls, type AuthorLite } from "@/lib/posts.functions";
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 
@@ -35,6 +35,9 @@ export type NotificationRow = {
   read_at: string | null;
   created_at: string;
   actor: AuthorLite | null;
+  /** Short-lived signed URL for the related post's image, when it has one -
+   *  Instagram-style thumbnail on the notification row. Never persisted. */
+  post_image_url: string | null;
 };
 
 export const listMyNotifications = createServerFn({ method: "GET" })
@@ -66,9 +69,31 @@ export const listMyNotifications = createServerFn({ method: "GET" })
         .in("id", actorIds);
       for (const a of (profs ?? []) as AuthorLite[]) actorMap.set(a.id, a);
     }
-    return ((rows ?? []) as Omit<NotificationRow, "actor">[]).map((r) => ({
+
+    const postIds = Array.from(
+      new Set(
+        ((rows ?? []) as Array<{ post_id: string | null }>)
+          .map((r) => r.post_id)
+          .filter(Boolean) as string[],
+      ),
+    );
+    const postImageMap = new Map<string, string | null>();
+    if (postIds.length) {
+      const { data: posts } = await supabase
+        .from("posts")
+        .select("id, image_url")
+        .in("id", postIds);
+      const hydrated = await attachPostImageUrls(
+        supabase,
+        (posts ?? []) as { id: string; image_url: string | null }[],
+      );
+      for (const p of hydrated) postImageMap.set(p.id, p.image_url);
+    }
+
+    return ((rows ?? []) as Omit<NotificationRow, "actor" | "post_image_url">[]).map((r) => ({
       ...r,
       actor: r.actor_id ? (actorMap.get(r.actor_id) ?? null) : null,
+      post_image_url: r.post_id ? (postImageMap.get(r.post_id) ?? null) : null,
     }));
   });
 

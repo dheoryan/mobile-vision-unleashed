@@ -84,7 +84,7 @@ function PublicProfilePage() {
 
   return (
     <div className="bg-habitat min-h-screen pb-24">
-      <header className="glass sticky top-0 z-20 border-b border-border">
+      <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
           <Link
             to="/"

@@ -32,7 +32,6 @@ import { timeAgoLabel } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { NotifRowSkeleton } from "@/components/mutuals/Skeleton";
 import {
-  notificationActionLabel,
   notificationCategory,
   notificationDestination,
   notificationSections,
@@ -180,23 +179,20 @@ function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-habitat pb-16">
-      <header className="glass sticky top-0 z-20 border-b border-border">
+      <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="mx-auto grid min-h-14 max-w-md grid-cols-[1fr_auto_1fr] items-center px-3">
           <Link
             to="/"
             aria-label="Back to MEUTUALS"
-            className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <div className="text-center">
             <h1 className="font-display text-sm font-bold">Notifications</h1>
-            <p
-              className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground"
-              aria-live="polite"
-            >
+            <span className="sr-only" aria-live="polite">
               {unread > 0 ? `${unread} new` : "Caught up"}
-            </p>
+            </span>
           </div>
           <div className="flex justify-end">
             {unread > 0 ? (
@@ -279,18 +275,17 @@ function NotificationSection({
 }) {
   const headingId = `notifications-${title.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <section className="pt-5" aria-labelledby={headingId}>
-      <div className="flex items-center gap-3 pb-2">
-        <h2
-          id={headingId}
-          className={cn("label-mono", title === "New" ? "text-primary" : "text-muted-foreground")}
-        >
-          {title}
-        </h2>
-        <span className="h-px flex-1 bg-border" aria-hidden />
-        <span className="font-mono text-[9px] text-muted-foreground">{items.length}</span>
-      </div>
-      <ul className="divide-y divide-border/70 border-y border-border/70">
+    <section className="pt-6" aria-labelledby={headingId}>
+      <h2
+        id={headingId}
+        className={cn(
+          "px-1 pb-1 font-display text-base font-bold",
+          title === "New" ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
+        {title}
+      </h2>
+      <ul className="space-y-1.5">
         {items.map((notification) => (
           <NotificationRowItem
             key={notification.id}
@@ -324,17 +319,10 @@ function NotificationRowItem({
         type="button"
         onClick={() => onSelect(notification)}
         className={cn(
-          "group relative flex min-h-[88px] w-full items-start gap-3 px-1 py-3.5 text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+          "group relative flex min-h-[88px] w-full items-start gap-3 rounded-2xl px-3 py-4 text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
           isUnread ? "bg-primary/[0.045]" : "hover:bg-card/35",
         )}
       >
-        {isUnread && (
-          <span
-            className="absolute inset-y-3 -left-5 w-0.5 rounded-r-full bg-primary"
-            aria-hidden
-          />
-        )}
-
         <span className="relative shrink-0">
           <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-card text-xl ring-1 ring-border">
             {isImage ? (
@@ -368,19 +356,24 @@ function NotificationRowItem({
               “{notification.preview}”
             </span>
           )}
-          <span className="mt-2 flex items-center gap-2 text-[10px]">
-            <span className="text-muted-foreground">{timeAgoLabel(notification.created_at)}</span>
-            <span className="text-border" aria-hidden>
-              ·
-            </span>
-            <span className="font-semibold text-primary">
-              {notificationActionLabel(notification.kind)}
-            </span>
+          <span className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            {timeAgoLabel(notification.created_at)}
+            {isUnread && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+            )}
           </span>
         </span>
 
         <span className="flex min-h-11 shrink-0 items-center">
-          <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-active:translate-x-0.5" />
+          {notification.post_image_url ? (
+            <img
+              src={notification.post_image_url}
+              alt=""
+              className="h-11 w-11 rounded-md object-cover"
+            />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-active:translate-x-0.5" />
+          )}
         </span>
       </button>
     </li>

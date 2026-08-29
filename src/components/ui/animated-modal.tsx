@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ export function AnimatedModal({
   children,
   title,
   contentClassName = "",
+  contentStyle,
   center = false,
   side,
   preventClose = false,
@@ -30,6 +31,11 @@ export function AnimatedModal({
   /** Accessible name for the dialog. Rendered visually hidden — the visible heading inside `children` is still what users see. */
   title: string;
   contentClassName?: string;
+  /** Inline style on the Content element, applied after contentClassName so
+   *  it can override a CSS-driven size (e.g. a JS-measured
+   *  window.visualViewport height on iOS, where dvh alone can't be trusted
+   *  to track the on-screen keyboard in every browser/PWA mode). */
+  contentStyle?: CSSProperties;
   /** Always centered (no bottom-sheet-on-mobile behavior) — used for compact confirm-style dialogs. */
   center?: boolean;
   /** Slides in flush against the screen edge instead of rising from the
@@ -68,6 +74,7 @@ export function AnimatedModal({
             onEscapeKeyDown={block}
             onInteractOutside={block}
             onPointerDownOutside={block}
+            style={contentStyle}
             className={cn(
               "pointer-events-auto relative mx-auto w-full max-w-md border border-border bg-card duration-150",
               "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",

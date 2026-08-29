@@ -40,7 +40,7 @@ function ModerationQueuePage() {
 
   return (
     <div className="min-h-screen bg-habitat pb-12">
-      <header className="glass sticky top-0 z-20 border-b border-border">
+      <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3">
           <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> App

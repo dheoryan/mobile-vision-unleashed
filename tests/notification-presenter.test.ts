@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { NotificationRow } from "../src/lib/notifications.functions.ts";
 import {
-  notificationActionLabel,
   notificationCategory,
   notificationDestination,
   notificationSections,
@@ -27,13 +26,12 @@ function notification(overrides: Partial<NotificationRow>): NotificationRow {
     read_at: "2026-08-26T09:00:00.000Z",
     created_at: "2026-08-26T09:00:00.000Z",
     actor: null,
+    post_image_url: null,
     ...overrides,
   };
 }
 
-test("high-intent activity gets specific actions and stable categories", () => {
-  assert.equal(notificationActionLabel("venture_apply"), "Review request");
-  assert.equal(notificationActionLabel("hello"), "Review");
+test("high-intent activity resolves to stable categories", () => {
   assert.equal(notificationCategory("venture_accept"), "venture");
   assert.equal(notificationCategory("message"), "conversation");
 });

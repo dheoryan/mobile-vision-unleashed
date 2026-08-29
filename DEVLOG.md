@@ -205,6 +205,200 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Comments sheet height now driven by visualViewport, not just dvh
+
+- User sent a second pair of screenshots after the `dvh` fix, one from
+  Comments and one from a completely unrelated DM thread screen
+  (`MessagesPanel`/`ChatComposer`, which has zero `vh`/`dvh` anywhere in
+  its CSS) - both showed the exact same rounded "chevron-up/chevron-down/
+  checkmark" bar above the keyboard. Since it's pixel-identical across two
+  components that share no height logic at all, it can't be either
+  component's bug: it's iOS Safari's own system input-accessory toolbar
+  (the standard previous-field/next-field/Done control every website's
+  text inputs get), rendered as a rounded floating pill because this PWA
+  runs fullscreen/standalone with `viewport-fit=cover`. Told the user
+  plainly that this specific element is outside any website's control -
+  and asked what part of the two screenshots was actually the complaint,
+  rather than keep guessing blind after two prior attempts.
+- Answer: all three things bothered them (the system bar, the big empty
+  black space above the Comments input, and general crampedness) - but
+  since the system bar genuinely can't be changed and the DM thread's
+  crampedness has no CSS bug behind it (confirmed no vh/dvh there),
+  focused the actual fix on the one demonstrably-fixable piece: the empty
+  space in `CommentsModal`, which is a real layout bug, not native chrome.
+- `h-[80dvh]` was still the whole mechanism, and `dvh` genuinely does
+  solve the "address bar collapsing" case - but whether iOS also shrinks
+  it for the on-screen keyboard specifically, inside a standalone
+  installed PWA, is a documented inconsistency across iOS versions I
+  can't verify without the device in hand. Rather than swap to a
+  different CSS unit and hope again, switched to the API actually built
+  for this: `window.visualViewport` fires real resize/scroll events as
+  the keyboard opens and closes regardless of display mode. New
+  `useKeyboardAwareSheetHeight` hook in `CommentsModal.tsx`: once the
+  visual viewport is more than 150px shorter than `window.innerHeight`
+  (the keyboard is almost certainly up, not just an address-bar wobble),
+  it hands back an explicit pixel height at 96% of the true visible area
+  - overriding `h-[80dvh]` via inline style rather than replacing it, so
+  the CSS class keeps working exactly as before whenever the keyboard
+  isn't in the picture (desktop, Android, keyboard closed).
+- `AnimatedModal` (`animated-modal.tsx`) gained a new optional
+  `contentStyle` prop to carry this through - applied after
+  `contentClassName` so an inline style can override the CSS-driven
+  height, `undefined` by default so every other caller of this shared
+  primitive is completely unaffected.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean (this
+  edit was substantive, so unlike the earlier one-line touches to this
+  file, ran `--fix` on `CommentsModal.tsx` and it's now fully clean - the
+  90 pre-existing prettier errors are gone), full Node test suite 73/73,
+  full Cloudflare production build passes. Not yet exercised live - this
+  is a genuinely more robust mechanism than the previous two attempts,
+  but still needs a real device to confirm.
+
+### 2026-08-29 — Claude — Comments sheet used static `vh`, not `dvh` - likely why the iOS PWA keyboard bug persisted
+
+- User tested again on an actual installed iOS PWA (not just Safari) and
+  sent a screenshot showing the same class of problem: a large empty gap
+  above the comment input, with something else visible in a thin sliver
+  just above the keyboard. This is a genuinely different mechanism from
+  the earlier two iOS fixes (the CSS-cascade-layers zoom bug and the
+  missing safe-area padding) - not a regression of either, a separate bug
+  in the same problem space.
+- Root cause candidate: `CommentsModal.tsx`'s sheet was sized
+  `h-[80vh]`. Plain `vh` on iOS is fixed to the full screen height and
+  never shrinks when the on-screen keyboard appears - especially
+  unreliable in standalone/installed PWA mode, which is exactly what the
+  user is testing and exactly why a plain browser tab might look less
+  broken than the installed app. `dvh` (dynamic viewport height) is the
+  purpose-built fix for this, and every sibling sheet built this session
+  (`HelloRequestsSheet`, `Onboarding`, `SettingsScreen`) already
+  correctly uses `dvh` - `CommentsModal.tsx` was the one component still
+  on the older unit. Changed `h-[80vh]` to `h-[80dvh]`.
+- Honest caveat, unlike the two earlier iOS entries: I'm not fully
+  confident this is the complete fix. `dvh` reliably solves the "address
+  bar showing/hiding" viewport problem; whether it also correctly
+  shrinks for the *on-screen keyboard specifically* in an installed
+  standalone PWA depends on iOS actually honoring this app's existing
+  `interactive-widget=resizes-content` viewport meta value in standalone
+  mode, which is a documented area of real inconsistency across iOS
+  versions and display modes that I cannot verify without a live device.
+  Said so directly to the user rather than claim this is definitely
+  fixed a third time.
+- Checked every other `vh` (non-`dvh`) usage in `src/components/mutuals/`
+  for the same class of bug: the rest are either whole-page `min-h-screen`
+  containers with no keyboard-adjacent input, or `PushPromptModal.tsx`'s
+  `max-h-[90vh]` (a max-height cap on a permission prompt with no text
+  input at all) - neither matches the reported failure mode, so left
+  alone rather than changed on spec.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean
+  (pre-existing prettier drift in `CommentsModal.tsx`, confirmed
+  unchanged from earlier in this session, left alone), full Node test
+  suite 73/73, full Cloudflare production build passes. Not yet exercised
+  live - asked the user to re-test on the actual iOS PWA and report back
+  rather than assume this closes the issue.
+
+### 2026-08-29 — Claude — Notifications' Back button now matches every sibling page
+
+- User's screenshot showed the Back link with a visible rounded pill
+  background, and asked for it to match the rest of the app. Checked the
+  other three sub-pages with this exact "Back to the app" header
+  (`u.$handle.tsx`, `p.$postId.tsx`, `admin.reports.tsx`) - all three use
+  the identical minimal style, no pill, no persistent background:
+  `inline-flex items-center gap-1 text-xs text-muted-foreground
+  hover:text-foreground`. Notifications was the one outlier, styled with
+  `rounded-full`, `hover:bg-secondary`, `min-h-11`, and a focus ring that
+  none of the others have.
+  Matched it to the confirmed 3-for-3 pattern rather than guess which
+  style was "correct" - dropped the pill/background/focus-ring classes to
+  the same plain text+icon link the rest of the app already uses. Left
+  "Read all" alone - it's unique to this screen, no sibling to compare
+  against.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Fixed the row-softening fix: zero gap between rows
+
+- User's screenshot from the very next message: the rounded unread-tint
+  backgrounds had no gap between them at all, so adjacent rows' rounded
+  corners touched and merged into one continuous blob instead of reading
+  as separate cards - introduced by the previous entry's move from
+  `divide-y` borders straight to bare padding, with no actual gap added
+  between `<li>`s.
+- Added `space-y-1.5` to the `<ul>` in `NotificationSection`. One-line
+  fix, but only visible with real unread rows on screen (every row in the
+  user's screenshot happened to be unread, which is exactly why this was
+  invisible without a live device/browser check).
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Notification rows: softened, less "table"
+
+- User's screenshot after the Instagram redesign: "visual too stiff." The
+  culprits were structural, not stylistic tweaks - `divide-y`/`border-y`
+  around each section's `<ul>` drew a full-width hard rule between every
+  row and across the top/bottom, and the section header
+  (`label-mono` + a `flex-1` horizontal line + a numeric count badge)
+  read like a table header, not Instagram's plain section label.
+- Removed the dividers entirely - rows are separated by padding and the
+  unread background tint alone now, same as Instagram's actual list.
+  Section header simplified to a plain bold `font-display` label, no
+  rule line, no count. Row background (the unread tint / hover state)
+  now lives inside a `rounded-2xl` inset from the screen edges
+  (`px-3` instead of `px-1`) instead of a flat edge-to-edge rectangle,
+  so each row reads as a soft, distinct row rather than a spreadsheet
+  line - bumped vertical padding slightly (`py-3.5` -> `py-4`) to keep
+  the rhythm comfortable now that the dividing lines are gone.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Notifications: Instagram-style redesign + a real iOS header bug
+
+- User asked for an Instagram-like notification screen and reported
+  something wrong on iOS specifically for this screen. Investigated the
+  iOS report myself rather than guess: `notifications.tsx`'s sticky header
+  was missing `pt-[env(safe-area-inset-top)]`, which `Shared.tsx`
+  (AppHeader), `SettingsScreen.tsx`, and `TribeScreen.tsx` all already
+  have - on a notched/Dynamic-Island iPhone this would sit the back button
+  and title flush under the status bar, exactly the kind of thing that
+  reads as "the notification screen looks wrong on iOS." Same missing
+  padding existed on three sibling routes with an identical header
+  (`u.$handle.tsx`, `p.$postId.tsx`, `admin.reports.tsx`) - fixed all four
+  since it's the same one-line, safe addition, not scope creep.
+- Instagram-style changes, all four confirmed with the user rather than
+  guessed at once I saw the current design already had several IG-adjacent
+  elements (grouped sections, avatar category badges) worth keeping:
+  - Removed the colored left bar marking unread rows; added a small dot
+    next to the timestamp instead, matching Instagram's actual unread
+    signal.
+  - Dropped the bottom "View"/"Open room" text-link row entirely - the
+    whole row is already the tap target, an explicit CTA under it is not
+    an Instagram pattern.
+  - Added a small square post thumbnail on the right for like/comment/
+    reply/mention notifications, replacing the chevron when the related
+    post has an image - the single most recognizable piece of Instagram's
+    activity feed. Needed new data: `listMyNotifications`
+    (`notifications.functions.ts`) now batch-fetches image URLs for every
+    distinct `post_id` in the page, reusing `attachPostImageUrls` from
+    `posts.functions.ts` (now exported) rather than duplicating the
+    signed-URL resolution logic. Falls back to the chevron for
+    notifications with no `post_id` or no image - no new RLS surface,
+    since a viewer already reaches this exact post by tapping the row.
+  - Simplified the header: dropped the visible "N NEW"/"Caught up" line
+    under the title, kept the same text as an `sr-only` `aria-live`
+    announcement so screen readers don't lose that signal.
+  - Removed `notificationActionLabel` entirely (`notification-presenter.ts`)
+    rather than leave it as dead code once its only call site was gone -
+    updated its test to drop the now-nonexistent assertions and added the
+    new `post_image_url` field to the test's `NotificationRow` fixture.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean on every
+  substantively-touched file (pre-existing prettier drift in
+  `posts.functions.ts` and `admin.reports.tsx`, both only touched by a
+  single line each, confirmed unchanged via `git stash` diff and left
+  alone), full Node test suite 73/73, full Cloudflare production build
+  passes. Not yet exercised live or deployed.
+
 ### 2026-08-29 — Claude — Moots picker grouped by Tribe
 
 - User's screenshot showed the "New message" Moots drawer as one flat

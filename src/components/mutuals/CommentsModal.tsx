@@ -10,24 +10,69 @@ import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
-import {
-  useMentionPicker,
-  useMentionRegistry,
-  MentionSuggestions,
-} from "./MentionInput";
+import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
+/**
+ * `h-[80dvh]` alone isn't enough on iOS: `dvh` reliably tracks the browser
+ * chrome (address bar) collapsing, but whether it also shrinks for the
+ * on-screen keyboard specifically - especially inside a standalone,
+ * installed PWA - is inconsistent across iOS versions. `visualViewport` is
+ * the API actually built for this: it fires real resize events as the
+ * keyboard opens/closes regardless of display mode, so once it reports a
+ * visible area meaningfully smaller than the layout viewport (the keyboard
+ * is almost certainly up), this measures the true space and hands back an
+ * explicit pixel height - overriding the CSS class rather than trusting it.
+ * Returns undefined the rest of the time, so `h-[80dvh]` keeps working
+ * exactly as before whenever the keyboard isn't in the picture.
+ */
+function useKeyboardAwareSheetHeight(active: boolean) {
+  const [style, setStyle] = useState<{ height: string } | undefined>(undefined);
+
+  useEffect(() => {
+    if (!active) {
+      setStyle(undefined);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      const shrunkByKeyboard = window.innerHeight - vv.height > 150;
+      setStyle(shrunkByKeyboard ? { height: `${Math.round(vv.height * 0.96)}px` } : undefined);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [active]);
+
+  return style;
+}
+
 export function CommentsModal({
-  open, onClose, postId, highlightCommentId,
-}: { open: boolean; onClose: () => void; postId: string | null; highlightCommentId?: string | null }) {
+  open,
+  onClose,
+  postId,
+  highlightCommentId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  postId: string | null;
+  highlightCommentId?: string | null;
+}) {
   const me = useMyProfile();
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<CommentRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sheetStyle = useKeyboardAwareSheetHeight(open && !!postId);
 
   const commentsQuery = useComments(open ? postId : null);
   const addComment = useAddComment(postId ?? "");
@@ -52,9 +97,7 @@ export function CommentsModal({
   useEffect(() => {
     if (!open || !highlightCommentId || commentsQuery.isLoading) return;
     const attempt = (left: number) => {
-      const el = document.querySelector<HTMLElement>(
-        `[data-comment-id="${highlightCommentId}"]`,
-      );
+      const el = document.querySelector<HTMLElement>(`[data-comment-id="${highlightCommentId}"]`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("ring-2", "ring-primary", "rounded-lg");
@@ -89,7 +132,13 @@ export function CommentsModal({
     );
   };
 
-  const onPickMention = (p: { id: string; display_name: string; handle: string | null; avatar_emoji: string; avatar_url: string | null }) => {
+  const onPickMention = (p: {
+    id: string;
+    display_name: string;
+    handle: string | null;
+    avatar_emoji: string;
+    avatar_url: string | null;
+  }) => {
     if (!p.handle) return;
     register(p);
     if (picker.start < 0) return;
@@ -114,7 +163,14 @@ export function CommentsModal({
     setReplyTo(c);
     if (c.author?.handle) {
       const prefix = `@${c.author.handle} `;
-      if (c.author.id) register({ id: c.author.id, display_name: c.author.display_name, handle: c.author.handle, avatar_emoji: c.author.avatar_emoji, avatar_url: c.author.avatar_url });
+      if (c.author.id)
+        register({
+          id: c.author.id,
+          display_name: c.author.display_name,
+          handle: c.author.handle,
+          avatar_emoji: c.author.avatar_emoji,
+          avatar_url: c.author.avatar_url,
+        });
       setText((prev) => (prev.startsWith(prefix) ? prev : prefix + prev.replace(/^@\S+\s*/, "")));
       requestAnimationFrame(() => {
         inputRef.current?.focus();
@@ -130,91 +186,115 @@ export function CommentsModal({
   return (
     <AnimatedModal
       open={open && !!postId}
-      onOpenChange={(o) => { if (!o) onClose(); }}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
       title="Comments"
-      contentClassName="flex h-[80vh] flex-col"
+      contentClassName="flex h-[80dvh] flex-col"
+      contentStyle={sheetStyle}
     >
-        <header className="flex items-center justify-between border-b border-border px-5 py-3">
-          <h2 className="font-display text-base font-bold">Comments</h2>
-          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
-          </button>
-        </header>
+      <header className="flex items-center justify-between border-b border-border px-5 py-3">
+        <h2 className="font-display text-base font-bold">Comments</h2>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </header>
 
-        <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
-          {commentsQuery.isLoading ? (
-            <SkeletonList tribeColor={tribeColor} />
-          ) : commentsQuery.isError ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <AlertTriangle className="h-10 w-10 text-destructive" />
-              <p className="text-sm text-foreground">Couldn't load comments.</p>
-              <button onClick={() => commentsQuery.refetch()} className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
-                Retry
-              </button>
-            </div>
-          ) : roots.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <MessageSquare className="h-10 w-10 text-muted-foreground" />
-              <p className="text-sm font-semibold">No comments yet</p>
-              <p className="text-xs text-muted-foreground">Be the first to say something.</p>
-            </div>
-          ) : (
-            roots.map((c) => (
-              <CommentNode
-                key={c.id}
-                c={c}
-                replies={tree.get(c.id) ?? []}
-                tribeColor={tribeColor}
-                meId={user?.id ?? null}
-                meAvatar={me?.avatar ?? "🙂"}
-                meName={me?.name?.trim() || "You"}
-                onReply={startReply}
-                onDelete={(id) => deleteComment.mutate(id)}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="relative border-t border-border p-3">
-          {replyTo && (
-            <ReplyPreview
-              name={replyTo.author?.display_name || "comment"}
-              snippet={replyTo.content || ""}
-              accentColor={tribeColor}
-              onCancel={() => setReplyTo(null)}
+      <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        {commentsQuery.isLoading ? (
+          <SkeletonList tribeColor={tribeColor} />
+        ) : commentsQuery.isError ? (
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <p className="text-sm text-foreground">Couldn't load comments.</p>
+            <button
+              onClick={() => commentsQuery.refetch()}
+              className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+            >
+              Retry
+            </button>
+          </div>
+        ) : roots.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <MessageSquare className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm font-semibold">No comments yet</p>
+            <p className="text-xs text-muted-foreground">Be the first to say something.</p>
+          </div>
+        ) : (
+          roots.map((c) => (
+            <CommentNode
+              key={c.id}
+              c={c}
+              replies={tree.get(c.id) ?? []}
+              tribeColor={tribeColor}
+              meId={user?.id ?? null}
+              meAvatar={me?.avatar ?? "🙂"}
+              meName={me?.name?.trim() || "You"}
+              onReply={startReply}
+              onDelete={(id) => deleteComment.mutate(id)}
             />
-          )}
-          <div className="relative">
-            <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
-            <div className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2">
-              <input
-                ref={inputRef}
-                value={text}
-                onChange={onChange}
-                onKeyUp={(e) => setCaret(e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
-                onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
-                className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm"
-              />
-              <button
-                onClick={send}
-                disabled={!text.trim()}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground disabled:opacity-40"
-                style={{ backgroundColor: tribeColor }}
-                aria-label="Send comment"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
+          ))
+        )}
+      </div>
+
+      <div className="relative border-t border-border p-3">
+        {replyTo && (
+          <ReplyPreview
+            name={replyTo.author?.display_name || "comment"}
+            snippet={replyTo.content || ""}
+            accentColor={tribeColor}
+            onCancel={() => setReplyTo(null)}
+          />
+        )}
+        <div className="relative">
+          <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
+          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2">
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={onChange}
+              onKeyUp={(e) =>
+                setCaret(e.currentTarget.selectionStart ?? e.currentTarget.value.length)
+              }
+              onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
+              className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm"
+            />
+            <button
+              onClick={send}
+              disabled={!text.trim()}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground disabled:opacity-40"
+              style={{ backgroundColor: tribeColor }}
+              aria-label="Send comment"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
         </div>
+      </div>
     </AnimatedModal>
   );
 }
 
 function CommentNode({
-  c, replies, tribeColor, meId, meAvatar, meName, onReply, onDelete,
+  c,
+  replies,
+  tribeColor,
+  meId,
+  meAvatar,
+  meName,
+  onReply,
+  onDelete,
 }: {
   c: CommentRow;
   replies: CommentRow[];
@@ -227,11 +307,28 @@ function CommentNode({
 }) {
   return (
     <div>
-      <CommentItem c={c} tribeColor={tribeColor} meId={meId} meAvatar={meAvatar} meName={meName} onReply={onReply} onDelete={onDelete} />
+      <CommentItem
+        c={c}
+        tribeColor={tribeColor}
+        meId={meId}
+        meAvatar={meAvatar}
+        meName={meName}
+        onReply={onReply}
+        onDelete={onDelete}
+      />
       {replies.length > 0 && (
         <div className="mt-2 space-y-2 border-l border-border/60 pl-4">
           {replies.map((r) => (
-            <CommentItem key={r.id} c={r} tribeColor={tribeColor} meId={meId} meAvatar={meAvatar} meName={meName} onReply={onReply} onDelete={onDelete} />
+            <CommentItem
+              key={r.id}
+              c={r}
+              tribeColor={tribeColor}
+              meId={meId}
+              meAvatar={meAvatar}
+              meName={meName}
+              onReply={onReply}
+              onDelete={onDelete}
+            />
           ))}
         </div>
       )}
@@ -262,7 +359,13 @@ function renderContent(content: string) {
 }
 
 function CommentItem({
-  c, tribeColor, meId, meAvatar, meName, onReply, onDelete,
+  c,
+  tribeColor,
+  meId,
+  meAvatar,
+  meName,
+  onReply,
+  onDelete,
 }: {
   c: CommentRow;
   tribeColor: string;
@@ -274,12 +377,8 @@ function CommentItem({
 }) {
   const mine = !!meId && c.author_id === meId;
   const isPending = c.id.startsWith("tmp-");
-  const avatar = mine
-    ? meAvatar
-    : (c.author?.avatar_url || c.author?.avatar_emoji || "🙂");
-  const name = mine
-    ? meName
-    : (c.author?.display_name || "Someone");
+  const avatar = mine ? meAvatar : c.author?.avatar_url || c.author?.avatar_emoji || "🙂";
+  const name = mine ? meName : c.author?.display_name || "Someone";
   const isImg = avatar.startsWith("data:") || avatar.startsWith("http");
   const handle = c.author?.handle ?? c.author?.id ?? null;
 
@@ -297,7 +396,11 @@ function CommentItem({
     if (triggered.current || isPending) return;
     triggered.current = true;
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      try { navigator.vibrate?.(15); } catch { /* noop */ }
+      try {
+        navigator.vibrate?.(15);
+      } catch {
+        /* noop */
+      }
     }
     onReply(c);
   };
@@ -395,7 +498,13 @@ function CommentItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {handle && !mine ? (
-              <Link to="/u/$handle" params={{ handle }} className="text-xs font-semibold hover:underline">{name}</Link>
+              <Link
+                to="/u/$handle"
+                params={{ handle }}
+                className="text-xs font-semibold hover:underline"
+              >
+                {name}
+              </Link>
             ) : (
               <p className="text-xs font-semibold">{name}</p>
             )}
@@ -404,7 +513,10 @@ function CommentItem({
           <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
             <span>{isPending ? "sending…" : timeAgoLabel(c.created_at)}</span>
             {!isPending && (
-              <button onClick={() => onReply(c)} className="inline-flex items-center gap-1 hover:text-foreground">
+              <button
+                onClick={() => onReply(c)}
+                className="inline-flex items-center gap-1 hover:text-foreground"
+              >
                 <Reply className="h-3 w-3" /> Reply
               </button>
             )}
@@ -438,7 +550,10 @@ function SkeletonList({ tribeColor }: { tribeColor: string }) {
     <div className="space-y-4">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex items-start gap-3">
-          <Skeleton className="h-8 w-8 rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 18%, transparent)` }} />
+          <Skeleton
+            className="h-8 w-8 rounded-full"
+            style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 18%, transparent)` }}
+          />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-3 w-full" />

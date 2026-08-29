@@ -37,31 +37,6 @@ export function notificationCategory(kind: NotificationKind): NotificationCatego
   return "social";
 }
 
-export function notificationActionLabel(kind: NotificationKind): string {
-  switch (kind) {
-    case "follow":
-      return "View profile";
-    case "message":
-      return "Reply";
-    case "hello":
-      return "Review";
-    case "hello_accepted":
-      return "Message";
-    case "venture_apply":
-      return "Review request";
-    case "venture_invite":
-      return "View invite";
-    case "venture_accept":
-      return "View ticket";
-    case "venture_message":
-      return "Open chat";
-    case "tribe_join":
-      return "Open room";
-    default:
-      return "View";
-  }
-}
-
 export function notificationDestination(item: NotificationRow): NotificationDestination {
   if (item.kind === "new_post" && item.post_id) {
     return { kind: "post", postId: item.post_id, scrollOnly: true };
