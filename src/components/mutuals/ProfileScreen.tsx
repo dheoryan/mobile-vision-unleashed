@@ -39,6 +39,7 @@ import { CitySelect } from "./CitySelect";
 import { TribeMark } from "./TribeMark";
 import { timingLabel } from "@/lib/venture-time";
 import { avatarFileIssue } from "@/lib/avatar-file";
+import { AvatarLightbox } from "./AvatarLightbox";
 
 type GridTab = "posts" | "saved" | "ventures";
 
@@ -51,7 +52,11 @@ export function ProfileScreen({
 }) {
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
   const [gridTab, setGridTab] = useState<GridTab>("posts");
+  const hasPhotoAvatar = Boolean(
+    profile.avatar?.startsWith("data:") || profile.avatar?.startsWith("http"),
+  );
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
   const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
@@ -101,16 +106,24 @@ export function ProfileScreen({
         <section className="relative mt-5">
           <div className="flex items-center gap-4">
             <span className="relative">
-              <span
-                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
-                style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
-              >
-                {profile.avatar?.startsWith("data:") || profile.avatar?.startsWith("http") ? (
+              {hasPhotoAvatar ? (
+                <button
+                  type="button"
+                  onClick={() => setAvatarLightboxOpen(true)}
+                  aria-label="View profile photo"
+                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card ring-2 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
+                >
                   <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  profile.avatar
-                )}
-              </span>
+                </button>
+              ) : (
+                <span
+                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
+                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
+                >
+                  {profile.avatar}
+                </span>
+              )}
               {showPlusBadge(profile.plan) && <PlusBadge size="md" />}
             </span>
             <div className="min-w-0 flex-1">
@@ -450,6 +463,15 @@ export function ProfileScreen({
           toast.success("Profile updated.");
         }}
       />
+
+      {hasPhotoAvatar && (
+        <AvatarLightbox
+          open={avatarLightboxOpen}
+          onClose={() => setAvatarLightboxOpen(false)}
+          src={profile.avatar}
+          alt={`${profile.name || "Your"} profile photo`}
+        />
+      )}
     </div>
   );
 }

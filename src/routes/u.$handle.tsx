@@ -7,6 +7,7 @@ import { listPostsByAuthor } from "@/lib/posts.functions";
 import { useProfileStats, useContactStatus } from "@/lib/social-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { HelloModal } from "@/components/mutuals/HelloModal";
+import { AvatarLightbox } from "@/components/mutuals/AvatarLightbox";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
@@ -55,6 +56,7 @@ function PublicProfilePage() {
   const statsQ = useProfileStats(profile?.id ?? null);
   const contact = useContactStatus(isMe ? null : (profile?.id ?? null));
   const [helloOpen, setHelloOpen] = useState(false);
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
   const myProfile = useMyProfile();
   const sameTribe = !!profile?.tribe_ids?.some((id) => myProfile?.tribeIds.includes(id as TribeId));
 
@@ -108,16 +110,24 @@ function PublicProfilePage() {
         <section className="relative mt-5">
           <div className="flex items-center gap-4">
             <span className="relative">
-              <span
-                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
-                style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
-              >
-                {isImg ? (
+              {isImg ? (
+                <button
+                  type="button"
+                  onClick={() => setAvatarLightboxOpen(true)}
+                  aria-label="View profile photo"
+                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card ring-2 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
+                >
                   <img src={avatar} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  avatar
-                )}
-              </span>
+                </button>
+              ) : (
+                <span
+                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-card text-4xl ring-2"
+                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
+                >
+                  {avatar}
+                </span>
+              )}
               {showPlusBadge(profile.plan) && <PlusBadge size="md" />}
             </span>
             <div className="min-w-0 flex-1">
@@ -252,6 +262,15 @@ function PublicProfilePage() {
           recipientName={profile.display_name?.trim() || "them"}
           hellosLeft={contact.data?.hellos_left_this_month}
           sameTribe={sameTribe}
+        />
+      )}
+
+      {isImg && (
+        <AvatarLightbox
+          open={avatarLightboxOpen}
+          onClose={() => setAvatarLightboxOpen(false)}
+          src={avatar}
+          alt={`${profile.display_name || "Their"} profile photo`}
         />
       )}
     </div>

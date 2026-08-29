@@ -205,6 +205,29 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Instagram-style profile photo viewer
+
+- User asked for tapping a profile picture to behave like Instagram's.
+  New `AvatarLightbox.tsx`: full-screen black backdrop, the photo shown
+  large and circular, tap anywhere (including the photo) to dismiss, plus
+  an explicit close button for discoverability. Deliberately simpler than
+  the existing `PostMediaLightbox` (which offers pinch/pan/zoom for a
+  rectangular post image) - a profile picture is a portrait people look
+  at, not something to zoom around, matching Instagram's own treatment.
+  Both share the same `AnimatedModal` primitive and safe-area handling.
+- Wired into both places this exact avatar-with-Tribe-color-ring pattern
+  already exists: `ProfileScreen.tsx` (own profile) and `u.$handle.tsx`
+  (public profile) - not just the one the user screenshotted, since it's
+  the identical UI element in both places and leaving one updated while
+  the other stayed a static image would read as an inconsistency bug on
+  its own. Only wired up when there's a real uploaded photo
+  (`avatar.startsWith("data:") || avatar.startsWith("http")`) - an emoji
+  placeholder avatar has nothing to view full-screen, so it stays a
+  plain non-interactive span exactly as before.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
 ### 2026-08-29 — Claude — Comments sheet height now driven by visualViewport, not just dvh
 
 - User sent a second pair of screenshots after the `dvh` fix, one from
