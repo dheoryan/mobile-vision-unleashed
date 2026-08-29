@@ -98,7 +98,6 @@ export function TribeScreen({
   onOpenVentures,
   onOpenChats,
   onOpenMemberProfile,
-  onOpenMemberThread,
 }: {
   profile: Profile;
   setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
@@ -111,7 +110,6 @@ export function TribeScreen({
   onOpenVentures?: () => void;
   onOpenChats?: () => void;
   onOpenMemberProfile?: (handle: string) => void;
-  onOpenMemberThread?: (userId: string) => void;
 }) {
   const { user } = useAuth();
   const initial =
@@ -232,7 +230,6 @@ export function TribeScreen({
         error={membersQuery.isError}
         onRetry={() => void membersQuery.refetch()}
         onOpenProfile={onOpenMemberProfile}
-        onMessage={onOpenMemberThread}
       />
     </div>
   );

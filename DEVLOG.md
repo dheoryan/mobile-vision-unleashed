@@ -205,6 +205,264 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-29 — Claude — Moots picker grouped by Tribe
+
+- User's screenshot showed the "New message" Moots drawer as one flat
+  list. Grouped it by each Moot's primary Tribe (`tribe_ids[0]`), in the
+  app's canonical Tribe order (`TRIBES`) rather than however the RPC
+  happened to return them, with a small label-mono header per group
+  (`TribeMark` + Tribe name in that Tribe's color) - same visual language
+  already used for Tribe accents elsewhere. A Moot with no Tribe at all
+  shouldn't be reachable post-onboarding, but falls into a trailing
+  "Other" bucket instead of silently vanishing if it ever happens.
+- Fixed a real (if minor) hook-dependency bug while doing this: the
+  `useMemo` grouping depended on `rows` (`moots.data ?? []`), a fresh
+  array literal on every render when `moots.data` is `undefined` - ESLint
+  caught it (`react-hooks/exhaustive-deps`). Fixed by depending on
+  `moots.data` directly and deriving the fallback array inside the memo.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full Node
+  test suite 73/73, full Cloudflare production build passes. Not yet
+  exercised live or deployed.
+
+### 2026-08-29 — Claude — Same-Tribe-requires-Hello migration confirmed applied
+
+- User ran `20260829030000_same_tribe_requires_hello.sql`: "Query
+  succeeded. No rows returned." Both DM-gating migrations from this
+  thread are now confirmed live in production, applied in the right
+  order (rule change first, backfill second, though the backfill would
+  have worked either way since it only touches `hellos`/`messages`).
+  Tribe membership alone no longer grants DM access; existing
+  conversations were separately backfilled as Moots. All app-code changes
+  from this session (this DM-gating fix, gender, default avatars, iOS
+  zoom fix, Settings/Hellos polish) are still queued for one deploy.
+
+### 2026-08-29 — Claude — Moots backfill applied to production
+
+- User ran the corrected `20260829040000_backfill_moots_from_conversations.sql`:
+  "Query succeeded. No rows returned." Third attempt, first to actually
+  write - the previous two failed before the insert ran (permission
+  denied, then an FK violation), so nothing was double-applied. Existing
+  conversations without a prior accepted Hello now show up as Moots.
+  Unconfirmed whether `20260829030000_same_tribe_requires_hello.sql` (the
+  actual same-Tribe rule change this backfill exists to complement) has
+  been applied yet - asked in chat rather than assume. The code side
+  (HelloModal copy, TribeMembersSheet routing fix) is still queued for
+  deploy along with everything else built this session either way.
+
+### 2026-08-29 — Claude — Backfill migration also has to tolerate orphaned messages
+
+- Second failed attempt: after the `DISABLE TRIGGER USER` fix, the same
+  migration then failed with `insert or update on table "hellos" violates
+  foreign key constraint "hellos_recipient_id_fkey" ... Key (recipient_id)
+  =(...) is not present in table "users"`. Production `messages` has rows
+  whose sender_id/recipient_id point at a deleted account -
+  `messages.sender_id`/`recipient_id` aren't a cascading FK to
+  `auth.users` the way `hellos`' are, so a deleted account's old message
+  rows just stick around referencing a UUID that no longer exists
+  anywhere. `hellos` DOES enforce that FK, so my synthetic insert for that
+  pair failed outright instead of silently succeeding with bad data - the
+  loud failure this repo's whole change protocol exists to prefer.
+- Fixed by filtering the source query itself: only consider `messages`
+  rows where both `sender_id` and `recipient_id` still exist in
+  `auth.users` before grouping into pairs. This is correct independent of
+  the FK error too - a deleted account obviously can't retroactively
+  become anyone's Moot.
+- Re-rehearsed with the orphan scenario actually reproduced this time
+  (not assumed): added a person to the seed who sends a message but is
+  deliberately never inserted into the stub `auth.users`, using the same
+  `nosuperuser` restricted-owner role from the previous entry. Confirmed
+  the filtered migration runs clean with no FK error, the orphaned pair
+  gets no synthetic row, and exactly the same 2-row backfill count as
+  before for the two legitimate pairs - re-ran the full prior 7-check
+  suite alongside it with no regressions.
+- Two failed live attempts in a row on the same migration is exactly what
+  the rehearsal process exists to prevent, and it still let two production
+  data-quality realities through: a privilege restriction the local Docker
+  image doesn't have, and an orphaned-data condition the clean synthetic
+  seed didn't include. Both are now standing checklist items for any
+  future migration that inserts synthetic rows into a live table:
+  rehearse as a restricted `nosuperuser` owner (not the image default),
+  and seed at least one deliberately-broken/orphaned reference case, not
+  just the happy path.
+- Not yet re-attempted in production - corrected SQL below, still Red,
+  still back up first.
+
+### 2026-08-29 — Claude — Rehearsal gap: DISABLE TRIGGER ALL needs superuser, Supabase's role isn't one
+
+- User ran the Moots-backfill migration; it failed on
+  `alter table public.hellos disable trigger all` with `permission denied:
+  "RI_ConstraintTrigger_c_25825" is a system trigger`. My Docker rehearsal
+  connects as the image's default `postgres` role, which IS a real
+  superuser - `DISABLE TRIGGER ALL` includes the internal RI triggers that
+  back `sender_id`/`recipient_id`'s foreign keys, and only a superuser may
+  touch those. Supabase's SQL editor runs as a role that owns the tables
+  but isn't OS-level superuser, so it hit exactly that wall. This is the
+  second time this session a fix looked right by reading and by rehearsal
+  but failed live for a reason specific to the *privilege level* the
+  rehearsal ran under, not the SQL's logic (the first was the CSS
+  cascade-layers bug a few entries up).
+- Fix: `disable trigger user` / `enable trigger user` instead of `all` -
+  scopes to the three triggers this migration actually needs to bypass
+  (retry window, monthly cap, notify) and never touches the FK triggers,
+  which was never the intent anyway.
+- Re-rehearsed properly this time, not just re-run as superuser: created a
+  `nosuperuser` role, made it own the stub `hellos`/`messages`/
+  `notifications` tables (matching how Supabase's SQL-editor role relates
+  to its tables), and first confirmed `disable trigger all` reproduces the
+  *exact* same `permission denied: "RI_ConstraintTrigger_..." is a system
+  trigger` error as production before touching anything - then confirmed
+  the fixed migration runs clean end-to-end as that same restricted role,
+  and re-ran the full 7-check verification suite from the previous entry
+  against that run. All passed. Container removed after.
+- Standing note for future migrations: any migration using `DISABLE
+  TRIGGER` must rehearse as a `nosuperuser` owner role, not the Docker
+  image's default superuser - the earlier rehearsal's clean pass was a
+  false negative.
+- Not yet re-attempted in production - corrected SQL below, still Red,
+  still back up first.
+
+### 2026-08-29 — Claude — Backfill: existing conversations become Moots too
+
+- Follow-up to the same-Tribe-requires-Hello change: that migration's
+  message-history branch already keeps DM access for anyone who was
+  already talking, but they'd never show up in each other's Moots list or
+  count, or qualify for Moots-based Venture invites, since no Hello was
+  ever sent or accepted between them. Asked the user to confirm which
+  behavior they wanted rather than assume - they chose to backfill Moots
+  status too.
+- Scoped broadly, not just to the old same-Tribe bypass: ANY pair with
+  real message history and no existing accepted Hello gets one, since a
+  pre-existing conversation without an accepted Hello could only happen
+  via that bypass or a shared active Venture - both are a real
+  relationship, not cold contact.
+- `supabase/migrations/20260829040000_backfill_moots_from_conversations.sql`:
+  one synthetic 'accepted' row per (least, greatest) unordered pair found
+  in `messages` with no existing accepted `hellos` row in either
+  direction - `distinct on` picks each pair's single earliest message.
+  Sender/recipient direction is whoever sent that first message;
+  `created_at` is that message's timestamp (when the relationship
+  actually started); `decided_at` is `now()` (when this migration did the
+  deciding). Wrapped in `disable trigger all` / `enable trigger all`:
+  `hellos_enforce_retry_window` and `hellos_enforce_monthly_cap` exist to
+  gate a live user's send action, not an administrative backfill, and
+  `trg_notify_on_hello` would otherwise fire a fresh "X said hello"
+  notification for a conversation that might be months old.
+- This is Red under `CHANGE_PROTOCOL.md` and inserts real rows into a
+  production table with live user data - back up before running, unlike
+  the schema-only migrations earlier this session.
+- Rehearsed on a throwaway Postgres 16 container with a stub `hellos`
+  (matching the current constraint/trigger shape exactly, not a
+  simplified stand-in, since correctness here specifically depends on
+  those triggers behaving right around the disable/enable) plus
+  `messages`/`notifications`/`auth.users`. Six scenarios: a real
+  conversation with no Hello gets backfilled once, at the correct
+  direction and exact source timestamp; a pair that already has an
+  accepted Hello is never duplicated; an old declined Hello with no
+  actual messages gets no synthetic row; two people who never interacted
+  at all get nothing; 50 messages across 120 days collapse into exactly
+  one row (volume/perf sanity check); and neither backfilled pair
+  produced a notification. Confirmed triggers were correctly re-enabled
+  afterward by attempting a live duplicate Hello post-backfill and seeing
+  it correctly rejected. Container removed after.
+- No app code changes - this is a standalone data migration. Verification
+  from the previous entry (tsc/lint/tests/build) still holds; not yet
+  applied to production - migration SQL in chat, back up first.
+
+### 2026-08-29 — Claude — Same-Tribe pairs must Hello too, just free
+
+- User: Tribemates should have to send and accept a Hello before they can
+  DM or count as Moots, exactly like anyone else - the only difference is
+  it shouldn't cost a Hello token. Previously `can_direct_message` had a
+  branch that granted DM access purely from shared `tribe_ids`, no Hello
+  ever required - Moots (`get_profile_stats`/`listMyMootProfiles`) was
+  already strictly "accepted Hello" even for Tribemates, so this was an
+  inconsistency between what counted as a real connection and what merely
+  unlocked messaging.
+- `hello_is_capped()` (from `20260828040000_hello_retry_and_split_cap.sql`)
+  already excludes same-Tribe pairs from the monthly cap - "free" was
+  already true and needed no DB change. Only the auto-grant branch needed
+  removing.
+- `supabase/migrations/20260829030000_same_tribe_requires_hello.sql`:
+  redefines `can_direct_message` with the `tribe_ids && tribe_ids` branch
+  deleted; accepted-Hello, shared-active-Venture, and existing-message-
+  history (grandfather clause, so no live conversation gets retroactively
+  locked) branches are untouched. Red under `CHANGE_PROTOCOL.md` -
+  redefines the SECURITY DEFINER function backing the `messages` insert
+  RLS policy.
+- Rehearsed on a throwaway Postgres 16 container: stubbed `profiles`,
+  `hellos`, `ventures`, `venture_applications`, `messages`, `blocks`, and
+  simplified (no-RLS, since nothing in the rehearsal enables RLS)
+  stand-ins for `has_blocked`/`is_venture_member`. Six scenarios checked:
+  same-Tribe-no-Hello now blocked (the actual change), cross-Tribe
+  accepted-Hello still allowed, shared-Venture still allowed, blocked pair
+  still blocked, pre-existing message history still grandfathered in, and
+  messaging yourself is never allowed. All six passed. Container removed
+  after.
+- Found and fixed a real dead-end while auditing every place that opens a
+  DM: `TribeMembersSheet`'s message-icon button jumped straight to a raw
+  thread (`onMessage` -> `onOpenMemberThread` -> push `{kind: "messages",
+  userId}`), bypassing the Hello check entirely - for anyone not yet
+  Moots, that would now open an empty thread with a composer that fails
+  silently on send. Repointed it to `onOpenProfile` instead, reusing
+  `u.$handle.tsx`'s already-correct Message/Say-hello branching rather
+  than duplicating the check in a list of many rows. Removed the
+  now-fully-unused `onMessage`/`onOpenMemberThread` prop chain through
+  `TribeMembersSheet` -> `TribeScreen` -> `routes/index.tsx` rather than
+  leave it as dead code. `ExploreDeck.tsx`'s own Message button was
+  already correctly gated on `canMessage` from `useContactStatus` and
+  needed no change.
+- `HelloModal.tsx` assumed cross-Tribe was the only reason to see it
+  ("You're not in the same Tribe, so this needs their okay first") - now
+  wrong, since Tribemates now go through it too. Added a `sameTribe` prop
+  (falls back to `signals?.same_tribe` when not passed explicitly, so
+  `ExploreDeck`/`DiscoverScreen` - which already pass `signals` - get this
+  for free) that swaps the copy, marks the Hello as free in the counter
+  line, and stops the monthly-cap `disabled`/"used this month's Hellos"
+  states from blocking a same-Tribe send even if the cross-Tribe cap is
+  already exhausted. `u.$handle.tsx` computes `sameTribe` itself by
+  overlapping the viewer's own `tribeIds` (via `useMyProfile()`) against
+  the visited profile's `tribe_ids`, since it has no `signals` object.
+  Known minor gap: a Saved-profile row reached via text search (no
+  `signals`) will show the cross-Tribe copy/cap behavior even if the
+  person happens to share a Tribe - cosmetic only, since the actual
+  enforcement is server-side and unaffected either way.
+- Verification: `npx tsc --noEmit` clean, targeted ESLint clean, full
+  Node test suite 73/73, full Cloudflare production build passes. Not yet
+  applied to production or deployed - migration SQL below.
+
+### 2026-08-29 — Claude — Fixed the iOS input-zoom fix (it never actually applied)
+
+- User reported the iOS keyboard-zoom issue still happened after deploy.
+  Root cause: the earlier fix put `input, textarea, select { font-size:
+  16px }` inside `@layer base` in `styles.css`. Nearly every affected
+  input carries an explicit Tailwind text-size utility (`text-sm`,
+  `text-xs`, ...) directly on the element, and those classes live in
+  Tailwind's `utilities` layer. Per the CSS cascade-layers spec, a rule in
+  a *later* layer always wins over one in an earlier layer regardless of
+  specificity - `utilities` comes after `base` in Tailwind's layer order,
+  so every one of those utility classes silently out-prioritized the fix.
+  It only ever took effect on `CommentsModal`'s input, which I'd also
+  edited directly to `text-base sm:text-sm` (16px) - not because the CSS
+  rule reached it, but because that one input's own class already matched
+  the target size, no override needed to already be a no-op.
+- Fixed by moving the exact same rule outside of any `@layer` entirely
+  (still gated by the same `@supports (-webkit-touch-callout: none)` +
+  `(hover: none) and (pointer: coarse)` combo, so Android/desktop stay
+  unaffected). Unlayered CSS always wins over layered CSS regardless of
+  source order or specificity, per spec - this is the standard technique
+  for overriding a utility framework's own utility classes without
+  `!important` or hunting down every call site.
+- Verified in the actual compiled output this time, not just by reading
+  the source: built the app, confirmed in the generated CSS that
+  `.text-sm` sits inside `@layer utilities{...}` while the touch-callout
+  rule appears as a bare `@supports` block with no enclosing `@layer` at
+  all - the exact structural guarantee the fix depends on.
+- Verification: `npx tsc --noEmit` clean, full Node test suite 73/73,
+  full Cloudflare production build passes, compiled CSS inspected
+  directly to confirm the layer structure. Not yet deployed - this is a
+  fix to something already shipped, so worth pushing promptly once
+  confirmed.
+
 ### 2026-08-29 — Claude — Non-binary default avatars complete the set
 
 - User sent the 5 non-binary illustrations (one per Tribe, deliberately

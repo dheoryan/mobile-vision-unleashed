@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Hand, MessageCircle, Plus, UsersRound, X, Zap } from "lucide-react";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
-import { tribeById } from "@/lib/mutuals-data";
+import { TRIBES, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -536,6 +536,30 @@ function MootsPickerSheet({
   const moots = useMyMoots();
   const rows = moots.data ?? [];
 
+  // Grouped by primary Tribe (first joined), in the app's canonical Tribe
+  // order rather than however the list happened to come back - a Moot with
+  // no Tribe at all shouldn't be possible post-onboarding, but the fallback
+  // bucket keeps this from silently dropping anyone if it ever is.
+  const groups = useMemo(() => {
+    const data = moots.data ?? [];
+    const byTribe = new Map<TribeId, typeof data>();
+    const other: typeof data = [];
+    for (const m of data) {
+      const primary = m.tribe_ids?.[0] as TribeId | undefined;
+      if (!primary) {
+        other.push(m);
+        continue;
+      }
+      const bucket = byTribe.get(primary);
+      if (bucket) bucket.push(m);
+      else byTribe.set(primary, [m]);
+    }
+    const ordered = TRIBES.map((t) => ({ tribe: t, members: byTribe.get(t.id) ?? [] })).filter(
+      (g) => g.members.length > 0,
+    );
+    return other.length ? [...ordered, { tribe: null, members: other }] : ordered;
+  }, [moots.data]);
+
   return (
     <AnimatedModal
       open={open}
@@ -566,36 +590,53 @@ function MootsPickerSheet({
             No Moots yet. Accept a Hello, and they'll show up here to message.
           </p>
         ) : (
-          <ul className="space-y-1">
-            {rows.map((m) => {
-              const name = m.display_name?.trim() || "Someone";
-              const avatar = m.avatar_url || m.avatar_emoji || "👋";
-              const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
-              return (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(m.id)}
-                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <div key={group.tribe?.id ?? "other"}>
+                <div className="mb-1.5 flex items-center gap-1.5 px-2">
+                  {group.tribe && <TribeMark tribe={group.tribe} size="xs" decorative={false} />}
+                  <p
+                    className="label-mono"
+                    style={{ color: group.tribe?.colorVar ?? "var(--muted-foreground)" }}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
-                      {isImg ? (
-                        <img src={avatar} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        avatar
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{name}</p>
-                      {m.handle && (
-                        <p className="truncate text-[11px] text-muted-foreground">@{m.handle}</p>
-                      )}
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                    {group.tribe?.name ?? "Other"}
+                  </p>
+                </div>
+                <ul className="space-y-1">
+                  {group.members.map((m) => {
+                    const name = m.display_name?.trim() || "Someone";
+                    const avatar = m.avatar_url || m.avatar_emoji || "👋";
+                    const isImg = avatar.startsWith("http") || avatar.startsWith("data:");
+                    return (
+                      <li key={m.id}>
+                        <button
+                          type="button"
+                          onClick={() => onSelect(m.id)}
+                          className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-lg">
+                            {isImg ? (
+                              <img src={avatar} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              avatar
+                            )}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{name}</p>
+                            {m.handle && (
+                              <p className="truncate text-[11px] text-muted-foreground">
+                                @{m.handle}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </AnimatedModal>

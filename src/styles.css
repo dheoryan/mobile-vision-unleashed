@@ -101,21 +101,6 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
-  /* Mobile Safari zooms the whole page in when a focused text input's
-     computed font-size is under 16px - it treats that as "too small to
-     read" and helpfully enlarges the viewport, which on a fixed chat/
-     comment composer just misaligns everything until the user pinches back
-     out. `-webkit-touch-callout` is WebKit-only (no Chrome/Android
-     support), and `pointer: coarse` + no hover keeps this off desktop
-     Safari, so this only ever fires on the iOS devices that actually have
-     the bug. */
-  @supports (-webkit-touch-callout: none) {
-    @media (hover: none) and (pointer: coarse) {
-      input, textarea, select {
-        font-size: 16px;
-      }
-    }
-  }
   html, body, #root { height: 100%; }
   body {
     background-color: var(--color-background);
@@ -133,6 +118,29 @@
     font-weight: 700;
   }
   .font-mono, .label-mono { font-family: var(--font-mono); }
+}
+
+/* Mobile Safari zooms the whole page in when a focused text input's
+   computed font-size is under 16px - it treats that as "too small to
+   read" and helpfully enlarges the viewport, which on a fixed chat/
+   comment composer just misaligns everything until the user pinches back
+   out. `-webkit-touch-callout` is WebKit-only (no Chrome/Android
+   support), and `pointer: coarse` + no hover keeps this off desktop
+   Safari, so this only ever fires on the iOS devices that actually have
+   the bug.
+   Deliberately OUTSIDE any @layer: almost every affected input carries an
+   explicit Tailwind text-size utility (text-sm, text-xs, ...) in the
+   `utilities` layer, and per the CSS cascade-layers spec a layered rule
+   always loses to an unlayered one regardless of specificity - putting
+   this inside @layer base (as a first attempt did) meant every one of
+   those utility classes silently out-prioritized it and the fix never
+   actually applied anywhere except an input with no size utility at all. */
+@supports (-webkit-touch-callout: none) {
+  @media (hover: none) and (pointer: coarse) {
+    input, textarea, select {
+      font-size: 16px;
+    }
+  }
 }
 
 @layer utilities {

@@ -5,6 +5,7 @@ import { ArrowLeft, MessageCircle, Hand, Clock } from "lucide-react";
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { listPostsByAuthor } from "@/lib/posts.functions";
 import { useProfileStats, useContactStatus } from "@/lib/social-store";
+import { useMyProfile } from "@/lib/profile-store";
 import { HelloModal } from "@/components/mutuals/HelloModal";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -54,6 +55,8 @@ function PublicProfilePage() {
   const statsQ = useProfileStats(profile?.id ?? null);
   const contact = useContactStatus(isMe ? null : (profile?.id ?? null));
   const [helloOpen, setHelloOpen] = useState(false);
+  const myProfile = useMyProfile();
+  const sameTribe = !!profile?.tribe_ids?.some((id) => myProfile?.tribeIds.includes(id as TribeId));
 
   if (profileQ.isLoading) {
     return <AppBootstrapSkeleton />;
@@ -248,6 +251,7 @@ function PublicProfilePage() {
           recipientId={profile.id}
           recipientName={profile.display_name?.trim() || "them"}
           hellosLeft={contact.data?.hellos_left_this_month}
+          sameTribe={sameTribe}
         />
       )}
     </div>

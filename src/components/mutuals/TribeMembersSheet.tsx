@@ -38,7 +38,6 @@ export function TribeMembersSheet({
   error,
   onRetry,
   onOpenProfile,
-  onMessage,
 }: {
   open: boolean;
   onClose: () => void;
@@ -52,7 +51,6 @@ export function TribeMembersSheet({
   error: boolean;
   onRetry: () => void;
   onOpenProfile?: (handle: string) => void;
-  onMessage?: (userId: string) => void;
 }) {
   const [query, setQuery] = useState("");
   useEffect(() => {
@@ -231,12 +229,18 @@ export function TribeMembersSheet({
                       </span>
                     ) : (
                       <div className="flex shrink-0 items-center">
-                        {onMessage && (
+                        {canOpenProfile && (
+                          // Tribe membership no longer guarantees a DM is
+                          // open (same-Tribe still needs a Hello) - route
+                          // through the profile page instead of a raw
+                          // thread, since that's the one place that already
+                          // knows whether to offer Message or Say hello.
                           <button
                             type="button"
                             onClick={() => {
+                              if (!member.handle || !onOpenProfile) return;
                               onClose();
-                              onMessage(member.id);
+                              onOpenProfile(member.handle);
                             }}
                             aria-label={`Message ${member.display_name}`}
                             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"

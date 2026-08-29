@@ -23,6 +23,7 @@ export function HelloModal({
   recipientName,
   hellosLeft,
   signals,
+  sameTribe,
   onSent,
 }: {
   open: boolean;
@@ -32,10 +33,16 @@ export function HelloModal({
   hellosLeft?: number;
   /** What Explore matched on, used to offer a first line. */
   signals?: MatchSignals;
+  /** Same Tribe still needs a Hello (Moots is earned, not assumed by Tribe
+   *  membership), but it's free either way - doesn't touch the monthly cap,
+   *  so the copy and the disabled state below both need to know this,
+   *  independent of `signals` (not every call site has match signals). */
+  sameTribe?: boolean;
   /** Fires after a successful send, before onClose - for callers that need
    *  to react to the send itself (e.g. dropping this person from a list). */
   onSent?: () => void;
 }) {
+  const isFree = sameTribe ?? signals?.same_tribe ?? false;
   const [message, setMessage] = useState("");
   const send = useSendHello();
   const opener = useMemo(
@@ -93,8 +100,9 @@ export function HelloModal({
         Say hello to {recipientName}
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        You're not in the same Tribe, so this needs their okay first. If they accept, you can
-        message each other normally — and if they don't answer, you can try again in 30 days.
+        {isFree
+          ? "You're already in the same Tribe, so this one's free — it still needs their okay before you can message each other, and if they don't answer, you can try again in 30 days."
+          : "You're not in the same Tribe, so this needs their okay first. If they accept, you can message each other normally — and if they don't answer, you can try again in 30 days."}
       </p>
 
       <textarea
@@ -130,16 +138,18 @@ export function HelloModal({
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
         <span>
-          {hellosLeft === undefined
-            ? "Tribemates and active Venture co-members don't count against your monthly Hellos."
-            : `${hellosLeft} ${hellosLeft === 1 ? "Hello" : "Hellos"} left this month`}
+          {isFree
+            ? "Free — Tribemates and active Venture co-members don't count against your monthly Hellos."
+            : hellosLeft === undefined
+              ? "Tribemates and active Venture co-members don't count against your monthly Hellos."
+              : `${hellosLeft} ${hellosLeft === 1 ? "Hello" : "Hellos"} left this month`}
         </span>
         <span>{message.length}/280</span>
       </div>
 
       <button
         onClick={submit}
-        disabled={!message.trim() || send.isPending || hellosLeft === 0}
+        disabled={!message.trim() || send.isPending || (hellosLeft === 0 && !isFree)}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
       >
         {send.isPending ? (
@@ -150,7 +160,7 @@ export function HelloModal({
           "Send Hello"
         )}
       </button>
-      {hellosLeft === 0 && (
+      {hellosLeft === 0 && !isFree && (
         <p className="mt-2 text-center text-[11px] text-muted-foreground">
           You've used this month's Hellos. They reset at the start of next month.
         </p>
