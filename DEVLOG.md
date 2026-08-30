@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Record production like/share counter verification | `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Like/share counter repair verified in production
+
+- The user applied `20260830030000_harden_like_share_counters.sql` to the
+  production database and ran `LOVABLE_LIKE_SHARE_COUNTER_RELEASE_VERIFY.sql`.
+- The user confirmed all seven verifier rows returned `true`. Production now
+  has the hardened like/share trigger bindings and function permissions, no
+  legacy counter triggers, nonnegative stored counts, and zero count drift.
+- This closes the documented RLS-related like/share counter issue. Physical
+  interaction testing remains useful as routine acceptance, but the database
+  release gate is fully green.
 
 ### 2026-08-30 — Codex — Like/share counter hardening and drift repair prepared
 
