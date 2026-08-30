@@ -12,12 +12,12 @@ const notificationsSource = readFileSync(
 );
 
 test("notification post links preserve their source for deterministic back navigation", () => {
-  assert.match(notificationsSource, /search: \{ from: "notifications" \}/);
-  assert.match(focusedPostSource, /search\.from === "notifications"/);
-  assert.match(
-    focusedPostSource,
-    /from === "notifications" \? "\/notifications" : "\/"/,
-  );
+  assert.match(notificationsSource, /from: "notifications"/);
+  assert.match(notificationsSource, /comment: destination\.commentId/);
+  assert.match(focusedPostSource, /search\.from === "feed" \|\| search\.from === "notifications"/);
+  assert.match(focusedPostSource, /comment: typeof search\.comment === "string"/);
+  assert.match(focusedPostSource, /from === "notifications" \? "\/notifications" : "\/"/);
+  assert.match(focusedPostSource, /from === "feed" && window\.history\.length > 1/);
 });
 
 test("focused posts use the app secondary-header back control", () => {

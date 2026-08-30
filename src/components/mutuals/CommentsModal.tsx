@@ -38,20 +38,15 @@ import { toast } from "sonner";
 import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
-import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
-export function CommentsModal({
-  open,
-  onClose,
+export function CommentsThread({
   postId,
   highlightCommentId,
   isPostOwner = false,
 }: {
-  open: boolean;
-  onClose: () => void;
-  postId: string | null;
+  postId: string;
   highlightCommentId?: string | null;
   /** Lets the post's author hide someone else's comment on it, separate
    *  from the delete action every commenter already has on their own. Only
@@ -67,22 +62,21 @@ export function CommentsModal({
   const [replyTo, setReplyTo] = useState<CommentRow | null>(null);
   const [repostTarget, setRepostTarget] = useState<CommentRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const visualViewport = useVisualViewport(open && !!postId);
 
-  const commentsQuery = useComments(open ? postId : null);
-  const addComment = useAddComment(postId ?? "");
-  const deleteComment = useDeleteComment(postId ?? "");
-  const commentLikes = useMyCommentLikes(open ? postId : null);
-  const commentReposts = useMyCommentReposts(open ? postId : null);
-  const toggleCommentLike = useToggleCommentLike(postId ?? "");
-  const toggleCommentRepost = useToggleCommentRepost(postId ?? "");
-  const hideComment = useHideComment(postId ?? "");
+  const commentsQuery = useComments(postId);
+  const addComment = useAddComment(postId);
+  const deleteComment = useDeleteComment(postId);
+  const commentLikes = useMyCommentLikes(postId);
+  const commentReposts = useMyCommentReposts(postId);
+  const toggleCommentLike = useToggleCommentLike(postId);
+  const toggleCommentRepost = useToggleCommentRepost(postId);
+  const hideComment = useHideComment(postId);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   // Only fetched once the panel is actually opened - most posts have
   // nothing hidden, so this shouldn't be a query that fires every time any
-  // comments modal opens.
-  const hiddenQuery = useHiddenComments(postId ?? "", open && isPostOwner && hiddenOpen);
-  const unhideComment = useUnhideComment(postId ?? "");
+  // comments view opens.
+  const hiddenQuery = useHiddenComments(postId, isPostOwner && hiddenOpen);
+  const unhideComment = useUnhideComment(postId);
   const { register, registry } = useMentionRegistry();
   const picker = useMentionPicker(text, caret);
 
@@ -101,7 +95,7 @@ export function CommentsModal({
 
   // Scroll to + flash a specific comment when opened from a notification
   useEffect(() => {
-    if (!open || !highlightCommentId || commentsQuery.isLoading) return;
+    if (!highlightCommentId || commentsQuery.isLoading) return;
     const attempt = (left: number) => {
       const el = document.querySelector<HTMLElement>(`[data-comment-id="${highlightCommentId}"]`);
       if (el) {
@@ -116,7 +110,7 @@ export function CommentsModal({
     };
     const t = window.setTimeout(() => attempt(15), 80);
     return () => window.clearTimeout(t);
-  }, [open, highlightCommentId, commentsQuery.isLoading, commentsQuery.data]);
+  }, [highlightCommentId, commentsQuery.isLoading, commentsQuery.data]);
 
   const tribeColor = TRIBE_FALLBACK;
   const roots = tree.get(null) ?? [];
@@ -195,24 +189,19 @@ export function CommentsModal({
 
   return (
     <>
-      <AnimatedModal
-        open={open && !!postId}
-        onOpenChange={(o) => {
-          if (!o) onClose();
-        }}
-        title="Comments"
-        contentClassName="flex h-[80dvh] max-h-full min-h-0 flex-col"
-        viewportStyle={visualViewportStyle(visualViewport)}
-      >
-        <header className="flex items-center justify-between border-b border-border px-5 py-3">
-          <h2 className="font-display text-base font-bold">Comments</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <X className="h-5 w-5" />
-          </button>
+      <section id="comments" aria-labelledby="comments-heading" className="scroll-mt-20">
+        <header className="flex min-h-14 items-center justify-between gap-3 border-y border-border/80 px-1">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <p className="label-mono text-primary">CONVERSATION</p>
+            <h2 id="comments-heading" className="sr-only">
+              Comments
+            </h2>
+          </div>
+          {!commentsQuery.isLoading && (
+            <span className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
+              {commentsQuery.data?.length ?? 0} comments
+            </span>
+          )}
         </header>
 
         {isPostOwner && (
@@ -220,7 +209,7 @@ export function CommentsModal({
             <button
               type="button"
               onClick={() => setHiddenOpen((v) => !v)}
-              className="flex w-full items-center gap-1.5 px-5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              className="flex min-h-11 w-full items-center gap-1.5 px-4 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
               <EyeOff className="h-3.5 w-3.5" />
               Comments you've hidden
@@ -268,7 +257,7 @@ export function CommentsModal({
                           })
                         }
                         disabled={unhideComment.isPending && unhideComment.variables === c.id}
-                        className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+                        className="flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                       >
                         <Eye className="h-3 w-3" /> Unhide
                       </button>
@@ -280,7 +269,7 @@ export function CommentsModal({
           </div>
         )}
 
-        <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div className="space-y-2 py-3">
           {commentsQuery.isLoading ? (
             <SkeletonList tribeColor={tribeColor} />
           ) : commentsQuery.isError ? (
@@ -330,7 +319,7 @@ export function CommentsModal({
           )}
         </div>
 
-        <div className="relative border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="glass sticky bottom-0 z-10 -mx-1 border-t border-border/80 px-1 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-14px_36px_rgba(0,0,0,0.22)]">
           {replyTo && (
             <ReplyPreview
               name={replyTo.author?.display_name || "comment"}
@@ -341,7 +330,7 @@ export function CommentsModal({
           )}
           <div className="relative">
             <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
-            <div className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2">
+            <div className="flex min-h-12 items-center gap-2 rounded-full border border-border/90 bg-background/75 px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
               <input
                 ref={inputRef}
                 value={text}
@@ -362,7 +351,7 @@ export function CommentsModal({
               <button
                 onClick={send}
                 disabled={!text.trim()}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
                 style={{ backgroundColor: tribeColor }}
                 aria-label="Send comment"
               >
@@ -371,7 +360,7 @@ export function CommentsModal({
             </div>
           </div>
         </div>
-      </AnimatedModal>
+      </section>
 
       <AnimatedModal
         open={!!repostTarget}
@@ -497,7 +486,7 @@ function CommentNode({
         onRepost={onRepost}
       />
       {replies.length > 0 && (
-        <div className="mt-2 space-y-2 border-l border-border/60 pl-4">
+        <div className="relative ml-4 mt-1 space-y-1 pl-6 before:absolute before:bottom-5 before:left-0 before:top-1 before:w-px before:bg-border/70">
           {replies.map((r) => (
             <CommentItem
               key={r.id}
@@ -670,7 +659,7 @@ function CommentItem({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onPointerLeave={endDrag}
-        className={`flex items-start gap-3 touch-pan-y ${isPending ? "opacity-60" : ""}`}
+        className={`flex items-start gap-2.5 rounded-2xl px-1 py-1 touch-pan-y transition-colors hover:bg-secondary/20 ${isPending ? "opacity-60" : ""}`}
         style={{
           transform: `translateX(${dragX}px)`,
           transition: dragX === 0 ? "transform 180ms ease-out" : "none",
@@ -693,29 +682,33 @@ function CommentItem({
             {isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : avatar}
           </span>
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex min-w-0 items-baseline gap-1.5">
             {handle && !mine ? (
               <Link
                 to="/u/$handle"
                 params={{ handle }}
-                className="text-xs font-semibold hover:underline"
+                className="truncate text-xs font-semibold hover:underline"
               >
                 {name}
               </Link>
             ) : (
-              <p className="text-xs font-semibold">{name}</p>
+              <p className="truncate text-xs font-semibold">{name}</p>
             )}
+            <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+              {isPending ? "sending…" : timeAgoLabel(c.created_at)}
+            </span>
           </div>
-          <p className="text-sm text-foreground">{renderContent(c.content)}</p>
-          <div className="mt-0.5 flex min-h-11 items-center gap-3 text-[10px] text-muted-foreground">
-            <span>{isPending ? "sending…" : timeAgoLabel(c.created_at)}</span>
+          <p className="mt-0.5 text-sm leading-relaxed text-foreground">
+            {renderContent(c.content)}
+          </p>
+          <div className="-mb-1 mt-0.5 flex min-h-11 items-center gap-1 text-[10px] text-muted-foreground">
             {!isPending && (
               <button
                 onClick={() => onReply(c)}
-                className="inline-flex items-center gap-1 rounded transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors hover:bg-secondary/60 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <Reply className="h-3 w-3" /> Reply
+                Reply
               </button>
             )}
             {!isPending && (
@@ -726,12 +719,14 @@ function CommentItem({
                 aria-label={liked ? "Unlike comment" : "Like comment"}
                 aria-pressed={liked}
                 className={cn(
-                  "inline-flex min-h-11 items-center gap-1 rounded px-0.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  liked ? "text-rose-400" : "hover:text-foreground",
+                  "inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  liked
+                    ? "bg-rose-400/10 text-rose-400"
+                    : "hover:bg-secondary/60 hover:text-foreground",
                 )}
               >
                 <Heart className="h-3.5 w-3.5" fill={liked ? "currentColor" : "none"} />
-                {c.likes_count}
+                {c.likes_count > 0 && <span>{c.likes_count}</span>}
               </button>
             )}
             {!isPending && (
@@ -742,11 +737,14 @@ function CommentItem({
                 aria-label="Repost options"
                 aria-pressed={reposted}
                 className={cn(
-                  "inline-flex min-h-11 items-center gap-1 rounded px-0.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  reposted ? "text-emerald-400" : "hover:text-foreground",
+                  "inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  reposted
+                    ? "bg-emerald-400/10 text-emerald-400"
+                    : "hover:bg-secondary/60 hover:text-foreground",
                 )}
               >
-                <Repeat2 className="h-3.5 w-3.5" /> {c.reposts_count}
+                <Repeat2 className="h-3.5 w-3.5" />
+                {c.reposts_count > 0 && <span>{c.reposts_count}</span>}
               </button>
             )}
           </div>
@@ -755,7 +753,7 @@ function CommentItem({
           <button
             onClick={() => onDelete(c.id)}
             aria-label="Delete comment"
-            className="rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

@@ -42,6 +42,10 @@ test("comment actions are optimistic, accessible, and expose counts", () => {
   assert.match(comments, /aria-label="Repost options"/);
   assert.match(comments, /aria-pressed=\{liked\}/);
   assert.match(comments, /min-h-11/);
+  assert.match(comments, /c\.likes_count > 0/);
+  assert.match(comments, /c\.reposts_count > 0/);
+  assert.match(comments, /timeAgoLabel\(c\.created_at\)/);
+  assert.match(comments, /before:bottom-5 before:left-0 before:top-1/);
 });
 
 test("comment repost opens the same safe-area bottom-sheet pattern as post repost", () => {

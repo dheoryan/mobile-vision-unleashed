@@ -11,7 +11,6 @@ import { ChatsScreen } from "@/components/mutuals/ChatsScreen";
 import { MessagesPanel } from "@/components/mutuals/MessagesPanel";
 import { HelloRequestsSheet } from "@/components/mutuals/HelloRequestsSheet";
 import type { VentureParty } from "@/lib/ventures-store";
-import { CommentsModal } from "@/components/mutuals/CommentsModal";
 import { TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
 import { useUnreadCount, useThreads } from "@/lib/messages-store";
 import { sendMessage as sendMessageFn } from "@/lib/messages.functions";
@@ -116,8 +115,6 @@ function App() {
   const [helloRequestsOpen, setHelloRequestsOpen] = useState(false);
   const [openThreadUser, setOpenThreadUser] = useState<string | null>(null);
   const [openVentureChat, setOpenVentureChat] = useState<VentureParty | null>(null);
-  const [openPostId, setOpenPostId] = useState<string | null>(null);
-  const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
   const [scrollToPostId, setScrollToPostId] = useState<string | null>(null);
   const [initialTribe, setInitialTribe] = useState<TribeId | undefined>(undefined);
   // The Tribe room is no longer a root tab. It is a full-screen view pushed
@@ -144,10 +141,6 @@ function App() {
     setOpenThreadUser(snapshot.layer?.kind === "messages" ? (snapshot.layer.userId ?? null) : null);
     setOpenVentureChat(
       snapshot.layer?.kind === "messages" ? (snapshot.layer.venture ?? null) : null,
-    );
-    setOpenPostId(snapshot.layer?.kind === "post" ? snapshot.layer.postId : null);
-    setHighlightCommentId(
-      snapshot.layer?.kind === "post" ? (snapshot.layer.commentId ?? null) : null,
     );
   }, []);
 
@@ -200,8 +193,6 @@ function App() {
     setHelloRequestsOpen(false);
     setOpenThreadUser(null);
     setOpenVentureChat(null);
-    setOpenPostId(null);
-    setHighlightCommentId(null);
     setScrollToPostId(null);
     setInitialTribe(undefined);
     setTribeChatOpen(false);
@@ -227,11 +218,12 @@ function App() {
     switch (notification) {
       case "post":
         if (!target) return;
-        snapshot = {
-          tab: "feed",
-          layer: { kind: "post", postId: target, commentId: comment ?? null },
-        };
-        break;
+        void navigate({
+          to: "/p/$postId",
+          params: { postId: target },
+          search: { from: "notifications", comment: comment ?? undefined },
+        });
+        return;
       case "feed-post":
         if (!target) return;
         setScrollToPostId(target);
@@ -277,7 +269,7 @@ function App() {
     restoreNavigation(snapshot);
     writeAppNavigation(snapshot, true);
     window.history.replaceState(window.history.state, "", window.location.pathname);
-  }, [notificationSearch, restoreNavigation, userId]);
+  }, [navigate, notificationSearch, restoreNavigation, userId]);
 
   useEffect(() => {
     if (!userId || tabOwnerId !== userId) return;
@@ -336,9 +328,10 @@ function App() {
       setPendingVentureChatId(i.ventureId);
       pushNavigation({ tab: "chats" });
     } else if (i.kind === "openPost") {
-      pushNavigation({
-        tab: "feed",
-        layer: { kind: "post", postId: i.postId, commentId: i.commentId ?? null },
+      void navigate({
+        to: "/p/$postId",
+        params: { postId: i.postId },
+        search: { from: "notifications", comment: i.commentId ?? undefined },
       });
     } else if (i.kind === "scrollToPost") {
       pushNavigation({ tab: "feed" });
@@ -351,7 +344,7 @@ function App() {
     if (notificationSearch.notification) {
       window.history.replaceState(window.history.state, "", window.location.pathname);
     }
-  }, [intent, notificationSearch.notification, pushNavigation]);
+  }, [intent, navigate, notificationSearch.notification, pushNavigation]);
 
   const unread = useUnreadCount(threadsQuery.data);
 
@@ -555,12 +548,6 @@ function App() {
         onOpenProfile={(handle) => navigate({ to: "/u/$handle", params: { handle } })}
       />
       <HelloRequestsSheet open={helloRequestsOpen} onClose={() => closeLayer("helloRequests")} />
-      <CommentsModal
-        open={!!openPostId}
-        onClose={() => closeLayer("post")}
-        postId={openPostId}
-        highlightCommentId={highlightCommentId}
-      />
     </>
   );
 }

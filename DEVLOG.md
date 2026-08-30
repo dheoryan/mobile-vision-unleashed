@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Modal-free focused post comments | `src/routes/{p.$postId,index,notifications}.tsx`, `src/components/mutuals/{PostCard,CommentsModal}.tsx`, `tests/{ios-pwa-comments,focused-post-navigation,notification-presenter}.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,25 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Comments moved out of modals into the focused post page
+
+- Comment taps now navigate to `/p/$postId` and render the selected signal with
+  its conversation directly underneath in normal page flow. Comments no longer
+  open a dialog, so repost and moderation sheets never stack on top of a
+  Comments modal.
+- Refined the conversation rhythm with compact author/time metadata, shallow
+  reply rails, action counts only when non-zero, and a safe-area-aware sticky
+  glass composer. Comment likes, reposts, mentions, replies, hidden-comment
+  controls, highlighting, and moderation behavior are preserved.
+- Feed-origin navigation uses browser history so Back restores the member's
+  feed position. Notification and legacy Home Screen destinations now route to
+  the same focused page and preserve the exact comment id for highlighting.
+- Local browser acceptance confirmed the modal-free feed → conversation → Back
+  flow without firing a production mutation. Verification: all 91 Node tests,
+  changed-source ESLint, `npx tsc --noEmit`, `git diff --check`, and the full
+  Cloudflare production build pass. Physical iOS Home Screen keyboard acceptance
+  remains required before release.
 
 ### 2026-08-30 — Codex — Comment repost aligned with the post repost sheet
 

@@ -6,8 +6,12 @@ const commentsModalSource = readFileSync(
   new URL("../src/components/mutuals/CommentsModal.tsx", import.meta.url),
   "utf8",
 );
-const animatedModalSource = readFileSync(
-  new URL("../src/components/ui/animated-modal.tsx", import.meta.url),
+const postCardSource = readFileSync(
+  new URL("../src/components/mutuals/PostCard.tsx", import.meta.url),
+  "utf8",
+);
+const focusedPostSource = readFileSync(
+  new URL("../src/routes/p.$postId.tsx", import.meta.url),
   "utf8",
 );
 const chatsSource = readFileSync(
@@ -19,12 +23,17 @@ const postFunctionsSource = readFileSync(
   "utf8",
 );
 
-test("comments sheet follows the iOS visual viewport and protects its composer", () => {
-  assert.match(commentsModalSource, /useVisualViewport\(open && !!postId\)/);
-  assert.match(commentsModalSource, /viewportStyle=\{visualViewportStyle\(visualViewport\)\}/);
+test("comments use a modal-free page thread with a safe sticky composer", () => {
+  assert.match(commentsModalSource, /export function CommentsThread/);
+  assert.match(commentsModalSource, /<section id="comments"/);
+  assert.match(commentsModalSource, /glass sticky bottom-0 z-10/);
   assert.match(commentsModalSource, /pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/);
-  assert.match(animatedModalSource, /viewportStyle\?: CSSProperties/);
-  assert.match(animatedModalSource, /bottom: "auto"/);
+  assert.match(commentsModalSource, /text-base placeholder:text-muted-foreground/);
+  assert.doesNotMatch(commentsModalSource, /title="Comments"/);
+  assert.doesNotMatch(postCardSource, /<CommentsModal/);
+  assert.match(postCardSource, /to: "\/p\/\$postId"/);
+  assert.match(focusedPostSource, /<CommentsThread/);
+  assert.match(focusedPostSource, /commentsInline/);
 });
 
 test("Chats new-message action clears the Home Screen navigation safe area", () => {

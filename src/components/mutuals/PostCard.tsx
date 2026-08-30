@@ -16,11 +16,10 @@ import {
 } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
-import { CommentsModal } from "./CommentsModal";
 import { ComposerModal } from "./ComposerModal";
 import { QuotedPostPreview, QuotedPostUnavailable } from "./QuotedPostPreview";
 import { QuotedCommentPreview, QuotedCommentUnavailable } from "./QuotedCommentPreview";
@@ -165,8 +164,17 @@ function Avatar({ value, tribeColor }: { value: string; tribeColor: string }) {
   );
 }
 
-export function PostCard({ post, showTribe = false }: { post: FeedPost; showTribe?: boolean }) {
+export function PostCard({
+  post,
+  showTribe = false,
+  commentsInline = false,
+}: {
+  post: FeedPost;
+  showTribe?: boolean;
+  commentsInline?: boolean;
+}) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const social = useSocial();
   const toggleLike = useToggleLike();
   const tribe = tribeById(post.tribe_id as TribeId);
@@ -191,7 +199,6 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const editPost = useEditPost();
   const deletePost = useDeletePost();
 
-  const [commentsOpen, setCommentsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [repostMenuOpen, setRepostMenuOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -539,7 +546,18 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} /> {post.likes_count}
         </button>
         <button
-          onClick={() => setCommentsOpen(true)}
+          onClick={() => {
+            if (commentsInline) {
+              document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" });
+              return;
+            }
+            void navigate({
+              to: "/p/$postId",
+              params: { postId: post.id },
+              search: { from: "feed" },
+            });
+          }}
+          aria-label={`${post.replies_count} comments`}
           className="flex items-center gap-1.5 rounded-md text-xs transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
@@ -585,13 +603,6 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} /> {post.shares_count}
         </button>
       </footer>
-
-      <CommentsModal
-        open={commentsOpen}
-        onClose={() => setCommentsOpen(false)}
-        postId={post.id}
-        isPostOwner={isMine}
-      />
 
       <AnimatedModal
         open={repostMenuOpen}

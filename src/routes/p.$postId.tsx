@@ -2,25 +2,29 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft } from "lucide-react";
+import { useEffect } from "react";
 import { PostCard } from "@/components/mutuals/PostCard";
+import { CommentsThread } from "@/components/mutuals/CommentsModal";
 import { useAuth } from "@/lib/auth-context";
 import { getPostById } from "@/lib/posts.functions";
 import { AppBootstrapSkeleton, PostCardSkeleton } from "@/components/mutuals/Skeleton";
 
 interface SharedPostSearch {
-  from?: "notifications";
+  from?: "feed" | "notifications";
+  comment?: string;
 }
 
 export const Route = createFileRoute("/p/$postId")({
   validateSearch: (search: Record<string, unknown>): SharedPostSearch => ({
-    from: search.from === "notifications" ? "notifications" : undefined,
+    from: search.from === "feed" || search.from === "notifications" ? search.from : undefined,
+    comment: typeof search.comment === "string" ? search.comment : undefined,
   }),
   component: SharedPostPage,
 });
 
 function SharedPostPage() {
   const { postId } = Route.useParams();
-  const { from } = Route.useSearch();
+  const { from, comment } = Route.useSearch();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const getPost = useServerFn(getPostById);
@@ -30,6 +34,14 @@ function SharedPostPage() {
     enabled: !!user && !authLoading,
     retry: 1,
   });
+
+  useEffect(() => {
+    if (from !== "feed" || !postQuery.data) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("comments")?.scrollIntoView({ block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [from, postQuery.data]);
 
   if (authLoading) {
     return <AppBootstrapSkeleton />;
@@ -59,6 +71,10 @@ function SharedPostPage() {
   }
 
   const goBack = () => {
+    if (from === "feed" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
     void navigate({ to: from === "notifications" ? "/notifications" : "/" });
   };
 
@@ -74,7 +90,7 @@ function SharedPostPage() {
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <h1 className="truncate text-center font-display text-sm font-bold">Shared signal</h1>
+          <h1 className="truncate text-center font-display text-sm font-bold">Conversation</h1>
           <span aria-hidden />
         </div>
       </header>
@@ -94,7 +110,14 @@ function SharedPostPage() {
         ) : !postQuery.data ? (
           <CenteredMessage text="This signal is unavailable or outside your audience." />
         ) : (
-          <PostCard post={postQuery.data} showTribe />
+          <div className="space-y-4">
+            <PostCard post={postQuery.data} showTribe commentsInline />
+            <CommentsThread
+              postId={postQuery.data.id}
+              highlightCommentId={comment}
+              isPostOwner={postQuery.data.author_id === user.id}
+            />
+          </div>
         )}
       </main>
     </div>
