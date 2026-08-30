@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Color-only hover states for compact social actions | `src/components/mutuals/{CommentsModal,PostCard,SafetyMenu}.tsx`, `tests/compact-action-hover.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,19 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Compact social controls use color-only hover states
+
+- Removed gray circular hover fills from post/comment ellipsis triggers,
+  comment Reply/Like/Repost/Delete controls, and action-sheet close buttons.
+  Full menu rows retain their surface hover because they need a row-level target.
+- Compact actions now communicate intent directly through color: primary for
+  Reply/comments/menu/share, rose for Like, emerald for Repost, amber for Save,
+  and destructive red for Delete. Active Like/Repost states are color-only too.
+- Preserved 44 px touch targets, pressed feedback, semantic pressed states, and
+  keyboard focus rings. Verification: all 94 Node tests, changed-source ESLint,
+  `npx tsc --noEmit`, `git diff --check`, and the full Cloudflare production
+  build pass. No database change is required.
 
 ### 2026-08-30 — Codex — Comments moved out of modals into the focused post page
 

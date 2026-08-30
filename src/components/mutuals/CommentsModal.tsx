@@ -382,7 +382,7 @@ export function CommentsThread({
               type="button"
               onClick={() => setRepostTarget(null)}
               aria-label="Close repost options"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-5 w-5" />
             </button>
@@ -706,7 +706,7 @@ function CommentItem({
             {!isPending && (
               <button
                 onClick={() => onReply(c)}
-                className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors hover:bg-secondary/60 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Reply
               </button>
@@ -720,9 +720,7 @@ function CommentItem({
                 aria-pressed={liked}
                 className={cn(
                   "inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  liked
-                    ? "bg-rose-400/10 text-rose-400"
-                    : "hover:bg-secondary/60 hover:text-foreground",
+                  liked ? "text-rose-400" : "hover:text-rose-400",
                 )}
               >
                 <Heart className="h-3.5 w-3.5" fill={liked ? "currentColor" : "none"} />
@@ -738,9 +736,7 @@ function CommentItem({
                 aria-pressed={reposted}
                 className={cn(
                   "inline-flex min-h-11 items-center gap-1 rounded-full px-2 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  reposted
-                    ? "bg-emerald-400/10 text-emerald-400"
-                    : "hover:bg-secondary/60 hover:text-foreground",
+                  reposted ? "text-emerald-400" : "hover:text-emerald-400",
                 )}
               >
                 <Repeat2 className="h-3.5 w-3.5" />
@@ -753,7 +749,7 @@ function CommentItem({
           <button
             onClick={() => onDelete(c.id)}
             aria-label="Delete comment"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

@@ -1,0 +1,42 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+function source(path: string) {
+  return readFileSync(new URL(path, import.meta.url), "utf8");
+}
+
+const comments = source("../src/components/mutuals/CommentsModal.tsx");
+const postCard = source("../src/components/mutuals/PostCard.tsx");
+const safetyMenu = source("../src/components/mutuals/SafetyMenu.tsx");
+
+test("compact comment actions use semantic color hover without gray pills", () => {
+  assert.match(comments, /hover:text-primary active:scale-95/);
+  assert.match(comments, /hover:text-rose-400/);
+  assert.match(comments, /hover:text-emerald-400/);
+  assert.doesNotMatch(comments, /hover:bg-secondary\/60/);
+  assert.doesNotMatch(comments, /bg-rose-400\/10/);
+  assert.doesNotMatch(comments, /bg-emerald-400\/10/);
+});
+
+test("ellipsis triggers keep their touch target and hover through color only", () => {
+  assert.match(
+    safetyMenu,
+    /h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary/,
+  );
+  assert.match(
+    postCard,
+    /aria-label="Post actions"[\s\S]*?h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary/,
+  );
+  assert.doesNotMatch(
+    postCard,
+    /h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/,
+  );
+});
+
+test("post footer actions advertise their meaning with color", () => {
+  assert.match(postCard, /hover:text-rose-400/);
+  assert.match(postCard, /hover:text-primary/);
+  assert.match(postCard, /hover:text-emerald-400/);
+  assert.match(postCard, /hover:text-amber-400/);
+});

@@ -59,7 +59,7 @@ export function SafetyMenu({
           aria-label={`Safety options for ${targetName}`}
           aria-expanded={open}
           className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             buttonClassName,
           )}
         >
@@ -85,7 +85,7 @@ export function SafetyMenu({
               type="button"
               onClick={() => setOpen(false)}
               aria-label={`Close ${kind} options`}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-5 w-5" />
             </button>

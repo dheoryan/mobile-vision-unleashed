@@ -384,7 +384,7 @@ export function PostCard({
             <button
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Post actions"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -539,7 +539,7 @@ export function PostCard({
           }}
           className={cn(
             "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            liked ? "text-rose-400" : "hover:text-foreground",
+            liked ? "text-rose-400" : "hover:text-rose-400",
           )}
           aria-pressed={liked}
         >
@@ -558,7 +558,7 @@ export function PostCard({
             });
           }}
           aria-label={`${post.replies_count} comments`}
-          className="flex items-center gap-1.5 rounded-md text-xs transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="flex items-center gap-1.5 rounded-md text-xs transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
         </button>
@@ -570,7 +570,7 @@ export function PostCard({
             }}
             className={cn(
               "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              reposted ? "text-emerald-400" : "hover:text-foreground",
+              reposted ? "text-emerald-400" : "hover:text-emerald-400",
             )}
             aria-label="Repost options"
             aria-pressed={reposted}
@@ -584,7 +584,7 @@ export function PostCard({
           }}
           className={cn(
             "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            saved ? "text-amber-400" : "hover:text-foreground",
+            saved ? "text-amber-400" : "hover:text-amber-400",
           )}
           aria-label={saved ? "Unsave post" : "Save post"}
           aria-pressed={saved}
@@ -595,7 +595,7 @@ export function PostCard({
           onClick={share}
           className={cn(
             "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            shared ? "text-primary" : "hover:text-foreground",
+            shared ? "text-primary" : "hover:text-primary",
           )}
           aria-label="Share post"
           aria-pressed={shared}
@@ -621,7 +621,7 @@ export function PostCard({
               type="button"
               onClick={() => setRepostMenuOpen(false)}
               aria-label="Close repost options"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-5 w-5" />
             </button>
