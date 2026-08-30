@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   dailyPulse,
@@ -8,6 +9,11 @@ import {
   roomMetadataString,
   roomMetadataTimeOptions,
 } from "../src/lib/tribe-room.ts";
+
+const tribeRoomLayer = readFileSync(
+  new URL("../src/components/mutuals/TribeRoomLayer.tsx", import.meta.url),
+  "utf8",
+);
 
 test("Daily Pulse is stable for one Tribe and local date", () => {
   const morning = dailyPulse("cat", new Date(2026, 7, 25, 8, 0));
@@ -19,10 +25,7 @@ test("Daily Pulse is stable for one Tribe and local date", () => {
 });
 
 test("proposal conversion invites each interested member once without overwriting applicants", () => {
-  assert.deepEqual(
-    interestedInviteIds(["host", "a", "b", "a", "c"], ["b", "c"], "host"),
-    ["a"],
-  );
+  assert.deepEqual(interestedInviteIds(["host", "a", "b", "a", "c"], ["b", "c"], "host"), ["a"]);
 });
 
 test("Daily Pulse rotates without becoming random per render", () => {
@@ -82,4 +85,16 @@ test("Tribe plan time options are bounded, labelled, and carry vote counts", () 
     ],
   );
   assert.match(options[0].label, /Afternoon$/);
+});
+
+test("Plans count badge stays centered and inherits the active Tribe color", () => {
+  assert.match(
+    tribeRoomLayer,
+    /inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center[^"]*leading-none/,
+  );
+  assert.match(tribeRoomLayer, /style=\{\{ backgroundColor: tribeColor \}\}/);
+  assert.doesNotMatch(
+    tribeRoomLayer,
+    /Plans[\s\S]{0,220}rounded-full bg-primary[\s\S]{0,120}\{plans\.length/,
+  );
 });

@@ -180,10 +180,13 @@ export function TribeRoomLayer({
               ) : key === "room" ? (
                 "Tribevia"
               ) : (
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center gap-1.5 leading-none">
                   Plans
                   {plans.length > 0 && (
-                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                    <span
+                      className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-primary-foreground tabular-nums"
+                      style={{ backgroundColor: tribeColor }}
+                    >
                       {plans.length > 9 ? "9+" : plans.length}
                     </span>
                   )}

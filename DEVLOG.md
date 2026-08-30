@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Tribe Plans count badge alignment and Tribe-scoped color | `src/components/mutuals/TribeRoomLayer.tsx`, focused test | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Tribe Plans badge aligned and color-scoped
+
+- Rebuilt the Plans count as a fixed inline-flex badge with an explicit
+  line-height, centered numeral, tabular figures, and compact `9+` support.
+- Replaced the global MEUTUALS pink fill with the active Tribe color already
+  supplied to the Tribe room, keeping the indicator visually scoped to its
+  chat across all five Tribe themes.
+- Verification: focused Tribe room test, changed-source ESLint, clean
+  TypeScript, all 119 Node tests, and the Cloudflare production build pass.
+  Nothing was pushed or published.
 
 ### 2026-08-30 — Codex — Timeline creation restored to an audience-aware FAB
 
