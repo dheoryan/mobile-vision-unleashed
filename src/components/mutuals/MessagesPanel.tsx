@@ -161,6 +161,7 @@ export function MessagesPanel({
         {ventureThread ? (
           <VenturePartyThread
             venture={ventureThread}
+            keyboardOpen={visualViewport.keyboardOpen}
             onBack={onClose}
             onOpenProfile={onOpenProfile}
             onMessage={(userId) => {
@@ -178,7 +179,12 @@ export function MessagesPanel({
             onClose={onClose}
           />
         ) : (
-          <Thread otherId={threadId} onBack={onClose} onOpenProfile={onOpenProfile} />
+          <Thread
+            otherId={threadId}
+            onBack={onClose}
+            onOpenProfile={onOpenProfile}
+            keyboardOpen={visualViewport.keyboardOpen}
+          />
         )}
       </div>
     </div>
@@ -258,18 +264,20 @@ function Inbox({
   const hasPartyThreads = partyThreads.length > 0;
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-border px-5 py-4">
-        <h2 className="font-display text-xl font-bold">Messages</h2>
-        <button
-          aria-label="Close"
-          onClick={onClose}
-          className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <X className="h-5 w-5" />
-        </button>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
+        <div className="flex items-center justify-between px-5 py-3">
+          <h2 className="font-display text-xl font-bold">Messages</h2>
+          <button
+            aria-label="Close"
+            onClick={onClose}
+            className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </header>
-      <div className="scroll-panel flex-1 overflow-y-auto">
+      <div className="scroll-panel min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="px-3 py-2">
             <ConversationListSkeleton />
@@ -592,11 +600,13 @@ function VentureMootRecap({ venture }: { venture: VentureParty }) {
 
 function VenturePartyThread({
   venture,
+  keyboardOpen,
   onBack,
   onOpenProfile,
   onMessage,
 }: {
   venture: VentureParty;
+  keyboardOpen: boolean;
   onBack: () => void;
   onOpenProfile?: (handle: string) => void;
   onMessage: (userId: string) => void;
@@ -717,39 +727,41 @@ function VenturePartyThread({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to messages"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <MessageCircle className="h-4 w-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{venture.title}</p>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
+        <div className="flex items-center gap-3 px-4 py-2">
           <button
             type="button"
-            onClick={() => setParticipantsOpen(true)}
-            aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
-            className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            onClick={onBack}
+            aria-label="Back to messages"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <span>{isComplete ? "Venture memory" : "Party chat"}</span>
-            <span aria-hidden="true">·</span>
-            <UsersRound className="h-3 w-3 shrink-0" />
-            <span className="truncate">
-              {participants.length} {participants.length === 1 ? "participant" : "participants"}
-            </span>
-            <ChevronRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <MessageCircle className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{venture.title}</p>
+            <button
+              type="button"
+              onClick={() => setParticipantsOpen(true)}
+              aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
+              className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <span>{isComplete ? "Venture memory" : "Party chat"}</span>
+              <span aria-hidden="true">·</span>
+              <UsersRound className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {participants.length} {participants.length === 1 ? "participant" : "participants"}
+              </span>
+              <ChevronRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+            </button>
+          </div>
         </div>
       </header>
 
-      <div ref={scrollRef} className="scroll-panel flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="scroll-panel min-h-0 flex-1 overflow-y-auto">
         <VentureCoordinationPanel
           venture={venture}
           coordination={coordinationQuery.data}
@@ -980,6 +992,7 @@ function VenturePartyThread({
             onClearImage={() => setSelectedImage(null)}
             disabled={isComplete}
             sending={uploading || send.isPending}
+            keyboardOpen={keyboardOpen}
             accessory={<MentionSuggestions suggestions={mentionSuggestions} onPick={pickMention} />}
           />
         )}
@@ -1002,10 +1015,12 @@ function VenturePartyThread({
 
 function Thread({
   otherId,
+  keyboardOpen,
   onBack,
   onOpenProfile,
 }: {
   otherId: string;
+  keyboardOpen: boolean;
   onBack: () => void;
   onOpenProfile?: (handle: string) => void;
 }) {
@@ -1086,41 +1101,43 @@ function Thread({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to messages"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onOpenProfile?.(other?.handle || otherId)}
-          disabled={!onOpenProfile}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-opacity enabled:active:opacity-70 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">
-              {other?.display_name?.trim() || "Someone"}
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              {tribe.name}
-              {other?.city ? ` · ${other.city}` : ""}
-            </p>
-          </div>
-        </button>
-        <SafetyMenu
-          targetName={other?.display_name?.trim() || other?.handle || "this user"}
-          targetUserId={otherId}
-          className="shrink-0"
-        />
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
+        <div className="flex items-center gap-3 px-4 py-2">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back to messages"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenProfile?.(other?.handle || otherId)}
+            disabled={!onOpenProfile}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-opacity enabled:active:opacity-70 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">
+                {other?.display_name?.trim() || "Someone"}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {tribe.name}
+                {other?.city ? ` · ${other.city}` : ""}
+              </p>
+            </div>
+          </button>
+          <SafetyMenu
+            targetName={other?.display_name?.trim() || other?.handle || "this user"}
+            targetUserId={otherId}
+            className="shrink-0"
+          />
+        </div>
       </header>
 
-      <div ref={scrollRef} className="scroll-panel flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scroll-panel min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <MessageThreadSkeleton />
         ) : !msgs?.length ? (
@@ -1263,6 +1280,7 @@ function Thread({
         onSelectImage={setSelectedImage}
         onClearImage={() => setSelectedImage(null)}
         sending={uploading || send.isPending}
+        keyboardOpen={keyboardOpen}
       />
     </div>
   );

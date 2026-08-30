@@ -194,7 +194,7 @@ export function TribeScreen({
           action={newPlanButton}
         />
       )}
-      <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pt-2">
+      <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pt-2">
         {!onBack && (
           <div className="shrink-0 px-2">
             <TribeRoomIdentity
@@ -236,6 +236,7 @@ export function TribeScreen({
           canChat={isJoined}
           members={members}
           hidden={roomView !== "chat"}
+          keyboardOpen={visualViewport.keyboardOpen}
         />
       </main>
       <TribeMembersSheet
@@ -404,11 +405,13 @@ function GroupChat({
   canChat,
   members,
   hidden = false,
+  keyboardOpen = false,
 }: {
   tribeId: TribeId;
   canChat: boolean;
   members: TribeMember[];
   hidden?: boolean;
+  keyboardOpen?: boolean;
 }) {
   const tribe = tribeById(tribeId);
   const { user } = useAuth();
@@ -965,6 +968,7 @@ function GroupChat({
           onClearImage={clearAttachment}
           disabled={!canChat || !dbTribeId}
           sending={sending}
+          keyboardOpen={keyboardOpen}
           outerClassName="!px-2"
           accessory={
             mentionSuggestions.length > 0 ? (

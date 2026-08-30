@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Physical-iOS safe areas, keyboard layout, and chat swipe stability | shared header/chat shell/composer/gesture files and focused iOS tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,29 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — iOS chat viewport, safe areas, and swipe recovery unified
+
+- Extended the shared Visual Viewport hook to distinguish a real software
+  keyboard from ordinary browser-chrome movement and to expose only the
+  portion still occluded when the layout viewport does not resize.
+- Made the shared chat composer the sole bottom-safe-area owner. DM and
+  Venture inputs now clear the Home indicator, while Tribe no longer adds a
+  second safe-area block below the composer. Keyboard-open layouts use compact
+  design spacing instead of retaining the closed-app inset.
+- Added top-safe-area ownership to the Messages inbox and the custom DM and
+  Venture headers, plus `min-h-0` on their flex shells and scroll owners so the
+  status bar cannot cover controls and the message list shrinks for the IME.
+- Anchored the focused-post comment composer to the usable Visual Viewport
+  when legacy iOS WebKit overlays the keyboard instead of resizing content.
+- Hardened the shared swipe-to-reply hook for WebKit's
+  `lostpointercapture`: drag state is cleared before capture is released, and
+  a cancelled capture now always snaps the row home without triggering reply.
+  This covers Tribe, Venture, and DM rows through their shared hook.
+- Verification: changed-source ESLint, `npx tsc --noEmit`, all 114 Node tests,
+  `git diff --check`, and the Cloudflare production build pass. Nothing was
+  deployed or published. Physical iPhone Home Screen acceptance remains
+  required for keyboard accessory-bar and interrupted-gesture behavior.
 
 ### 2026-08-30 — Codex — Adult entry lowered to 18+ with optional install finish
 

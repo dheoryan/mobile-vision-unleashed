@@ -58,11 +58,7 @@ export function useSwipeReply(onTrigger: () => void, disabled = false) {
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
-    if (
-      activePointer.current !== e.pointerId ||
-      startX.current == null ||
-      startY.current == null
-    )
+    if (activePointer.current !== e.pointerId || startX.current == null || startY.current == null)
       return;
     const dx = e.clientX - startX.current;
     const dy = e.clientY - startY.current;
@@ -83,20 +79,33 @@ export function useSwipeReply(onTrigger: () => void, disabled = false) {
     if (activePointer.current !== e.pointerId) return;
     const shouldReply = allowReply && shouldTriggerSwipeReply(dragXRef.current);
     suppressClick.current = dragXRef.current > 6;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
+    // Clear our state before releasing capture. WebKit can dispatch
+    // lostpointercapture synchronously from releasePointerCapture().
     activePointer.current = null;
     startX.current = null;
     startY.current = null;
     axis.current = null;
     dragXRef.current = 0;
     setDragX(0);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     if (shouldReply) fire();
   };
 
   const endDrag = (e: ReactPointerEvent<HTMLElement>) => finishDrag(e, true);
   const cancelDrag = (e: ReactPointerEvent<HTMLElement>) => finishDrag(e, false);
+
+  const onLostPointerCapture = (e: ReactPointerEvent<HTMLElement>) => {
+    if (activePointer.current !== e.pointerId) return;
+    suppressClick.current = dragXRef.current > 6;
+    activePointer.current = null;
+    startX.current = null;
+    startY.current = null;
+    axis.current = null;
+    dragXRef.current = 0;
+    setDragX(0);
+  };
 
   const onClickCapture = (e: ReactMouseEvent<HTMLElement>) => {
     if (!suppressClick.current) return;
@@ -121,6 +130,7 @@ export function useSwipeReply(onTrigger: () => void, disabled = false) {
       onPointerMove,
       onPointerUp: endDrag,
       onPointerCancel: cancelDrag,
+      onLostPointerCapture,
       onClickCapture,
     },
   };

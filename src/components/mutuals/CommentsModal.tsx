@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
+import { useVisualViewport } from "@/hooks/use-visual-viewport";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
@@ -63,6 +64,7 @@ export function CommentsThread({
   const [repostTarget, setRepostTarget] = useState<CommentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CommentRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const visualViewport = useVisualViewport(true);
 
   const commentsQuery = useComments(postId);
   const addComment = useAddComment(postId);
@@ -323,7 +325,17 @@ export function CommentsThread({
           )}
         </div>
 
-        <div className="glass sticky bottom-0 z-10 -mx-1 border-t border-border/80 px-1 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-14px_36px_rgba(0,0,0,0.22)]">
+        <div
+          className={cn(
+            "glass sticky bottom-0 z-10 -mx-1 border-t border-border/80 px-1 pt-2 shadow-[0_-14px_36px_rgba(0,0,0,0.22)]",
+            visualViewport.keyboardOpen ? "pb-3" : "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+          )}
+          style={
+            visualViewport.keyboardOpen && visualViewport.bottomInset > 0
+              ? { bottom: `${visualViewport.bottomInset}px` }
+              : undefined
+          }
+        >
           {replyTo && (
             <ReplyPreview
               name={replyTo.author?.display_name || "comment"}

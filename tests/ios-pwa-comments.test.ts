@@ -28,6 +28,8 @@ test("comments use a modal-free page thread with a safe sticky composer", () => 
   assert.match(commentsModalSource, /<section id="comments"/);
   assert.match(commentsModalSource, /glass sticky bottom-0 z-10/);
   assert.match(commentsModalSource, /pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(commentsModalSource, /visualViewport\.keyboardOpen/);
+  assert.match(commentsModalSource, /visualViewport\.bottomInset/);
   assert.match(commentsModalSource, /text-base placeholder:text-muted-foreground/);
   assert.doesNotMatch(commentsModalSource, /title="Comments"/);
   assert.doesNotMatch(postCardSource, /<CommentsModal/);

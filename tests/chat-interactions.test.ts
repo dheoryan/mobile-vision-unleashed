@@ -18,6 +18,22 @@ test("reply triggers only after the released bubble crosses the threshold", () =
   assert.equal(shouldTriggerSwipeReply(SWIPE_REPLY_THRESHOLD), true);
 });
 
+test("swipe-to-reply resets when iOS loses pointer capture", () => {
+  const hookSource = readFileSync(
+    new URL("../src/hooks/use-swipe-reply.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(hookSource, /const onLostPointerCapture/);
+  assert.match(hookSource, /onLostPointerCapture,/);
+  assert.ok(
+    hookSource.indexOf("activePointer.current = null", hookSource.indexOf("const finishDrag")) <
+      hookSource.indexOf(
+        "e.currentTarget.releasePointerCapture",
+        hookSource.indexOf("const finishDrag"),
+      ),
+  );
+});
+
 test("chat reaction controls render native emoji instead of outline icons", () => {
   const componentSource = readFileSync(
     new URL("../src/components/mutuals/ChatMessageActions.tsx", import.meta.url),
