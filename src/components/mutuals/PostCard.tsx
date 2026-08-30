@@ -42,6 +42,8 @@ import { showPlusBadge } from "@/lib/feature-flags";
 import { splitPostMentions } from "@/lib/post-mentions";
 import { PostMediaLightbox } from "./PostMediaLightbox";
 import { ImageStrip, type ComposedImage } from "./ImageStrip";
+import { RepostAudienceChoices, type RepostAudience } from "./RepostAudienceChoices";
+import { useMyProfile } from "@/lib/profile-store";
 
 const MAX_IMG_BYTES = 15 * 1024 * 1024;
 const MAX_IMAGES = 10;
@@ -174,6 +176,7 @@ export function PostCard({
   commentsInline?: boolean;
 }) {
   const { user } = useAuth();
+  const myProfile = useMyProfile();
   const navigate = useNavigate();
   const social = useSocial();
   const toggleLike = useToggleLike();
@@ -195,6 +198,7 @@ export function PostCard({
   const repostsQuery = useMyReposts();
   const reposted = repostsQuery.data?.has(post.id) ?? false;
   const toggleRepost = useToggleRepost();
+  const myTribeId = myProfile?.tribeIds[0] ?? (post.tribe_id as TribeId);
 
   const editPost = useEditPost();
   const deletePost = useDeletePost();
@@ -212,6 +216,27 @@ export function PostCard({
   const [mediaIndex, setMediaIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+
+  const changeRepost = (audience: RepostAudience) => {
+    setRepostMenuOpen(false);
+    toggleRepost.mutate(
+      { postId: post.id, audience },
+      {
+        onSuccess: (result) =>
+          toast.success(
+            result.reposted
+              ? audience === "tribe"
+                ? `Reposted to ${tribeById(myTribeId).name}`
+                : "Reposted to The Wild"
+              : "Repost removed",
+          ),
+        onError: (error) =>
+          toast.error(reposted ? "Repost wasn't removed" : "Post wasn't reposted", {
+            description: (error as Error).message,
+          }),
+      },
+    );
+  };
 
   const share = async () => {
     if (post.id.startsWith("tmp-")) return;
@@ -648,39 +673,35 @@ export function PostCard({
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
 
-            <button
-              type="button"
-              disabled={toggleRepost.isPending}
-              onClick={() => {
-                setRepostMenuOpen(false);
-                toggleRepost.mutate(post.id, {
-                  onError: (error) =>
-                    toast.error(reposted ? "Repost wasn't removed" : "Post wasn't reposted", {
-                      description: (error as Error).message,
-                    }),
-                });
-              }}
-              className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-            >
-              <span
-                className={cn(
-                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                  reposted ? "bg-emerald-400/12 text-emerald-400" : "bg-primary/12 text-primary",
-                )}
+            {reposted && (
+              <button
+                type="button"
+                disabled={toggleRepost.isPending}
+                onClick={() => changeRepost("tribe")}
+                className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
               >
-                <Repeat2 className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">
-                  {reposted ? "Undo repost" : "Repost only"}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/12 text-emerald-400">
+                  <Repeat2 className="h-5 w-5" />
                 </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {reposted ? "Remove it from your reposts" : "Share it without adding a note"}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">Undo repost</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Remove it from your reposts
+                  </span>
                 </span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </button>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
           </div>
+
+          {!reposted && (
+            <RepostAudienceChoices
+              tribeId={myTribeId}
+              allowWild={post.audience === "all"}
+              disabled={toggleRepost.isPending}
+              onSelect={changeRepost}
+            />
+          )}
         </div>
       </AnimatedModal>
 

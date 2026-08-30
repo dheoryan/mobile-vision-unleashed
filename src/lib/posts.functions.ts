@@ -307,7 +307,7 @@ export const listFeed = createServerFn({ method: "GET" })
 
     const repostsQuery = supabase
       .from("reposts")
-      .select(`user_id, created_at, posts!inner(${POST_COLS})`)
+      .select(`user_id, audience, tribe_id, created_at, posts!inner(${POST_COLS})`)
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -316,11 +316,15 @@ export const listFeed = createServerFn({ method: "GET" })
     if (postsError) throw new Error(postsError.message);
     if (repostsError) throw new Error(repostsError.message);
 
-    type RepostRow = { user_id: string; created_at: string; posts: Record<string, unknown> };
+    type RepostRow = {
+      user_id: string;
+      audience: "tribe" | "all";
+      tribe_id: string | null;
+      created_at: string;
+      posts: Record<string, unknown>;
+    };
     const scopedReposts = ((repostRows ?? []) as RepostRow[]).filter((r) =>
-      data.tribe_id
-        ? r.posts.tribe_id === data.tribe_id && r.posts.audience === "tribe"
-        : r.posts.audience === "all",
+      data.tribe_id ? r.audience === "tribe" && r.tribe_id === data.tribe_id : r.audience === "all",
     );
 
     const reposterIds = Array.from(new Set(scopedReposts.map((r) => r.user_id)));
@@ -654,6 +658,9 @@ export const addComment = createServerFn({ method: "POST" })
 
 const commentSocialListSchema = z.object({ post_id: z.string().uuid() });
 const commentSocialToggleSchema = z.object({ comment_id: z.string().uuid() });
+const commentRepostToggleSchema = commentSocialToggleSchema.extend({
+  audience: z.enum(["tribe", "all"]),
+});
 
 export const listMyCommentLikes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -752,7 +759,7 @@ export const listMyCommentReposts = createServerFn({ method: "GET" })
 
 export const toggleCommentRepost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => commentSocialToggleSchema.parse(input))
+  .inputValidator((input: unknown) => commentRepostToggleSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: comment, error: commentError } = await supabase
@@ -777,18 +784,27 @@ export const toggleCommentRepost = createServerFn({ method: "POST" })
       const { error } = await supabase.from("posts").delete().eq("id", existing.id);
       if (error) throw new Error(error.message);
     } else {
-      const { data: source, error: sourceError } = await supabase
-        .from("posts")
-        .select("tribe_id, audience")
-        .eq("id", comment.post_id)
-        .single();
+      const [{ data: source, error: sourceError }, { data: profile, error: profileError }] =
+        await Promise.all([
+          supabase.from("posts").select("tribe_id, audience").eq("id", comment.post_id).single(),
+          supabase.from("profiles").select("tribe_ids").eq("id", userId).maybeSingle(),
+        ]);
       if (sourceError) throw new Error(sourceError.message);
+      if (profileError) throw new Error(profileError.message);
+      const viewerTribe = (profile?.tribe_ids as string[] | null)?.[0];
+      if (!viewerTribe) throw new Error("Choose a Tribe before reposting");
+      if (source.audience === "tribe" && data.audience !== "tribe") {
+        throw new Error("A Tribe-only comment cannot be reposted to The Wild");
+      }
+      if (source.audience === "tribe" && source.tribe_id !== viewerTribe) {
+        throw new Error("Only members of this Tribe can repost this comment");
+      }
       const { data: inserted, error } = await supabase
         .from("posts")
         .insert({
           author_id: userId,
-          tribe_id: source.tribe_id,
-          audience: source.audience,
+          tribe_id: viewerTribe,
+          audience: data.audience,
           content: "",
           quoted_comment_id: data.comment_id,
         })

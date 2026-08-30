@@ -12,6 +12,8 @@ const store = source("../src/lib/posts-store.ts");
 const comments = source("../src/components/mutuals/CommentsModal.tsx");
 const postCard = source("../src/components/mutuals/PostCard.tsx");
 const push = source("../src/lib/push-payload.ts");
+const audienceMigration = source("../supabase/migrations/20260830100000_repost_audience.sql");
+const audienceChoices = source("../src/components/mutuals/RepostAudienceChoices.tsx");
 
 test("comment likes are unique, RLS-protected, and trigger-counted", () => {
   assert.match(migration, /primary key \(comment_id, user_id\)/);
@@ -21,17 +23,18 @@ test("comment likes are unique, RLS-protected, and trigger-counted", () => {
   assert.match(migration, /greatest\(likes_count - 1, 0\)/);
 });
 
-test("a comment repost is one normal audience-preserving post per user", () => {
+test("a comment repost is one normal audience-bounded post per user", () => {
   assert.match(migration, /unique index posts_author_quoted_comment_unique/);
   assert.match(functions, /export const toggleCommentRepost/);
   assert.match(functions, /select\("tribe_id, audience"\)/);
-  assert.match(functions, /audience: source\.audience/);
+  assert.match(functions, /audience: data\.audience/);
+  assert.match(functions, /source\.audience === "tribe" && data\.audience !== "tribe"/);
   assert.match(functions, /quoted_comment_id: data\.comment_id/);
   assert.match(functions, /content: ""/);
-  assert.match(migration, /validate_comment_repost_insert/);
-  assert.match(migration, /new\.audience <> source_audience/);
-  assert.match(migration, /A Tribe comment must stay inside its source Tribe/);
-  assert.match(migration, /Only a Tribe member can repost this comment/);
+  assert.match(audienceMigration, /validate_comment_repost_insert/);
+  assert.match(audienceMigration, /source_audience = 'tribe'/);
+  assert.match(audienceMigration, /A Tribe comment must stay inside its source Tribe/);
+  assert.match(audienceMigration, /new\.tribe_id := viewer_tribe/);
   assert.match(migration, /prevent_comment_repost_source_update/);
 });
 
@@ -52,7 +55,11 @@ test("comment repost opens the same safe-area bottom-sheet pattern as post repos
   assert.match(comments, /title="Repost options"/);
   assert.match(comments, /zIndex=\{60\}/);
   assert.match(comments, /pb-\[max\(1\.25rem,env\(safe-area-inset-bottom\)\)\]/);
-  assert.match(comments, /repostTargetActive \? "Undo repost" : "Repost only"/);
+  assert.match(comments, /<RepostAudienceChoices/);
+  assert.match(comments, /allowWild=\{sourceAudience === "all"\}/);
+  assert.match(comments, /onSelect=\{changeCommentRepost\}/);
+  assert.match(audienceChoices, />My Tribe</);
+  assert.match(audienceChoices, />The Wild</);
   assert.match(comments, /aria-label="Close repost options"/);
   assert.doesNotMatch(comments, /onClick=\{\(\) => onRepost\(c\.id\)\}/);
 });

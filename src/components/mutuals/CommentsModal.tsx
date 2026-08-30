@@ -39,15 +39,21 @@ import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./Ment
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
+import { type TribeId } from "@/lib/mutuals-data";
+import { RepostAudienceChoices, type RepostAudience } from "./RepostAudienceChoices";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
 export function CommentsThread({
   postId,
+  sourceAudience,
+  sourceTribeId,
   highlightCommentId,
   isPostOwner = false,
 }: {
   postId: string;
+  sourceAudience: "tribe" | "all";
+  sourceTribeId: TribeId;
   highlightCommentId?: string | null;
   /** Lets the post's author hide someone else's comment on it, separate
    *  from the delete action every commenter already has on their own. Only
@@ -82,6 +88,7 @@ export function CommentsThread({
   const unhideComment = useUnhideComment(postId);
   const { register, registry } = useMentionRegistry();
   const picker = useMentionPicker(text, caret);
+  const myTribeId = me?.tribeIds[0] ?? sourceTribeId;
 
   // tree grouping
   const tree = useMemo(() => {
@@ -117,6 +124,30 @@ export function CommentsThread({
 
   const tribeColor = TRIBE_FALLBACK;
   const roots = tree.get(null) ?? [];
+
+  const changeCommentRepost = (audience: RepostAudience) => {
+    if (!repostTarget) return;
+    const commentId = repostTarget.id;
+    const wasReposted = repostTargetActive;
+    setRepostTarget(null);
+    toggleCommentRepost.mutate(
+      { commentId, audience },
+      {
+        onSuccess: (result) =>
+          toast.success(
+            result.reposted
+              ? audience === "tribe"
+                ? "Comment reposted to your Tribe"
+                : "Comment reposted to The Wild"
+              : "Comment repost removed",
+          ),
+        onError: (error) =>
+          toast.error(wasReposted ? "Repost wasn't removed" : "Comment wasn't reposted", {
+            description: (error as Error).message,
+          }),
+      },
+    );
+  };
 
   const send = () => {
     const t = text.trim();
@@ -404,49 +435,32 @@ export function CommentsThread({
             </button>
           </div>
 
-          <div className="border-y border-border">
+          {repostTargetActive ? (
             <button
               type="button"
               disabled={!repostTarget || toggleCommentRepost.isPending}
-              onClick={() => {
-                if (!repostTarget) return;
-                const commentId = repostTarget.id;
-                const wasReposted = repostTargetActive;
-                setRepostTarget(null);
-                toggleCommentRepost.mutate(commentId, {
-                  onSuccess: (result) =>
-                    toast.success(result.reposted ? "Comment reposted" : "Comment repost removed"),
-                  onError: (error) =>
-                    toast.error(wasReposted ? "Repost wasn't removed" : "Comment wasn't reposted", {
-                      description: (error as Error).message,
-                    }),
-                });
-              }}
-              className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              onClick={() => changeCommentRepost("tribe")}
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 border-y border-border px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
-              <span
-                className={cn(
-                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                  repostTargetActive
-                    ? "bg-emerald-400/12 text-emerald-400"
-                    : "bg-primary/12 text-primary",
-                )}
-              >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/12 text-emerald-400">
                 <Repeat2 className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">
-                  {repostTargetActive ? "Undo repost" : "Repost only"}
-                </span>
+                <span className="block text-sm font-semibold">Undo repost</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {repostTargetActive
-                    ? "Remove it from your reposts"
-                    : "Share the comment as a signal"}
+                  Remove it from your reposts
                 </span>
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
-          </div>
+          ) : (
+            <RepostAudienceChoices
+              tribeId={myTribeId}
+              allowWild={sourceAudience === "all"}
+              disabled={!repostTarget || toggleCommentRepost.isPending}
+              onSelect={changeCommentRepost}
+            />
+          )}
         </div>
       </AnimatedModal>
 

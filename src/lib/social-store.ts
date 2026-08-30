@@ -234,8 +234,9 @@ export function useToggleRepost() {
   const { user } = useAuth();
   const key = [...REPOSTS_KEY, user?.id ?? null];
   return useMutation({
-    mutationFn: (postId: string) => fn({ data: { post_id: postId } }),
-    onMutate: async (postId) => {
+    mutationFn: ({ postId, audience }: { postId: string; audience: "tribe" | "all" }) =>
+      fn({ data: { post_id: postId, audience } }),
+    onMutate: async ({ postId }) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<string[]>(key) ?? [];
       const wasReposted = prev.includes(postId);

@@ -8,6 +8,7 @@ import { CommentsThread } from "@/components/mutuals/CommentsModal";
 import { useAuth } from "@/lib/auth-context";
 import { getPostById } from "@/lib/posts.functions";
 import { AppBootstrapSkeleton, PostCardSkeleton } from "@/components/mutuals/Skeleton";
+import type { TribeId } from "@/lib/mutuals-data";
 
 interface SharedPostSearch {
   from?: "feed" | "notifications";
@@ -114,6 +115,8 @@ function SharedPostPage() {
             <PostCard post={postQuery.data} showTribe commentsInline />
             <CommentsThread
               postId={postQuery.data.id}
+              sourceAudience={postQuery.data.audience}
+              sourceTribeId={postQuery.data.tribe_id as TribeId}
               highlightCommentId={comment}
               isPostOwner={postQuery.data.author_id === user.id}
             />

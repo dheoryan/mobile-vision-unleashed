@@ -13,6 +13,7 @@ export type AuthorLite = {
 
 const uuidIn = z.object({ user_id: z.string().uuid() });
 const postIn = z.object({ post_id: z.string().uuid() });
+const repostIn = postIn.extend({ audience: z.enum(["tribe", "all"]) });
 
 async function getPostCount(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,7 +134,7 @@ export const listMyReposts = createServerFn({ method: "GET" })
 
 export const toggleRepost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => postIn.parse(input))
+  .inputValidator((input: unknown) => repostIn.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: existing } = await supabase
@@ -155,9 +156,29 @@ export const toggleRepost = createServerFn({ method: "POST" })
         reposts_count: await getPostCount(supabase, "reposts", data.post_id),
       };
     }
-    const { error } = await supabase
-      .from("reposts")
-      .insert({ post_id: data.post_id, user_id: userId });
+    const [{ data: source, error: sourceError }, { data: profile, error: profileError }] =
+      await Promise.all([
+        supabase.from("posts").select("audience, tribe_id").eq("id", data.post_id).maybeSingle(),
+        supabase.from("profiles").select("tribe_ids").eq("id", userId).maybeSingle(),
+      ]);
+    if (sourceError) throw new Error(sourceError.message);
+    if (profileError) throw new Error(profileError.message);
+    if (!source) throw new Error("Signal is no longer available");
+    const viewerTribe = (profile?.tribe_ids as string[] | null)?.[0];
+    if (!viewerTribe) throw new Error("Choose a Tribe before reposting");
+    if (source.audience === "tribe" && data.audience !== "tribe") {
+      throw new Error("A Tribe-only signal cannot be reposted to The Wild");
+    }
+    if (source.audience === "tribe" && source.tribe_id !== viewerTribe) {
+      throw new Error("Only members of this Tribe can repost this signal");
+    }
+
+    const { error } = await supabase.from("reposts").insert({
+      post_id: data.post_id,
+      user_id: userId,
+      audience: data.audience,
+      tribe_id: data.audience === "tribe" ? viewerTribe : null,
+    });
     if (error) throw new Error(error.message);
     return {
       post_id: data.post_id,

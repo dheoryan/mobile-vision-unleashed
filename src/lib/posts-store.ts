@@ -406,8 +406,9 @@ export function useToggleCommentRepost(postId: string) {
   const { user } = useAuth();
   const key = COMMENT_REPOSTS_KEY(postId, user?.id ?? null);
   return useMutation({
-    mutationFn: (commentId: string) => fn({ data: { comment_id: commentId } }),
-    onMutate: async (commentId) => {
+    mutationFn: ({ commentId, audience }: { commentId: string; audience: "tribe" | "all" }) =>
+      fn({ data: { comment_id: commentId, audience } }),
+    onMutate: async ({ commentId }) => {
       await Promise.all([
         qc.cancelQueries({ queryKey: COMMENTS_KEY(postId) }),
         qc.cancelQueries({ queryKey: key }),

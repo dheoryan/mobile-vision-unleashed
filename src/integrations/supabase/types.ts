@@ -862,18 +862,24 @@ export type Database = {
       }
       reposts: {
         Row: {
+          audience: string
           created_at: string
           post_id: string
+          tribe_id: string | null
           user_id: string
         }
         Insert: {
+          audience?: string
           created_at?: string
           post_id: string
+          tribe_id?: string | null
           user_id: string
         }
         Update: {
+          audience?: string
           created_at?: string
           post_id?: string
+          tribe_id?: string | null
           user_id?: string
         }
         Relationships: [
