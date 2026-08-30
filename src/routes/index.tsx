@@ -20,6 +20,7 @@ import { rowToProfile, useProfileRow, useUpdateProfile, profileToPatch } from "@
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { AgeVerification } from "@/components/mutuals/AgeVerification";
+import { OnboardingInstall } from "@/components/mutuals/OnboardingInstall";
 import { useAutoRefreshLocationOnSession, useSaveMyLocation } from "@/lib/location-store";
 import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
 import type { TribeVentureDraft } from "@/lib/tribe-room";
@@ -35,6 +36,7 @@ import {
   type NotificationHomeSearch,
 } from "@/lib/notification-navigation";
 import { saveStoredVentureMode } from "@/lib/ventures-mode";
+import { isStandalonePwa } from "@/lib/push-subscribe";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): NotificationHomeSearch =>
@@ -126,6 +128,7 @@ function App() {
     mode: "host" | "yours";
   } | null>(null);
   const [pendingVentureChatId, setPendingVentureChatId] = useState<string | null>(null);
+  const [showOnboardingInstall, setShowOnboardingInstall] = useState(false);
   const handledNotificationTarget = useRef<string | null>(null);
   const intent = useIntent();
   const threadsQuery = useThreads();
@@ -372,6 +375,10 @@ function App() {
     return <AgeVerification locked={!!profileQuery.data.date_of_birth} />;
   }
 
+  if (profile && showOnboardingInstall) {
+    return <OnboardingInstall onContinue={() => setShowOnboardingInstall(false)} />;
+  }
+
   if (!profile) {
     return (
       <Onboarding
@@ -379,6 +386,7 @@ function App() {
         onDone={(p, location) =>
           updateProfile.mutate(profileToPatch(p), {
             onSuccess: () => {
+              if (!isStandalonePwa()) setShowOnboardingInstall(true);
               if (!location) return;
               saveLocation.mutate(location, {
                 onError: (error) =>

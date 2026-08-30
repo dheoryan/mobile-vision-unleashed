@@ -1,6 +1,8 @@
-export const MINIMUM_AGE = 21;
+export const MINIMUM_AGE = 18;
 export const AGE_RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-export const AGE_RETRY_KEY = "meutuals.age-retry-after";
+// Versioned so a browser locked by the former threshold can retry immediately
+// under the new adult policy.
+export const AGE_RETRY_KEY = "meutuals.age-retry-after.v2";
 export const PENDING_DATE_OF_BIRTH_KEY = "meutuals.pending-date-of-birth";
 
 function dateInputValue(date: Date) {
@@ -24,11 +26,7 @@ export function isPlausibleDateOfBirth(value: string, today = new Date()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(year, month - 1, day);
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
     return false;
   }
   return value >= earliestReasonableDateOfBirth(today) && value <= dateInputValue(today);

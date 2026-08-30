@@ -263,7 +263,7 @@ export function Onboarding({
                 Get started <ArrowRight className="h-4 w-4" />
               </PrimaryButton>
               <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                For socially curious adults, 21+
+                For socially curious adults, 18+
               </p>
               <LegalFooter className="mt-4" />
             </div>
@@ -724,8 +724,8 @@ export function Onboarding({
                 {saving
                   ? "Creating profile…"
                   : location
-                    ? "Enter MEUTUALS nearby"
-                    : "Enter MEUTUALS"}
+                    ? "Finish nearby setup"
+                    : "Finish my profile"}
                 {!saving && <ArrowRight className="h-4 w-4" />}
               </PrimaryButton>
               {!location && (
@@ -735,7 +735,7 @@ export function Onboarding({
                   disabled={saving}
                   className="min-h-11 w-full rounded text-xs font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  Continue with city only
+                  Finish with city only
                 </button>
               )}
             </div>

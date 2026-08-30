@@ -16,9 +16,9 @@ switching something on.
       returns. Push notifications never fire and **nothing surfaces an error** —
       not in the UI, not in the network tab. Verify it points at the live
       domain, not a preview URL.
-      ```sql
-      select name, created_at from vault.secrets order by name;
-      ```
+      `sql
+    select name, created_at from vault.secrets order by name;
+    `
 
 - [ ] **Seed at least one moderator.**
       `reports`, `moderate_report()` and the queue all exist, but
@@ -26,9 +26,9 @@ switching something on.
       Right now a user can report content and it lands in a queue **no human
       can open**. That is worse than having no reporting at all, because the
       UI promises action.
-      ```sql
-      insert into public.moderators (user_id) values ('<your profile uuid>');
-      ```
+      `sql
+    insert into public.moderators (user_id) values ('<your profile uuid>');
+    `
 
 - [ ] **Replace the placeholder contact addresses.**
       `privacy.tsx` and `terms.tsx` both name `@mutuals.app` addresses that
@@ -37,7 +37,7 @@ switching something on.
 
 - [ ] **Legal review of Terms and Privacy.**
       Both files carry `// TODO: legal review before launch`. The app collects
-      precise location, is 21+ only, hosts user-to-user meetups, and stores
+      precise location, is 18+ only, hosts user-to-user meetups, and stores
       DMs. This is the one item on this list that is not a coding task.
 
 - [ ] **Take a backup immediately before opening up.**
@@ -93,13 +93,13 @@ switching something on.
 Not tasks. Things nobody has exercised end to end, listed so they are a known
 risk rather than a surprise.
 
-| Flow | Why it is untested |
-|---|---|
-| Account deletion | Cascades into 14 tables. Only safe to test with an account that has touched nothing real. |
-| Suspension | Same reason. |
-| Moderation queue, end to end | Blocked on seeding a moderator. |
-| 21-day tribe switch cooldown | Cannot be tested without editing a real `tribe_changed_at`. Will not be verified before launch. |
-| Venture capacity under real concurrency | The row lock is proven in a two-session Postgres test, not with real users racing. |
+| Flow                                    | Why it is untested                                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Account deletion                        | Cascades into 14 tables. Only safe to test with an account that has touched nothing real.       |
+| Suspension                              | Same reason.                                                                                    |
+| Moderation queue, end to end            | Blocked on seeding a moderator.                                                                 |
+| 21-day tribe switch cooldown            | Cannot be tested without editing a real `tribe_changed_at`. Will not be verified before launch. |
+| Venture capacity under real concurrency | The row lock is proven in a two-session Postgres test, not with real users racing.              |
 
 ---
 

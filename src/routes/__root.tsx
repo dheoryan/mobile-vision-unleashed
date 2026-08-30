@@ -94,13 +94,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Connect with people who share your interests, then meet up in the real world. 21+ only.",
+          "Connect with people who share your interests, then meet up in the real world. 18+ only.",
       },
       { property: "og:title", content: "MEUTUALS — Your tribe is waiting" },
       {
         property: "og:description",
         content:
-          "Connect with people who share your interests, then meet up in the real world. 21+ only.",
+          "Connect with people who share your interests, then meet up in the real world. 18+ only.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "twitter:description",
         content:
-          "Connect with people who share your interests, then meet up in the real world. 21+ only.",
+          "Connect with people who share your interests, then meet up in the real world. 18+ only.",
       },
       {
         property: "og:image",

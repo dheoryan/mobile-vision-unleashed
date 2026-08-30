@@ -129,6 +129,9 @@ export function PushPromptModal() {
 
   function tryOpen(t: PushPromptTrigger) {
     if (!user || !profileReady) return;
+    // Profile completion deliberately ends with an optional installation
+    // screen. Do not stack the notification modal on top of that final step.
+    if (document.querySelector("[data-onboarding-install]")) return;
     const availability = getPushAvailability();
     if (availability === "unsupported" || availability === "blocked" || availability === "insecure")
       return;

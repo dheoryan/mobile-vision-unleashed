@@ -1,6 +1,6 @@
 # MUTUALS ("Moots") — End-to-End Product & Codebase Analysis
 
-*Generated from a full read of the codebase at `dheoryan/mobile-vision-unleashed` — TanStack Start (React 19) + Supabase (Postgres/Auth/Realtime/Storage), deployed as a Cloudflare Worker. Originally built with Lovable.dev.*
+_Generated from a full read of the codebase at `dheoryan/mobile-vision-unleashed` — TanStack Start (React 19) + Supabase (Postgres/Auth/Realtime/Storage), deployed as a Cloudflare Worker. Originally built with Lovable.dev._
 
 ## 1. What the product is
 
@@ -12,7 +12,7 @@ The five core tabs: **Tribe** (home community + chat), **Timeline** (Tribe feed 
 
 Sign-in is email+password (Supabase Auth) or Google OAuth via a Lovable Cloud wrapper that does the OAuth handshake externally and hands Supabase a session. Password reset uses Supabase's standard magic-link flow. On signup, a database trigger (`handle_new_user`) immediately creates an empty stub row in `profiles` — the app doesn't create that row itself.
 
-There's no separate route guard for onboarding: the single `/` route checks whether the profile has a `display_name` and at least one `tribe_ids` entry; if not, it renders the 3-step Onboarding wizard (welcome → pick one Tribe → name/age/city/bio/avatar) instead of the app shell. Age is gated at 21+ both client-side and by a DB `CHECK` constraint, but nothing verifies the number is real.
+The single `/` route checks whether the profile has a `display_name` and one `tribe_ids` entry; if not, it renders onboarding instead of the app shell. Age is gated at 18+ through an immutable submitted date of birth, server-derived verification, restrictive RLS, and write triggers.
 
 Every server-side call re-verifies identity independently: server functions run through `requireSupabaseAuth`, which validates the bearer JWT and hands back a Postgres client scoped to that user's own Row Level Security policies — so even a bypassed client-side check still can't read or write data the database itself wouldn't allow.
 
@@ -24,7 +24,7 @@ Tribe chat is its own realtime table (`tribe_messages`, distinct from the DM `me
 
 ## 4. Timeline & posts
 
-Two feeds: "Tribe" (scoped to your active tribe) and "For You" (everything you're allowed to see). The audience of a new post — `tribe` or `all` — is decided by *which feed you tapped the compose button from*, not chosen inside the composer itself. Likes/comments/shares counts are recomputed via `count(*)` triggers rather than incremented/decremented, so they can't drift. Comments support one level of threading (a reply-to-a-reply gets flattened onto the root comment, Instagram-style) with @mentions and deep-link-to-comment support from notifications.
+Two feeds: "Tribe" (scoped to your active tribe) and "For You" (everything you're allowed to see). The audience of a new post — `tribe` or `all` — is decided by _which feed you tapped the compose button from_, not chosen inside the composer itself. Likes/comments/shares counts are recomputed via `count(*)` triggers rather than incremented/decremented, so they can't drift. Comments support one level of threading (a reply-to-a-reply gets flattened onto the root comment, Instagram-style) with @mentions and deep-link-to-comment support from notifications.
 
 ## 5. Discover
 
@@ -34,7 +34,7 @@ A server-paginated (20/page), searchable directory of every registered user (exc
 
 This is the most complex screen in the app. A host creates a Venture with a title, 1–5 "intents" (from a fixed list), a scope (`mine` = visible only to people who share a tribe with the host, `all` = visible to everyone), a free-text time window, and a slot count (2–20, host counts as slot 1). Other users either apply to open ones (host accepts/declines, capacity re-checked server-side at accept time) or get personally invited — but invites can only go to people already in the host's follow graph, not arbitrary strangers. Slot counts and status (`open`→`full`→`closed`) are kept in sync automatically by a database trigger on every application insert/update/delete, so the app layer never has to manage that bookkeeping directly. Accepted members plus the host get a group "party chat," which shows up in the same Messages panel as DMs.
 
-**Worth knowing before touching this screen**: there are two separate, inconsistent server-side implementations of Ventures in the codebase. `ventures.functions.ts` is the current, fully-wired one described above. But `posts.functions.ts` still exports an older, simpler set (`listMyVentures`/`launchVenture`/`endVenture`) that writes to the *same* `ventures` table with a different shape, and it's still what powers the "Ventures" tab on your own Profile page. These should be reconciled before building new Ventures features, or you'll be maintaining two code paths against one table.
+**Worth knowing before touching this screen**: there are two separate, inconsistent server-side implementations of Ventures in the codebase. `ventures.functions.ts` is the current, fully-wired one described above. But `posts.functions.ts` still exports an older, simpler set (`listMyVentures`/`launchVenture`/`endVenture`) that writes to the _same_ `ventures` table with a different shape, and it's still what powers the "Ventures" tab on your own Profile page. These should be reconciled before building new Ventures features, or you'll be maintaining two code paths against one table.
 
 ## 7. Messaging & notifications
 
@@ -46,7 +46,7 @@ Notifications are entirely trigger-driven: there is no app code anywhere that in
 
 This needs real attention before you build anything monetization-related, because the pricing pages don't reflect the code at all:
 
-- `/tiers` advertises three tiers (Explorer free / Venturer $9.99 / Scene Maker $24.99). `/upgrade` separately advertises a *different* single tier, "MUTUALS+," at $6.99/mo or $49.99/yr. Neither matches the database, which only has a binary `profiles.plan` (`free` / `plus`).
+- `/tiers` advertises three tiers (Explorer free / Venturer $9.99 / Scene Maker $24.99). `/upgrade` separately advertises a _different_ single tier, "MUTUALS+," at $6.99/mo or $49.99/yr. Neither matches the database, which only has a binary `profiles.plan` (`free` / `plus`).
 - The only two things ever actually gated by plan in code: Tribe count (a DB trigger, currently flattened to allow 3 tribes for everyone — see below) and the Ventures-hosting cap (a client-only check, never enforced server-side).
 - Every other advertised perk — priority match visibility, venture analytics, stealth mode in Discover, read receipts, recurring weekly windows, private sub-tribes, pinned event cards, priority Discover placement — has **zero implementation** anywhere. It's marketing copy with no backing field, query, or gate.
 - A feature flag, `MONETIZATION_ENABLED = false` (`src/lib/feature-flags.ts`), currently disables all plan gating app-wide — every user effectively gets Plus behavior for free right now, with Plus badges hidden.
@@ -60,7 +60,7 @@ Entirely a UI stub today. The "Apply to host a Tribe" form doesn't call any serv
 
 The subscribe flow is standard Web Push (service worker + VAPID key, subscription saved server-side keyed by endpoint). Dispatch, though, is entirely database-driven: any insert into `notifications` fires a trigger that calls an internal API route (`/api/public/push/dispatch`) with a shared secret, which loads the recipient's subscriptions and sends via Web Push, pruning any that come back expired. The app itself never explicitly "sends a push" — it all traces back to the same DB triggers that create notifications.
 
-**One real security issue here**: the shared secret used to authorize that dispatch call was committed in plaintext directly into a migration file — and when it was later "rotated" into Supabase Vault for safekeeping, the *new* secret value was also hardcoded in plaintext in the migration that seeds the Vault. Both the old and current values are sitting in git history in cleartext. This should be rotated through a real out-of-band secret (generated fresh, injected via Supabase's secrets tooling, never committed) before this matters for anything beyond a dev sandbox.
+**One real security issue here**: the shared secret used to authorize that dispatch call was committed in plaintext directly into a migration file — and when it was later "rotated" into Supabase Vault for safekeeping, the _new_ secret value was also hardcoded in plaintext in the migration that seeds the Vault. Both the old and current values are sitting in git history in cleartext. This should be rotated through a real out-of-band secret (generated fresh, injected via Supabase's secrets tooling, never committed) before this matters for anything beyond a dev sandbox.
 
 ## 11. Other known gaps worth knowing before you start building
 

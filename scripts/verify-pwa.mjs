@@ -118,6 +118,7 @@ for (const metadata of [
 const venturesMode = await read("src/lib/ventures-mode.ts");
 const venturesScreen = await read("src/components/mutuals/VenturesScreen.tsx");
 const appRoute = await read("src/routes/index.tsx");
+const onboardingInstall = await read("src/components/mutuals/OnboardingInstall.tsx");
 assert(
   venturesMode.includes("`${VENTURES_MODE_KEY}:${userId}`"),
   "Venture mode storage must be scoped to the signed-in user",
@@ -130,5 +131,21 @@ assert(
   appRoute.includes("`${TAB_KEY}:${userId}`"),
   "Primary tab storage must be scoped to the signed-in user",
 );
+assert(
+  appRoute.includes("<OnboardingInstall") && appRoute.includes("!isStandalonePwa()"),
+  "Completed onboarding must offer installation only outside standalone mode",
+);
+for (const required of [
+  "canInstallNow()",
+  "triggerInstallPrompt()",
+  "isIosThirdPartyBrowser()",
+  "Add to Home Screen",
+  "Not now—install later in Settings",
+]) {
+  assert(
+    onboardingInstall.includes(required),
+    `Onboarding installation step is missing ${required}`,
+  );
+}
 
 console.log("PWA release checks passed: manifest, icons, offline shell, updates, and Web Push.");

@@ -54,7 +54,7 @@ function SharedPostPage() {
           <p className="label-mono text-muted-foreground">Shared signal</p>
           <h1 className="mt-2 font-display text-2xl font-bold">Sign in to view this post.</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            MEUTUALS is a 21+ community. Sign in first so post visibility rules can be applied.
+            MEUTUALS is an 18+ community. Sign in first so post visibility rules can be applied.
           </p>
           <Link
             to="/login"

@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | 18+ adult gate and final onboarding PWA install step | `src/lib/age.ts`, onboarding/auth/legal/PWA UI, manifest/root metadata, new age migration/tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,28 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Adult entry lowered to 18+ with optional install finish
+
+- Lowered the member-facing and client eligibility boundary from 21+ to 18+
+  across signup, onboarding, shared-post access copy, metadata, the manifest,
+  Terms, Privacy, and launch documentation. Versioned the browser retry key so
+  someone rejected under the former threshold can retry immediately.
+- Added `20260830090000_lower_adult_gate_to_18.sql` rather than rewriting
+  deployed history. It updates the profile constraint and all active
+  server-side age functions, preserves the adult-gate switch and suspension
+  check, and re-evaluates only immutable DOBs that now qualify. The migration
+  is committed but has not been applied to production.
+- Added an optional full-screen installation finish after profile persistence.
+  Native-capable Android/desktop browsers receive their install prompt; iOS
+  Safari, third-party iOS browsers, Android fallbacks, and desktop fallbacks
+  receive device-appropriate inline steps. Standalone launches skip it, and
+  the notification prompt cannot stack over it.
+- Verified 111/111 Node tests, focused age/install tests, PWA release checks,
+  targeted ESLint (two pre-existing Fast Refresh warnings, zero errors),
+  `npx tsc --noEmit`, `git diff --check`, a signed-in local-app smoke check,
+  and the Cloudflare production build. Physical iOS/Android install acceptance
+  remains required; nothing was deployed or published.
 
 ### 2026-08-30 — Codex — Profiles share Signals, Reposts, and Ventures history
 

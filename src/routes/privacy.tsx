@@ -36,7 +36,7 @@ function PrivacyPage() {
         <header className="mt-6">
           <p className="label-mono text-muted-foreground">Legal</p>
           <h1 className="mt-2 font-display text-4xl font-bold leading-tight">Privacy Policy</h1>
-          <p className="mt-2 text-xs text-muted-foreground">Last updated: August 25, 2026</p>
+          <p className="mt-2 text-xs text-muted-foreground">Last updated: August 30, 2026</p>
         </header>
 
         <article className="mt-8 space-y-6 text-sm leading-relaxed text-muted-foreground">
@@ -70,7 +70,7 @@ function PrivacyPage() {
             </ul>
           </Section>
           <Section title="How we use it">
-            We use this data to create and secure your account, enforce the 21+ rule, show content
+            We use this data to create and secure your account, enforce the 18+ rule, show content
             to its intended audience, suggest relevant people using shared interests, intentions,
             availability and optional proximity, deliver messages and opted-in notifications,
             operate Tribes and Ventures, investigate reports, enforce blocks, and maintain the
