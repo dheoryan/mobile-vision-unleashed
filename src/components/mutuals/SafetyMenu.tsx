@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, X, Flag, Ban, ChevronRight } from "lucide-react";
+import { MoreHorizontal, X, Flag, Ban, ChevronRight, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useBlockUser } from "@/lib/blocked-store";
@@ -26,6 +26,7 @@ export function SafetyMenu({
   kind = "user",
   className = "",
   buttonClassName = "",
+  onHideComment,
 }: {
   targetName: string;
   /** Person id for "user" kind. Required to actually filter feeds when blocked. */
@@ -37,6 +38,8 @@ export function SafetyMenu({
   kind?: SafetyTargetKind;
   className?: string;
   buttonClassName?: string;
+  /** Post-owner-only moderation action. Omit outside comment rows the viewer owns. */
+  onHideComment?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -89,13 +92,38 @@ export function SafetyMenu({
           </div>
 
           <div className="border-y border-border">
+            {onHideComment && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onHideComment();
+                }}
+                className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                  <EyeOff className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">Hide comment</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Remove it from your post; restore it later
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 setReportOpen(true);
               }}
-              className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              className={cn(
+                "group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                onHideComment && "border-t border-border",
+              )}
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                 <Flag className="h-5 w-5" />

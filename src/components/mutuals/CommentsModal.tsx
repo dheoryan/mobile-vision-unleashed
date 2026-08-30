@@ -604,16 +604,6 @@ function CommentItem({
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
-        {!mine && !isPending && isPostOwner && (
-          <button
-            onClick={() => onHide(c.id)}
-            aria-label="Hide comment from your post"
-            title="Hide from your post"
-            className="rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-          >
-            <EyeOff className="h-3.5 w-3.5" />
-          </button>
-        )}
         {!mine && !isPending && (
           <SafetyMenu
             targetName={name}
@@ -621,6 +611,7 @@ function CommentItem({
             targetCommentId={c.id}
             kind="comment"
             className="-mr-2 -mt-1"
+            onHideComment={isPostOwner ? () => onHide(c.id) : undefined}
           />
         )}
       </div>

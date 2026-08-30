@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Move post-owner Hide comment action into Comment options sheet | `src/components/mutuals/CommentsModal.tsx`, `src/components/mutuals/SafetyMenu.tsx`, `tests/safety-menu-sheet.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Hide comment consolidated into Comment options
+
+- Removed the standalone eye-slash control from post-owner comment rows and
+  made the three-dot Comment options sheet the single contextual-action entry.
+- Added `Hide comment` as the first sheet action only when the current viewer
+  owns the post. It reuses the existing hide mutation and explains that the
+  comment can be restored later from the hidden-comments panel; Report and
+  Block remain unchanged below it.
+- Extended the safety-sheet regression test to cover the ownership-gated action
+  and assert the old row control is absent. Seven targeted tests,
+  `npx tsc --noEmit`, and the full Cloudflare production build pass. Local
+  393x852 visual acceptance confirmed the three-action sheet; the destructive
+  hide mutation was deliberately not fired against the production-connected
+  local environment.
 
 ### 2026-08-30 — Codex — Comment safety actions moved to the shared bottom sheet
 
