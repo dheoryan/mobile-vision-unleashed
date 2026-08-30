@@ -31,48 +31,9 @@ import { toast } from "sonner";
 import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./MentionInput";
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
+import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 
 const TRIBE_FALLBACK = "var(--color-primary)";
-
-/**
- * `h-[80dvh]` alone isn't enough on iOS: `dvh` reliably tracks the browser
- * chrome (address bar) collapsing, but whether it also shrinks for the
- * on-screen keyboard specifically - especially inside a standalone,
- * installed PWA - is inconsistent across iOS versions. `visualViewport` is
- * the API actually built for this: it fires real resize events as the
- * keyboard opens/closes regardless of display mode, so once it reports a
- * visible area meaningfully smaller than the layout viewport (the keyboard
- * is almost certainly up), this measures the true space and hands back an
- * explicit pixel height - overriding the CSS class rather than trusting it.
- * Returns undefined the rest of the time, so `h-[80dvh]` keeps working
- * exactly as before whenever the keyboard isn't in the picture.
- */
-function useKeyboardAwareSheetHeight(active: boolean) {
-  const [style, setStyle] = useState<{ height: string } | undefined>(undefined);
-
-  useEffect(() => {
-    if (!active) {
-      setStyle(undefined);
-      return;
-    }
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const update = () => {
-      const shrunkByKeyboard = window.innerHeight - vv.height > 150;
-      setStyle(shrunkByKeyboard ? { height: `${Math.round(vv.height * 0.96)}px` } : undefined);
-    };
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, [active]);
-
-  return style;
-}
 
 export function CommentsModal({
   open,
@@ -98,7 +59,7 @@ export function CommentsModal({
   const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<CommentRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const sheetStyle = useKeyboardAwareSheetHeight(open && !!postId);
+  const visualViewport = useVisualViewport(open && !!postId);
 
   const commentsQuery = useComments(open ? postId : null);
   const addComment = useAddComment(postId ?? "");
@@ -223,8 +184,8 @@ export function CommentsModal({
         if (!o) onClose();
       }}
       title="Comments"
-      contentClassName="flex h-[80dvh] flex-col"
-      contentStyle={sheetStyle}
+      contentClassName="flex h-[80dvh] max-h-full min-h-0 flex-col"
+      viewportStyle={visualViewportStyle(visualViewport)}
     >
       <header className="flex items-center justify-between border-b border-border px-5 py-3">
         <h2 className="font-display text-base font-bold">Comments</h2>
@@ -281,7 +242,14 @@ export function CommentsModal({
                       <p className="text-xs text-muted-foreground">{c.content}</p>
                     </div>
                     <button
-                      onClick={() => unhideComment.mutate(c.id)}
+                      onClick={() =>
+                        unhideComment.mutate(c.id, {
+                          onError: (error) =>
+                            toast.error("Comment wasn't unhidden", {
+                              description: (error as Error).message,
+                            }),
+                        })
+                      }
                       disabled={unhideComment.isPending && unhideComment.variables === c.id}
                       className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                     >
@@ -334,7 +302,7 @@ export function CommentsModal({
         )}
       </div>
 
-      <div className="relative border-t border-border p-3">
+      <div className="relative border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {replyTo && (
           <ReplyPreview
             name={replyTo.author?.display_name || "comment"}

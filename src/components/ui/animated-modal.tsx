@@ -20,6 +20,7 @@ export function AnimatedModal({
   title,
   contentClassName = "",
   contentStyle,
+  viewportStyle,
   center = false,
   side,
   preventClose = false,
@@ -36,6 +37,11 @@ export function AnimatedModal({
    *  window.visualViewport height on iOS, where dvh alone can't be trusted
    *  to track the on-screen keyboard in every browser/PWA mode). */
   contentStyle?: CSSProperties;
+  /** Optional dimensions for the visual viewport. On iOS the software
+   *  keyboard can shrink and offset that viewport without changing the
+   *  layout viewport used by `position: fixed`. Keep this opt-in so ordinary
+   *  dialogs retain their existing positioning. */
+  viewportStyle?: CSSProperties;
   /** Always centered (no bottom-sheet-on-mobile behavior) — used for compact confirm-style dialogs. */
   center?: boolean;
   /** Slides in flush against the screen edge instead of rising from the
@@ -68,7 +74,7 @@ export function AnimatedModal({
                 ? "items-center px-4"
                 : "items-end sm:items-center",
           )}
-          style={{ zIndex }}
+          style={{ ...viewportStyle, ...(viewportStyle ? { bottom: "auto" } : {}), zIndex }}
         >
           <DialogPrimitive.Content
             onEscapeKeyDown={block}

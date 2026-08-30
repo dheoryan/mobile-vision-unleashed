@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | iOS Home Screen comments + Chats safe areas | `DEVLOG.md`, `src/components/ui/animated-modal.tsx`, `src/components/mutuals/CommentsModal.tsx`, `src/components/mutuals/ChatsScreen.tsx`, `src/lib/posts.functions.ts`, `tests/ios-pwa-comments.test.ts` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,27 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — iOS Home Screen comments and Chats safe-area repair
+
+- Fixed the Chats `New message` action overlapping the installed-PWA bottom
+  navigation by positioning it above both the navigation's base height and
+  `safe-area-inset-bottom`.
+- Reworked the Comments sheet to follow the complete Visual Viewport frame
+  (height plus top offset) instead of changing only the sheet height. Its
+  composer now owns the bottom safe-area padding, so the Home indicator and
+  iOS software keyboard no longer cover the input or send control.
+- Fixed Unhide failing before its authorized RPC: the server function was
+  attempting a normal RLS-filtered `comments` lookup even though hidden rows
+  are intentionally invisible there. It now delegates directly to the
+  existing `security definer` RPC, which performs the post-owner and original-
+  hider authorization checks. Mutation errors are visible to the user.
+- Added `tests/ios-pwa-comments.test.ts`. Six targeted iOS/safe-area checks,
+  `npx tsc --noEmit`, and the production Cloudflare build pass. Local
+  393x852 browser acceptance confirmed the Chats spacing, Comments composer,
+  and hidden-comments panel; physical installed-iPhone keyboard and Home
+  indicator acceptance remains required because desktop emulation cannot
+  reproduce those system surfaces.
 
 ### 2026-08-30 — Codex — Like/share counter repair verified in production
 

@@ -495,7 +495,7 @@ export function ChatsScreen({
           drift away from the content on anything wider than a phone. Same
           pattern as Ventures' Host FAB. Visible regardless of filter -
           starting a new DM isn't specific to already being on Direct. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-md justify-end px-5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md justify-end px-5">
         <button
           type="button"
           onClick={() => setMootsPickerOpen(true)}

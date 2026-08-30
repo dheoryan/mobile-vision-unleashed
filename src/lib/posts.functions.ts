@@ -747,14 +747,11 @@ export const unhideComment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: existing, error: lookupError } = await supabase
-      .from("comments")
-      .select("post_id")
-      .eq("id", data.id)
-      .single();
-    if (lookupError) throw new Error(lookupError.message);
-    const postId = existing.post_id as string;
+    // A hidden comment is intentionally not SELECT-visible through normal RLS,
+    // even to the post owner who hid it. Looking it up here therefore rejected
+    // every legitimate unhide before the SECURITY DEFINER RPC could authorize
+    // the transition. The RPC performs all required ownership and hider checks.
     const { error } = await supabase.rpc("unhide_own_post_comment", { _comment_id: data.id });
     if (error) throw new Error(error.message);
-    return { id: data.id, post_id: postId };
+    return { id: data.id };
   });
