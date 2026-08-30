@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Physical-iOS safe areas, keyboard layout, and chat swipe stability | shared header/chat shell/composer/gesture files and focused iOS tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
