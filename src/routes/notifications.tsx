@@ -133,6 +133,7 @@ function NotificationsPage() {
         void navigate({
           to: "/p/$postId",
           params: { postId: destination.postId },
+          search: { from: "notifications" },
         });
         return;
       }

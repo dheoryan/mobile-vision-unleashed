@@ -11,6 +11,8 @@ import {
   ImagePlus,
   Repeat2,
   Quote,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
@@ -590,31 +592,43 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         title="Repost options"
         contentClassName="overflow-hidden"
       >
-        <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
           <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
-          <h2 className="px-1 pb-4 pt-5 text-center font-display text-base font-bold">
-            Repost options
-          </h2>
+          <div className="flex items-center justify-between px-5 pb-3 pt-3">
+            <div>
+              <p className="label-mono text-primary">PASS IT ON</p>
+              <h2 className="mt-0.5 font-display text-xl font-bold">Repost signal</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRepostMenuOpen(false)}
+              aria-label="Close repost options"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-secondary/35">
+          <div className="border-y border-border">
             <button
               type="button"
               onClick={() => {
                 setRepostMenuOpen(false);
                 setQuoteOpen(true);
               }}
-              className="flex min-h-16 w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-secondary active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
-              <span>
-                <span className="block text-sm font-semibold">Quote post</span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                <Quote className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Quote signal</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Add your take before sharing
+                  Add your own words before sharing
                 </span>
               </span>
-              <Quote className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
-
-            <div className="mx-4 border-t border-border" />
 
             <button
               type="button"
@@ -628,9 +642,17 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
                     }),
                 });
               }}
-              className="flex min-h-16 w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-secondary active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
-              <span>
+              <span
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                  reposted ? "bg-emerald-400/12 text-emerald-400" : "bg-primary/12 text-primary",
+                )}
+              >
+                <Repeat2 className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">
                   {reposted ? "Undo repost" : "Repost only"}
                 </span>
@@ -638,12 +660,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
                   {reposted ? "Remove it from your reposts" : "Share it without adding a note"}
                 </span>
               </span>
-              <Repeat2
-                className={cn(
-                  "h-5 w-5 shrink-0",
-                  reposted ? "text-emerald-400" : "text-muted-foreground",
-                )}
-              />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         </div>

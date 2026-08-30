@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Repost sheet visual alignment + notification-focused post back navigation | `src/components/mutuals/PostCard.tsx`, `src/routes/p.$postId.tsx`, `src/routes/notifications.tsx`, `tests/repost-sheet.test.ts`, `tests/focused-post-navigation.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Repost sheet and notification-focused post navigation aligned
+
+- Reworked the repost bottom sheet to use MEUTUALS' established Urban Habitat
+  language: amber mono eyebrow, left-aligned display heading, 44px icon tiles,
+  flat hairline-separated action rows, a dedicated close control, and retained
+  Home-indicator safe-area padding. Product copy now calls the quote path
+  `Quote signal` consistently with the focused-post surface.
+- Standardized the focused-post header on the same centered three-column,
+  44px chevron-back pattern used by Notifications and Settings.
+- Notification taps now add a validated `from=notifications` route marker, so
+  Back deterministically returns to Notifications; ordinary shared links still
+  return to the app home.
+- Added focused-post navigation coverage and updated repost-sheet assertions.
+  Four targeted tests, `npx tsc --noEmit`, and the full Cloudflare production
+  build pass. Local 393x852 visual and interaction acceptance passed, including
+  the sheet and focused-post → Notifications route; physical installed-iPhone
+  safe-area acceptance remains required.
 
 ### 2026-08-30 — Codex — Repost options moved to a mobile bottom sheet
 

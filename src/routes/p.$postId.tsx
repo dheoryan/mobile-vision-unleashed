@@ -1,18 +1,27 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { PostCard } from "@/components/mutuals/PostCard";
 import { useAuth } from "@/lib/auth-context";
 import { getPostById } from "@/lib/posts.functions";
 import { AppBootstrapSkeleton, PostCardSkeleton } from "@/components/mutuals/Skeleton";
 
+interface SharedPostSearch {
+  from?: "notifications";
+}
+
 export const Route = createFileRoute("/p/$postId")({
+  validateSearch: (search: Record<string, unknown>): SharedPostSearch => ({
+    from: search.from === "notifications" ? "notifications" : undefined,
+  }),
   component: SharedPostPage,
 });
 
 function SharedPostPage() {
   const { postId } = Route.useParams();
+  const { from } = Route.useSearch();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const getPost = useServerFn(getPostById);
   const postQuery = useQuery({
@@ -49,17 +58,24 @@ function SharedPostPage() {
     );
   }
 
+  const goBack = () => {
+    void navigate({ to: from === "notifications" ? "/notifications" : "/" });
+  };
+
   return (
     <div className="bg-habitat min-h-screen pb-12">
       <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-md items-center px-5 py-3">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        <div className="mx-auto grid min-h-14 max-w-md grid-cols-[3rem_1fr_3rem] items-center px-2">
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label={from === "notifications" ? "Back to notifications" : "Back to MEUTUALS"}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Link>
-          <p className="ml-auto font-display text-sm font-bold">Shared signal</p>
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h1 className="truncate text-center font-display text-sm font-bold">Shared signal</h1>
+          <span aria-hidden />
         </div>
       </header>
       <main className="mx-auto max-w-md px-5 pt-4">
