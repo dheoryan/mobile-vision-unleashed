@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, X, Flag, Ban } from "lucide-react";
+import { MoreHorizontal, X, Flag, Ban, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useBlockUser } from "@/lib/blocked-store";
@@ -41,6 +41,7 @@ export function SafetyMenu({
   const [open, setOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const blockUser = useBlockUser();
+  const kindLabel = kind.charAt(0).toUpperCase() + kind.slice(1);
 
   return (
     <>
@@ -55,50 +56,94 @@ export function SafetyMenu({
           aria-label={`Safety options for ${targetName}`}
           aria-expanded={open}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             buttonClassName,
           )}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-            <div className="absolute right-0 top-9 z-40 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+      </div>
+
+      <AnimatedModal
+        open={open}
+        onOpenChange={setOpen}
+        title={`${kindLabel} options`}
+        contentClassName="overflow-hidden"
+        zIndex={60}
+      >
+        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
+          <div className="flex items-center justify-between px-5 pb-3 pt-3">
+            <div>
+              <p className="label-mono text-primary">KEEP IT SAFE</p>
+              <h2 className="mt-0.5 font-display text-xl font-bold">{kindLabel} options</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label={`Close ${kind} options`}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="border-y border-border">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setReportOpen(true);
+              }}
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                <Flag className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Report {kind}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Send this to the MEUTUALS safety team
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </button>
+
+            {targetUserId && (
               <button
+                type="button"
+                disabled={blockUser.isPending}
                 onClick={() => {
                   setOpen(false);
-                  setReportOpen(true);
+                  if (!UUID_RE.test(targetUserId)) {
+                    toast.error("Can't block this account.");
+                    return;
+                  }
+                  blockUser.mutate(targetUserId, {
+                    onSuccess: () =>
+                      toast.success(`${targetName} has been blocked.`, {
+                        description: "Their posts and messages are now hidden.",
+                      }),
+                    onError: (e) => toast.error((e as Error).message),
+                  });
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-secondary active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left text-destructive transition-colors hover:bg-destructive/8 active:bg-destructive/12 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive"
               >
-                <Flag className="h-3.5 w-3.5" /> Report {kind}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/12 text-destructive">
+                  <Ban className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold">Block {targetName}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Hide their posts and messages
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </button>
-              {targetUserId && (
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    if (!targetUserId || !UUID_RE.test(targetUserId)) {
-                      toast.error("Can't block this account.");
-                      return;
-                    }
-                    blockUser.mutate(targetUserId, {
-                      onSuccess: () =>
-                        toast.success(`${targetName} has been blocked.`, {
-                          description: "Their posts and messages are now hidden.",
-                        }),
-                      onError: (e) => toast.error((e as Error).message),
-                    });
-                  }}
-                  className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-secondary active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive"
-                >
-                  <Ban className="h-3.5 w-3.5" /> Block {targetName}
-                </button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+            )}
+          </div>
+        </div>
+      </AnimatedModal>
 
       <ReportModal
         open={reportOpen}
@@ -157,6 +202,7 @@ function ReportModal({
       title={`Report ${kind}`}
       preventClose={reportContent.isPending}
       contentClassName="p-6"
+      zIndex={70}
     >
       <div>
         <button

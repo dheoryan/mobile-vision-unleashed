@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Comment safety actions bottom-sheet consistency | `src/components/mutuals/SafetyMenu.tsx`, `tests/safety-menu-sheet.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Comment safety actions moved to the shared bottom sheet
+
+- Replaced `SafetyMenu`'s absolutely positioned 176px popover with the shared
+  Radix mobile bottom sheet, eliminating the iOS clipping and placement failure
+  when a comment menu opens inside the scrolling Comments dialog.
+- Matched the repost action language with an amber mono eyebrow, left-aligned
+  heading, 44px icon tiles and controls, flat separated action rows, explicit
+  close control, and Home-indicator safe-area padding. Report and Block retain
+  their existing mutations and authorization behavior.
+- Assigned explicit nested dialog layers so Comment options render above
+  Comments and the Report form renders above Comment options.
+- Added `tests/safety-menu-sheet.test.ts`. Eight targeted comment, repost, and
+  safety-sheet tests, `npx tsc --noEmit`, and the full Cloudflare production
+  build pass. Local 393x852 interaction acceptance confirmed Comments → Comment
+  options → Report comment; physical installed-iPhone acceptance remains.
 
 ### 2026-08-30 — Codex — Repost sheet and notification-focused post navigation aligned
 
