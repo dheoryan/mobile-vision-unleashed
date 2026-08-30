@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Focused signal-thread terminology | `src/routes/p.$postId.tsx`, `src/components/mutuals/CommentsModal.tsx`, `tests/focused-post-navigation.test.ts`, `tests/ios-pwa-comments.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
