@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Timeline audience-aware create FAB and brand color tokens | Timeline, composer, styles, focused tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Timeline creation restored to an audience-aware FAB
+
+- Removed post creation from the shared Timeline header so the right side now
+  contains only Notifications, and restored a plus-only 56 px FAB aligned to
+  the centered feed column above the safe-area-aware bottom navigation.
+- The FAB uses the active Tribe's solid color for Tribe-only signals and the
+  MEUTUALS pink/rose/orange gradient for The Wild. The composer audience
+  segment and submit button mirror the same choice, as does the Wild repost
+  destination mark.
+- Split system brand color from Tribe color: `--primary` and focus rings now
+  use the solid MEUTUALS rose fallback, Wild/global primary surfaces use the
+  gradient utility, and semantic warning remains amber instead of inheriting
+  the brand color.
+- Local signed-in acceptance at 390x844 confirmed the header has only the bell,
+  the FAB is 56x56 with 17.6 px clearance above navigation, there is no
+  horizontal overflow, and both composer states render the expected surface.
+- Verification: changed-source ESLint, `npx tsc --noEmit`, all 118 Node tests,
+  `git diff --check`, and the Cloudflare production build pass. Nothing was
+  pushed or published.
 
 ### 2026-08-30 — User + Codex — Repost destinations verified in production
 

@@ -70,21 +70,7 @@ export function TimelineScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader
-        title="Timeline"
-        subtitle="Signals"
-        accent="var(--color-primary)"
-        action={
-          <button
-            type="button"
-            onClick={() => setComposerOpen(true)}
-            aria-label={tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        }
-      />
+      <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" />
       <main className="mx-auto max-w-md px-5">
         {/* ── Tab switcher ── */}
         <div className="mt-4 flex gap-2 rounded-full bg-card p-1">
@@ -106,7 +92,9 @@ export function TimelineScreen({
             onClick={() => setTab("global")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              tab === "global" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+              tab === "global"
+                ? "bg-meutuals-gradient text-primary-foreground"
+                : "text-muted-foreground",
             )}
           >
             <Compass className="h-3.5 w-3.5" />
@@ -177,6 +165,23 @@ export function TimelineScreen({
           )}
         </div>
       </main>
+
+      {/* One audience-aware creation action, aligned to the same centered
+          column as the feed and lifted above the safe-area-aware bottom nav. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md justify-end px-5">
+        <button
+          type="button"
+          onClick={() => setComposerOpen(true)}
+          aria-label={tab === "global" ? "Post to The Wild" : `Post to ${tribe.name}`}
+          className={cn(
+            "pointer-events-auto flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-xl shadow-black/40 transition-[transform,filter] hover:brightness-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            tab === "global" && "bg-meutuals-gradient",
+          )}
+          style={tab === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
+        >
+          <Plus className="h-6 w-6" aria-hidden="true" />
+        </button>
+      </div>
 
       <ComposerModal
         key={tab}

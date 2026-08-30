@@ -1,5 +1,6 @@
 import { ChevronRight, Globe2, Lock } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { cn } from "@/lib/utils";
 import { TribeMark } from "./TribeMark";
 
 export type RepostAudience = "tribe" | "all";
@@ -47,7 +48,14 @@ export function RepostAudienceChoices({
             allowWild ? "Repost to The Wild" : "The Wild is unavailable for a Tribe-only signal"
           }
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+          <span
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+              allowWild
+                ? "bg-meutuals-gradient text-primary-foreground"
+                : "bg-primary/12 text-primary",
+            )}
+          >
             {allowWild ? <Globe2 className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
           </span>
           <span className="min-w-0 flex-1">

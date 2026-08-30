@@ -29,6 +29,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-brand: var(--brand-solid);
+  --color-brand-foreground: var(--brand-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -60,8 +64,15 @@
   --popover: oklch(0.24 0 0);                    /* #222 */
   --popover-foreground: oklch(0.95 0.01 80);
 
-  --primary: oklch(0.78 0.12 80);                /* #D4A853 amber */
-  --primary-foreground: oklch(0.16 0 0);
+  /* Brand/system actions are deliberately separate from Tribe colors. The
+     solid rose is the accessible fallback for small controls and focus rings;
+     large Wild/global actions may use the full logo gradient below. */
+  --brand-solid: #ff006e;
+  --brand-foreground: #090909;
+  --brand-gradient: linear-gradient(100deg, #ff00b8 0%, #ff006e 52%, #ff7a00 100%);
+
+  --primary: var(--brand-solid);
+  --primary-foreground: var(--brand-foreground);
 
   --secondary: oklch(0.27 0 0);
   --secondary-foreground: oklch(0.95 0.01 80);
@@ -75,9 +86,12 @@
   --destructive: oklch(0.6 0.16 35);             /* #C45C3A */
   --destructive-foreground: oklch(0.95 0.01 80);
 
+  --warning: oklch(0.78 0.12 80);                /* amber, semantic only */
+  --warning-foreground: oklch(0.16 0 0);
+
   --border: oklch(0.28 0 0);
   --input: oklch(0.28 0 0);
-  --ring: oklch(0.78 0.12 80);
+  --ring: var(--brand-solid);
 
   /* Tribe colors from brief */
   --tribe-wolf: oklch(0.6 0.18 35);     /* #C84B31 fire red */
@@ -172,8 +186,8 @@ html body [data-sonner-toaster][data-sonner-theme='dark'] {
   --error-text: var(--destructive);
 
   --warning-bg: var(--card);
-  --warning-border: color-mix(in oklab, var(--primary) 45%, var(--border));
-  --warning-text: var(--primary);
+  --warning-border: color-mix(in oklab, var(--warning) 45%, var(--border));
+  --warning-text: var(--warning);
 
   --info-bg: var(--card);
   --info-border: var(--border);
@@ -181,6 +195,15 @@ html body [data-sonner-toaster][data-sonner-theme='dark'] {
 }
 
 @layer utilities {
+  /* The MEUTUALS gradient is a scope signal, not decoration: use it for Wild
+     and brand-level primary surfaces only. A solid fallback is declared first
+     for forced-colour, print, and older rendering paths. */
+  .bg-meutuals-gradient {
+    background-color: var(--brand-solid);
+    background-image: var(--brand-gradient);
+    color: var(--brand-foreground);
+  }
+
   .bg-habitat {
     background:
       radial-gradient(ellipse 85% 55% at 90% -10%, color-mix(in oklab, var(--color-primary) 7%, transparent) 0%, transparent 62%),

@@ -259,7 +259,8 @@ export function ComposerModal({
                 <AudienceSegment
                   active={effectiveAudience === "all"}
                   onClick={() => setAudience("all")}
-                  accent="var(--primary)"
+                  accent="var(--brand-solid)"
+                  brandGradient
                   label="The Wild"
                 />
               </div>
@@ -352,10 +353,11 @@ export function ComposerModal({
           <button
             onClick={submit}
             disabled={!text.trim() && images.length === 0 && !quotedPost}
-            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40"
-            style={{
-              backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar,
-            }}
+            className={cn(
+              "mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground transition-[transform,filter] hover:brightness-105 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40",
+              effectiveAudience === "all" && "bg-meutuals-gradient",
+            )}
+            style={effectiveAudience === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
           >
             {quotedPost ? "Quote" : "Send Signal"}
           </button>
@@ -369,11 +371,13 @@ function AudienceSegment({
   active,
   onClick,
   accent,
+  brandGradient = false,
   label,
 }: {
   active: boolean;
   onClick: () => void;
   accent: string;
+  brandGradient?: boolean;
   label: string;
 }) {
   return (
@@ -384,8 +388,9 @@ function AudienceSegment({
       className={cn(
         "min-h-9 flex-1 truncate rounded-full text-sm font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+        active && brandGradient && "bg-meutuals-gradient",
       )}
-      style={active ? { backgroundColor: accent } : undefined}
+      style={active && !brandGradient ? { backgroundColor: accent } : undefined}
     >
       {label}
     </button>
