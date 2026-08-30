@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Comment likes + reposts | `supabase/migrations/20260830040000_comment_likes_and_reposts.sql`, `LOVABLE_COMMENT_SOCIAL_RELEASE_VERIFY.sql`, `src/integrations/supabase/types.ts`, `src/lib/{posts.functions,posts-store,notifications.functions,notification-presenter,push-payload,push-preferences}.ts`, `src/components/mutuals/{CommentsModal,PostCard,QuotedCommentPreview}.tsx`, `src/routes/notifications.tsx`, `tests/comment-social.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
