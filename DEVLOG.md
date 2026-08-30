@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Repost audience selection and visibility enforcement | repost UI/store/server path, forward migration, focused tests | 2026-08-30 |
+| Codex | Timeline audience-aware create FAB and brand color tokens | Timeline, composer, styles, focused tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +205,19 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — User + Codex — Repost destinations verified in production
+
+- Added an explicit `My Tribe` / `The Wild` destination choice to post and
+  comment repost sheets. Tribe-only sources cannot be widened to The Wild.
+- Stored repost destination separately from source visibility and enforced it
+  in both authenticated server functions and database triggers/RLS, including
+  direct PostgREST callers.
+- The user applied `20260830100000_repost_audience.sql` and confirmed every
+  `LOVABLE_REPOST_AUDIENCE_RELEASE_VERIFY.sql` row returned `true`.
+- Verification before the database handoff: changed-source ESLint,
+  `npx tsc --noEmit`, all 115 Node tests, `git diff --check`, and the Cloudflare
+  production build passed. The code commit remains unpushed and unpublished.
 
 ### 2026-08-30 — Codex — iOS chat viewport, safe areas, and swipe recovery unified
 
