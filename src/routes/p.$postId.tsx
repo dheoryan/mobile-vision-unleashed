@@ -90,7 +90,7 @@ function SharedPostPage() {
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <h1 className="truncate text-center font-display text-sm font-bold">Conversation</h1>
+          <h1 className="truncate text-center font-display text-sm font-bold">Signal Thread</h1>
           <span aria-hidden />
         </div>
       </header>

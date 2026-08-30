@@ -27,3 +27,8 @@ test("focused posts use the app secondary-header back control", () => {
   assert.match(focusedPostSource, /<ChevronLeft className="h-5 w-5"/);
   assert.doesNotMatch(focusedPostSource, /<ArrowLeft[^>]*\/> Back/);
 });
+
+test("focused posts name the page as a MEUTUALS signal thread", () => {
+  assert.match(focusedPostSource, />Signal Thread<\/h1>/);
+  assert.doesNotMatch(focusedPostSource, />Conversation<\/h1>/);
+});

@@ -192,14 +192,15 @@ export function CommentsThread({
       <section id="comments" aria-labelledby="comments-heading" className="scroll-mt-20">
         <header className="flex min-h-14 items-center justify-between gap-3 border-y border-border/80 px-1">
           <div className="flex min-w-0 items-baseline gap-2">
-            <p className="label-mono text-primary">CONVERSATION</p>
+            <p className="label-mono text-primary">REPLIES</p>
             <h2 id="comments-heading" className="sr-only">
-              Comments
+              Replies
             </h2>
           </div>
           {!commentsQuery.isLoading && (
             <span className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
-              {commentsQuery.data?.length ?? 0} comments
+              {commentsQuery.data?.length ?? 0}{" "}
+              {(commentsQuery.data?.length ?? 0) === 1 ? "reply" : "replies"}
             </span>
           )}
         </header>
@@ -286,8 +287,10 @@ export function CommentsThread({
           ) : roots.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
               <MessageSquare className="h-10 w-10 text-muted-foreground" />
-              <p className="text-sm font-semibold">No comments yet</p>
-              <p className="text-xs text-muted-foreground">Be the first to say something.</p>
+              <p className="text-sm font-semibold">No replies yet</p>
+              <p className="text-xs text-muted-foreground">
+                Be the first to respond to this signal.
+              </p>
             </div>
           ) : (
             roots.map((c) => (

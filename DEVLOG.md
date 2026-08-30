@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Focused signal-thread terminology | `src/routes/p.$postId.tsx`, `src/components/mutuals/CommentsModal.tsx`, `tests/focused-post-navigation.test.ts`, `tests/ios-pwa-comments.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,17 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Focused posts now use signal-thread language
+
+- Renamed the focused-post header from generic `Conversation` to `Signal Thread`
+  and the inline discussion label from `CONVERSATION` to `REPLIES`.
+- Reply totals now use correct singular/plural copy. The zero-reply state reads
+  `No replies yet` and `Be the first to respond to this signal`, which keeps the
+  MEUTUALS vocabulary without implying that the commenter is creating the signal.
+- Added focused source tests for the new terminology. Verification: 7 focused
+  tests, changed-source ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  full Cloudflare production build pass. No database change is required.
 
 ### 2026-08-30 — Codex — Compact social controls use color-only hover states
 

@@ -36,6 +36,13 @@ test("comments use a modal-free page thread with a safe sticky composer", () => 
   assert.match(focusedPostSource, /commentsInline/);
 });
 
+test("the thread uses signal-specific reply copy", () => {
+  assert.match(commentsModalSource, />REPLIES<\/p>/);
+  assert.match(commentsModalSource, /No replies yet/);
+  assert.match(commentsModalSource, /Be the first to respond to this signal\./);
+  assert.doesNotMatch(commentsModalSource, />CONVERSATION<\/p>/);
+});
+
 test("Chats new-message action clears the Home Screen navigation safe area", () => {
   assert.match(chatsSource, /bottom-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
 });
