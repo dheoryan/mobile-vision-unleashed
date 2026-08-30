@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Move post-owner Hide comment action into Comment options sheet | `src/components/mutuals/CommentsModal.tsx`, `src/components/mutuals/SafetyMenu.tsx`, `tests/safety-menu-sheet.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
