@@ -94,4 +94,3 @@ where p.id = actual.id
     p.likes_count is distinct from actual.likes_count
     or p.shares_count is distinct from actual.shares_count
   );
-
