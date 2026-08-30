@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AtSign, ChevronLeft, Reply, UsersRound } from "lucide-react";
+import { AtSign, CalendarPlus, ChevronLeft, Reply, UsersRound } from "lucide-react";
 import { type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -116,6 +116,7 @@ export function TribeScreen({
     initialTribe && profile.tribeIds.includes(initialTribe) ? initialTribe : profile.tribeIds[0];
   const [activeTribe, setActiveTribe] = useState<TribeId>(initial);
   const [roomView, setRoomView] = useState<TribeRoomView>("chat");
+  const [planOpen, setPlanOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const visualViewport = useVisualViewport(true);
 
@@ -132,6 +133,16 @@ export function TribeScreen({
   const membersQuery = useTribeMembers(activeTribe, isJoined);
   const onlineMemberIds = useTribePresence(activeTribe, isJoined);
   const members = membersQuery.data?.members ?? [];
+  const newPlanButton = isJoined ? (
+    <button
+      type="button"
+      onClick={() => setPlanOpen(true)}
+      aria-label="New plan"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <CalendarPlus className="h-5 w-5" />
+    </button>
+  ) : null;
 
   return (
     <div
@@ -145,7 +156,7 @@ export function TribeScreen({
               type="button"
               onClick={onBack}
               aria-label="Back to Chats"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -153,7 +164,7 @@ export function TribeScreen({
             <button
               type="button"
               onClick={() => setMembersOpen(true)}
-              className="min-h-11 min-w-0 flex-1 rounded-lg text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="min-h-11 min-w-0 flex-1 rounded-lg text-left transition-colors hover:text-foreground active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label={`View ${membersQuery.data?.total ?? members.length} Tribe members, ${onlineMemberIds.size} online`}
             >
               <h1 className="truncate font-display text-sm font-semibold leading-tight">
@@ -168,13 +179,21 @@ export function TribeScreen({
                 </span>
               </span>
             </button>
-            <div className="shrink-0">
+            <div className="flex shrink-0 items-center">
+              {newPlanButton}
               <NotificationBell />
             </div>
           </div>
         </header>
       )}
-      {!onBack && <AppHeader title={tribe.name} subtitle="Chat" accent={tribe.colorVar} />}
+      {!onBack && (
+        <AppHeader
+          title={tribe.name}
+          subtitle="Chat"
+          accent={tribe.colorVar}
+          action={newPlanButton}
+        />
+      )}
       <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pt-2">
         {!onBack && (
           <div className="shrink-0 px-2">
@@ -201,6 +220,8 @@ export function TribeScreen({
             canParticipate={isJoined}
             view={roomView}
             onViewChange={setRoomView}
+            planOpen={planOpen}
+            onPlanOpenChange={setPlanOpen}
             onStartVenture={onStartVenture}
             onOpenVentures={onOpenVentures}
             onOpenChats={onOpenChats}
@@ -331,7 +352,7 @@ function RoomMemberStatus({
     <button
       type="button"
       onClick={onOpenMembers}
-      className="-ml-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="-ml-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       aria-label={`View ${memberLabel ?? "Tribe"} members, ${onlineLabel} online`}
     >
       <UsersRound className="h-3.5 w-3.5" />
@@ -956,7 +977,7 @@ function GroupChat({
                     key={member.id}
                     type="button"
                     onClick={() => addMention(member)}
-                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary"
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-secondary active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                   >
                     <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-secondary text-sm">
                       {member.avatar_url ? (

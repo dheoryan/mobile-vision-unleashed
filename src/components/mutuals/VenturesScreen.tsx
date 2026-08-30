@@ -293,6 +293,18 @@ export function VenturesScreen({
                   : "Plans you run"
         }
         accent="var(--color-primary)"
+        action={
+          stage === "feature" && mode !== "host" ? (
+            <button
+              type="button"
+              onClick={startHosting}
+              aria-label="Host a Venture"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          ) : undefined
+        }
       />
 
       <main className="mx-auto max-w-md px-5">
@@ -314,7 +326,7 @@ export function VenturesScreen({
                 <button
                   type="button"
                   onClick={() => switchMode("look")}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Back to Venture board
@@ -385,25 +397,6 @@ export function VenturesScreen({
       </main>
 
       <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} />
-      {/* Same shape and anchoring as the Timeline composer: wrapped in a
-          fixed max-w-md column rather than pinned with right-5, so it tracks
-          the content instead of the viewport edge — on a wide window right-5
-          throws it far off to the side of a max-w-md layout.
-
-          pointer-events-none on the wrapper so the invisible full-width strip
-          does not eat taps meant for the card underneath. */}
-      {stage === "feature" && mode !== "host" && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-md justify-end px-5">
-          <button
-            type="button"
-            onClick={startHosting}
-            aria-label="Host a Venture"
-            className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
-          >
-            <Plus className="h-4 w-4" /> Host
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -572,7 +565,7 @@ function RoleButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors",
+        "flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",
@@ -639,7 +632,7 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
       <button
         type="button"
         onClick={onContinue}
-        className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground"
+        className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         Choose Looking or Hosting
         <ArrowRight className="h-4 w-4" />
@@ -699,7 +692,7 @@ function VentureRoleChooser({
       <button
         type="button"
         onClick={onBack}
-        className="mt-4 w-full rounded-2xl border border-border bg-card py-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+        className="mt-4 w-full rounded-2xl border border-border bg-card py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         Back to how it works
       </button>
@@ -722,7 +715,7 @@ function RoleChoiceCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-center gap-3 rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/60"
+      className="group flex items-center gap-3 rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
         {icon}
@@ -859,7 +852,7 @@ function LookView({
           type="button"
           onClick={enableVenueDistance}
           disabled={locating || saveLocation.isPending}
-          className="mt-3 flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left disabled:opacity-50"
+          className="mt-3 flex min-h-11 w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
             {locating ? (
@@ -887,7 +880,7 @@ function LookView({
           <button
             type="button"
             onClick={onOpenMine}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Ticket className="h-3.5 w-3.5 text-primary" />
             My Ventures
@@ -1018,7 +1011,7 @@ function HostView({
                 openCreator();
               }
             }}
-            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary px-3.5 text-[11px] font-semibold text-primary-foreground"
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary px-3.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {formOpen ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             {formOpen ? "Close" : "New"}
@@ -1044,7 +1037,7 @@ function HostView({
                 if (tribeDraft) onDraftCancelled();
               }}
               className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors",
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 selected
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -1429,14 +1422,14 @@ function HostForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 rounded-2xl border border-border bg-background py-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          className="flex-1 rounded-2xl border border-border bg-background py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!canSubmit || create.isPending || update.isPending}
-          className="inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          className="inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {create.isPending || update.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1504,7 +1497,7 @@ function HostForm({
                           setTime(optionTime);
                         }}
                         className={cn(
-                          "min-h-11 rounded-xl border px-3 py-2 text-left text-xs",
+                          "min-h-11 rounded-xl border px-3 py-2 text-left text-xs transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           active
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-border bg-background text-foreground",
@@ -1848,7 +1841,7 @@ function HostedVentureCard({
             })
           }
           disabled={reopen.isPending}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 py-2.5 text-xs font-semibold text-primary disabled:opacity-50"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {reopen.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1864,7 +1857,7 @@ function HostedVentureCard({
           <button
             type="button"
             onClick={() => setEditOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Pencil className="h-4 w-4" /> Edit
           </button>
@@ -1872,7 +1865,7 @@ function HostedVentureCard({
         <button
           type="button"
           onClick={onOpenChat}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <MessageCircle className="h-4 w-4" /> Chat
         </button>
@@ -1881,7 +1874,7 @@ function HostedVentureCard({
             type="button"
             onClick={() => setInviteOpen((open) => !open)}
             className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-semibold",
+              "inline-flex items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               inviteOpen
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-background text-foreground",
@@ -1895,7 +1888,7 @@ function HostedVentureCard({
             type="button"
             onClick={closeVenture}
             disabled={close.isPending}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {close.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1982,7 +1975,7 @@ function HostedVentureCard({
               type="button"
               onClick={() => setEditOpen(false)}
               aria-label="Close editor"
-              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-4 w-4" />
             </button>
@@ -2074,7 +2067,7 @@ function InviteConnectedUsersPanel({
         <button
           type="button"
           onClick={() => candidatesQuery.refetch()}
-          className="mt-3 w-full rounded-xl border border-border bg-card py-3 text-xs font-semibold text-muted-foreground"
+          className="mt-3 w-full rounded-xl border border-border bg-card py-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Could not load people. Retry
         </button>
@@ -2149,10 +2142,10 @@ function InviteCandidateRow({
         onClick={onInvite}
         disabled={disabled}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold",
+          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           disabled
             ? "border border-border text-muted-foreground"
-            : "bg-primary text-primary-foreground",
+            : "bg-primary text-primary-foreground hover:bg-primary/90",
         )}
       >
         {busy ? (
@@ -2311,7 +2304,7 @@ function ApplicantRow({
           type="button"
           onClick={onDecline}
           disabled={busy}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           <UserX className="h-3.5 w-3.5" /> Decline
         </button>
@@ -2319,7 +2312,7 @@ function ApplicantRow({
           type="button"
           onClick={onAccept}
           disabled={busy}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {busy ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -2436,7 +2429,7 @@ function FormRow({
     <button
       type="button"
       onClick={onClick}
-      className="grid grid-cols-[4rem_1fr_auto] items-center gap-3 border-b border-border/60 py-3.5 text-left transition-colors active:bg-secondary/40"
+      className="grid grid-cols-[4rem_1fr_auto] items-center gap-3 border-b border-border/60 py-3.5 text-left transition-colors active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     >
       <span className={cn("label-mono", required ? "text-primary" : "text-muted-foreground")}>
         {label}
@@ -2501,7 +2494,7 @@ function VentureSheet({
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground"
+          className="w-full rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Done
         </button>
@@ -2528,7 +2521,7 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "min-h-11 rounded-xl border text-left transition-colors",
+        "min-h-11 rounded-xl border text-left transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         compact ? "px-3 py-2.5" : "p-3",
         active ? "border-primary bg-primary/10" : "border-border bg-background",
       )}
@@ -2543,7 +2536,11 @@ function RetryBlock({ label, onRetry }: { label: string; onRetry: () => void }) 
   return (
     <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
       {label}{" "}
-      <button type="button" onClick={onRetry} className="font-semibold text-foreground underline">
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded font-semibold text-foreground underline transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
         Retry
       </button>
     </div>
@@ -2573,7 +2570,7 @@ function EmptyPanel({
       <button
         type="button"
         onClick={onAction}
-        className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground"
+        className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {actionLabel}
       </button>

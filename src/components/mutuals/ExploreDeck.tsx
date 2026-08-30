@@ -318,7 +318,7 @@ export function ExploreDeck({
                 key={option.id}
                 type="button"
                 onClick={() => startContinuation(option.id)}
-                className="min-h-10 shrink-0 rounded-full border border-primary/30 bg-background/60 px-3 text-[11px] font-semibold transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="min-h-10 shrink-0 rounded-full border border-primary/30 bg-background/60 px-3 text-[11px] font-semibold transition-colors hover:border-primary hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {option.label}
               </button>
@@ -327,7 +327,7 @@ export function ExploreDeck({
           <button
             type="button"
             onClick={onOpenNearby}
-            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <MapPin className="h-3.5 w-3.5" /> Adjust discovery area
           </button>
@@ -342,7 +342,7 @@ export function ExploreDeck({
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-            className="flex min-h-[6.25rem] w-full flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex min-h-[6.25rem] w-full flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <CalendarPlus className="h-5 w-5 text-primary" />
             <span>
@@ -366,7 +366,7 @@ export function ExploreDeck({
               setIndex(Math.max(primaryPeople.length - 1, 0));
               changePhase("primary");
             }}
-            className="group flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left transition-colors hover:bg-background/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="group flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left transition-colors hover:bg-background/45 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <ChevronLeft className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-x-0.5" />
             <span className="min-w-0">
@@ -399,14 +399,14 @@ export function ExploreDeck({
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-            className="flex min-h-12 items-center justify-between rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex min-h-12 items-center justify-between rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Browse Ventures <ArrowRight className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={onExploreTribes}
-            className="flex min-h-12 items-center justify-between rounded-2xl border border-border bg-background/45 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex min-h-12 items-center justify-between rounded-2xl border border-border bg-background/45 px-4 text-sm font-semibold transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Explore Tribes <ArrowRight className="h-4 w-4" />
           </button>
@@ -416,7 +416,7 @@ export function ExploreDeck({
               setIndex(0);
               changePhase("primary");
             }}
-            className="min-h-11 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="min-h-11 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Revisit today’s five
           </button>
@@ -497,7 +497,7 @@ export function ExploreDeck({
                 <button
                   type="button"
                   onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-                  className="absolute left-4 top-4 z-10 flex min-h-10 max-w-[calc(100%-5.5rem)] items-center gap-2 rounded-full border border-accent/40 bg-black/60 px-3 text-left text-white backdrop-blur-md transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="absolute left-4 top-4 z-10 flex min-h-10 max-w-[calc(100%-5.5rem)] items-center gap-2 rounded-full border border-accent/40 bg-black/60 px-3 text-left text-white backdrop-blur-md transition-colors hover:border-accent active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <CalendarPlus className="h-3.5 w-3.5 shrink-0 text-accent" />
                   <span className="min-w-0">
@@ -518,7 +518,7 @@ export function ExploreDeck({
                 }
                 aria-pressed={isFollowing}
                 className={cn(
-                  "absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full border bg-black/55 backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+                  "absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full border bg-black/55 backdrop-blur-sm transition-colors active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
                   isFollowing ? "border-accent/60 text-accent" : "border-white/20 text-white/80",
                 )}
               >
@@ -591,7 +591,7 @@ export function ExploreDeck({
                 <Link
                   to="/u/$handle"
                   params={profileParams}
-                  className="flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-border bg-background/45 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-border bg-background/45 px-3 text-xs font-semibold transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   View profile
                 </Link>
@@ -608,7 +608,7 @@ export function ExploreDeck({
                   <button
                     type="button"
                     onClick={() => intentStore.push({ kind: "openThreadWith", userId: person.id })}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <MessageCircle className="h-3.5 w-3.5" /> Message {person.name.split(" ")[0]}
                   </button>
@@ -624,7 +624,7 @@ export function ExploreDeck({
                   <button
                     type="button"
                     onClick={() => setHelloFor(person)}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <Hand className="h-3.5 w-3.5" /> {helloLabel(person)}
                   </button>
@@ -639,7 +639,7 @@ export function ExploreDeck({
             type="button"
             onClick={back}
             aria-label={`Previous introduction before ${person.name}`}
-            className="absolute left-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:left-3 sm:top-[22.5%] sm:h-14"
+            className="absolute left-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:left-3 sm:top-[22.5%] sm:h-14"
           >
             <ChevronLeft className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
           </button>
@@ -654,7 +654,7 @@ export function ExploreDeck({
                 : "Finish today’s introductions"
               : `Next introduction after ${person.name}`
           }
-          className="absolute right-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:right-3 sm:top-[22.5%] sm:h-14"
+          className="absolute right-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:right-3 sm:top-[22.5%] sm:h-14"
         >
           <ChevronRight className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
         </button>

@@ -17,7 +17,7 @@ const postIn = z.object({ post_id: z.string().uuid() });
 async function getPostCount(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-  table: "likes" | "shares",
+  table: "likes" | "shares" | "reposts",
   postId: string,
 ) {
   const { count, error } = await supabase
@@ -117,6 +117,52 @@ export const toggleShare = createServerFn({ method: "POST" })
       post_id: data.post_id,
       shared: true,
       shares_count: await getPostCount(supabase, "shares", data.post_id),
+    };
+  });
+
+// --- Reposts -----------------------------------------------------------
+
+export const listMyReposts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase.from("reposts").select("post_id").eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: { post_id: string }) => r.post_id);
+  });
+
+export const toggleRepost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => postIn.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: existing } = await supabase
+      .from("reposts")
+      .select("post_id")
+      .eq("post_id", data.post_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase
+        .from("reposts")
+        .delete()
+        .eq("post_id", data.post_id)
+        .eq("user_id", userId);
+      if (error) throw new Error(error.message);
+      return {
+        post_id: data.post_id,
+        reposted: false,
+        reposts_count: await getPostCount(supabase, "reposts", data.post_id),
+      };
+    }
+    const { error } = await supabase
+      .from("reposts")
+      .insert({ post_id: data.post_id, user_id: userId });
+    if (error) throw new Error(error.message);
+    return {
+      post_id: data.post_id,
+      reposted: true,
+      reposts_count: await getPostCount(supabase, "reposts", data.post_id),
     };
   });
 

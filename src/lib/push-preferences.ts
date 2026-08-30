@@ -43,6 +43,9 @@ const KIND_CATEGORY: Record<PushNotificationKind, PushPreferenceKey> = {
   follow: "social_activity",
   tribe_join: "tribe_activity",
   new_post: "new_posts",
+  tribe_pulse: "tribe_activity",
+  repost: "social_activity",
+  quote: "social_activity",
 };
 
 export function pushPreferenceForKind(kind: PushNotificationKind): PushPreferenceKey {

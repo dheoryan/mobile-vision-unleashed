@@ -488,7 +488,9 @@ export type Database = {
           mentions: string[]
           moderation_hidden_at: string | null
           moderation_hidden_by: string | null
+          quoted_post_id: string | null
           replies_count: number
+          reposts_count: number
           shares_count: number
           tag: string | null
           tribe_id: string
@@ -505,7 +507,9 @@ export type Database = {
           mentions?: string[]
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
+          quoted_post_id?: string | null
           replies_count?: number
+          reposts_count?: number
           shares_count?: number
           tag?: string | null
           tribe_id: string
@@ -522,7 +526,9 @@ export type Database = {
           mentions?: string[]
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
+          quoted_post_id?: string | null
           replies_count?: number
+          reposts_count?: number
           shares_count?: number
           tag?: string | null
           tribe_id?: string
@@ -806,6 +812,39 @@ export type Database = {
           {
             foreignKeyName: "reports_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reposts: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposts_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1421,6 +1460,10 @@ export type Database = {
         Returns: undefined
       }
       expire_venue_coordinates: { Args: never; Returns: number }
+      fan_out_tribe_pulse_notification: {
+        Args: { p_preview: string; p_prompt_id: string; p_tribe_key: string }
+        Returns: number
+      }
       get_profile_stats: {
         Args: { _target_id: string }
         Returns: {

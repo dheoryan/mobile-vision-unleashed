@@ -63,7 +63,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
               <button
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -71,7 +71,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
           </div>
           <button
             onClick={cycleSort}
-            className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <ArrowUpDown className="h-3 w-3" /> {sortLabel}
           </button>
@@ -137,7 +137,7 @@ function Chip({
     <button
       onClick={onClick}
       className={cn(
-        "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
+        "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? "border-transparent text-foreground"
           : "border-border text-muted-foreground hover:text-foreground",

@@ -220,7 +220,7 @@ export function Onboarding({
             aria-label="Previous onboarding step"
             onClick={() => step > 0 && setStep(step - 1)}
             className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground",
+              "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               step === 0 && "invisible",
             )}
           >
@@ -286,7 +286,7 @@ export function Onboarding({
                   setTribeIndex((tribeIndex - 1 + TRIBES.length) % TRIBES.length);
                   setTribeFlipped(false);
                 }}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -305,7 +305,7 @@ export function Onboarding({
                   setTribeIndex((tribeIndex + 1) % TRIBES.length);
                   setTribeFlipped(false);
                 }}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -317,7 +317,7 @@ export function Onboarding({
                 aria-label={`${tribeFlipped ? "Show artwork for" : "Learn about"} ${viewedTribe.name}`}
                 aria-pressed={tribeFlipped}
                 onClick={() => setTribeFlipped((current) => !current)}
-                className="relative block aspect-[3/4] w-full rounded-[1.75rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+                className="relative block aspect-[3/4] w-full rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
               >
                 <span
                   className={cn(
@@ -413,7 +413,7 @@ export function Onboarding({
                     setTribeFlipped(false);
                   }}
                   className={cn(
-                    "h-2 rounded-full transition-all",
+                    "h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     tribeIndex === index
                       ? "w-7 bg-primary"
                       : "w-2 bg-border hover:bg-muted-foreground/50",
@@ -456,7 +456,7 @@ export function Onboarding({
                 onClick={openAvatarPicker}
                 disabled={uploading}
                 aria-label="Add profile photo"
-                className="relative flex h-24 w-24 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background disabled:cursor-wait"
+                className="relative flex h-24 w-24 items-center justify-center rounded-full transition-transform active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background disabled:cursor-wait"
               >
                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-card text-4xl">
                   {avatar.startsWith("data:") || avatar.startsWith("http") ? (
@@ -479,7 +479,7 @@ export function Onboarding({
                 type="button"
                 onClick={openAvatarPicker}
                 disabled={uploading}
-                className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 transition-opacity hover:underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 {uploading ? "Uploading…" : "Add photo"}
               </button>
@@ -573,7 +573,7 @@ export function Onboarding({
                         type="button"
                         onClick={locate}
                         disabled={locating}
-                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-primary/35 text-xs font-semibold text-primary disabled:opacity-60"
+                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-primary/35 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                       >
                         {locating ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -588,7 +588,7 @@ export function Onboarding({
                           setLocation(null);
                           setCity("");
                         }}
-                        className="min-h-11 rounded-xl border border-border px-3 text-xs font-semibold text-muted-foreground"
+                        className="min-h-11 rounded-xl border border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         Choose manually
                       </button>
@@ -600,7 +600,7 @@ export function Onboarding({
                       type="button"
                       onClick={locate}
                       disabled={locating}
-                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary disabled:opacity-60"
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                     >
                       {locating ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -733,7 +733,7 @@ export function Onboarding({
                   type="button"
                   onClick={finish}
                   disabled={saving}
-                  className="min-h-11 w-full text-xs font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  className="min-h-11 w-full rounded text-xs font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   Continue with city only
                 </button>
@@ -770,7 +770,7 @@ function PrimaryButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity disabled:opacity-40"
+      className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-[opacity,transform] hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40"
     >
       {children}
     </button>
@@ -832,7 +832,7 @@ function ChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "group relative flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98]",
+                "group relative flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? "border-primary bg-primary/15 text-primary shadow-sm"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",

@@ -19,11 +19,11 @@ import { cn } from "@/lib/utils";
 export type TabKey = "feed" | "discover" | "ventures" | "chats" | "profile";
 
 const tabs: { key: TabKey; label: string; icon: typeof Newspaper }[] = [
-  { key: "feed",     label: "Feed",     icon: Newspaper },
+  { key: "feed", label: "Feed", icon: Newspaper },
   { key: "discover", label: "Discover", icon: Globe2 },
   { key: "ventures", label: "Ventures", icon: Zap },
-  { key: "chats",    label: "Chats",    icon: MessageCircle },
-  { key: "profile",  label: "Profile",  icon: User },
+  { key: "chats", label: "Chats", icon: MessageCircle },
+  { key: "profile", label: "Profile", icon: User },
 ];
 
 export function BottomNav({
@@ -55,15 +55,22 @@ export function BottomNav({
               <button
                 onClick={() => onChange(key)}
                 className={cn(
-                  "flex w-full flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "flex w-full flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
                 aria-label={label}
               >
-                <span className={cn(
-                  "relative flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                  isActive ? "bg-primary/15" : "bg-transparent"
-                )}>
+                <span
+                  className={cn(
+                    "relative flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                    // .animate-tab exists in styles.css for exactly this - a
+                    // one-shot bounce - but had never been wired to a tab
+                    // control. It's a class add on activation (isActive false
+                    // -> true), not a looping state, so it naturally only
+                    // plays once per switch rather than on every render.
+                    isActive ? "bg-primary/15 animate-tab" : "bg-transparent",
+                  )}
+                >
                   <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
                   {!!badge && (
                     <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />

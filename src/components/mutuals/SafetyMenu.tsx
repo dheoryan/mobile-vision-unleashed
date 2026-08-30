@@ -55,7 +55,7 @@ export function SafetyMenu({
           aria-label={`Safety options for ${targetName}`}
           aria-expanded={open}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             buttonClassName,
           )}
         >
@@ -70,7 +70,7 @@ export function SafetyMenu({
                   setOpen(false);
                   setReportOpen(true);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-secondary active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
               >
                 <Flag className="h-3.5 w-3.5" /> Report {kind}
               </button>
@@ -90,7 +90,7 @@ export function SafetyMenu({
                       onError: (e) => toast.error((e as Error).message),
                     });
                   }}
-                  className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
+                  className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-secondary active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive"
                 >
                   <Ban className="h-3.5 w-3.5" /> Block {targetName}
                 </button>
@@ -162,7 +162,7 @@ function ReportModal({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+          className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-5 w-5" />
         </button>
@@ -201,13 +201,13 @@ function ReportModal({
           <button
             onClick={submit}
             disabled={reportContent.isPending}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {reportContent.isPending ? "Submitting…" : "Submit report"}
           </button>
           <button
             onClick={onClose}
-            className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+            className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Cancel
           </button>

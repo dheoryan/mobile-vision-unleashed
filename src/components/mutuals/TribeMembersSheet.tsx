@@ -4,6 +4,7 @@ import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { Tribe } from "@/lib/mutuals-data";
 import { visibleTribeMembers, type TribeMemberSummary } from "@/lib/tribe-members";
 import { SafetyMenu } from "./SafetyMenu";
+import { Skeleton } from "./Skeleton";
 import { TribeMark } from "./TribeMark";
 
 function MemberAvatar({ member, color }: { member: TribeMemberSummary; color: string }) {
@@ -94,7 +95,7 @@ export function TribeMembersSheet({
             type="button"
             onClick={onClose}
             aria-label="Close member list"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <X className="h-4 w-4" />
           </button>
@@ -120,9 +121,9 @@ export function TribeMembersSheet({
           {loading ? (
             <div className="space-y-1 px-3 py-2" aria-label="Loading Tribe members">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="flex h-16 animate-pulse items-center gap-3">
-                  <span className="h-11 w-11 rounded-full bg-secondary" />
-                  <span className="h-3 w-36 rounded-full bg-secondary" />
+                <div key={index} className="flex h-16 items-center gap-3">
+                  <Skeleton className="h-11 w-11 rounded-full" />
+                  <Skeleton className="h-3 w-36" />
                 </div>
               ))}
             </div>
@@ -134,7 +135,7 @@ export function TribeMembersSheet({
               <button
                 type="button"
                 onClick={onRetry}
-                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold"
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold transition-colors hover:bg-secondary/60 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Retry
               </button>
@@ -153,7 +154,7 @@ export function TribeMembersSheet({
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="mt-3 min-h-11 px-4 text-xs font-semibold"
+                className="mt-3 min-h-11 rounded-full px-4 text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 style={{ color: tribe.colorVar }}
               >
                 Clear search
@@ -183,7 +184,7 @@ export function TribeMembersSheet({
                           ? `View ${isMe ? "your" : member.display_name || "member"} profile`
                           : undefined
                       }
-                      className="group flex min-w-0 flex-1 items-center gap-3 py-1 text-left outline-none enabled:cursor-pointer disabled:cursor-default"
+                      className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left transition-colors enabled:active:bg-secondary/30 enabled:cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="relative shrink-0">
                         <MemberAvatar member={member} color={tribe.colorVar} />
@@ -243,7 +244,7 @@ export function TribeMembersSheet({
                               onOpenProfile(member.handle);
                             }}
                             aria-label={`Message ${member.display_name}`}
-                            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           >
                             <MessageCircle className="h-4 w-4" />
                           </button>

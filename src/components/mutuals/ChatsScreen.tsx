@@ -169,7 +169,7 @@ function Row({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors",
+        "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         accented ? "border-primary/30 bg-card" : "border-transparent hover:border-border",
       )}
     >
@@ -333,7 +333,7 @@ export function ChatsScreen({
               onClick={() => setFilter(key)}
               aria-pressed={filter === key}
               className={cn(
-                "min-h-9 shrink-0 rounded-full px-3.5 text-xs font-semibold transition-colors",
+                "min-h-9 shrink-0 rounded-full px-3.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 filter === key
                   ? "bg-primary/15 text-primary"
                   : "border border-border text-muted-foreground",

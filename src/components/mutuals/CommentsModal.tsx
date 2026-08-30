@@ -25,7 +25,7 @@ import {
 } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth-context";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "./Skeleton";
 import { timeAgoLabel } from "@/lib/time";
 import { toast } from "sonner";
 import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./MentionInput";
@@ -231,7 +231,7 @@ export function CommentsModal({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="text-muted-foreground hover:text-foreground"
+          className="rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-5 w-5" />
         </button>
@@ -242,7 +242,7 @@ export function CommentsModal({
           <button
             type="button"
             onClick={() => setHiddenOpen((v) => !v)}
-            className="flex w-full items-center gap-1.5 px-5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            className="flex w-full items-center gap-1.5 px-5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
             <EyeOff className="h-3.5 w-3.5" />
             Comments you've hidden
@@ -259,7 +259,7 @@ export function CommentsModal({
                   <p className="text-xs text-muted-foreground">Couldn't load this.</p>
                   <button
                     onClick={() => hiddenQuery.refetch()}
-                    className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                    className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Retry
                   </button>
@@ -283,7 +283,7 @@ export function CommentsModal({
                     <button
                       onClick={() => unhideComment.mutate(c.id)}
                       disabled={unhideComment.isPending && unhideComment.variables === c.id}
-                      className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                      className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                     >
                       <Eye className="h-3 w-3" /> Unhide
                     </button>
@@ -304,7 +304,7 @@ export function CommentsModal({
             <p className="text-sm text-foreground">Couldn't load comments.</p>
             <button
               onClick={() => commentsQuery.refetch()}
-              className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+              className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Retry
             </button>
@@ -366,7 +366,7 @@ export function CommentsModal({
             <button
               onClick={send}
               disabled={!text.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
               style={{ backgroundColor: tribeColor }}
               aria-label="Send comment"
             >
@@ -620,7 +620,7 @@ function CommentItem({
             {!isPending && (
               <button
                 onClick={() => onReply(c)}
-                className="inline-flex items-center gap-1 hover:text-foreground"
+                className="inline-flex items-center gap-1 rounded transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Reply className="h-3 w-3" /> Reply
               </button>
@@ -631,7 +631,7 @@ function CommentItem({
           <button
             onClick={() => onDelete(c.id)}
             aria-label="Delete comment"
-            className="text-muted-foreground hover:text-destructive"
+            className="rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -641,7 +641,7 @@ function CommentItem({
             onClick={() => onHide(c.id)}
             aria-label="Hide comment from your post"
             title="Hide from your post"
-            className="text-muted-foreground hover:text-destructive"
+            className="rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           >
             <EyeOff className="h-3.5 w-3.5" />
           </button>

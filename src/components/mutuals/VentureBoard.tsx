@@ -173,7 +173,7 @@ function BoardListItem({
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={detailsId}
-        className="grid min-h-32 w-full grid-cols-[5.5rem_1fr] gap-3 p-3 text-left transition-colors hover:bg-secondary/20 active:bg-secondary/40"
+        className="grid min-h-32 w-full grid-cols-[5.5rem_1fr] gap-3 p-3 text-left transition-colors hover:bg-secondary/20 active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
       >
         <div className="relative h-[6.5rem] w-[5.5rem] overflow-hidden rounded-xl bg-secondary/50">
           <span className="absolute inset-0 flex items-center justify-center text-muted-foreground/45">
@@ -298,7 +298,7 @@ function BoardListItem({
             <button
               type="button"
               onClick={onOpenChat}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <MessageCircle className="h-4 w-4" /> Open party chat
             </button>
@@ -313,7 +313,7 @@ function BoardListItem({
                   type="button"
                   onClick={() => onWithdraw(application.id)}
                   disabled={withdrawing}
-                  className="min-h-11 w-full text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+                  className="min-h-11 w-full rounded text-[11px] font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
                 >
                   {withdrawing ? "Withdrawing…" : "Withdraw my request"}
                 </button>
@@ -335,7 +335,7 @@ function BoardListItem({
                 type="button"
                 onClick={onApply}
                 disabled={applying || full}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 {applying ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

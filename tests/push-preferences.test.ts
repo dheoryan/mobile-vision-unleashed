@@ -23,6 +23,9 @@ test("every push kind maps to a stable member-facing category", () => {
       follow: pushPreferenceForKind("follow"),
       tribe_join: pushPreferenceForKind("tribe_join"),
       new_post: pushPreferenceForKind("new_post"),
+      tribe_pulse: pushPreferenceForKind("tribe_pulse"),
+      repost: pushPreferenceForKind("repost"),
+      quote: pushPreferenceForKind("quote"),
     },
     {
       message: "messages_mentions",
@@ -39,6 +42,9 @@ test("every push kind maps to a stable member-facing category", () => {
       follow: "social_activity",
       tribe_join: "tribe_activity",
       new_post: "new_posts",
+      tribe_pulse: "tribe_activity",
+      repost: "social_activity",
+      quote: "social_activity",
     },
   );
 });

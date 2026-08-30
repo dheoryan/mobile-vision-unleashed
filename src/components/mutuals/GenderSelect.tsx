@@ -49,7 +49,7 @@ export function GenderSelect({
               disabled={locked}
               onClick={() => onChange(option.id)}
               className={cn(
-                "min-h-10 flex-1 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100",
+                "min-h-10 flex-1 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-foreground hover:bg-secondary/70",

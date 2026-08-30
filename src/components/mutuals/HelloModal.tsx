@@ -88,7 +88,7 @@ export function HelloModal({
       <button
         onClick={close}
         aria-label="Close"
-        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+        className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <X className="h-5 w-5" />
       </button>
@@ -122,7 +122,7 @@ export function HelloModal({
         <button
           type="button"
           onClick={() => setMessage(opener)}
-          className="mt-3 flex w-full items-start gap-2.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-left transition-colors hover:bg-primary/10"
+          className="mt-3 flex w-full items-start gap-2.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-left transition-colors hover:bg-primary/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Wand2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <span>
@@ -150,7 +150,7 @@ export function HelloModal({
       <button
         onClick={submit}
         disabled={!message.trim() || send.isPending || (hellosLeft === 0 && !isFree)}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
       >
         {send.isPending ? (
           <>

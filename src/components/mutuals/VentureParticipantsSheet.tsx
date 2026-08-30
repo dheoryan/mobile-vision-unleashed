@@ -91,7 +91,7 @@ export function VentureParticipantsSheet({
             type="button"
             onClick={onClose}
             aria-label="Close participant list"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <X className="h-4 w-4" />
           </button>
@@ -128,7 +128,7 @@ export function VentureParticipantsSheet({
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="mt-3 min-h-11 px-4 text-xs font-semibold text-primary"
+                className="mt-3 min-h-11 rounded-full px-4 text-xs font-semibold text-primary transition-colors hover:text-primary/80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Clear search
               </button>
@@ -158,7 +158,7 @@ export function VentureParticipantsSheet({
                           ? `View ${isMe ? "your" : profile.display_name || "participant"} profile`
                           : undefined
                       }
-                      className="group flex min-w-0 flex-1 items-center gap-3 py-1 text-left outline-none enabled:cursor-pointer disabled:cursor-default"
+                      className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left transition-colors enabled:active:bg-secondary/30 enabled:cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <ParticipantAvatar profile={profile} />
                       <span className="min-w-0 flex-1 py-2">
@@ -195,7 +195,7 @@ export function VentureParticipantsSheet({
                               onMessage(profile.id);
                             }}
                             aria-label={`Message ${profile.display_name || "participant"}`}
-                            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           >
                             <MessageCircle className="h-4 w-4" />
                           </button>

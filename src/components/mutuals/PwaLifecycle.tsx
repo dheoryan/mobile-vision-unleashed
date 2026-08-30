@@ -142,7 +142,7 @@ export function PwaLifecycle() {
             <button
               type="button"
               onClick={applyUpdate}
-              className="min-h-11 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground"
+              className="min-h-11 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Update
             </button>
@@ -150,7 +150,7 @@ export function PwaLifecycle() {
               type="button"
               onClick={() => setUpdateDismissed(true)}
               aria-label="Dismiss update"
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-4 w-4" />
             </button>

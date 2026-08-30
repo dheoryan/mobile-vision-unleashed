@@ -2,16 +2,18 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   AtSign,
   Bell,
   CheckCheck,
+  ChevronLeft,
   ChevronRight,
   Hand,
   Heart,
   Mail,
   MessageSquare,
+  Quote,
   RefreshCw,
+  Repeat2,
   Reply,
   Sparkles,
   UserCheck,
@@ -76,6 +78,8 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   tribe_join: <Users className="h-3.5 w-3.5" />,
   hello: <Hand className="h-3.5 w-3.5" />,
   hello_accepted: <Hand className="h-3.5 w-3.5" />,
+  repost: <Repeat2 className="h-3.5 w-3.5" />,
+  quote: <Quote className="h-3.5 w-3.5" />,
 };
 
 const CATEGORY_STYLES: Record<NotificationCategory, string> = {
@@ -100,6 +104,8 @@ const TEXTS: Record<NotificationKind, string> = {
   tribe_join: "joined your Tribe",
   hello: "said Hello",
   hello_accepted: "accepted your Hello",
+  repost: "reposted your post",
+  quote: "quoted your post",
 };
 
 function NotificationsPage() {
@@ -184,9 +190,9 @@ function NotificationsPage() {
           <Link
             to="/"
             aria-label="Back to MEUTUALS"
-            className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            className="flex h-11 w-11 shrink-0 items-center justify-center justify-self-start rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ChevronLeft className="h-5 w-5" />
           </Link>
           <div className="text-center">
             <h1 className="font-display text-sm font-bold">Notifications</h1>
@@ -216,7 +222,7 @@ function NotificationsPage() {
         <EnablePushBanner />
 
         {isLoading ? (
-          <div className="space-y-1 py-4" aria-label="Loading notifications">
+          <div className="space-y-1.5" aria-label="Loading notifications">
             {[0, 1, 2, 3].map((index) => (
               <NotifRowSkeleton key={index} />
             ))}

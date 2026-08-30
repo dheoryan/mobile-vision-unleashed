@@ -227,7 +227,7 @@ export function PostMediaLightbox({
           <button
             type="button"
             onClick={close}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="Close photo"
           >
             <X className="h-5 w-5" />
@@ -256,7 +256,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={() => changeScale(scale - 0.5)}
             disabled={scale <= MIN_SCALE}
-            className="flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-35"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-35"
             aria-label="Zoom out"
           >
             <Minus className="h-4 w-4" />
@@ -268,7 +268,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={() => changeScale(scale + 0.5)}
             disabled={scale >= MAX_SCALE}
-            className="flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-35"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-35"
             aria-label="Zoom in"
           >
             <Plus className="h-4 w-4" />
@@ -277,7 +277,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={resetZoom}
             className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-full",
+              "flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
               scale === 1 && offset.x === 0 && offset.y === 0 && "opacity-35",
             )}
             aria-label="Reset zoom"
@@ -291,7 +291,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={() => goTo(index - 1)}
             aria-label="Previous photo"
-            className="absolute left-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white sm:flex"
+            className="absolute left-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:flex"
           >
             ‹
           </button>
@@ -301,7 +301,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={() => goTo(index + 1)}
             aria-label="Next photo"
-            className="absolute right-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white sm:flex"
+            className="absolute right-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:flex"
           >
             ›
           </button>

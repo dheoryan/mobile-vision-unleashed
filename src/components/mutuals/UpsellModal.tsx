@@ -20,7 +20,9 @@ import { AnimatedModal } from "@/components/ui/animated-modal";
  * (see the prevent_plan_self_change trigger).
  */
 export function UpsellModal({
-  open, onClose, used = 3,
+  open,
+  onClose,
+  used = 3,
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,11 +31,17 @@ export function UpsellModal({
   return (
     <AnimatedModal
       open={open}
-      onOpenChange={(o) => { if (!o) onClose(); }}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
       title="MEUTUALS+ upgrade"
       contentClassName="p-6"
     >
-      <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 z-10 text-muted-foreground hover:text-foreground">
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
         <X className="h-5 w-5" />
       </button>
 
@@ -44,21 +52,21 @@ export function UpsellModal({
         You've used your {used} free Ventures this month.
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        <span className="font-semibold text-primary">MEUTUALS+</span> gives you unlimited
-        Ventures, unlimited Hellos, full match visibility, and read receipts.
+        <span className="font-semibold text-primary">MEUTUALS+</span> gives you unlimited Ventures,
+        unlimited Hellos, full match visibility, and read receipts.
       </p>
 
       <div className="mt-5 flex flex-col gap-2">
         <Link
           to="/tiers"
           onClick={onClose}
-          className="w-full rounded-2xl bg-primary py-3.5 text-center text-sm font-semibold text-primary-foreground"
+          className="w-full rounded-2xl bg-primary py-3.5 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           See plans
         </Link>
         <button
           onClick={onClose}
-          className="w-full py-2 text-xs text-muted-foreground hover:text-foreground"
+          className="w-full rounded-lg py-2 text-xs text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Maybe later
         </button>

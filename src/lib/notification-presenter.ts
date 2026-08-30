@@ -45,7 +45,9 @@ export function notificationDestination(item: NotificationRow): NotificationDest
     (item.kind === "like" ||
       item.kind === "comment" ||
       item.kind === "reply" ||
-      item.kind === "mention") &&
+      item.kind === "mention" ||
+      item.kind === "repost" ||
+      item.kind === "quote") &&
     item.post_id
   ) {
     return {

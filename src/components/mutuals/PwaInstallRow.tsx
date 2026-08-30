@@ -92,7 +92,7 @@ export function PwaInstallRow() {
           <button
             type="button"
             onClick={() => setGuideOpen(true)}
-            className="min-h-11 shrink-0 rounded-full border border-primary/35 px-3 text-[11px] font-semibold text-primary"
+            className="min-h-11 shrink-0 rounded-full border border-primary/35 px-3 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Show steps
           </button>
@@ -120,7 +120,7 @@ export function PwaInstallRow() {
           type="button"
           onClick={install}
           disabled={busy}
-          className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+          className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {busy ? "Opening…" : installable ? "Install" : "Show steps"}
         </button>
@@ -235,7 +235,7 @@ function InstallGuide({
         type="button"
         onClick={onClose}
         aria-label="Close installation guide"
-        className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+        className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <X className="h-5 w-5" />
       </button>
@@ -280,7 +280,7 @@ function InstallGuide({
       <button
         type="button"
         onClick={onClose}
-        className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground"
+        className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         Got it
       </button>

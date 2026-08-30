@@ -215,7 +215,7 @@ export function VenuePicker({
             setChosen(null);
           }}
           aria-label="Change venue"
-          className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-4 w-4" />
         </button>
@@ -264,7 +264,7 @@ export function VenuePicker({
           type="button"
           onClick={confirmManual}
           disabled={!ready}
-          className="rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          className="rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           Use this place
         </button>
@@ -285,7 +285,7 @@ export function VenuePicker({
                 setError(null);
                 setStage("search");
               }}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <MapPin className="h-3.5 w-3.5" />
               Find a verified pin with Google Maps
@@ -364,7 +364,7 @@ export function VenuePicker({
               setStage("search");
               setChosen(null);
             }}
-            className="flex-1 rounded-xl border border-border py-2.5 text-xs font-semibold text-muted-foreground"
+            className="flex-1 rounded-xl border border-border py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Back
           </button>
@@ -372,7 +372,7 @@ export function VenuePicker({
             type="button"
             onClick={confirmGoogle}
             disabled={!ready}
-            className="flex-[1.4] rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            className="flex-[1.4] rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             Use this place
           </button>
@@ -393,7 +393,7 @@ export function VenuePicker({
         <button
           type="button"
           onClick={useFreeText}
-          className="min-h-9 shrink-0 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+          className="min-h-9 shrink-0 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Enter manually
         </button>
@@ -426,7 +426,7 @@ export function VenuePicker({
               type="button"
               onClick={() => void pick(row)}
               className={cn(
-                "flex w-full flex-col gap-0.5 bg-card px-3 py-2.5 text-left active:bg-secondary/50",
+                "flex w-full flex-col gap-0.5 bg-card px-3 py-2.5 text-left transition-colors hover:bg-secondary/30 active:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                 index > 0 && "border-t border-border",
               )}
             >

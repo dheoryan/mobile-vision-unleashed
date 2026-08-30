@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { X, ImagePlus, Camera, Loader2, AlertTriangle } from "lucide-react";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
-import { useCreatePost } from "@/lib/posts-store";
+import { useCreatePost, type FeedPost } from "@/lib/posts-store";
+import { QuotedPostPreview } from "./QuotedPostPreview";
 import { uploadPostImage } from "@/lib/uploads";
 import { compressImage } from "@/lib/image-compress";
 import { useAuth } from "@/lib/auth-context";
@@ -28,13 +29,20 @@ export function ComposerModal({
   onClose,
   tribeId,
   initialAudience = "tribe",
+  quotedPost,
 }: {
   open: boolean;
   onClose: () => void;
   tribeId: TribeId;
   initialAudience?: Audience;
+  /** Quoting a Tribe-only post locks the quote to that same Tribe - it can
+   *  never be re-broadcast wider than the post it quotes. Quoting an
+   *  "everyone" post leaves the audience picker free, same as any post. */
+  quotedPost?: FeedPost;
 }) {
   const { user } = useAuth();
+  const audienceLocked = quotedPost?.audience === "tribe";
+  const effectiveTribeId = audienceLocked ? (quotedPost!.tribe_id as TribeId) : tribeId;
   const [text, setText] = useState("");
   const [images, setImages] = useState<ComposedImage[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -47,7 +55,7 @@ export function ComposerModal({
   const { register, registry } = useMentionRegistry();
   const mentionPicker = useMentionPicker(text, caret);
 
-  const tribe = tribeById(tribeId);
+  const tribe = tribeById(effectiveTribeId);
   /**
    * Audience is a deliberate choice, not a consequence of navigation.
    *
@@ -60,15 +68,15 @@ export function ComposerModal({
    *
    * The tab still seeds the default, since it's a good guess at intent.
    */
-  const [audience, setAudience] = useState<Audience>(initialAudience);
-  const effectiveAudience: Audience = audience;
+  const [audience, setAudience] = useState<Audience>(audienceLocked ? "tribe" : initialAudience);
+  const effectiveAudience: Audience = audienceLocked ? "tribe" : audience;
 
   const reset = () => {
     setText("");
     setCaret(0);
     images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     setImages([]);
-    setAudience(initialAudience);
+    setAudience(audienceLocked ? "tribe" : initialAudience);
     setConfirmDiscard(false);
   };
 
@@ -86,16 +94,18 @@ export function ComposerModal({
 
   const submit = () => {
     const t = text.trim();
-    if (!t && images.length === 0) return;
+    if (!t && images.length === 0 && !quotedPost) return;
     if (uploading) return;
     createPost.mutate(
       {
-        tribe_id: tribeId,
+        tribe_id: effectiveTribeId,
         content: t,
         image_paths: images.map((img) => img.path),
         image_preview_urls: images.map((img) => img.previewUrl),
         audience: effectiveAudience,
         mentions: collectMentionIds(t, registry),
+        quoted_post_id: quotedPost?.id,
+        quoted_post: quotedPost,
       },
       {
         onError: (e) => toast.error((e as Error).message),
@@ -181,13 +191,17 @@ export function ComposerModal({
       onOpenChange={(o) => {
         if (!o) close();
       }}
-      title={`New post — ${effectiveAudience === "all" ? "The Wild" : tribe.name}`}
+      title={
+        quotedPost
+          ? "Quote post"
+          : `New post — ${effectiveAudience === "all" ? "The Wild" : tribe.name}`
+      }
       contentClassName="p-6"
     >
       <button
         onClick={close}
         aria-label="Close"
-        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+        className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <X className="h-5 w-5" />
       </button>
@@ -207,13 +221,13 @@ export function ComposerModal({
                 reset();
                 onClose();
               }}
-              className="w-full rounded-2xl bg-destructive py-3.5 text-sm font-semibold text-destructive-foreground"
+              className="w-full rounded-2xl bg-destructive py-3.5 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               Discard post
             </button>
             <button
               onClick={() => setConfirmDiscard(false)}
-              className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+              className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Keep editing
             </button>
@@ -228,23 +242,29 @@ export function ComposerModal({
             segmented pill instead of two bordered cards: same explicit
             choice, same two options, just not a third of the sheet before
             you've typed a word. */}
-          <div className="mt-4">
-            <p className="label-mono text-muted-foreground">Who sees this?</p>
-            <div className="mt-2 flex gap-[3px] rounded-full bg-secondary p-[3px]">
-              <AudienceSegment
-                active={effectiveAudience === "tribe"}
-                onClick={() => setAudience("tribe")}
-                accent={tribe.colorVar}
-                label={tribe.name}
-              />
-              <AudienceSegment
-                active={effectiveAudience === "all"}
-                onClick={() => setAudience("all")}
-                accent="var(--primary)"
-                label="The Wild"
-              />
+          {audienceLocked ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Quoting a {tribe.name}-only post keeps this quote inside {tribe.name} too.
+            </p>
+          ) : (
+            <div className="mt-4">
+              <p className="label-mono text-muted-foreground">Who sees this?</p>
+              <div className="mt-2 flex gap-[3px] rounded-full bg-secondary p-[3px]">
+                <AudienceSegment
+                  active={effectiveAudience === "tribe"}
+                  onClick={() => setAudience("tribe")}
+                  accent={tribe.colorVar}
+                  label={tribe.name}
+                />
+                <AudienceSegment
+                  active={effectiveAudience === "all"}
+                  onClick={() => setAudience("all")}
+                  accent="var(--primary)"
+                  label="The Wild"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="relative mt-4">
             <MentionSuggestions suggestions={mentionPicker.suggestions} onPick={pickMention} />
@@ -278,13 +298,15 @@ export function ComposerModal({
             />
           )}
 
+          {quotedPost && <QuotedPostPreview post={quotedPost} />}
+
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading || images.length >= MAX_IMAGES}
-                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -302,7 +324,7 @@ export function ComposerModal({
                 onClick={() => cameraRef.current?.click()}
                 disabled={uploading || images.length >= MAX_IMAGES}
                 aria-label="Take photo"
-                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
               >
                 <Camera className="h-4 w-4" />
                 Camera
@@ -329,13 +351,13 @@ export function ComposerModal({
 
           <button
             onClick={submit}
-            disabled={!text.trim() && images.length === 0}
-            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+            disabled={!text.trim() && images.length === 0 && !quotedPost}
+            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40"
             style={{
               backgroundColor: effectiveAudience === "all" ? "var(--primary)" : tribe.colorVar,
             }}
           >
-            Send Signal
+            {quotedPost ? "Quote" : "Send Signal"}
           </button>
         </>
       )}
@@ -360,7 +382,7 @@ function AudienceSegment({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "min-h-9 flex-1 truncate rounded-full text-sm font-semibold transition-colors",
+        "min-h-9 flex-1 truncate rounded-full text-sm font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
       )}
       style={active ? { backgroundColor: accent } : undefined}

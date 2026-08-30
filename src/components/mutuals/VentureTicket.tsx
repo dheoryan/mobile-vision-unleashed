@@ -120,7 +120,7 @@ export function VentureTicket({
             type="button"
             onClick={onOpenDetail}
             disabled={!onOpenDetail}
-            className="text-left text-[15px] font-bold leading-tight tracking-tight disabled:cursor-default"
+            className="rounded text-left text-[15px] font-bold leading-tight tracking-tight transition-opacity active:opacity-70 disabled:cursor-default disabled:active:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {venture.title}
           </button>
@@ -151,7 +151,7 @@ export function VentureTicket({
                 type="button"
                 onClick={onDeclineInvite}
                 disabled={busy}
-                className="flex-1 rounded-xl border border-border py-2 text-[11px] font-semibold text-muted-foreground disabled:opacity-50"
+                className="flex-1 rounded-xl border border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 <X className="mr-1 inline h-3 w-3" /> Pass
               </button>
@@ -159,7 +159,7 @@ export function VentureTicket({
                 type="button"
                 onClick={onAcceptInvite}
                 disabled={busy}
-                className="inline-flex flex-[1.4] items-center justify-center gap-1 rounded-xl bg-primary py-2 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+                className="inline-flex flex-[1.4] items-center justify-center gap-1 rounded-xl bg-primary py-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 {busy ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -173,7 +173,7 @@ export function VentureTicket({
             <button
               type="button"
               onClick={onOpenChat}
-              className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[11px] font-semibold text-primary-foreground"
+              className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <MessageCircle className="h-3.5 w-3.5" /> Open party chat
             </button>
@@ -183,7 +183,7 @@ export function VentureTicket({
                 type="button"
                 onClick={() => onLeave(venture.my_application!.id)}
                 disabled={busy}
-                className="mt-1 self-start text-[11px] font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+                className="mt-1 self-start rounded text-[11px] font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 Withdraw my request
               </button>
@@ -340,7 +340,7 @@ export function VentureTicketDetail({
                   <button
                     type="button"
                     onClick={() => setMapRequested(true)}
-                    className="flex min-h-28 w-full flex-col items-center justify-center gap-2 px-5 py-4 text-center"
+                    className="flex min-h-28 w-full flex-col items-center justify-center gap-2 px-5 py-4 text-center transition-colors hover:bg-secondary/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Map className="h-4 w-4" />
@@ -362,7 +362,7 @@ export function VentureTicketDetail({
                   href={externalMapUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center justify-center gap-1.5 border-t border-border px-3 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                  className="flex min-h-11 items-center justify-center gap-1.5 border-t border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 >
                   Open in Maps <ExternalLink className="h-3 w-3" />
                 </a>
@@ -428,7 +428,7 @@ export function VentureTicketDetail({
               onClose();
               onOpenChat();
             }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <MessageCircle className="h-4 w-4" /> Open party chat
           </button>
@@ -438,7 +438,7 @@ export function VentureTicketDetail({
             type="button"
             onClick={() => onLeave(venture.my_application!.id)}
             disabled={leaving}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-2.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-2.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             <LogOut className="h-3.5 w-3.5" />
             {leaving ? "Leaving…" : accepted ? "Leave this Venture" : "Withdraw my request"}

@@ -83,7 +83,7 @@ export function AddTribeSheet({
       <button
         onClick={close}
         aria-label="Close"
-        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+        className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <X className="h-5 w-5" />
       </button>
@@ -102,7 +102,7 @@ export function AddTribeSheet({
             <button
               disabled={switchTribe.isPending}
               onClick={() => commit(target.id, target.name)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
             >
               {switchTribe.isPending ? (
                 <>
@@ -115,7 +115,7 @@ export function AddTribeSheet({
             <button
               onClick={() => setConfirming(null)}
               disabled={switchTribe.isPending}
-              className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+              className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
             >
               Stay in {current?.name}
             </button>
@@ -175,7 +175,7 @@ export function AddTribeSheet({
                     </div>
                     <button
                       onClick={() => setConfirming(t.id)}
-                      className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+                      className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       Move
                     </button>

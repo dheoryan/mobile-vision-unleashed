@@ -34,7 +34,7 @@ export function AvatarLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close photo"
-        className="flex h-full w-full items-center justify-center"
+        className="flex h-full w-full items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
       >
         <span className="aspect-square w-[min(82vw,420px)] overflow-hidden rounded-full ring-1 ring-white/10">
           <img src={src} alt={alt} className="h-full w-full object-cover" />
@@ -45,7 +45,7 @@ export function AvatarLightbox({
         <button
           type="button"
           onClick={onClose}
-          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label="Close photo"
         >
           <X className="h-5 w-5" />

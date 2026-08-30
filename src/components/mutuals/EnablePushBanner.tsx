@@ -117,7 +117,7 @@ export function EnablePushBanner() {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-4 w-4" />
         </button>
@@ -143,14 +143,14 @@ export function EnablePushBanner() {
           <button
             onClick={enable}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
             <span aria-live="polite">{progressLabel(progress, "Enable")}</span>
           </button>
           <button
             onClick={dismiss}
-            className="rounded-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+            className="rounded-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Not now
           </button>
@@ -159,7 +159,7 @@ export function EnablePushBanner() {
       <button
         onClick={dismiss}
         aria-label="Dismiss"
-        className="text-muted-foreground hover:text-foreground"
+        className="rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <X className="h-4 w-4" />
       </button>
@@ -409,7 +409,7 @@ export function PushSettingsRow() {
           <button
             type="button"
             onClick={enable}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Bell className="h-4 w-4" />
             Repair connection
@@ -462,7 +462,7 @@ export function PushSettingsRow() {
             aria-label="Turn off push notifications on this device"
             onClick={disable}
             disabled={loading}
-            className="relative h-11 w-12 shrink-0 disabled:opacity-50"
+            className="relative h-11 w-12 shrink-0 rounded-full transition-transform active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             <span className="absolute inset-x-0 top-2 h-7 rounded-full bg-primary transition-colors">
               <span className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary-foreground shadow-sm" />
@@ -475,7 +475,7 @@ export function PushSettingsRow() {
           <button
             type="button"
             onClick={enable}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Bell className="h-4 w-4" />
             Turn on notifications

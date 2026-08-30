@@ -164,6 +164,7 @@ function RootComponent() {
         <PushPromptModal />
         <Toaster
           position="top-center"
+          theme="dark"
           offset={{ top: "calc(env(safe-area-inset-top) + 72px)" }}
           mobileOffset={{ top: "calc(env(safe-area-inset-top) + 64px)", left: 12, right: 12 }}
           richColors

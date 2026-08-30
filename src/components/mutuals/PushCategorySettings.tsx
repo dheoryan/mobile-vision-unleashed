@@ -76,7 +76,7 @@ export function PushCategorySettings() {
         <button
           type="button"
           onClick={() => preferencesQuery.refetch()}
-          className="mt-3 min-h-11 rounded-xl border border-primary/40 px-4 text-xs font-semibold text-primary"
+          className="mt-3 min-h-11 rounded-xl border border-primary/40 px-4 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Try again
         </button>

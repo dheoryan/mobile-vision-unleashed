@@ -9,6 +9,8 @@ import {
   Loader2,
   Bookmark,
   ImagePlus,
+  Repeat2,
+  Quote,
 } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
@@ -17,7 +19,16 @@ import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { CommentsModal } from "./CommentsModal";
-import { useSocial, useToggleLike, useMyShares, useToggleShare } from "@/lib/social-store";
+import { ComposerModal } from "./ComposerModal";
+import { QuotedPostPreview, QuotedPostUnavailable } from "./QuotedPostPreview";
+import {
+  useSocial,
+  useToggleLike,
+  useMyShares,
+  useToggleShare,
+  useMyReposts,
+  useToggleRepost,
+} from "@/lib/social-store";
 import { useDeletePost, useEditPost, type FeedPost } from "@/lib/posts-store";
 import { useAuth } from "@/lib/auth-context";
 import { uploadPostImage } from "@/lib/uploads";
@@ -170,12 +181,17 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   const savedIdsQuery = useMySavedIds();
   const saved = savedIdsQuery.data?.has(post.id) ?? false;
   const toggleSave = useToggleSave();
+  const repostsQuery = useMyReposts();
+  const reposted = repostsQuery.data?.has(post.id) ?? false;
+  const toggleRepost = useToggleRepost();
 
   const editPost = useEditPost();
   const deletePost = useDeletePost();
 
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [repostMenuOpen, setRepostMenuOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
   const [editImages, setEditImages] = useState<ComposedImage[]>(() =>
@@ -290,9 +306,15 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
   return (
     <article
       data-post-id={post.id}
-      className="rounded-2xl border border-border bg-card p-4 transition-shadow"
+      className="rounded-2xl border border-border bg-card p-4"
       style={{ ["--tribe-active" as string]: tribe.colorVar }}
     >
+      {post.reposted_by && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+          <Repeat2 className="h-3.5 w-3.5" />
+          Reposted by {post.reposted_by.display_name?.trim() || "Someone"}
+        </p>
+      )}
       <header className="flex items-center gap-3">
         {isMine ? (
           <span className="relative">
@@ -352,7 +374,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             <button
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Post actions"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -483,6 +505,13 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               }}
             />
           )}
+
+          {post.quoted_post_id &&
+            (post.quoted_post ? (
+              <QuotedPostPreview post={post.quoted_post} />
+            ) : (
+              <QuotedPostUnavailable />
+            ))}
         </>
       )}
 
@@ -493,7 +522,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
             toggleLike.mutate(post.id);
           }}
           className={cn(
-            "flex items-center gap-1.5 text-xs transition-colors",
+            "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             liked ? "text-rose-400" : "hover:text-foreground",
           )}
           aria-pressed={liked}
@@ -502,16 +531,57 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         </button>
         <button
           onClick={() => setCommentsOpen(true)}
-          className="flex items-center gap-1.5 text-xs transition-colors hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-md text-xs transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
         </button>
+        <div className="relative ml-auto">
+          <button
+            onClick={() => {
+              if (post.id.startsWith("tmp-")) return;
+              setRepostMenuOpen((o) => !o);
+            }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              reposted ? "text-emerald-400" : "hover:text-foreground",
+            )}
+            aria-label="Repost options"
+            aria-pressed={reposted}
+          >
+            <Repeat2 className="h-4 w-4" /> {post.reposts_count}
+          </button>
+          {repostMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setRepostMenuOpen(false)} />
+              <div className="absolute left-0 top-9 z-40 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                <button
+                  onClick={() => {
+                    setRepostMenuOpen(false);
+                    toggleRepost.mutate(post.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
+                >
+                  <Repeat2 className="h-3.5 w-3.5" /> {reposted ? "Undo repost" : "Repost"}
+                </button>
+                <button
+                  onClick={() => {
+                    setRepostMenuOpen(false);
+                    setQuoteOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm hover:bg-secondary"
+                >
+                  <Quote className="h-3.5 w-3.5" /> Quote
+                </button>
+              </div>
+            </>
+          )}
+        </div>
         <button
           onClick={() => {
             if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
           }}
           className={cn(
-            "ml-auto flex items-center gap-1.5 text-xs transition-colors",
+            "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             saved ? "text-amber-400" : "hover:text-foreground",
           )}
           aria-label={saved ? "Unsave post" : "Save post"}
@@ -522,7 +592,7 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         <button
           onClick={share}
           className={cn(
-            "flex items-center gap-1.5 text-xs transition-colors",
+            "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             shared ? "text-primary" : "hover:text-foreground",
           )}
           aria-label="Share post"
@@ -538,6 +608,16 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         postId={post.id}
         isPostOwner={isMine}
       />
+
+      {quoteOpen && (
+        <ComposerModal
+          open={quoteOpen}
+          onClose={() => setQuoteOpen(false)}
+          tribeId={post.tribe_id as TribeId}
+          initialAudience={post.audience}
+          quotedPost={post}
+        />
+      )}
 
       {post.images.length > 0 && (
         <PostMediaLightbox

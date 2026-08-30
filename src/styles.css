@@ -143,6 +143,43 @@
   }
 }
 
+/* Sonner's `richColors` ships its own hard-coded light-mode palette
+   (light-green success, light-red error) that has nothing to do with this
+   app's theme - toasts rendered as bright white/green cards on an
+   otherwise all-dark UI. Sonner's own CSS reads these exact custom
+   properties to color each toast type, so redefining them here - rather
+   than trying to out-specificity Sonner's stylesheet with Tailwind
+   utilities - lands correctly regardless of which loads last. Every type
+   keeps the same dark card background; only the border and icon/text
+   carry the semantic color, matching how the rest of the app reserves a
+   full color fill for the one primary action and uses a tinted accent
+   everywhere else. Deliberately outside any @layer for the same reason as
+   the iOS input-zoom fix above - Sonner's stylesheet is unlayered, so a
+   layered (Tailwind) override would silently lose regardless of
+   specificity. */
+html body [data-sonner-toaster][data-sonner-theme='dark'] {
+  --border-radius: 1rem;
+  --normal-bg: var(--card);
+  --normal-border: var(--border);
+  --normal-text: var(--foreground);
+
+  --success-bg: var(--card);
+  --success-border: color-mix(in oklab, var(--accent) 45%, var(--border));
+  --success-text: var(--accent);
+
+  --error-bg: var(--card);
+  --error-border: color-mix(in oklab, var(--destructive) 45%, var(--border));
+  --error-text: var(--destructive);
+
+  --warning-bg: var(--card);
+  --warning-border: color-mix(in oklab, var(--primary) 45%, var(--border));
+  --warning-text: var(--primary);
+
+  --info-bg: var(--card);
+  --info-border: var(--border);
+  --info-text: var(--foreground);
+}
+
 @layer utilities {
   .bg-habitat {
     background:

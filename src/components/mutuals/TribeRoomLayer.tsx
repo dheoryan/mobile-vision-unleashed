@@ -4,11 +4,11 @@ import {
   CalendarPlus,
   Check,
   Clock3,
-  Flame,
   Loader2,
   MapPin,
   Plus,
   RefreshCw,
+  Share2,
   Sparkles,
   Ticket,
   Users,
@@ -17,9 +17,11 @@ import {
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useAuth } from "@/lib/auth-context";
+import { Skeleton } from "./Skeleton";
 import type { TribeId } from "@/lib/mutuals-data";
 import {
   dailyPulse,
+  pulseStreak,
   roomMetadataNumber,
   roomMetadataString,
   roomMetadataTimeOptions,
@@ -31,7 +33,10 @@ import {
   useAnswerDailyPulse,
   useCreateTribePlan,
   useMarkTribeRoomRead,
+  useNotifyTribePulse,
+  useShareTribePlanToChat,
   useToggleTribeRoomReaction,
+  useTribePulseStreak,
   useTribeRoom,
 } from "@/lib/tribe-room-store";
 import { cn } from "@/lib/utils";
@@ -54,6 +59,8 @@ export function TribeRoomLayer({
   canParticipate,
   view,
   onViewChange,
+  planOpen,
+  onPlanOpenChange,
   onStartVenture,
   onOpenVentures,
   onOpenChats,
@@ -65,15 +72,19 @@ export function TribeRoomLayer({
   canParticipate: boolean;
   view: TribeRoomView;
   onViewChange: (view: TribeRoomView) => void;
+  planOpen: boolean;
+  onPlanOpenChange: (open: boolean) => void;
   onStartVenture?: (draft: TribeVentureDraft) => void;
   onOpenVentures?: () => void;
   onOpenChats?: () => void;
 }) {
   const { user } = useAuth();
   const [pulseOpen, setPulseOpen] = useState(false);
-  const [planOpen, setPlanOpen] = useState(false);
   const room = useTribeRoom(tribeId, canParticipate);
+  const streakQuery = useTribePulseStreak(tribeId, canParticipate);
+  const streak = pulseStreak(tribeId, streakQuery.data?.counts ?? {});
   const markRead = useMarkTribeRoomRead(tribeId);
+  const notifyPulse = useNotifyTribePulse();
   const prompt = dailyPulse(tribeId);
   const items = room.data?.items ?? [];
   const plans = items
@@ -104,6 +115,43 @@ export function TribeRoomLayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.dataUpdatedAt, canParticipate, tribeId]);
 
+  // Whichever member's device is first to open the room on a new day quietly
+  // pings the rest of the tribe. The localStorage check is only to skip a
+  // redundant network call on every visit - the server's own dedup on
+  // prompt.id (not this) is what actually prevents a duplicate fan-out, so a
+  // cleared cache or a second device can't cause a repeat notification.
+  useEffect(() => {
+    if (!canParticipate) return;
+    const storageKey = `mutuals:tribe:${tribeId}:pulse-notified`;
+    try {
+      if (window.localStorage.getItem(storageKey) === prompt.id) return;
+    } catch {
+      /* ignore - worst case is one extra no-op call */
+    }
+    // Both the write and the mutate call are deferred into the same timer,
+    // not just the mutate. React 18 StrictMode double-invokes this effect in
+    // dev (mount, simulated cleanup, mount again, synchronously) - writing to
+    // localStorage eagerly meant the *first*, throwaway invocation marked
+    // "already notified" before its own timer got cancelled by cleanup, so
+    // the *second*, real invocation saw that mark and skipped scheduling a
+    // replacement entirely. Nothing ever fired. Keeping the write inside the
+    // cancellable timer means a cleaned-up attempt leaves no trace behind.
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(storageKey, prompt.id);
+      } catch {
+        /* ignore */
+      }
+      notifyPulse.mutate({
+        tribe_key: tribeId,
+        prompt_id: prompt.id,
+        preview: `${tribeName}: ${prompt.question}`,
+      });
+    }, 800);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tribeId, prompt.id, canParticipate]);
+
   return (
     <section
       className={cn("flex min-h-0 shrink-0 flex-col", view !== "chat" && "flex-1 overflow-hidden")}
@@ -123,15 +171,24 @@ export function TribeRoomLayer({
               aria-selected={view === key}
               onClick={() => onViewChange(key)}
               className={cn(
-                "relative flex min-h-14 items-center justify-center px-2 font-display text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary/35 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                "relative flex min-h-14 items-center justify-center px-2 font-display text-base font-semibold text-muted-foreground transition-colors active:scale-[0.98] hover:bg-secondary/35 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                 view === key && "text-foreground",
               )}
             >
-              {key === "chat"
-                ? "Chat"
-                : key === "room"
-                  ? "Pulse"
-                  : `Plans${plans.length ? ` · ${plans.length}` : ""}`}
+              {key === "chat" ? (
+                "Chat"
+              ) : key === "room" ? (
+                "Tribevia"
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  Plans
+                  {plans.length > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {plans.length > 9 ? "9+" : plans.length}
+                    </span>
+                  )}
+                </span>
+              )}
               {view === key && (
                 <span
                   className="absolute inset-x-5 bottom-0 h-[3px] rounded-t-full"
@@ -151,7 +208,7 @@ export function TribeRoomLayer({
           <button
             type="button"
             onClick={() => room.refetch()}
-            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-foreground"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold text-foreground transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Retry
           </button>
@@ -165,10 +222,15 @@ export function TribeRoomLayer({
             answers={pulseAnswers}
             answered={answered}
             loading={room.isLoading}
+            streak={streak}
             tribeId={tribeId}
+            dbTribeId={room.data?.tribe_id ?? ""}
             tribeColor={tribeColor}
             disabled={!canParticipate}
             onAnswer={() => setPulseOpen(true)}
+            currentUserId={user?.id}
+            linkedByAnswer={linkedByPlan}
+            onStartVenture={onStartVenture}
           />
 
           {announcements.length > 0 && (
@@ -204,19 +266,6 @@ export function TribeRoomLayer({
       ) : view === "plans" ? (
         <div className="scroll-panel min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
           {room.isLoading && <RoomLines />}
-          {!room.isLoading && plans.length > 0 && (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setPlanOpen(true)}
-                disabled={!canParticipate}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-xs font-semibold text-background disabled:opacity-40"
-                style={{ backgroundColor: tribeColor }}
-              >
-                <Plus className="h-4 w-4" /> New plan
-              </button>
-            </div>
-          )}
           {!room.isLoading && plans.length === 0 && (
             <div className="rounded-3xl border border-dashed border-border bg-card/45 px-5 py-7 text-center">
               <span
@@ -232,8 +281,9 @@ export function TribeRoomLayer({
               </p>
               <button
                 type="button"
-                onClick={() => setPlanOpen(true)}
-                className="mt-5 min-h-11 rounded-full px-5 text-xs font-semibold text-background"
+                onClick={() => onPlanOpenChange(true)}
+                disabled={!canParticipate}
+                className="mt-5 min-h-11 rounded-full px-5 text-xs font-semibold text-background transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40"
                 style={{ backgroundColor: tribeColor }}
               >
                 Start a plan
@@ -269,7 +319,7 @@ export function TribeRoomLayer({
       />
       <PlanComposer
         open={planOpen}
-        onClose={() => setPlanOpen(false)}
+        onClose={() => onPlanOpenChange(false)}
         tribeId={tribeId}
         tribeName={tribeName}
         tribeColor={tribeColor}
@@ -285,19 +335,31 @@ function DailyPulse({
   answered,
   loading,
   tribeId,
+  dbTribeId,
   tribeColor,
   disabled,
   onAnswer,
+  currentUserId,
+  linkedByAnswer,
+  onStartVenture,
+  streak,
 }: {
   prompt: ReturnType<typeof dailyPulse>;
   answers: TribeRoomItem[];
   answered: boolean;
   loading: boolean;
   tribeId: TribeId;
+  dbTribeId: string;
   tribeColor: string;
   disabled: boolean;
   onAnswer: () => void;
+  currentUserId?: string;
+  linkedByAnswer: Map<string | null, TribeRoomItem>;
+  onStartVenture?: (draft: TribeVentureDraft) => void;
+  streak: number;
 }) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleAnswers = showAll ? answers : answers.slice(-2);
   return (
     <div
       className="relative overflow-hidden border-l-2 bg-card/60 px-4 py-4"
@@ -305,9 +367,20 @@ function DailyPulse({
     >
       <div className="flex items-center justify-between gap-3">
         <span className="label-mono inline-flex items-center gap-1.5" style={{ color: tribeColor }}>
-          <Sparkles className="h-3.5 w-3.5" /> Daily Pulse
+          <Sparkles className="h-3.5 w-3.5" /> Daily Tribevia
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {streak >= 2 && (
+            <span
+              className="inline-flex items-center gap-0.5 normal-case tracking-normal text-foreground"
+              title={`${streak} days running`}
+            >
+              <span aria-hidden="true" className="text-sm leading-none">
+                🔥
+              </span>{" "}
+              {streak}
+            </span>
+          )}
           {loading ? "Loading" : `${answers.length} answered`}
         </span>
       </div>
@@ -319,7 +392,7 @@ function DailyPulse({
           type="button"
           onClick={onAnswer}
           disabled={disabled || answered}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-xs font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60"
           style={{ backgroundColor: tribeColor }}
         >
           {answered ? <Check className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
@@ -328,9 +401,28 @@ function DailyPulse({
       </div>
       {answers.length > 0 && (
         <div className="mt-4 space-y-2 border-t border-border pt-3">
-          {answers.slice(-2).map((answer) => (
-            <PulseAnswer key={answer.id} item={answer} tribeId={tribeId} tribeColor={tribeColor} />
+          {visibleAnswers.map((answer) => (
+            <PulseAnswer
+              key={answer.id}
+              item={answer}
+              tribeId={tribeId}
+              dbTribeId={dbTribeId}
+              tribeColor={tribeColor}
+              mine={answer.sender_id === currentUserId}
+              linked={linkedByAnswer.get(answer.id)}
+              promptQuestion={prompt.question}
+              onStartVenture={onStartVenture}
+            />
           ))}
+          {!showAll && answers.length > 2 && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mx-auto flex min-h-9 items-center gap-1 rounded-full px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              See all {answers.length} answers
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -355,21 +447,63 @@ function AnswerFaces({ answers }: { answers: TribeRoomItem[] }) {
 function PulseAnswer({
   item,
   tribeId,
+  dbTribeId,
   tribeColor,
+  mine,
+  linked,
+  promptQuestion,
+  onStartVenture,
 }: {
   item: TribeRoomItem;
   tribeId: TribeId;
+  dbTribeId: string;
   tribeColor: string;
+  mine: boolean;
+  linked?: TribeRoomItem;
+  promptQuestion: string;
+  onStartVenture?: (draft: TribeVentureDraft) => void;
 }) {
   const reaction = useToggleTribeRoomReaction(tribeId);
   const active = item.my_reactions.includes("spark");
   return (
     <div className="flex items-start gap-2.5">
       <Avatar item={item} />
-      <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground/90">
-        <span className="font-semibold">{item.author?.display_name ?? "Member"}</span>{" "}
-        <span className="text-muted-foreground">{item.content}</span>
-      </p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs leading-relaxed text-foreground/90">
+          <span className="font-semibold">{item.author?.display_name ?? "Member"}</span>{" "}
+          <span className="text-muted-foreground">{item.content}</span>
+        </p>
+        {mine && !linked && onStartVenture && (
+          <button
+            type="button"
+            onClick={() =>
+              onStartVenture({
+                sourceMessageId: item.id,
+                dbTribeId,
+                tribeId,
+                title: item.content.slice(0, 80),
+                note: `From today's Tribevia: "${promptQuestion}"`,
+                whenLabel: "Timing open",
+                timeOptions: [],
+                area: "Area open",
+                maxSlots: 4,
+              })
+            }
+            className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            style={{
+              borderColor: `color-mix(in oklab, ${tribeColor} 45%, transparent)`,
+              color: tribeColor,
+            }}
+          >
+            Turn into Venture <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+        {linked && (
+          <span className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full bg-secondary/60 px-2.5 text-[11px] font-semibold text-muted-foreground">
+            <Check className="h-3 w-3" /> Venture live
+          </span>
+        )}
+      </div>
       <button
         type="button"
         onClick={() => reaction.mutate({ message_id: item.id, reaction: "spark" })}
@@ -377,12 +511,15 @@ function PulseAnswer({
         aria-pressed={active}
         aria-label={active ? "Remove spark" : "Add spark"}
         className={cn(
-          "inline-flex min-h-11 min-w-11 items-center justify-center gap-1 text-[10px]",
+          "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full text-[10px] transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           !active && "text-muted-foreground",
         )}
         style={active ? { color: tribeColor } : undefined}
       >
-        <Flame className="h-3.5 w-3.5" /> {item.reactions.spark || ""}
+        <span aria-hidden="true" className="text-sm leading-none">
+          🔥
+        </span>{" "}
+        {item.reactions.spark || ""}
       </button>
     </div>
   );
@@ -406,6 +543,7 @@ function PlanRow({
   onStartVenture?: (draft: TribeVentureDraft) => void;
 }) {
   const toggle = useToggleTribeRoomReaction(tribeId);
+  const share = useShareTribePlanToChat();
   const interested = item.my_reactions.includes("interested");
   const timeOptions = roomMetadataTimeOptions(item.room_metadata, item.reactions);
   const timingMode = roomMetadataString(item.room_metadata, "timing_mode", "single");
@@ -454,7 +592,7 @@ function PlanRow({
                       disabled={toggle.isPending || Boolean(linked)}
                       aria-pressed={active}
                       className={cn(
-                        "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-3 text-left text-xs transition-colors disabled:opacity-50",
+                        "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-3 text-left text-xs transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
                         active
                           ? "border-transparent text-background"
                           : "border-border bg-background/40 text-foreground",
@@ -483,15 +621,39 @@ function PlanRow({
           disabled={toggle.isPending || Boolean(linked)}
           aria-pressed={interested}
           className={cn(
-            "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors disabled:opacity-50",
+            "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
             interested ? "border-transparent text-background" : "border-border text-foreground",
           )}
           style={interested ? { backgroundColor: tribeColor } : undefined}
         >
-          <Flame className="h-3.5 w-3.5" />
+          <span aria-hidden="true" className="text-sm leading-none">
+            🔥
+          </span>
           {interested ? "I'm in" : "Interested"}
           {item.reactions.interested > 0 && ` · ${item.reactions.interested}`}
         </button>
+        {mine && (
+          <button
+            type="button"
+            onClick={() =>
+              share.mutate(
+                {
+                  tribe_key: tribeId,
+                  message_id: item.id,
+                  preview: `📋 ${item.content} — ${whenLabel} · ${area}. Open the Plans tab to join.`,
+                },
+                {
+                  onSuccess: () => toast.success("Shared to Chat"),
+                  onError: (error) => toast.error((error as Error).message),
+                },
+              )
+            }
+            disabled={share.isPending}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold text-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          >
+            <Share2 className="h-3.5 w-3.5" /> Share to chat
+          </button>
+        )}
         {mine && !linked && onStartVenture && (
           <button
             type="button"
@@ -508,14 +670,17 @@ function PlanRow({
                 maxSlots,
               })
             }
-            className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-semibold"
-            style={{ color: tribeColor }}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            style={{
+              borderColor: `color-mix(in oklab, ${tribeColor} 45%, transparent)`,
+              color: tribeColor,
+            }}
           >
             Turn into Venture <ArrowRight className="h-3.5 w-3.5" />
           </button>
         )}
         {linked && (
-          <span className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-secondary/60 px-3 text-xs font-semibold text-muted-foreground">
             <Check className="h-3.5 w-3.5" /> Venture live
           </span>
         )}
@@ -578,7 +743,7 @@ function VentureAnnouncement({
         <button
           type="button"
           onClick={onOpen}
-          className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           style={{ color: tribeColor }}
         >
           {complete ? "Open Venture memories" : "Open Venture"}
@@ -616,7 +781,7 @@ function PulseComposer({
         onSuccess: () => {
           setAnswer("");
           onClose();
-          toast.success("Added to today's Pulse");
+          toast.success("Added to today's Tribevia");
         },
         onError: (error) => toast.error((error as Error).message),
       },
@@ -626,13 +791,13 @@ function PulseComposer({
     <AnimatedModal
       open={open}
       onOpenChange={(next) => !next && onClose()}
-      title="Answer Daily Pulse"
+      title="Answer Daily Tribevia"
     >
       <form onSubmit={submit} className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="label-mono" style={{ color: tribeColor }}>
-              Daily Pulse · {tribeName}
+              Daily Tribevia · {tribeName}
             </p>
             <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
               {prompt.question}
@@ -642,7 +807,7 @@ function PulseComposer({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-11 w-11 items-center justify-center text-muted-foreground"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <X className="h-5 w-5" />
           </button>
@@ -663,7 +828,7 @@ function PulseComposer({
           <button
             type="submit"
             disabled={!answer.trim() || mutation.isPending}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-xs font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
             style={{ backgroundColor: tribeColor }}
           >
             {mutation.isPending ? (
@@ -671,7 +836,7 @@ function PulseComposer({
             ) : (
               <ArrowRight className="h-4 w-4" />
             )}
-            Add to Pulse
+            Add to Tribevia
           </button>
         </div>
       </form>
@@ -808,7 +973,7 @@ function PlanComposer({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <X className="h-5 w-5" />
           </button>
@@ -848,7 +1013,7 @@ function PlanComposer({
                   aria-pressed={timingMode === mode}
                   onClick={() => chooseTimingMode(mode)}
                   className={cn(
-                    "min-h-11 rounded-xl px-3 text-xs font-semibold transition-colors",
+                    "min-h-11 rounded-xl px-3 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     timingMode === mode ? "text-background" : "text-muted-foreground",
                   )}
                   style={timingMode === mode ? { backgroundColor: tribeColor } : undefined}
@@ -867,7 +1032,7 @@ function PlanComposer({
                       type="button"
                       onClick={() => updateTimeOption(0, { day: choice.value })}
                       className={cn(
-                        "min-h-11 rounded-full border px-3 text-xs font-semibold",
+                        "min-h-11 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         timeOptions[0]?.day === choice.value
                           ? "border-transparent text-background"
                           : "border-border text-muted-foreground",
@@ -901,7 +1066,7 @@ function PlanComposer({
                       type="button"
                       onClick={() => updateTimeOption(0, { period: choice.value })}
                       className={cn(
-                        "min-h-11 rounded-full border px-3 text-xs font-semibold capitalize",
+                        "min-h-11 rounded-full border px-3 text-xs font-semibold capitalize transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         timeOptions[0]?.period === choice.value
                           ? "border-transparent text-background"
                           : "border-border text-muted-foreground",
@@ -975,7 +1140,7 @@ function PlanComposer({
                           type="button"
                           onClick={() => removeTimeOption(index)}
                           aria-label={`Remove option ${index + 1}`}
-                          className="flex h-11 w-11 items-center justify-center text-muted-foreground"
+                          className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -987,7 +1152,7 @@ function PlanComposer({
                   <button
                     type="button"
                     onClick={addTimeOption}
-                    className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     style={{ color: tribeColor }}
                   >
                     <Plus className="h-3.5 w-3.5" /> Add another time
@@ -1017,7 +1182,7 @@ function PlanComposer({
                   type="button"
                   onClick={() => setMaxSlots((value) => Math.max(2, value - 1))}
                   aria-label="Fewer people"
-                  className="h-11 w-11 rounded-full border border-border text-lg"
+                  className="h-11 w-11 rounded-full border border-border text-lg transition-colors hover:bg-secondary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   −
                 </button>
@@ -1026,7 +1191,7 @@ function PlanComposer({
                   type="button"
                   onClick={() => setMaxSlots((value) => Math.min(20, value + 1))}
                   aria-label="More people"
-                  className="h-11 w-11 rounded-full border border-border text-lg"
+                  className="h-11 w-11 rounded-full border border-border text-lg transition-colors hover:bg-secondary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   +
                 </button>
@@ -1047,7 +1212,7 @@ function PlanComposer({
               !validTiming ||
               mutation.isPending
             }
-            className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-background disabled:opacity-50"
+            className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-background transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
             style={{ backgroundColor: tribeColor }}
           >
             {mutation.isPending ? (
@@ -1103,8 +1268,8 @@ function Avatar({ item, className }: { item: TribeRoomItem; className?: string }
 function RoomLines() {
   return (
     <div className="space-y-3" aria-label="Loading room plans">
-      <div className="h-24 animate-pulse bg-muted/60" />
-      <div className="h-24 animate-pulse bg-muted/40" />
+      <Skeleton className="h-24 rounded-2xl" />
+      <Skeleton className="h-24 rounded-2xl" />
     </div>
   );
 }

@@ -34,6 +34,15 @@ export type FeedPost = {
   likes_count: number;
   replies_count: number;
   shares_count: number;
+  reposts_count: number;
+  /** Set only on a feed entry that exists because someone reposted the
+   *  underlying post - null for a post's own normal appearance. */
+  reposted_by: AuthorLite | null;
+  quoted_post_id: string | null;
+  /** The quoted post, hydrated one level deep (a quoted post's own quote is
+   *  never resolved further). Null both when nothing is quoted and when the
+   *  quoted post has been deleted - callers distinguish via `quoted_post_id`. */
+  quoted_post: FeedPost | null;
   created_at: string;
   author: AuthorLite | null;
 };
@@ -165,19 +174,43 @@ async function hydratePosts(
   supabase: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rows: any[],
+  // `shallow` stops a quoted post from resolving its own quoted post -
+  // matching Twitter/Threads' one-level-of-nesting convention and avoiding
+  // unbounded recursion on a chain of quotes.
+  options: { shallow?: boolean } = {},
 ): Promise<FeedPost[]> {
   const [withUrls, imagesByPost] = await Promise.all([
     attachPostImageUrls(supabase, await attachAuthors(supabase, rows)),
     attachPostImages(supabase, rows),
   ]);
-  return withUrls.map((p) => {
+  const hydrated = withUrls.map((p) => {
     const multi = imagesByPost.get(p.id);
     return {
       ...p,
       images: multi?.urls ?? (p.image_url ? [p.image_url] : []),
       image_paths: multi?.paths ?? (p.image_path ? [p.image_path] : []),
+      reposted_by: null,
+      quoted_post: null,
     };
   }) as FeedPost[];
+
+  if (options.shallow) return hydrated;
+
+  const quotedIds = Array.from(
+    new Set(hydrated.map((p) => p.quoted_post_id).filter((id): id is string => !!id)),
+  );
+  if (!quotedIds.length) return hydrated;
+
+  const { data: quotedRows, error } = await supabase
+    .from("posts")
+    .select(POST_COLS)
+    .in("id", quotedIds);
+  if (error) throw new Error(error.message);
+  const quotedHydrated = await hydratePosts(supabase, quotedRows ?? [], { shallow: true });
+  const quotedById = new Map(quotedHydrated.map((p) => [p.id, p]));
+  return hydrated.map((p) =>
+    p.quoted_post_id ? { ...p, quoted_post: quotedById.get(p.quoted_post_id) ?? null } : p,
+  );
 }
 
 async function getRepliesCount(
@@ -194,7 +227,7 @@ async function getRepliesCount(
 }
 
 const POST_COLS =
-  "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, created_at";
+  "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, reposts_count, quoted_post_id, created_at";
 
 const COMMENT_COLS = "id, post_id, author_id, content, created_at, parent_id, mentions";
 
@@ -217,6 +250,19 @@ const COMMENT_COLS = "id, post_id, author_id, content, created_at, parent_id, me
  * value could reshape the query. RLS bounds the blast radius, but the enum
  * removes the class of problem.
  */
+/**
+ * Reposts never create a post - they're a row in `reposts` that bumps a
+ * count and (via a DB trigger) notifies the author. To make one show up in
+ * the feed "as if" it were a new item, this merges the tribe/global posts
+ * query above with a second query joining `reposts -> posts`, filtered to
+ * exactly the same audience/tribe_id the primary query already enforces, so
+ * a tribe-only repost stays confined to that one tribe's feed exactly like
+ * a tribe-only post already is. RLS on `posts` is what actually prevents a
+ * repost of a tribe-only post from ever reaching a non-member's request in
+ * the first place (the `posts!inner` join drops rows the caller can't read)
+ * - the filter below is only about which of the *visible* feed a repost
+ * belongs in, not a substitute for that.
+ */
 export const listFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -224,21 +270,86 @@ export const listFeed = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    let q = supabase
+    let postsQuery = supabase
       .from("posts")
       .select(POST_COLS)
       .order("created_at", { ascending: false })
       .limit(200);
 
     if (data.tribe_id) {
-      q = q.eq("tribe_id", data.tribe_id).eq("audience", "tribe");
+      postsQuery = postsQuery.eq("tribe_id", data.tribe_id).eq("audience", "tribe");
     } else {
-      q = q.eq("audience", "all");
+      postsQuery = postsQuery.eq("audience", "all");
     }
 
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return hydratePosts(supabase, rows ?? []);
+    const repostsQuery = supabase
+      .from("reposts")
+      .select(`user_id, created_at, posts!inner(${POST_COLS})`)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const [{ data: postRows, error: postsError }, { data: repostRows, error: repostsError }] =
+      await Promise.all([postsQuery, repostsQuery]);
+    if (postsError) throw new Error(postsError.message);
+    if (repostsError) throw new Error(repostsError.message);
+
+    type RepostRow = { user_id: string; created_at: string; posts: Record<string, unknown> };
+    const scopedReposts = ((repostRows ?? []) as RepostRow[]).filter((r) =>
+      data.tribe_id
+        ? r.posts.tribe_id === data.tribe_id && r.posts.audience === "tribe"
+        : r.posts.audience === "all",
+    );
+
+    const reposterIds = Array.from(new Set(scopedReposts.map((r) => r.user_id)));
+    const reposters = new Map<string, AuthorLite>();
+    if (reposterIds.length) {
+      const { data: reposterRows, error: reposterError } = await supabase
+        .from("profiles")
+        .select(AUTHOR_COLS)
+        .in("id", reposterIds);
+      if (reposterError) throw new Error(reposterError.message);
+      for (const a of (reposterRows ?? []) as AuthorLite[]) reposters.set(a.id, a);
+    }
+
+    // One entry per post id, never two - a repost of a post that's already
+    // in `postRows` (the normal case: you can only repost something you can
+    // already see) used to add a *second* copy of the same row, which broke
+    // React's key uniqueness for every list keyed on post id. `scopedReposts`
+    // is already ordered newest-first, so the first repost seen per post id
+    // here is the most recent one - that's the one that gets to bump the
+    // post's position and claim the "reposted by" attribution.
+    const latestRepostByPostId = new Map<string, RepostRow>();
+    for (const r of scopedReposts) {
+      const postId = r.posts.id as string;
+      if (!latestRepostByPostId.has(postId)) latestRepostByPostId.set(postId, r);
+    }
+
+    const rowsById = new Map<string, Record<string, unknown>>();
+    for (const row of (postRows ?? []) as Record<string, unknown>[]) {
+      rowsById.set(row.id as string, row);
+    }
+    for (const r of scopedReposts) {
+      const postId = r.posts.id as string;
+      if (!rowsById.has(postId)) rowsById.set(postId, r.posts);
+    }
+
+    const merged = Array.from(rowsById.values())
+      .map((row) => {
+        const repost = latestRepostByPostId.get(row.id as string);
+        return {
+          sortAt: (repost?.created_at ?? row.created_at) as string,
+          row,
+          repostedBy: repost ? (reposters.get(repost.user_id) ?? null) : null,
+        };
+      })
+      .sort((a, b) => (a.sortAt < b.sortAt ? 1 : -1))
+      .slice(0, 200);
+
+    const hydrated = await hydratePosts(
+      supabase,
+      merged.map((m) => m.row),
+    );
+    return hydrated.map((post, index) => ({ ...post, reposted_by: merged[index].repostedBy }));
   });
 
 export const getPostById = createServerFn({ method: "GET" })
@@ -285,6 +396,29 @@ export const listPostsByAuthor = createServerFn({ method: "GET" })
     return hydratePosts(supabase, rows ?? []);
   });
 
+// Backs the profile's "Reposts" tab - everything this viewer has reposted,
+// hydrated the same way the feed is. Named distinctly from social.functions'
+// listMyReposts (which returns bare post ids for the toggle-state Set, the
+// same split saves already use between listMySavedIds/listMySavedPosts).
+// Not merged into listMyPosts: a repost never becomes a post of yours, so it
+// belongs in its own history, not mixed into "your posts."
+export const listMyRepostedPosts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: rows, error } = await supabase
+      .from("reposts")
+      .select(`created_at, posts!inner(${POST_COLS})`)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    const postRows = ((rows ?? []) as Array<{ posts: Record<string, unknown> }>).map(
+      (r) => r.posts,
+    );
+    return hydratePosts(supabase, postRows);
+  });
+
 const imagePathSchema = z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200);
 
 const createSchema = z.object({
@@ -294,6 +428,7 @@ const createSchema = z.object({
   tag: z.string().max(40).nullable().optional(),
   audience: z.enum(["tribe", "all"]).default("tribe"),
   mentions: z.array(z.string().uuid()).max(20).optional().default([]),
+  quoted_post_id: z.string().uuid().optional(),
 });
 
 export const createPost = createServerFn({ method: "POST" })
@@ -301,7 +436,9 @@ export const createPost = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    if (!data.content.trim() && data.image_paths.length === 0) {
+    // A quote's substance is the post it quotes - bare commentary-free
+    // quoting (Twitter/Threads both allow this) shouldn't need padding text.
+    if (!data.content.trim() && data.image_paths.length === 0 && !data.quoted_post_id) {
       throw new Error("Post can't be empty");
     }
     for (const path of data.image_paths) {
@@ -309,6 +446,27 @@ export const createPost = createServerFn({ method: "POST" })
         throw new Error("Post images must belong to the author");
       }
     }
+
+    // A quote can never be *wider* than the post it quotes - quoting a
+    // tribe-only post must not be a way to re-broadcast it to "everyone".
+    // Quoting an "everyone" post is unrestricted, since that content is
+    // already visible to anyone.
+    if (data.quoted_post_id) {
+      const { data: quoted, error: quotedError } = await supabase
+        .from("posts")
+        .select("id, tribe_id, audience")
+        .eq("id", data.quoted_post_id)
+        .maybeSingle();
+      if (quotedError) throw new Error(quotedError.message);
+      if (!quoted) throw new Error("The post you're quoting is no longer available");
+      if (
+        quoted.audience === "tribe" &&
+        (data.audience !== "tribe" || data.tribe_id !== quoted.tribe_id)
+      ) {
+        throw new Error("A Tribe-only post can only be quoted within that same Tribe");
+      }
+    }
+
     const coverImage = data.image_paths[0] ?? null;
     let result = await supabase
       .from("posts")
@@ -320,6 +478,7 @@ export const createPost = createServerFn({ method: "POST" })
         tag: data.tag ?? null,
         audience: data.audience,
         mentions: data.mentions,
+        quoted_post_id: data.quoted_post_id ?? null,
       })
       .select(POST_COLS)
       .single();
@@ -407,6 +566,7 @@ export const listComments = createServerFn({ method: "GET" })
       .limit(500);
     if (error) throw new Error(error.message);
     const newestWindow = [...(rows ?? [])].reverse();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (await attachAuthors(supabase, newestWindow as any)) as CommentRow[];
   });
 
@@ -436,6 +596,7 @@ export const addComment = createServerFn({ method: "POST" })
       .select(COMMENT_COLS)
       .single();
     if (error) throw new Error(error.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [withAuthor] = await attachAuthors(supabase, [row as any]);
     return {
       ...(withAuthor as CommentRow),

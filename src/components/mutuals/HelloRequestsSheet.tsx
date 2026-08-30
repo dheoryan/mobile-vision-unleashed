@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Hand } from "lucide-react";
+import { Hand, X } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import {
@@ -34,21 +34,22 @@ export function HelloRequestsSheet({ open, onClose }: { open: boolean; onClose: 
         if (!nextOpen) onClose();
       }}
       title="Hellos"
-      contentClassName="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden rounded-none border-0 !bg-background data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:h-[85dvh] sm:max-h-[85dvh] sm:rounded-3xl sm:border"
+      side="right"
+      contentClassName="flex h-full max-w-sm flex-col"
     >
-      <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+        <div>
+          <p className="label-mono text-muted-foreground">Chats</p>
+          <h3 className="font-display text-lg font-bold">Hellos</h3>
+        </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <X className="h-5 w-5" />
         </button>
-        <div>
-          <p className="label-mono text-muted-foreground">Chats</p>
-          <h3 className="font-display text-lg font-bold">Hellos</h3>
-        </div>
       </div>
 
       <div className="flex shrink-0 gap-2 border-b border-border px-4 py-3">
@@ -91,7 +92,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? "bg-primary text-primary-foreground"
           : "border border-border text-muted-foreground hover:text-foreground",
@@ -170,7 +171,7 @@ function RequestsTab({ loading, rows }: { loading: boolean; rows: HelloWithProfi
                     },
                   )
                 }
-                className="flex-1 rounded-full bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                className="flex-1 rounded-full bg-primary py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
               >
                 Accept
               </button>
@@ -186,7 +187,7 @@ function RequestsTab({ loading, rows }: { loading: boolean; rows: HelloWithProfi
                     },
                   )
                 }
-                className="flex-1 rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                className="flex-1 rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
               >
                 Decline
               </button>
@@ -258,7 +259,7 @@ function SentTab({ loading, rows }: { loading: boolean; rows: HelloWithProfile[]
                   },
                 )
               }
-              className="mt-3 w-full rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+              className="mt-3 w-full rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
             >
               {busy ? "Cancelling…" : "Cancel"}
             </button>

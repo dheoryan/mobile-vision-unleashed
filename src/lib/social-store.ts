@@ -5,10 +5,12 @@ import {
   getProfileStats,
   listMyFollowing,
   listMyLikes,
+  listMyReposts,
   listMyShares,
   reportContent,
   toggleFollow,
   toggleLike,
+  toggleRepost,
   toggleShare,
   listIncomingHellos,
   listOutgoingHellos,
@@ -23,6 +25,7 @@ import type { FeedPost } from "@/lib/posts.functions";
 
 const LIKES_KEY = ["social", "likes"] as const;
 const SHARES_KEY = ["social", "shares"] as const;
+const REPOSTS_KEY = ["social", "reposts"] as const;
 const FOLLOWING_KEY = ["social", "following"] as const;
 const FOLLOW_COUNTS_KEY = ["social", "follow-counts"] as const;
 const PROFILE_STATS_KEY = ["social", "profile-stats"] as const;
@@ -96,7 +99,7 @@ export function useSocial() {
 function patchFeedCount(
   qc: ReturnType<typeof useQueryClient>,
   postId: string,
-  field: "likes_count" | "shares_count",
+  field: "likes_count" | "shares_count" | "reposts_count",
   delta: number,
 ) {
   qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
@@ -114,7 +117,7 @@ function patchFeedCount(
 function reconcileFeedCount(
   qc: ReturnType<typeof useQueryClient>,
   postId: string,
-  field: "likes_count" | "shares_count",
+  field: "likes_count" | "shares_count" | "reposts_count",
   value: number,
 ) {
   qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
@@ -213,6 +216,55 @@ export function useToggleShare() {
   });
 }
 
+export function useMyReposts() {
+  const fn = useServerFn(listMyReposts);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...REPOSTS_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 30_000,
+    select: (rows) => new Set(rows),
+  });
+}
+
+export function useToggleRepost() {
+  const fn = useServerFn(toggleRepost);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const key = [...REPOSTS_KEY, user?.id ?? null];
+  return useMutation({
+    mutationFn: (postId: string) => fn({ data: { post_id: postId } }),
+    onMutate: async (postId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<string[]>(key) ?? [];
+      const wasReposted = prev.includes(postId);
+      const next = wasReposted ? prev.filter((id) => id !== postId) : [...prev, postId];
+      qc.setQueryData(key, next);
+      patchFeedCount(qc, postId, "reposts_count", wasReposted ? -1 : 1);
+      return { prev, wasReposted, postId };
+    },
+    onError: (_e, _i, ctx) => {
+      if (!ctx) return;
+      qc.setQueryData(key, ctx.prev);
+      patchFeedCount(qc, ctx.postId, "reposts_count", ctx.wasReposted ? 1 : -1);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: REPOSTS_KEY });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<string[]>(key, (cur) => {
+        const rows = cur ?? [];
+        return result.reposted
+          ? Array.from(new Set([...rows, result.post_id]))
+          : rows.filter((id) => id !== result.post_id);
+      });
+      reconcileFeedCount(qc, result.post_id, "reposts_count", result.reposts_count);
+    },
+  });
+}
+
 export function useToggleFollow() {
   const fn = useServerFn(toggleFollow);
   const qc = useQueryClient();
@@ -225,13 +277,9 @@ export function useToggleFollow() {
       await qc.cancelQueries({ queryKey: key });
       await qc.cancelQueries({ queryKey: countsKey });
       const prev = qc.getQueryData<string[]>(key) ?? [];
-      const prevCounts =
-        qc.getQueryData<{ following: number; followers: number }>(countsKey);
+      const prevCounts = qc.getQueryData<{ following: number; followers: number }>(countsKey);
       const wasFollowing = prev.includes(userId);
-      qc.setQueryData(
-        key,
-        wasFollowing ? prev.filter((id) => id !== userId) : [...prev, userId],
-      );
+      qc.setQueryData(key, wasFollowing ? prev.filter((id) => id !== userId) : [...prev, userId]);
       if (prevCounts) {
         qc.setQueryData(countsKey, {
           ...prevCounts,
@@ -358,7 +406,8 @@ export function useAnswerHello() {
   const fn = useServerFn(answerHello);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { hello_id: string; status: "accepted" | "declined" }) => fn({ data: input }),
+    mutationFn: (input: { hello_id: string; status: "accepted" | "declined" }) =>
+      fn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: HELLOS_INCOMING_KEY });
       qc.invalidateQueries({ queryKey: CONTACT_STATUS_KEY });

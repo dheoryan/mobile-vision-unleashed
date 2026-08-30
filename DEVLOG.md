@@ -205,6 +205,574 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-30 — Claude — Live-testing the repost/quote migration caught three bugs the rehearsal couldn't
+
+The user applied the previous entry's migration ("Query succeeded"). Live-
+testing the actual feature end-to-end in a real logged-in session (not just
+re-confirming the SQL) surfaced three real client-side bugs, none of which
+the Docker rehearsal or `tsc`/`eslint`/tests could have caught, since all
+three are about how the app's own code behaves against correct data:
+
+1. **React key collision in the feed.** `listFeed`'s merge added a
+   *second* copy of a post's row whenever that post was also reposted -
+   the ordinary case, since you can only repost something already visible
+   in the feed. Both copies carried the same `id`, which every list keyed
+   on post id (starting with the feed itself) silently duplicates or drops
+   under. Fixed by deduping to one entry per post id in the merge, using
+   the most recent repost (if any) to both bump its position and supply
+   the "reposted by" attribution - matches a simpler, safer interpretation
+   of Threads' behavior than allowing true duplicates, which would have
+   required threading a synthetic composite key through every consumer of
+   `FeedPost.id` instead.
+2. **A quote briefly rendered "no longer available" right after posting.**
+   The optimistic entry created in `useCreatePost` always set
+   `quoted_post: null`, since hydrating the real quoted post requires a
+   round trip. But the composer already has the full quoted post in memory
+   at the moment of submission - now `quotedPost` rides along as an
+   optimistic-only field (stripped before hitting the server, same
+   treatment as `image_preview_urls`) so the embed renders immediately
+   instead of flashing "unavailable" for the ~1s gap before the real
+   response replaces it.
+3. **The new Settings "Saved posts" row silently did nothing.** Its own
+   view state (`SettingsView` in `SettingsScreen.tsx`) was updated, but a
+   *second*, separate enum - `SETTINGS_VIEWS` in `src/routes/settings.tsx`,
+   which validates the `?view=` search param - still didn't know about
+   `"savedPosts"`, so the router silently stripped it back to the default
+   view on every navigation attempt. Same lesson as the tribe_pulse
+   in-app-rendering gap from earlier this session: a new enum value has to
+   be threaded through *every* place that enumerates the values, not just
+   the one that seemed like the source of truth.
+
+Re-verified after each fix in the same live session: reposting bumps the
+count and shows one deduplicated "Reposted by" entry with no console
+errors; quoting shows the embed immediately with no flash; the Settings
+row now actually navigates to a working Saved-posts list. `tsc`/`eslint`
+clean, 75/75 tests, `npm run build` succeeds. Not committed.
+
+### 2026-08-30 — Claude — Repost + quote-post system, Reposts profile tab, Saved posts moved to Settings
+
+Full Threads-style repost/quote feature, planned with the user up front
+(plan mode) given the size - this is the first change this session to touch
+the core `posts` table's read/write path rather than being purely additive
+alongside it.
+
+**Data model** (`supabase/migrations/20260830020000_reposts_and_quote_posts.sql`):
+a `reposts` table mirrors `likes`/`shares` exactly (toggle per user per
+post, `posts.reposts_count` trigger-maintained). A quote-post is just a
+normal `posts` row carrying `quoted_post_id` - it rides the entire existing
+post pipeline (likes, comments, deletion, moderation, feed inclusion) for
+free. `quoted_post_id` is deliberately a bare `uuid` with **no foreign key**
+- a real FK would force choosing `on delete cascade` (deletes the quoting
+user's own post because someone else deleted theirs - wrong) or `on delete
+set null` (erases the id at the exact moment the app needs it to render
+"this post is unavailable" - also wrong). No FK is what lets the id survive
+its target's deletion, which is the whole point. New notification kinds
+`repost`/`quote` fire via `security definer` triggers on `reposts` insert
+and `posts` insert (when `quoted_post_id is not null`), following the exact
+`notify_on_like` template from `20260515012730`.
+
+**Real bug caught by Docker rehearsal, not by inspection**: the first
+version of `bump_reposts_count()` matched the *existing* `bump_likes_count`/
+`bump_shares_count` style exactly - plain `security invoker`, no special
+grant. Rehearsing it with two impersonated users (not just one) showed the
+trigger's own `UPDATE public.posts SET reposts_count = ...` silently
+updating zero rows whenever the reposting user wasn't the post's author,
+because `posts`'s UPDATE RLS policy only allows the author to update their
+own row, and Postgres reports a RLS-filtered UPDATE as "0 rows", not an
+error. Fixed by adding `security definer` (matching the notification
+triggers' own pattern) to `bump_reposts_count` specifically. **This exact
+bug already exists in production** for `bump_likes_count`/`bump_shares_count`
+- neither is `security definer`, so a like/share from anyone other than the
+post's author has likely never actually incremented the author's displayed
+count. Out of scope to fix here (unrelated to this feature and touches
+already-live triggers), so it's flagged as its own background task rather
+than bundled into this migration.
+
+**Audience-leak guardrails**, since the user chose to allow reposting/quoting
+Tribe-only posts (not just "everyone" posts): `listFeed` merges `reposts`
+into the feed by joining to `posts` and applying the *exact same*
+`tribe_id`/`audience` filter already used for plain posts, so a Tribe-only
+repost only ever surfaces in that one Tribe's own feed - and RLS on `posts`
+is the real backstop underneath that (confirmed via a rehearsal test: a
+non-member's query joining `reposts -> posts!inner` for a Tribe-only post
+returns zero rows, because the inner join drops whatever `posts` RLS won't
+let that caller read). Quoting has its own version of the same risk in the
+other direction - a quote could try to re-broadcast a Tribe-only post by
+setting its own audience to "all." `createPost` rejects that server-side:
+quoting a `audience='tribe'` post forces the quote's own audience/tribe_id
+to match exactly.
+
+**Server layer** (`posts.functions.ts`, `social.functions.ts`,
+`social-store.ts`, `posts-store.ts`): `FeedPost` gained `reposts_count`,
+`reposted_by` (set only on a feed entry that exists *because* of a repost),
+`quoted_post_id`, and `quoted_post` (hydrated one level deep only - a quote
+of a quote doesn't itself expand). `toggleRepost`/`useToggleRepost` are
+exact clones of the `shares` toggle plumbing. New `listMyRepostedPosts`
+(hydrated, for the profile tab) sits alongside `social.functions.ts`'s
+`listMyReposts` (bare ids, for the toggle-state Set) - same split saves
+already use between `listMySavedIds`/`listMySavedPosts`.
+
+**UI**: `PostCard` gained a repost icon button (between Comment and Save)
+opening a small action sheet - Repost/Undo repost (instant toggle) or Quote
+(opens `ComposerModal` in quote mode). A new shared `QuotedPostPreview`
+component (used by both the card and the composer) renders the embedded
+post, or a muted "no longer available" placeholder when `quoted_post_id` is
+set but the lookup came back empty. `ComposerModal` gained an optional
+`quotedPost` prop that locks the audience picker when the quoted post is
+Tribe-only. Profile's "Saved" tab is now "Reposts" (`useMyRepostedPosts`,
+rendered as full `PostCard`s via `ProfilePostHistory` so the repost
+attribution line shows). Saved posts moved to Settings as its own row/view,
+an exact clone of the existing "Blocked accounts" row/view pattern.
+
+Verified: Docker-rehearsed the full historical migration set (98 files) on
+a from-scratch `postgres:16` stub, plus functional SQL tests impersonating
+two separate users proving - a repost bumps the count and notifies the
+author exactly once, never self-notifies; a Tribe-only repost is invisible
+to a non-member even via a direct join; a quote survives its original's
+deletion with `quoted_post_id` intact; un-reposting decrements back to
+zero. `tsc` clean, `eslint` clean, 75/75 tests pass (added a repost/quote
+case to the existing push-copy and push-category tests), `npm run build`
+succeeds. Not committed. Migration is for the user to apply via the
+Supabase SQL editor, per standing practice - Claude never applies migrations
+directly.
+
+### 2026-08-30 — Claude — Moved two FABs into their screen headers; shrank the profile tag pills
+
+1. **Ventures' "+ Host" FAB** (`VenturesScreen.tsx`) was a floating pill
+   anchored at `bottom-24`. Moved it into `AppHeader`'s `action` slot as a
+   plain icon button beside the notification bell, matching the pattern
+   `TribeScreen.tsx` already established for "New plan". It keeps the exact
+   same visibility condition it always had (`stage === "feature" && mode !==
+   "host"`) - that logic lives entirely inside this screen's own state, so
+   it was already scoped to Ventures and never needed a "which screen am I
+   on" check; only its position changed.
+2. **Timeline's "+ Post to..." FAB** (`TimelineScreen.tsx`) used the same
+   floating-pill shape (its own comment said so explicitly - "same shape and
+   anchoring as the Timeline composer," found while removing the Ventures
+   one) and got the same treatment: now a plain `Plus` icon in the header
+   next to the bell. This does drop the pill's dynamic tribe-colored
+   background (purple for a Tribe post, orange for "everyone") in favor of
+   the same neutral icon-button styling as every other header action - the
+   audience is still explicit once the composer opens (the segmented
+   audience pill from the last composer redesign), so nothing is silently
+   lost, just no longer color-coded before you tap.
+3. **Profile's "Here for" / "Interests" tag pills** (`ProfileTag` in
+   `ProfileScreen.tsx`) were sized `px-3 py-1.5 text-xs`. Reduced to `px-2.5
+   py-1 text-[11px]` - single shared component, so both sections shrank
+   together with no risk of the two drifting apart.
+
+Verified: `tsc` clean, `eslint` clean, 74/74 tests pass, `npm run build`
+succeeds. Not committed.
+
+### 2026-08-30 — Claude — Standardized back-button styling on the Tribe chat header's pattern
+
+The user pointed at four screenshots (Notifications, a Venture-memory chat
+header, a DM header, and the Tribe chat header as the reference) and asked
+to fix the inconsistency. Three back buttons didn't match
+`TribeScreen.tsx`'s pushed header (`flex h-11 w-11 shrink-0 items-center
+justify-center rounded-full ... hover:bg-secondary/70 ... active:scale-90`,
+`ChevronLeft`):
+
+- `src/routes/notifications.tsx` used a bare text link (`ArrowLeft` + the
+  word "Back", no button chrome, no fixed tap target).
+- `src/components/mutuals/MessagesPanel.tsx` had two near-identical headers
+  (Venture-memory/party chat, and DM) both using `rounded-full p-2` with
+  `ArrowLeft` - closer, but padding-based sizing instead of a fixed 44px tap
+  target, no `type="button"`, no `aria-label`, and a different icon.
+
+All three now use the exact same class string and `ChevronLeft` icon as the
+Tribe chat header. Checked the other `ChevronLeft`/`ArrowLeft` back-arrows in
+the codebase (`DiscoverScreen.tsx` already matches this pattern exactly;
+`VenturesScreen.tsx`'s "Back to Venture board" and `ExploreDeck.tsx`'s
+card-swipe/deck-exit arrows are a different UI shape entirely - a full-width
+nav row and a photo-deck control, not a header icon button) and left those
+alone rather than forcing an unrelated pattern onto them.
+
+Verified: `tsc` clean, `eslint` clean, 74/74 tests pass, `npm run build`
+succeeds. Not committed.
+
+### 2026-08-30 — Claude — More Tribevia/Plans polish: bigger fire emoji, a real Plans badge, New plan moved to the header
+
+Follow-up round of small requested changes to the same Tribe Room surfaces
+from the entry below.
+
+1. The 🔥 emoji added in the previous entry was inheriting whatever tiny text
+   size its surrounding label happened to use (10-12px), so it read as a
+   near-invisible dot. Wrapped each of the three usages in its own
+   `text-sm` span instead of relying on the ambient font size.
+2. The "Plans · N" tab label was plain inline text. Replaced the count with
+   the same numeric-badge treatment `NotificationBell` already uses (small
+   filled circle, 9+ cap) so the two "count of things waiting for you"
+   indicators in this app look like the same idea.
+3. Moved plan creation out of a "+ New plan" pill that only existed once a
+   tribe already had a plan (first-time creation still went through a
+   separate empty-state "Start a plan" CTA - two entry points for one
+   action) and into a single `CalendarPlus` icon button living next to the
+   notification bell in both of TribeScreen's header variants (the pushed
+   `onBack` header and the tab-mounted `AppHeader`). This meant lifting
+   `planOpen` out of `TribeRoomLayer` and into `TribeScreen` as a controlled
+   prop pair (`planOpen` / `onPlanOpenChange`), the same pattern already
+   used for `view` / `onViewChange` - `TribeRoomLayer` had no other consumer,
+   confirmed by grep, so the prop-signature change was safe to make directly
+   rather than needing a compat shim. The empty-state "Start a plan" CTA
+   stays as the friendly first-time affordance; it now also correctly
+   respects `canParticipate`, which it had never checked before.
+
+Also answered a question rather than changing anything: the "Plans in
+motion" card the user asked about (a live Venture summary shown inside the
+Tribevia tab) is intentional - it's how the Tribevia feed surfaces "this
+became a real plan" to members who never switch to the Plans tab, mirroring
+the same announcement that already lives in Plans itself.
+
+Verified: `tsc` clean, `eslint` clean, 74/74 tests pass, `npm run build`
+succeeds. Not committed.
+
+### 2026-08-30 — Claude — Fixed a systemic skeleton-spacing bug; Tribevia/Plans polish and share-to-chat
+
+Two unrelated pieces of work landed together this session.
+
+**Skeleton spacing bug.** The user spotted loading skeletons rendering with
+zero gap between rows across the app. Root cause: `LoadingRegion` (the
+shared wrapper every multi-item skeleton in `Skeleton.tsx` is built on) put
+the caller's layout class (`space-y-3`, `gap-3`, `divide-y`, etc.) on the
+outer `role="status"` div, but the actual skeleton rows are nested one level
+deeper, inside a child `aria-hidden` div. Tailwind's `space-y-*`/`gap-*`/
+`divide-y` only affect direct children, so the spacing never reached the
+real rows - it was only ever separating two invisible wrapper elements. This
+silently affected every list-shaped skeleton in the app (feed, people,
+ventures, conversations, compact lists, message threads, flat user lists),
+not just the one the user happened to screenshot. Fixed by moving
+`className` onto the inner div - one change, every consumer corrected at
+once. Also separately found and fixed three skeletons that had drifted from
+the shared shimmer system entirely (comments list was using shadcn's plain
+`animate-pulse` skeleton instead of the app's own; the Tribe Room's Plans-tab
+loading state and the Tribe members sheet's loading rows were both
+hand-rolled `animate-pulse` divs) - all three now route through the same
+`Skeleton` component as everything else.
+
+**Tribevia/Plans changes**, per explicit request:
+1. Swapped the `Flame` lucide icon for a plain 🔥 emoji everywhere it appears
+   in the Tribe Room (streak badge, Tribevia answer's spark reaction, and the
+   Plan poll's Interested/I'm in button) - removed the now-unused import.
+2. Turned the bare "Turn into Venture" text links (on both a Tribevia answer
+   and a Plan) and the "Venture live" label into pill-styled buttons matching
+   every other actionable control in this UI, for a consistent tap target and
+   visibility instead of an unbordered inline link.
+3. Added a "Share to chat" action for a Plan's own host. Plans live as
+   `tribe_messages` rows with `room_kind: "plan"`, which the regular Chat tab
+   deliberately never renders (it only shows `room_kind IS NULL` rows) - so a
+   plan was invisible to anyone who only checks Chat. The new
+   `shareTribePlanToChat` server function (`tribe-room.functions.ts`) lets
+   only the plan's original sender post a plain chat message summarizing it;
+   re-validated server-side (`source.room_kind !== "plan" || source.sender_id
+   !== userId` is rejected) since this is an announcement action, not a
+   general share button anyone could invoke on someone else's plan.
+
+Verified: `tsc` clean, `eslint` clean (after one `--fix` for a prettier
+multi-line object wrap), 74/74 tests pass, `npm run build` succeeds. Not
+committed.
+
+### 2026-08-30 — Claude — Fixed: the new-Tribevia notification never actually fired
+
+The user ran the migration from the previous entry ("query succeeded"), and
+live-testing the real effect path afterward (not just the manual RPC call
+this entry's predecessor tested directly) turned up a real bug: the
+notification never sent. The underlying SQL was never the problem - calling
+`fan_out_tribe_pulse_notification` directly from the browser console worked
+perfectly. The bug was entirely in the React effect that was supposed to
+call it.
+
+Root cause: React 18 StrictMode double-invokes effects in dev (mount →
+simulated cleanup → mount again, synchronously). The effect wrote to
+`localStorage` *before* scheduling the deferred `.mutate()` call. So: the
+first (throwaway) invocation wrote "already notified today" to storage, then
+its own timer got cancelled by StrictMode's simulated cleanup; the second
+(real) invocation checked storage, saw the first invocation's write, and
+concluded it had nothing to do. No timer was ever left standing, so the
+mutation call never fired - and this reproduces identically in a production
+build with no StrictMode dev-only involved, since the write-then-cancel
+sequence isn't a dev-only artifact, only the double-invoke that surfaces it
+during local testing is. Fix: moved the `localStorage.setItem` *and* the
+`.mutate()` call into the same deferred timer callback, so a cancelled
+attempt (real or StrictMode-simulated) leaves no trace and the surviving
+timer is the only one that ever writes anything.
+
+Caught by live-testing the actual code path end to end (clear the
+`localStorage` flag, reload, watch the network tab) rather than trusting the
+earlier Docker rehearsal alone - that rehearsal was real and correct, but it
+tested the SQL function directly, which was never where this bug lived. The
+lesson generalizes: a green migration rehearsal proves the database side;
+it says nothing about the client code that's supposed to call it. Re-verified
+after the fix: the real effect path now produces the network call and a 200,
+matching the manually-tested RPC behavior exactly.
+
+### 2026-08-30 — Claude — Pulse renamed to Tribevia, expanded prompt bank, Answer→Venture, streak, and a new-day notification
+
+Renamed the Tribe Room's "Pulse" tab and all its user-facing copy to
+"Tribevia" (tab label, the "DAILY TRIBEVIA" card header, the answer
+composer's title/toast, "Add to Tribevia" / "Answered" states). Internal
+identifiers (`dailyPulse`, `PulsePrompt`, `useAnswerDailyPulse`, the
+`pulse_answer` room_kind/DB value) were deliberately left alone — renaming
+those touches many files and a stored DB value for zero user-facing benefit.
+
+**Prompt bank + selection algorithm** ([tribe-room.ts](src/lib/tribe-room.ts)).
+`dailyPulse()` used to be a hash pick from ~6 prompts shared across all
+tribes (`TRIBE_PROMPTS[tribeId]` had exactly one entry, backed by a 5-entry
+`SHARED_PROMPTS` fallback) — easy to repeat within the same month. Replaced
+with a dedicated 40-prompt bank per tribe (200 total), each written around
+that tribe's actual scene and real Indonesian urban social patterns (CFD
+Sudirman, gowes, GBK, padel, warkop, UMKM, pasar malam, etc. — not prompts
+translated from a generic Western template) rather than pushing to the
+requested "up to 100" — 40 genuinely distinct, non-filler prompts per tribe
+was the quality-over-quantity call; the bank can grow later once these are
+seen in the wild. Selection is now a seeded Fisher-Yates shuffle of the whole
+bank, reseeded per `tribeId:year-month` — every day in a calendar month draws
+the next entry from that month's shuffle, so 30-31 days never repeat one, and
+next month reshuffles independently. Verified by direct simulation: all 5
+tribes came back 30/30 unique prompts across a full month.
+
+**Answer → Venture.** A member's own Tribevia answer can now become a
+Venture, mirroring Plans' existing "Turn into Venture" flow: `PulseAnswer`
+grew a button (own answers only, hidden once already linked) that builds a
+`TribeVentureDraft` from the answer text and routes through the same
+`onStartVenture` → Ventures-tab pre-fill path Plans already use.
+`announceTribeVenture` ([tribe-room.functions.ts](src/lib/tribe-room.functions.ts))
+now accepts `pulse_answer` sources alongside `plan`, and — since an answer
+never collected an "interested" reaction — reuses the existing "spark" count
+as the same invite-on-publish signal, so sparking an answer now does
+something concrete instead of just being decorative. Live-verified end to
+end against the real account: answered → sparked own answer → "Turn into
+Venture" correctly opened Ventures with the answer's text pre-filled as the
+title and the room-size default set; draft discarded without publishing.
+
+**Streak badge.** A small 🔥 N indicator appears once a tribe has answered
+2+ days running, backed by a new `getTribePulseStreak` function that returns
+*only* a count per prompt id (`{prompt_id: count}`) — deliberately not the
+answer content or author, since a streak only needs "did the room show up,"
+not a content dump. This is its own query rather than piggybacking on the
+generic 60-item room feed, because that cap is shared across
+Chat/Plan/Venture/Tribevia traffic and would silently undercount the streak
+for any tribe chattier than a couple of weeks' worth of messages.
+
+**"See all answers."** `DailyPulse` used to hard-cap at the last 2 answers
+with no way to see more. Now shows 2 by default with a "See all N answers"
+expand — the smallest honest version of "history" without a separate
+browsing surface; a real past-days answer browser is still a bigger, separate
+piece if this is worth building further.
+
+**New-Tribevia notification** — the one piece touching the database.
+There's no cron in this stack (see `CHANGE_PROTOCOL.md`), so "a new day's
+prompt is up" has no row to hang a trigger off; the prompt itself is computed
+client-side from the date and never stored. Instead, whichever member's
+device is first to open the Tribe Room on a new day calls a new
+`notifyTribePulse` server function, gated by a `localStorage` check (skip a
+redundant call, not the actual correctness guarantee) plus the real
+guarantee living in Postgres: `fan_out_tribe_pulse_notification`, a new
+`security definer` function that (1) re-checks the caller is actually a
+member of that tribe *inside the SQL* — required because security definer
+bypasses RLS, so without this check any authenticated client could call the
+RPC directly and spam an arbitrary tribe's members, membership or not — then
+(2) de-dupes on the exact prompt id (not a calendar-day window, which would
+be timezone-fragile) before fanning out one `tribe_pulse`-kind row per other
+member. Added `tribe_pulse` to `PushNotificationKind` → mapped to the
+existing `tribe_activity` preference category (already respected by the real
+push dispatch route, `src/routes/api/public/push.dispatch.ts`, via the same
+shared `push-preferences.ts` used client-side — no separate server-side
+category config needed) — and gave it bespoke copy in `buildPushCopy` since
+it has no single actor ("New Tribevia" / the prompt text, instead of "Someone
+posted today's Tribevia").
+
+Migration: `20260830010000_tribe_pulse_notifications.sql` — new
+`notifications.tribe_pulse_prompt_id` column + partial index, widened
+`notifications_kind_check` (the established pattern for adding a kind in
+this codebase's own history — every prior kind was added exactly this way),
+and the new function. No RLS policy or trigger touched. Rehearsed the entire
+migration history (all 96 existing files + this one) end to end on a
+throwaway Docker `postgres:16`, reconstructing the Supabase-specific surface
+area it needed (`auth.uid()` backed by a session GUC, `vault.secrets` /
+`vault.decrypted_secrets`, a `net.http_post` stand-in, `storage.buckets` /
+`storage.objects`, a `realtime.messages` stub with `realtime.topic()`) —
+full replay succeeded with no ordering or dependency errors. Then
+functionally verified the new function directly: a real member fanning out
+correctly notifies the *other* members and not themselves (2 of 4 test
+profiles, excluding the caller and a different-tribe member); calling again
+with the same prompt id is a true no-op (0 notified, no duplicate rows); a
+non-member of the tribe calling it is rejected with "Not a member of this
+tribe" and inserts nothing; the `anon` role cannot execute the function at
+all (permission denied). All four passed. This migration has **not** been
+applied to production — per this project's standing workflow, Claude
+rehearses and hands off, the user applies it via the SQL editor when ready.
+
+Also extended `tests/push-notifications.test.ts` and
+`tests/push-preferences.test.ts` to cover the new `tribe_pulse` kind (now
+74/74). Full suite green throughout (`tsc`, `eslint`, tests, `npm run build`)
+at every step of this change.
+
+### 2026-08-30 — Claude — Micro-interaction pass extended to the entire app
+
+The earlier micro-interaction round only covered 5 files (BottomNav, PostCard,
+ChatsScreen, SettingsScreen, HelloRequestsSheet) despite the original ask
+being "audit every component and add micro interaction." Audited every
+`<button>` in `src/components/mutuals/` for tap feedback (`active:scale-*` /
+`active:bg-*` / `active:opacity-*`) and keyboard focus rings
+(`focus-visible:ring-2`), then closed the gap using only the patterns already
+established in the first round — no new animation primitives, nothing beyond
+`active:scale-90/95/[0.98]` for icon/pill/card buttons and
+`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`
+(or `ring-destructive` for delete-style actions) throughout.
+
+Touched ~35 files: the composer and comments modal, Discover (search, mood
+picker, Tribe browser, Saved, nearby prefs, person rows), the Explore swipe
+deck, the entire Ventures surface (board, ticket, coordination panel, venue
+picker, participants sheet, hosting form and its per-venture management
+card), the Tribe Room (Pulse, Plans, chat), Settings, the main Timeline feed
+switcher, Onboarding, Profile (view and edit), Messages/DMs, chat reactions,
+the safety/report menu, both lightboxes, the image reorder strip, and the
+small push/PWA settings rows. Two real inconsistencies were fixed as part of
+this: PostCard's footer actions had `active:scale` but no focus ring where
+the "..." menu button in the same file had one, and HelloRequestsSheet's
+Cancel button had no treatment at all next to Accept/Decline which did.
+
+Deliberately left alone: `CitySelect`'s two combobox trigger buttons (already
+have focus rings; a Radix `Popover`/`Command` trigger isn't a tap target that
+benefits from press-scale) and the Radix `Switch`/shadcn primitives, which
+already own their own transitions.
+
+Verified per-file as it went (`tsc --noEmit`, `eslint`, `node --test` 73/73)
+plus three full `npm run build` checkpoints, then live-checked Discover, the
+Ventures board, the Tribe Room's Pulse/Plans tabs, and Profile against the
+real account via `claude-in-chrome` — no layout regressions, the new
+`focus-visible` rings are invisible until keyboard-tabbed as intended.
+
+### 2026-08-30 — Claude — Hellos sheet converted to a right-docked drawer
+
+`HelloRequestsSheet` used to be a bespoke full-screen-on-mobile /
+85dvh-sheet-on-desktop layout built by hand-tuning `AnimatedModal`'s
+`contentClassName`. Switched it to the modal's existing `side="right"` prop
+instead — the same primitive `ChatsScreen`'s "New message" (Moots) picker
+already uses — so Hellos now docks to the screen edge with a peek of the app
+behind it on both mobile and desktop, rather than taking over the whole
+screen.
+
+Widened it past the primitive's `max-w-xs` default to `max-w-sm`: Hello rows
+carry a full message plus a side-by-side Accept/Decline pair, more than the
+picker's simple name+avatar rows, and `max-w-xs` cramped that content in a
+live check. Also swapped the header's back-chevron for an `X` close icon to
+match the Moots picker's close affordance — a back-chevron implied a
+full-screen "previous screen" model that no longer applies once this is an
+edge-docked drawer sitting alongside the app rather than replacing it.
+
+Verified live via `claude-in-chrome` against the real account/data: drawer
+docks correctly, Requests empty state and Sent tab (7 real pending Hellos,
+including a long message body) both render without cramping at the new
+width. Full suite green: `tsc --noEmit`, `eslint` on the touched file,
+`node --test` 73/73, `npm run build`.
+
+### 2026-08-30 — Claude — Toast redesign, a restrained micro-interaction pass, and real skeleton/content mismatches
+
+Three separate asks in one go: make toasts match the app's visual style, add
+"simple but elegant" micro-interactions where they're genuinely missing
+(explicitly not everywhere), and check skeleton loaders for spacing drift
+against the real content they stand in for.
+
+**Toasts.** Root cause: Sonner's `richColors` ships its own light-mode
+green/red palette, and `<Toaster>` never passed `theme="dark"` - so a
+success toast rendered as a bright white-and-green card in an otherwise
+all-dark app (the screenshot that kicked this off). Fixed properly, not
+by trying to out-specificity Sonner's own stylesheet with Tailwind
+classes: added `theme="dark"`, then redefined Sonner's own CSS custom
+properties (`--success-bg/border/text`, `--error-*`, `--warning-*`,
+`--info-*`, `--normal-*`) directly in `styles.css` to the app's own
+tokens, so every type shares the same dark `--card` background and only
+the border/icon/text carry a tint - matching how the rest of the app
+reserves a full color fill for the one primary action and uses a tinted
+accent everywhere else, rather than a saturated color block.
+- Hit the exact same cascade-layers trap as the iOS input-zoom fix earlier
+  this session: my first override used the identical selector Sonner's own
+  CSS uses (`[data-sonner-toaster][data-sonner-theme='dark']`), so it came
+  down to unpredictable source order and silently lost - confirmed by
+  reading `getComputedStyle()` on a live triggered toast and seeing
+  Sonner's own dark-green values, not mine. Fixed by bumping specificity
+  (`html body [...]`) so it wins regardless of load order, verified the
+  same way afterward (real `bg`/`border`/`color`/`border-radius` read back
+  correctly on an actual triggered toast, not just "looks right").
+- `--border-radius` needed the same fix - Sonner's own 8px default was
+  winning over a `rounded-2xl` Tailwind class for the identical reason.
+
+**Micro-interactions.** Used an Explore agent to inventory the app's
+*existing* interaction vocabulary first (recurring `transition-colors`
+with default timing, `active:scale-95`/`active:scale-[0.98]` on primary
+CTAs, `focus-visible:ring-2 ring-primary`, and an unused `.animate-tab`
+bounce keyframe that had never been wired to anything) before touching
+code - the goal was staying consistent with what's already there, not
+inventing a new visual language. Fixed the clearest, highest-traffic gaps
+only:
+- `BottomNav.tsx` - the busiest surface in the app had zero press feedback
+  and no focus ring. Added `active:scale-95` + `focus-visible:ring-2`, and
+  wired the long-unused `.animate-tab` bounce to the icon circle on
+  activation (a plain class-toggle on `isActive`, so it naturally plays
+  once per switch, never loops).
+- `PostCard.tsx` - like/comment/save/share icons get `active:scale-90`;
+  the "..." menu gets a focus ring; removed a dead `transition-shadow` on
+  the card wrapper (nothing there ever changes shadow - inert code, not a
+  fix).
+- `ChatsScreen.tsx` - filter chips and conversation rows get
+  `active:scale-95`/`active:bg-secondary/40` + focus rings, matching
+  patterns already used by sibling components in the same file
+  (`MootsPickerSheet`, `VentureBoard`'s row).
+- `HelloRequestsSheet.tsx` - Accept/Decline had *zero* hover, active, or
+  focus styling at all, the single worst gap the audit found. Brought up
+  to the same `transition-colors` + `active:scale-[0.98]` +
+  `focus-visible:ring-2` standard as every other primary action button.
+- `SettingsScreen.tsx` - added the focus ring four rows/buttons were
+  missing (manage-Tribe row, change-password link, legal-links row,
+  Log out, Delete account) that their own sibling `SettingsRow` already
+  had - an internal-consistency fix, not a new pattern.
+- Deliberately left untouched: TribeScreen's message bubbles, Discover's
+  mood picker, VenturesScreen's role toggles, NotificationBell's badge
+  pop-in - all flagged by the audit as minor gaps, but adding polish to
+  every one of them was the over-doing-it the user explicitly asked to
+  avoid. This is a first pass at the clearest wins, not a full sweep.
+
+**Skeleton/content mismatches** - checked every skeleton against the real
+component it stands in for, not just against itself:
+- `NotifRowSkeleton` was a different size than the real row entirely
+  (`h-10` avatar vs real `h-12`, `py-3` vs real `py-4`, no `min-h-[88px]`,
+  `rounded-xl` vs real `rounded-2xl`) - guaranteed a visible pop when real
+  rows swapped in. Fixed to match exactly; also fixed the list wrapper
+  (`space-y-1 py-4` → `space-y-1.5`, matching the real `<ul>`).
+- `VentureListSkeleton` mocked up a vertical banner-card layout that
+  hasn't existed since `VentureBoard` was redesigned into a compact
+  horizontal ticket row (`grid-cols-[5.5rem_1fr]`, small square thumbnail)
+  - the skeleton was showing users a shape the real UI doesn't have
+    anymore. Rewritten to match the current row exactly.
+- `UserCardSkeleton` was shared between two real layouts that don't
+  actually match each other: Discover's `PersonRow` (a `p-4` bordered
+  card) and Settings' blocked-accounts list (a flat `divide-y` list, no
+  per-row card at all). One skeleton can't honestly represent both -
+  fixed `UserCardSkeleton` for its dominant real use (`PersonRow`: `p-4`,
+  `h-10` avatar, `min-h-11 min-w-20` action pill, 3 text lines) and added
+  a dedicated `FlatUserRowSkeleton`/`FlatUserListSkeleton` for the
+  Settings list instead of stretching one skeleton over two shapes.
+- `CompactListSkeleton` was being used for ProfileScreen's Posts/Saved
+  tabs, which actually render full `PostCard`s (avatar, header, image,
+  footer icons) via `ProfilePostHistory` - not the plain 3-line text card
+  the skeleton mocks up. Swapped those two call sites to `FeedSkeleton`.
+  Left the Ventures tab's use of `CompactListSkeleton` alone - that one's
+  real content genuinely is a plain text card, already a correct match.
+- `ConversationListSkeleton` and `MessageThreadSkeleton` checked and found
+  already correct (the former matches `ChatsScreen`'s `Row` almost
+  exactly; the latter approximates inherently variable-length chat
+  bubbles, which is the right kind of approximation for that content).
+
+Verified: `tsc`, `eslint` on every touched file, 73/73 tests, clean build.
+Spot-checked live - BottomNav's active-tab highlight and bounce, Chats
+filter chips, and the real Ventures board confirmed to match the
+rewritten skeleton's exact geometry. A real Hello request wasn't available
+to click-test Accept/Decline live, but the change is a plain, low-risk
+Tailwind class addition matching an already-proven pattern used
+identically elsewhere in the same file.
+
 ### 2026-08-29 — Claude — Composer redesign: segmented audience pill, "What's the signal?", 500-char cap
 
 - User asked for a UI/UX pass on the composer's empty state, which had

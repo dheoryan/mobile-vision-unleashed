@@ -16,9 +16,11 @@ function LoadingRegion({
   children: ReactNode;
 }) {
   return (
-    <div role="status" aria-live="polite" className={className}>
+    <div role="status" aria-live="polite">
       <span className="sr-only">{label}</span>
-      <div aria-hidden="true">{children}</div>
+      <div aria-hidden="true" className={className}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -43,27 +45,65 @@ export function PostCardSkeleton() {
 }
 
 export function UserCardSkeleton() {
+  // Matches Discover's PersonRow exactly (its only real use - see
+  // PeopleSkeleton below): p-4 card, h-10 avatar, min-h-11 min-w-20 action
+  // pill, and the row's real 3-line text stack (name, meta, bio) rather
+  // than a shortened 2-line guess.
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-      <Skeleton className="h-12 w-12 rounded-full" />
-      <div className="flex-1 space-y-2">
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-1.5">
         <Skeleton className="h-3 w-28" />
         <Skeleton className="h-2.5 w-20" />
+        <Skeleton className="h-2.5 w-40" />
       </div>
-      <Skeleton className="h-8 w-16 rounded-full" />
+      <Skeleton className="h-11 w-20 shrink-0 rounded-full" />
+    </div>
+  );
+}
+
+/** For a flat divided list (no per-row card/border) - SettingsScreen's
+ *  blocked-accounts list is the one real use, a fundamentally different
+ *  shape from PersonRow's bordered card, so it needs its own skeleton
+ *  rather than reusing UserCardSkeleton and matching neither. */
+export function FlatUserRowSkeleton() {
+  return (
+    <div className="flex min-h-16 items-center gap-3 py-3">
+      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="h-2.5 w-16" />
+      </div>
+      <Skeleton className="h-10 w-24 shrink-0 rounded-full" />
     </div>
   );
 }
 
 export function NotifRowSkeleton() {
+  // Matches NotificationRowItem's real geometry (notifications.tsx) exactly
+  // - same min-height, padding, radius, and avatar size - so there's no
+  // visible pop/reflow the moment real rows swap in.
   return (
-    <div className="flex items-center gap-3 rounded-xl px-3 py-3">
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="flex-1 space-y-2">
+    <div className="flex min-h-[88px] items-start gap-3 rounded-2xl px-3 py-4">
+      <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
+      <div className="flex-1 space-y-2 pt-0.5">
         <Skeleton className="h-3 w-48" />
         <Skeleton className="h-2.5 w-16" />
       </div>
     </div>
+  );
+}
+
+export function FlatUserListSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <LoadingRegion
+      label="Loading accounts"
+      className="divide-y divide-border border-y border-border"
+    >
+      {Array.from({ length: count }, (_, index) => (
+        <FlatUserRowSkeleton key={index} />
+      ))}
+    </LoadingRegion>
   );
 }
 
@@ -88,21 +128,22 @@ export function PeopleSkeleton({ count = 3 }: { count?: number }) {
 }
 
 export function VentureListSkeleton({ count = 3 }: { count?: number }) {
+  // Matches VentureBoard's real row exactly (rounded-2xl card, min-h-32,
+  // grid-cols-[5.5rem_1fr] p-3) - the board is a compact horizontal ticket
+  // row with a small square thumbnail, not the vertical banner-card layout
+  // this skeleton used to mock up before that redesign.
   return (
     <LoadingRegion label="Loading Ventures" className="space-y-3">
       {Array.from({ length: count }, (_, index) => (
-        <article key={index} className="overflow-hidden rounded-3xl border border-border bg-card">
-          <Skeleton className="aspect-[16/8] w-full rounded-none" />
-          <div className="space-y-3 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-5 w-12 rounded-full" />
-            </div>
+        <article
+          key={index}
+          className="grid min-h-32 grid-cols-[5.5rem_1fr] gap-3 rounded-2xl border border-border bg-card p-3"
+        >
+          <Skeleton className="h-[6.5rem] w-[5.5rem] rounded-xl" />
+          <div className="flex min-w-0 flex-col justify-center gap-2 py-0.5">
+            <Skeleton className="h-3.5 w-16 rounded" />
+            <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/2" />
-            <div className="flex gap-2">
-              <Skeleton className="h-6 w-20 rounded-full" />
-              <Skeleton className="h-6 w-16 rounded-full" />
-            </div>
           </div>
         </article>
       ))}

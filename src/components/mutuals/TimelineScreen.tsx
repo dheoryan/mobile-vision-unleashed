@@ -70,7 +70,21 @@ export function TimelineScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" />
+      <AppHeader
+        title="Timeline"
+        subtitle="Signals"
+        accent="var(--color-primary)"
+        action={
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            aria-label={tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        }
+      />
       <main className="mx-auto max-w-md px-5">
         {/* ── Tab switcher ── */}
         <div className="mt-4 flex gap-2 rounded-full bg-card p-1">
@@ -80,7 +94,7 @@ export function TimelineScreen({
           <button
             onClick={() => setTab("tribe")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               tab === "tribe" ? "text-primary-foreground" : "text-muted-foreground",
             )}
             style={tab === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
@@ -91,7 +105,7 @@ export function TimelineScreen({
           <button
             onClick={() => setTab("global")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               tab === "global" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
             )}
           >
@@ -111,7 +125,7 @@ export function TimelineScreen({
                     key={t.id}
                     onClick={() => setActiveTribe(t.id)}
                     className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                       isActive ? "text-primary-foreground" : "bg-secondary text-muted-foreground",
                     )}
                     style={isActive ? { backgroundColor: t.colorVar } : undefined}
@@ -141,7 +155,7 @@ export function TimelineScreen({
               <p className="text-xs text-muted-foreground">Couldn't load these signals.</p>
               <button
                 onClick={() => void refetchCurrent()}
-                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Retry
               </button>
@@ -171,19 +185,6 @@ export function TimelineScreen({
         tribeId={activeTribe}
         initialAudience={tab === "global" ? "all" : "tribe"}
       />
-
-      {/* ── Floating "post a signal" FAB ── */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-md justify-end px-5">
-        <button
-          onClick={() => setComposerOpen(true)}
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
-          style={{ backgroundColor: tab === "global" ? "var(--primary)" : tribe.colorVar }}
-          aria-label={tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
-        >
-          <Plus className="h-4 w-4" />{" "}
-          {tab === "global" ? "Post to everyone" : `Post to ${tribe.name}`}
-        </button>
-      </div>
     </div>
   );
 }

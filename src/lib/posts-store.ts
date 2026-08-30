@@ -11,6 +11,7 @@ import {
   listFeed,
   listHiddenComments,
   listMyPosts,
+  listMyRepostedPosts,
   listMySavedIds,
   listMySavedPosts,
   getTribeMemberCounts,
@@ -25,6 +26,7 @@ export type { FeedPost, CommentRow } from "@/lib/posts.functions";
 
 const SAVED_IDS_KEY = ["posts", "saved-ids"] as const;
 const SAVED_POSTS_KEY = ["posts", "saved"] as const;
+const REPOSTED_POSTS_KEY = ["posts", "reposted"] as const;
 
 export function useMySavedIds() {
   const fn = useServerFn(listMySavedIds);
@@ -43,6 +45,17 @@ export function useMySavedPosts() {
   const { user } = useAuth();
   return useQuery({
     queryKey: [...SAVED_POSTS_KEY, user?.id ?? null],
+    queryFn: () => fn(),
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+}
+
+export function useMyRepostedPosts() {
+  const fn = useServerFn(listMyRepostedPosts);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...REPOSTED_POSTS_KEY, user?.id ?? null],
     queryFn: () => fn(),
     enabled: !!user,
     staleTime: 15_000,
@@ -142,8 +155,14 @@ export function useCreatePost() {
       image_preview_urls?: string[];
       audience?: "tribe" | "all";
       mentions?: string[];
+      quoted_post_id?: string;
+      /** Optimistic-only: the composer already has the full quoted post in
+       *  memory, so the optimistic entry can embed it directly instead of
+       *  nulling it out - otherwise the card would flash "no longer
+       *  available" for the brief gap before the real response arrives. */
+      quoted_post?: FeedPost;
     }) => {
-      const { image_preview_urls: _preview, ...data } = input;
+      const { image_preview_urls: _preview, quoted_post: _quotedPost, ...data } = input;
       return fn({ data });
     },
     onMutate: async (input) => {
@@ -164,6 +183,10 @@ export function useCreatePost() {
         likes_count: 0,
         replies_count: 0,
         shares_count: 0,
+        reposts_count: 0,
+        reposted_by: null,
+        quoted_post_id: input.quoted_post_id ?? null,
+        quoted_post: input.quoted_post ?? null,
         created_at: new Date().toISOString(),
         author: null,
       };

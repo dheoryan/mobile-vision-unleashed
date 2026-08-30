@@ -5,8 +5,11 @@ import {
   announceTribeVenture,
   answerDailyPulse,
   createTribePlan,
+  getTribePulseStreak,
   listTribeRoom,
   markTribeRoomRead,
+  notifyTribePulse,
+  shareTribePlanToChat,
   toggleTribeRoomReaction,
 } from "@/lib/tribe-room.functions";
 import type { TribePlanTimeOption, TribeRoomItem, TribeRoomReaction } from "@/lib/tribe-room";
@@ -21,6 +24,16 @@ export function useTribeRoom(tribeKey: string, enabled = true) {
     queryFn: () => fn({ data: { tribe_key: tribeKey } }),
     enabled: enabled && !!user && !!tribeKey,
     staleTime: 10_000,
+  });
+}
+
+export function useTribePulseStreak(tribeKey: string, enabled = true) {
+  const fn = useServerFn(getTribePulseStreak);
+  return useQuery({
+    queryKey: ["tribe-pulse-streak", tribeKey],
+    queryFn: () => fn({ data: { tribe_key: tribeKey } }),
+    enabled: enabled && !!tribeKey,
+    staleTime: 60_000,
   });
 }
 
@@ -100,6 +113,22 @@ export function useMarkTribeRoomRead(tribeKey: string) {
   return useMutation({
     mutationFn: () => fn({ data: { tribe_key: tribeKey } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["chats", "tribe-summary"] }),
+  });
+}
+
+export function useNotifyTribePulse() {
+  const fn = useServerFn(notifyTribePulse);
+  return useMutation({
+    mutationFn: (input: { tribe_key: string; prompt_id: string; preview: string }) =>
+      fn({ data: input }),
+  });
+}
+
+export function useShareTribePlanToChat() {
+  const fn = useServerFn(shareTribePlanToChat);
+  return useMutation({
+    mutationFn: (input: { tribe_key: string; message_id: string; preview: string }) =>
+      fn({ data: input }),
   });
 }
 

@@ -23,11 +23,7 @@ export function ReplyPreview({
         boxShadow: `0 1px 0 0 color-mix(in oklab, ${accentColor} 18%, transparent) inset`,
       }}
     >
-      <div
-        className="w-1 shrink-0"
-        style={{ backgroundColor: accentColor }}
-        aria-hidden
-      />
+      <div className="w-1 shrink-0" style={{ backgroundColor: accentColor }} aria-hidden />
       <div className="flex min-w-0 flex-1 items-center gap-2 py-1.5">
         <span
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
@@ -39,10 +35,7 @@ export function ReplyPreview({
           <Reply className="h-3 w-3" />
         </span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p
-            className="truncate text-[11px] font-semibold"
-            style={{ color: accentColor }}
-          >
+          <p className="truncate text-[11px] font-semibold" style={{ color: accentColor }}>
             Replying to {name}
           </p>
           <p className="truncate text-[11px] text-muted-foreground">{snippet}</p>
@@ -51,7 +44,7 @@ export function ReplyPreview({
       <button
         type="button"
         onClick={onCancel}
-        className="my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+        className="my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label="Cancel reply"
       >
         <X className="h-3.5 w-3.5" />
@@ -120,7 +113,9 @@ export function QuotedBlock({
       />
       <div className="min-w-0 flex-1 leading-tight">
         <p
-          className={"truncate text-[10px] font-bold uppercase tracking-wide " + (mine ? "opacity-75" : "")}
+          className={
+            "truncate text-[10px] font-bold uppercase tracking-wide " + (mine ? "opacity-75" : "")
+          }
           style={mine ? undefined : { color: accentColor }}
         >
           {name}

@@ -1,0 +1,54 @@
+import { Ban } from "lucide-react";
+import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { timeAgoLabel } from "@/lib/time";
+import type { FeedPost } from "@/lib/posts-store";
+
+/**
+ * A quoted post embedded read-only inside another post (or the composer
+ * while building a quote). Deliberately its own small component rather than
+ * `<PostCard>` reused recursively - the embed has no like/comment/repost
+ * buttons of its own and never needs a quote of its own quote (hydratePosts
+ * only resolves one level deep).
+ */
+export function QuotedPostPreview({ post }: { post: FeedPost }) {
+  const tribe = tribeById(post.tribe_id as TribeId);
+  const name = post.author?.display_name?.trim() || "Someone";
+  const avatar = post.author?.avatar_url || post.author?.avatar_emoji || "🙂";
+  return (
+    <div className="mt-3 rounded-xl border border-border p-3">
+      <div className="flex items-center gap-2">
+        <span
+          className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full text-sm"
+          style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
+        >
+          {avatar.startsWith("data:") || avatar.startsWith("http") ? (
+            <img src={avatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            avatar
+          )}
+        </span>
+        <span className="truncate text-xs font-semibold">{name}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {timeAgoLabel(post.created_at)}
+        </span>
+      </div>
+      {post.content && (
+        <p className="mt-1.5 line-clamp-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          {post.content}
+        </p>
+      )}
+      {post.images[0] && (
+        <img src={post.images[0]} alt="" className="mt-2 max-h-56 w-full rounded-lg object-cover" />
+      )}
+    </div>
+  );
+}
+
+export function QuotedPostUnavailable() {
+  return (
+    <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+      <Ban className="h-3.5 w-3.5 shrink-0" />
+      This post is no longer available.
+    </div>
+  );
+}

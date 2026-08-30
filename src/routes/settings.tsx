@@ -9,6 +9,7 @@ const SETTINGS_VIEWS = new Set<SettingsView>([
   "installation",
   "safety",
   "blocked",
+  "savedPosts",
 ]);
 
 export const Route = createFileRoute("/settings")({

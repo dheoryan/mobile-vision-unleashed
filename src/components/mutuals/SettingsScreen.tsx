@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Ban,
   Bell,
+  Bookmark,
   BookOpenCheck,
   ChevronRight,
   KeyRound,
@@ -35,6 +36,7 @@ import {
   useUpdateMyLocationSettings,
 } from "@/lib/location-store";
 import { profileToPatch, rowToProfile, useProfileRow, useUpdateProfile } from "@/lib/profile-store";
+import { useMySavedPosts } from "@/lib/posts-store";
 import { cn } from "@/lib/utils";
 import { AddTribeSheet } from "./AddTribeSheet";
 import { DeleteAccountModal } from "./DeleteAccountModal";
@@ -44,7 +46,8 @@ import { PushSettingsRow } from "./EnablePushBanner";
 import { PushCategorySettings } from "./PushCategorySettings";
 import { PwaInstallRow } from "./PwaInstallRow";
 import { EditProfileModal } from "./ProfileScreen";
-import { AppBootstrapSkeleton, PeopleSkeleton, Skeleton } from "./Skeleton";
+import { ProfilePostHistory } from "./ProfilePostHistory";
+import { AppBootstrapSkeleton, FeedSkeleton, FlatUserListSkeleton, Skeleton } from "./Skeleton";
 import { TribeMark } from "./TribeMark";
 import { tribeById } from "@/lib/mutuals-data";
 
@@ -55,7 +58,8 @@ export type SettingsView =
   | "nearby"
   | "installation"
   | "safety"
-  | "blocked";
+  | "blocked"
+  | "savedPosts";
 
 const VIEW_TITLES: Record<SettingsView, string> = {
   main: "Settings",
@@ -65,6 +69,7 @@ const VIEW_TITLES: Record<SettingsView, string> = {
   installation: "Install MEUTUALS",
   safety: "Privacy & safety",
   blocked: "Blocked accounts",
+  savedPosts: "Saved posts",
 };
 
 export function SettingsScreen({
@@ -120,7 +125,7 @@ export function SettingsScreen({
             type="button"
             onClick={goBack}
             aria-label={view === "main" ? "Back to profile" : "Back to settings"}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -157,6 +162,7 @@ export function SettingsScreen({
         {view === "installation" && <InstallationSettings />}
         {view === "safety" && <SafetySettings onBlocked={() => onViewChange("blocked")} />}
         {view === "blocked" && <BlockedSettings />}
+        {view === "savedPosts" && <SavedPostsSettings />}
       </main>
 
       <EditProfileModal
@@ -223,6 +229,12 @@ function SettingsHome({
           detail="Push alerts and activity"
           onClick={() => onOpen("notifications")}
         />
+        <SettingsRow
+          icon={Bookmark}
+          title="Saved posts"
+          detail="Posts you've bookmarked"
+          onClick={() => onOpen("savedPosts")}
+        />
       </SettingsGroup>
 
       <SettingsGroup label="Discovery">
@@ -253,7 +265,7 @@ function SettingsHome({
         <button
           type="button"
           onClick={onLogout}
-          className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <LogOut className="h-4 w-4" /> Log out
         </button>
@@ -263,7 +275,7 @@ function SettingsHome({
         <button
           type="button"
           onClick={onDelete}
-          className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
         >
           <Trash2 className="h-4 w-4" /> Delete account
         </button>
@@ -311,7 +323,7 @@ function AccountSettings({
         <button
           type="button"
           onClick={onManageTribe}
-          className="flex min-h-16 w-full items-center gap-3 border-t border-border px-3 text-left transition-colors hover:bg-secondary/60"
+          className="flex min-h-16 w-full items-center gap-3 border-t border-border px-3 text-left transition-colors hover:bg-secondary/60 active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         >
           <TribeMark tribe={tribe} size="xs" decorative={false} />
           <span className="min-w-0 flex-1">
@@ -333,7 +345,7 @@ function AccountSettings({
         </div>
         <Link
           to="/reset-password"
-          className="flex min-h-16 items-center gap-3 border-t border-border px-3 transition-colors hover:bg-secondary/60"
+          className="flex min-h-16 items-center gap-3 border-t border-border px-3 transition-colors hover:bg-secondary/60 active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         >
           <KeyRound className="h-4 w-4 text-muted-foreground" />
           <span className="min-w-0 flex-1">
@@ -553,7 +565,7 @@ function BlockedSettings() {
   const blockedProfilesQuery = useBlockedProfiles();
   const unblockUser = useUnblockUser();
   const blockedPeople = blockedProfilesQuery.data ?? [];
-  if (blockedProfilesQuery.isLoading) return <PeopleSkeleton count={4} />;
+  if (blockedProfilesQuery.isLoading) return <FlatUserListSkeleton count={4} />;
   if (blockedPeople.length === 0)
     return (
       <div className="py-16 text-center">
@@ -597,6 +609,23 @@ function BlockedSettings() {
   );
 }
 
+function SavedPostsSettings() {
+  const savedQuery = useMySavedPosts();
+  const savedPosts = savedQuery.data ?? [];
+  if (savedQuery.isLoading) return <FeedSkeleton />;
+  if (savedPosts.length === 0)
+    return (
+      <div className="py-16 text-center">
+        <Bookmark className="mx-auto h-8 w-8 text-muted-foreground" />
+        <p className="mt-4 font-display text-lg font-bold">No saved posts</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Tap the bookmark on any post to save it here.
+        </p>
+      </div>
+    );
+  return <ProfilePostHistory posts={savedPosts} />;
+}
+
 function PageIntro({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="mb-6">
@@ -632,7 +661,7 @@ function SettingsRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 text-left transition-colors last:border-b-0 hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+      className="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 text-left transition-colors last:border-b-0 hover:bg-secondary/60 active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     >
       <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1">
@@ -656,7 +685,7 @@ function SettingsLink({
   return (
     <Link
       to={to}
-      className="flex min-h-16 items-center gap-3 border-b border-border px-3 transition-colors last:border-b-0 hover:bg-secondary/60"
+      className="flex min-h-16 items-center gap-3 border-b border-border px-3 transition-colors last:border-b-0 hover:bg-secondary/60 active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     >
       <Icon className="h-4 w-4 text-muted-foreground" />
       <span className="flex-1 text-sm font-semibold">{title}</span>

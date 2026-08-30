@@ -167,6 +167,70 @@ export const listTribeRoom = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * Backs the streak badge. Deliberately returns only a count per prompt id,
+ * never the answer content or who wrote it - the generic room feed already
+ * carries that, capped at 60 items total across every kind, which is not
+ * enough to reliably answer "did the room answer on each of the last N
+ * days" once a tribe is chatty. This is its own cheap query so the streak
+ * stays correct independent of how much Chat/Plan/Venture traffic pushed
+ * older Tribevia answers out of that shared window.
+ */
+export const getTribePulseStreak = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => tribeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const tribe = await resolveMemberTribe(supabase, userId, data.tribe_key);
+    const since = new Date();
+    since.setDate(since.getDate() - 31);
+    const { data: rows, error } = await supabase
+      .from("tribe_messages")
+      .select("room_metadata")
+      .eq("tribe_id", tribe.id)
+      .eq("room_kind", "pulse_answer")
+      .gte("created_at", since.toISOString());
+    if (error) throw new Error(error.message);
+
+    const counts: Record<string, number> = {};
+    for (const row of (rows ?? []) as Array<{ room_metadata: TribeRoomMetadata | null }>) {
+      const promptId = row.room_metadata?.prompt_id;
+      if (typeof promptId === "string") counts[promptId] = (counts[promptId] ?? 0) + 1;
+    }
+    return { counts };
+  });
+
+/**
+ * Fires once per tribe per day, whichever member happens to open the room
+ * first - there is no cron in this stack, so "a new day started" has no
+ * database row to hang a trigger off. The SQL side re-checks membership and
+ * de-dupes on the exact prompt id, so a race between several members'
+ * devices, or a client retrying, can never fan out twice or reach a tribe
+ * this caller isn't in.
+ */
+export const notifyTribePulse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        tribe_key: z.string().trim().min(1).max(40),
+        prompt_id: z.string().trim().min(1).max(160),
+        preview: z.string().trim().min(1).max(200),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await resolveMemberTribe(supabase, userId, data.tribe_key);
+    const { data: notifiedCount, error } = await supabase.rpc("fan_out_tribe_pulse_notification", {
+      p_tribe_key: data.tribe_key,
+      p_prompt_id: data.prompt_id,
+      p_preview: data.preview,
+    });
+    if (error) throw new Error(error.message);
+    return { notified_count: (notifiedCount as number | null) ?? 0 };
+  });
+
 export const answerDailyPulse = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -190,7 +254,7 @@ export const answerDailyPulse = createServerFn({ method: "POST" })
       .contains("room_metadata", { prompt_id: data.prompt_id })
       .maybeSingle();
     if (existingError) throw new Error(existingError.message);
-    if (existing) throw new Error("You already answered today's Pulse");
+    if (existing) throw new Error("You already answered today's Tribevia");
 
     const { data: row, error } = await supabase
       .from("tribe_messages")
@@ -282,6 +346,48 @@ export const createTribePlan = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return { id: row.id, tribe_id: tribe.id };
+  });
+
+/**
+ * Plans live as `room_kind: "plan"` rows, which the regular Chat tab never
+ * shows (it only renders `room_kind IS NULL` rows). This lets the plan's own
+ * host drop a plain chat message pointing at it, so members who only check
+ * Chat still hear about it. Anyone else calling this for a plan they don't
+ * own is rejected - it's an announcement, not a general share button.
+ */
+export const shareTribePlanToChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        tribe_key: z.string().trim().min(1).max(40),
+        message_id: z.string().uuid(),
+        preview: z.string().trim().min(1).max(300),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const tribe = await resolveMemberTribe(supabase, userId, data.tribe_key);
+    const { data: source, error: sourceError } = await supabase
+      .from("tribe_messages")
+      .select("id, sender_id, room_kind")
+      .eq("id", data.message_id)
+      .eq("tribe_id", tribe.id)
+      .single();
+    if (sourceError) throw new Error(sourceError.message);
+    if (source.room_kind !== "plan" || source.sender_id !== userId) {
+      throw new Error("Only the plan's host can share it to chat");
+    }
+
+    const { error } = await supabase.from("tribe_messages").insert({
+      tribe_id: tribe.id,
+      sender_id: userId,
+      content: data.preview,
+      room_kind: null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const toggleTribeRoomReaction = createServerFn({ method: "POST" })
@@ -385,8 +491,11 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
       ]);
     if (sourceError) throw new Error(sourceError.message);
     if (ventureError) throw new Error(ventureError.message);
-    if (source.room_kind !== "plan" || source.sender_id !== userId) {
-      throw new Error("Only the plan author can turn it into a Venture");
+    if (
+      (source.room_kind !== "plan" && source.room_kind !== "pulse_answer") ||
+      source.sender_id !== userId
+    ) {
+      throw new Error("Only the original author can turn this into a Venture");
     }
     if (venture.user_id !== userId) throw new Error("Only the Venture host can announce it");
 
@@ -394,11 +503,16 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
     // to be joined automatically. Translate those reactions into durable
     // invited applications. Existing applications are never overwritten: a
     // pending request, acceptance, decline, or earlier invite keeps its state.
+    //
+    // A Tribevia answer never collected an "interested" reaction - "spark" is
+    // the only signal it has, so it stands in as the same consent for that
+    // source kind rather than requiring a whole second reaction just for this.
+    const interestReaction = source.room_kind === "pulse_answer" ? "spark" : "interested";
     const { data: interestRows, error: interestError } = await supabase
       .from("tribe_room_reactions")
       .select("user_id")
       .eq("message_id", source.id)
-      .eq("reaction", "interested")
+      .eq("reaction", interestReaction)
       .neq("user_id", userId);
     if (interestError) throw new Error(interestError.message);
 

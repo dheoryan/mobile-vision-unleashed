@@ -52,7 +52,7 @@ export function ChatMessageActions({
                 aria-label={label}
                 aria-pressed={myReactions.includes(id)}
                 className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   myReactions.includes(id) && "bg-secondary text-foreground",
                 )}
               >
@@ -67,7 +67,7 @@ export function ChatMessageActions({
             type="button"
             onClick={onReply}
             aria-label="Reply to message"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Reply className="h-4 w-4" />
           </button>
@@ -87,7 +87,7 @@ export function ChatMessageActions({
                 aria-pressed={myReactions.includes(id)}
                 disabled={disabled}
                 className={cn(
-                  "inline-flex min-h-7 items-center gap-1 rounded-full border border-border/80 bg-card px-2 text-[10px] text-muted-foreground shadow-sm disabled:cursor-default",
+                  "inline-flex min-h-7 items-center gap-1 rounded-full border border-border/80 bg-card px-2 text-[10px] text-muted-foreground shadow-sm transition-transform active:scale-95 disabled:cursor-default disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   myReactions.includes(id) && "border-primary/60 text-foreground",
                 )}
               >

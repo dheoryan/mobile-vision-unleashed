@@ -223,7 +223,7 @@ export function PushPromptModal() {
       <button
         onClick={skipSoft}
         aria-label="Close"
-        className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground hover:text-foreground"
+        className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <X className="h-4 w-4" />
       </button>
@@ -260,7 +260,7 @@ export function PushPromptModal() {
           <div className="mt-5 flex justify-end gap-2">
             <button
               onClick={skipSoft}
-              className="rounded-full px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              className="rounded-full px-4 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Got it
             </button>
@@ -271,7 +271,7 @@ export function PushPromptModal() {
           <button
             onClick={enable}
             disabled={busy}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
             <span aria-live="polite">{enableLabel(enableStage)}</span>
@@ -279,13 +279,13 @@ export function PushPromptModal() {
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={skipSoft}
-              className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Skip for now
             </button>
             <button
               onClick={skipHard}
-              className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground/70 hover:text-foreground"
+              className="flex-1 rounded-2xl px-4 py-2.5 text-xs font-semibold text-muted-foreground/70 transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Don't ask again
             </button>
@@ -304,7 +304,7 @@ export function PushPromptModal() {
                   });
                 }
               }}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/15"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Download className="h-4 w-4" />
               Install MEUTUALS on home screen

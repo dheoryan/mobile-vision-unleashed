@@ -65,7 +65,7 @@ export function AgeVerification({ locked = false }: { locked?: boolean }) {
             <button
               type="submit"
               disabled={!dateOfBirth || verifyAge.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
               {verifyAge.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Continue
@@ -76,7 +76,7 @@ export function AgeVerification({ locked = false }: { locked?: boolean }) {
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <LogOut className="h-4 w-4" /> Sign out
         </button>

@@ -295,7 +295,7 @@ export function DiscoverScreen() {
             type="button"
             onClick={focusSearch}
             aria-label="Search people, Tribes, and cities"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -322,7 +322,7 @@ export function DiscoverScreen() {
               type="button"
               onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
               aria-label="Add profile interests for better matches"
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary transition-colors hover:text-primary/80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Wand2 className="h-3.5 w-3.5" /> Improve matches
             </button>
@@ -335,7 +335,7 @@ export function DiscoverScreen() {
               type="button"
               onClick={closeSearch}
               aria-label="Close search"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -356,7 +356,7 @@ export function DiscoverScreen() {
             <button
               type="button"
               onClick={() => setMoodPickerOpen(true)}
-              className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-4 text-left text-xs font-semibold transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-4 text-left text-xs font-semibold transition-colors hover:border-primary/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <SelectedMoodIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="truncate">{selectedMoodLabel}</span>
@@ -373,7 +373,7 @@ export function DiscoverScreen() {
                 locationQuery.data ? "Adjust nearby preferences" : "Enable nearby discovery"
               }
               className={cn(
-                "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 locationQuery.data?.discoverable
                   ? "border-primary/35 bg-primary/10 text-primary"
                   : "border-border bg-card text-muted-foreground",
@@ -390,7 +390,7 @@ export function DiscoverScreen() {
               type="button"
               onClick={() => setBrowseMenuOpen(true)}
               aria-label="Browse: Tribes and Saved"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
@@ -423,7 +423,7 @@ export function DiscoverScreen() {
               <p className="text-sm font-semibold">Couldn't load registered users.</p>
               <button
                 onClick={() => activeQuery.refetch()}
-                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Retry
               </button>
@@ -454,7 +454,7 @@ export function DiscoverScreen() {
                 <button
                   onClick={() => activeQuery.fetchNextPage()}
                   disabled={activeQuery.isFetchingNextPage}
-                  className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold disabled:opacity-60"
+                  className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold transition-colors hover:border-primary/40 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                 >
                   {activeQuery.isFetchingNextPage ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -597,7 +597,7 @@ function MoodPickerSheet({
           type="button"
           onClick={onClose}
           aria-label="Close mood picker"
-          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-4 w-4" />
         </button>
@@ -609,7 +609,7 @@ function MoodPickerSheet({
               onClick={() => onChange(id)}
               aria-pressed={value === id}
               className={cn(
-                "flex min-h-12 items-center gap-3 rounded-2xl border px-4 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex min-h-12 items-center gap-3 rounded-2xl border px-4 text-left text-sm font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 value === id
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-background/45 text-foreground hover:border-primary/40",
@@ -656,7 +656,7 @@ function BrowseMenuSheet({
       <button
         type="button"
         onClick={onExploreTribes}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
           <UsersRound className="h-4 w-4" />
@@ -671,7 +671,7 @@ function BrowseMenuSheet({
       <button
         type="button"
         onClick={onSaved}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
           <Bookmark className="h-4 w-4" />
@@ -713,7 +713,7 @@ function TribeBrowserSheet({
             type="button"
             onClick={onClose}
             aria-label="Back to today’s five"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -734,7 +734,7 @@ function TribeBrowserSheet({
                 type="button"
                 onClick={() => onSelect(tribe)}
                 className={cn(
-                  "group relative h-48 overflow-hidden rounded-3xl border border-border bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "group relative h-48 overflow-hidden rounded-3xl border border-border bg-card text-left transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   index === 0 && "col-span-2 h-56",
                 )}
               >
@@ -809,7 +809,7 @@ function SavedProfilesSheet({
           type="button"
           onClick={onClose}
           aria-label="Back to today’s five"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -825,7 +825,7 @@ function SavedProfilesSheet({
           <button
             type="button"
             onClick={() => query.refetch()}
-            className="w-full rounded-2xl border border-border bg-card py-4 text-xs font-semibold text-muted-foreground"
+            className="w-full rounded-2xl border border-border bg-card py-4 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Could not load your saved profiles. Retry
           </button>
@@ -913,7 +913,7 @@ function NearbyPreferencesSheet({
           onClick={onClose}
           disabled={pending}
           aria-label="Close nearby preferences"
-          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           <X className="h-4 w-4" />
         </button>
@@ -954,7 +954,7 @@ function NearbyPreferencesSheet({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="mt-5 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          className="mt-5 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
         >
           {pending ? "Saving…" : "Done"}
         </button>
@@ -1021,7 +1021,7 @@ function TribePreviewSheet({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/40 text-muted-foreground hover:text-foreground"
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/40 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-4 w-4" />
         </button>
@@ -1097,14 +1097,14 @@ function TribePreviewSheet({
             ) : (
               <button
                 onClick={() => onMove(displayTribe.id)}
-                className="mt-6 w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground"
+                className="mt-6 w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Move to {displayTribe.name}
               </button>
             )}
             <button
               onClick={onClose}
-              className="mt-2 w-full rounded-2xl border border-border bg-background/40 py-3 text-sm font-semibold"
+              className="mt-2 w-full rounded-2xl border border-border bg-background/40 py-3 text-sm font-semibold transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Close preview
             </button>
@@ -1191,7 +1191,7 @@ function PersonRow({
           onClick={onToggle}
           disabled={pending}
           className={cn(
-            "flex min-h-11 min-w-20 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60",
+            "flex min-h-11 min-w-20 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60",
             following
               ? "border-accent bg-accent/15 text-accent"
               : "border-primary bg-primary/15 text-primary",
@@ -1214,7 +1214,7 @@ function PersonRow({
         <button
           type="button"
           onClick={onSayHello}
-          className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/10 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/10 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Hand className="h-3.5 w-3.5" /> Say hello
         </button>

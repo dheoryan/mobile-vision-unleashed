@@ -1,11 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, Bookmark, Zap, X, Loader2, Check, LocateFixed, MapPin, Grid3x3 } from "lucide-react";
+import {
+  Menu,
+  Bookmark,
+  Repeat2,
+  Zap,
+  X,
+  Loader2,
+  Check,
+  LocateFixed,
+  MapPin,
+  Grid3x3,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
-import { useMyPosts, useMySavedPosts } from "@/lib/posts-store";
+import { useMyPosts, useMyRepostedPosts } from "@/lib/posts-store";
 import { useMyHostedVentures } from "@/lib/ventures-store";
 import { useProfileStats } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
@@ -17,7 +28,7 @@ import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { CompactListSkeleton } from "./Skeleton";
+import { CompactListSkeleton, FeedSkeleton } from "./Skeleton";
 import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feature-flags";
 import {
   AVAILABILITY_OPTIONS,
@@ -41,7 +52,7 @@ import { timingLabel } from "@/lib/venture-time";
 import { avatarFileIssue } from "@/lib/avatar-file";
 import { AvatarLightbox } from "./AvatarLightbox";
 
-type GridTab = "posts" | "saved" | "ventures";
+type GridTab = "posts" | "reposts" | "ventures";
 
 export function ProfileScreen({
   profile,
@@ -77,8 +88,8 @@ export function ProfileScreen({
   const myPostsQuery = useMyPosts();
   const myPosts = myPostsQuery.data ?? [];
 
-  const savedQuery = useMySavedPosts();
-  const savedPosts = savedQuery.data ?? [];
+  const repostedQuery = useMyRepostedPosts();
+  const repostedPosts = repostedQuery.data ?? [];
   const venturesQuery = useMyHostedVentures();
   const ventures = venturesQuery.data ?? [];
 
@@ -111,7 +122,7 @@ export function ProfileScreen({
                   type="button"
                   onClick={() => setAvatarLightboxOpen(true)}
                   aria-label="View profile photo"
-                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card shadow-lg ring-2 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card shadow-lg ring-2 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
                 >
                   <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
@@ -168,7 +179,7 @@ export function ProfileScreen({
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="shrink-0 rounded-full border border-border px-4 py-2 text-xs font-bold hover:bg-card"
+              className="shrink-0 rounded-full border border-border px-4 py-2 text-xs font-bold transition-colors hover:bg-card active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Edit profile
             </button>
@@ -237,7 +248,7 @@ export function ProfileScreen({
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="mt-5 w-full rounded-md border border-primary/40 bg-primary/5 p-3 text-left"
+              className="mt-5 w-full rounded-md border border-primary/40 bg-primary/5 p-3 text-left transition-colors hover:bg-primary/10 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="flex items-center justify-between text-xs">
                 {/* A percentage is a number with no verb — it nags without
@@ -291,7 +302,7 @@ export function ProfileScreen({
               {!isPlus && (
                 <Link
                   to="/upgrade"
-                  className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground"
+                  className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <Zap className="h-3.5 w-3.5" fill="currentColor" /> Upgrade
                 </Link>
@@ -313,7 +324,7 @@ export function ProfileScreen({
                       : p,
                   )
                 }
-                className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground hover:text-foreground"
+                className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground transition-colors hover:text-foreground active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Demo: toggle plan to {isPlus ? "Free" : "Plus"}
               </button>
@@ -328,13 +339,13 @@ export function ProfileScreen({
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Link
               to="/tiers"
-              className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary"
+              className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold transition-colors hover:bg-secondary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Compare tiers
             </Link>
             <Link
               to="/host"
-              className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold hover:bg-secondary"
+              className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold transition-colors hover:bg-secondary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Apply to host a Tribe
             </Link>
@@ -352,8 +363,12 @@ export function ProfileScreen({
           <TabBtn icon={Grid3x3} active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
             Posts
           </TabBtn>
-          <TabBtn icon={Bookmark} active={gridTab === "saved"} onClick={() => setGridTab("saved")}>
-            Saved
+          <TabBtn
+            icon={Repeat2}
+            active={gridTab === "reposts"}
+            onClick={() => setGridTab("reposts")}
+          >
+            Reposts
           </TabBtn>
           <TabBtn icon={Zap} active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
             Ventures
@@ -362,13 +377,17 @@ export function ProfileScreen({
 
         {gridTab === "posts" &&
           (myPostsQuery.isLoading ? (
-            <CompactListSkeleton label="Loading your posts" />
+            // Real content here is full PostCards (via ProfilePostHistory),
+            // not the plain text cards CompactListSkeleton mocks up - that
+            // mismatch was the ventures-tab skeleton's shape borrowed for a
+            // completely different layout.
+            <FeedSkeleton />
           ) : myPostsQuery.isError ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center">
               <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
               <button
                 onClick={() => myPostsQuery.refetch()}
-                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Retry
               </button>
@@ -384,63 +403,19 @@ export function ProfileScreen({
             <ProfilePostHistory posts={myPosts} />
           ))}
 
-        {gridTab === "saved" &&
-          (savedQuery.isLoading ? (
-            <CompactListSkeleton label="Loading saved posts" />
-          ) : savedPosts.length === 0 ? (
+        {gridTab === "reposts" &&
+          (repostedQuery.isLoading ? (
+            <FeedSkeleton />
+          ) : repostedPosts.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              No saved posts yet. Tap the bookmark on any post to save it.
+              Nothing reposted yet. Tap the repost icon on any post to add it here.
             </p>
           ) : (
-            /* A list, not a square grid.
-             *
-             * The grid was a photo-grid pattern applied to text: a third of the
-             * width, aspect-square, 10px type, three-line clamp. Photo grids
-             * work because the photo IS the content; here the content is words,
-             * and at that size they are unreadable, so every tile looked like a
-             * bookmark emoji with noise under it.
-             *
-             * It was also a plain div — you could save a post and then have no
-             * way to open it again, which defeats the entire feature. These are
-             * buttons now, routed through the same openPost intent the
-             * notifications use. */
-            <div className="space-y-2">
-              {savedPosts.map((p) => {
-                const t = tribeById((p.tribe_id as TribeId) || (profile.tribeIds[0] as TribeId));
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => intentStore.push({ kind: "openPost", postId: p.id })}
-                    className="flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-0.5 h-9 w-1 shrink-0 rounded-full"
-                      style={{ backgroundColor: t.colorVar }}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        {/* Whose post this was. The grid never said, so a saved
-                            collection was a pile of anonymous fragments. */}
-                        <span className="truncate font-semibold text-foreground">
-                          {p.author?.display_name?.trim() || "Someone"}
-                        </span>
-                        <span aria-hidden>·</span>
-                        <span className="shrink-0">{timeAgo(p.created_at)}</span>
-                      </span>
-                      <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-foreground/90">
-                        {p.content || (p.image_url ? "Photo" : "")}
-                      </span>
-                    </span>
-                    <Bookmark
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
-                      fill="currentColor"
-                    />
-                  </button>
-                );
-              })}
-            </div>
+            // Full PostCards, same as the Posts tab - each one already knows
+            // how to draw its own "Reposted by X" line, so a repost here
+            // looks exactly like it does in the feed, not a stripped-down
+            // summary.
+            <ProfilePostHistory posts={repostedPosts} />
           ))}
 
         {gridTab === "ventures" && (
@@ -461,7 +436,7 @@ export function ProfileScreen({
                     if (user) preferVentureHostingOnNextOpen(user.id);
                     intentStore.push({ kind: "openTab", tab: "ventures" });
                   }}
-                  className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm transition-colors hover:border-primary/40"
+                  className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm transition-colors hover:border-primary/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate font-semibold">
@@ -519,7 +494,7 @@ function TabBtn({
     <button
       onClick={onClick}
       className={cn(
-        "flex min-h-11 flex-1 items-center justify-center gap-1.5 pb-2.5 text-xs transition-colors",
+        "flex min-h-11 flex-1 items-center justify-center gap-1.5 pb-2.5 text-xs transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
         active
           ? "font-bold text-primary shadow-[inset_0_-2px_0_var(--color-primary)]"
           : "text-muted-foreground hover:text-foreground",
@@ -596,7 +571,7 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
           type="button"
           onClick={refresh}
           disabled={refreshing}
-          className="shrink-0 text-[11px] font-semibold text-primary disabled:opacity-50"
+          className="shrink-0 rounded text-[11px] font-semibold text-primary transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {refreshing ? "Updating…" : "Update"}
         </button>
@@ -613,7 +588,7 @@ function ProfileTag({ label, accent = false }: { label: string; accent?: boolean
   return (
     <span
       className={cn(
-        "rounded-full px-3 py-1.5 text-xs font-semibold",
+        "rounded-full px-2.5 py-1 text-[11px] font-semibold",
         accent ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground",
       )}
     >
@@ -712,7 +687,7 @@ export function EditProfileModal({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+          className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-5 w-5" />
         </button>
@@ -724,7 +699,7 @@ export function EditProfileModal({
             onClick={openAvatarPicker}
             disabled={uploading}
             aria-label="Change profile photo"
-            className="relative flex h-24 w-24 items-center justify-center overflow-visible rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-card disabled:cursor-wait"
+            className="relative flex h-24 w-24 items-center justify-center overflow-visible rounded-full transition-transform active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-card disabled:cursor-wait"
           >
             <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-background text-4xl ring-2 ring-background">
               {isImage ? (
@@ -743,7 +718,7 @@ export function EditProfileModal({
             type="button"
             onClick={openAvatarPicker}
             disabled={uploading}
-            className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+            className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-primary underline-offset-4 transition-opacity hover:underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {uploading ? "Uploading…" : "Change photo"}
           </button>
@@ -848,13 +823,13 @@ export function EditProfileModal({
                 gender,
               });
             }}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           >
             {uploading ? "Saving photo…" : "Save changes"}
           </button>
           <button
             onClick={onClose}
-            className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+            className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Cancel
           </button>
@@ -1026,7 +1001,7 @@ function AvatarCropModal({
           onClick={onClose}
           disabled={saving}
           aria-label="Close cropper"
-          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground disabled:opacity-40"
+          className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
         >
           <X className="h-5 w-5" />
         </button>
@@ -1103,14 +1078,14 @@ function AvatarCropModal({
           <button
             onClick={onClose}
             disabled={saving}
-            className="rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+            className="rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           >
             Cancel
           </button>
           <button
             onClick={handleUsePhoto}
             disabled={saving || !imageSize || imageLoadFailed}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             Use photo
@@ -1182,7 +1157,7 @@ function ProfileChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "min-h-10 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98]",
+                "min-h-10 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-foreground hover:bg-secondary/70",

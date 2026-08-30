@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
   Check,
+  ChevronLeft,
   ChevronRight,
   Handshake,
   Loader2,
@@ -264,7 +264,7 @@ function Inbox({
         <button
           aria-label="Close"
           onClick={onClose}
-          className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+          className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-5 w-5" />
         </button>
@@ -335,7 +335,7 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
     <li>
       <button
         onClick={onOpen}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-card active:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
       >
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
           <MessageCircle className="h-5 w-5" />
@@ -370,7 +370,7 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
     <li>
       <button
         onClick={onOpen}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-card"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-card active:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
       >
         <span className="relative">
           <Avatar value={avatarOf(t.other)} tribeColor={tribe.colorVar} />
@@ -500,7 +500,7 @@ function VentureMootPerson({
         type="button"
         onClick={acceptMoot}
         disabled={busy}
-        className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+        className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
       >
         {accepting ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -522,7 +522,7 @@ function VentureMootPerson({
         onClick={requestMoot}
         disabled={busy || noRequestsLeft}
         title={noRequestsLeft ? "Your Hello allowance resets next month." : undefined}
-        className="inline-flex min-h-8 items-center gap-1 rounded-full border border-primary/50 px-3 text-[11px] font-semibold text-primary disabled:opacity-40"
+        className="inline-flex min-h-8 items-center gap-1 rounded-full border border-primary/50 px-3 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
       >
         {requesting ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -720,10 +720,12 @@ function VenturePartyThread({
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-border px-4 py-3">
         <button
+          type="button"
           onClick={onBack}
-          className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+          aria-label="Back to messages"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
           <MessageCircle className="h-4 w-4" />
@@ -734,7 +736,7 @@ function VenturePartyThread({
             type="button"
             onClick={() => setParticipantsOpen(true)}
             aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
-            className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 text-[11px] text-muted-foreground outline-none hover:text-foreground focus-visible:text-primary"
+            className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span>{isComplete ? "Venture memory" : "Party chat"}</span>
             <span aria-hidden="true">·</span>
@@ -786,7 +788,7 @@ function VenturePartyThread({
                         setText(prompt.text);
                         requestAnimationFrame(() => inputRef.current?.focus());
                       }}
-                      className="min-h-11 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground hover:border-primary/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="min-h-11 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {prompt.label}
                     </button>
@@ -1087,16 +1089,18 @@ function Thread({
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-border px-4 py-3">
         <button
+          type="button"
           onClick={onBack}
-          className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+          aria-label="Back to messages"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
         <button
           type="button"
           onClick={() => onOpenProfile?.(other?.handle || otherId)}
           disabled={!onOpenProfile}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left disabled:cursor-default"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-opacity enabled:active:opacity-70 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
           <div className="min-w-0 flex-1">

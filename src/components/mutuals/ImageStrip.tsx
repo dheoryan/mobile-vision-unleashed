@@ -107,7 +107,7 @@ export function ImageStrip({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onRemove(i)}
             aria-label={`Remove photo ${i + 1}`}
-            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <X className="h-3 w-3" />
           </button>
@@ -119,7 +119,7 @@ export function ImageStrip({
           onClick={onAddMore}
           disabled={uploading}
           aria-label="Add photo"
-          className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground hover:text-foreground disabled:opacity-60"
+          className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
         >
           {uploading ? (
             <Loader2 className="h-5 w-5 animate-spin" />

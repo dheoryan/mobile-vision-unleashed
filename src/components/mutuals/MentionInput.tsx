@@ -71,14 +71,20 @@ export function MentionSuggestions({
               e.preventDefault();
               onPick(p);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-secondary/60"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary/60 active:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
             <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-card text-base">
               {isImg ? <img src={av} alt="" className="h-full w-full object-cover" /> : av}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{p.display_name || "Someone"}</span>
-              {p.handle && <span className="block truncate text-[11px] text-muted-foreground">@{p.handle}</span>}
+              <span className="block truncate text-sm font-semibold">
+                {p.display_name || "Someone"}
+              </span>
+              {p.handle && (
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  @{p.handle}
+                </span>
+              )}
             </span>
           </button>
         );
