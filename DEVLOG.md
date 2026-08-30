@@ -64,7 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Group-chat notification aggregation | `src/lib/notifications.functions.ts`, `src/lib/notifications-store.ts`, `src/lib/notification-presenter.ts`, `src/lib/push-payload.ts`, `src/routes/api/public/push.dispatch.ts`, `src/routes/notifications.tsx`, tests | 2026-08-30 |
+| Codex | Group-chat notification aggregation + Chats FAB spacing | notification pipeline/UI, `src/components/mutuals/ChatsScreen.tsx`, tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
