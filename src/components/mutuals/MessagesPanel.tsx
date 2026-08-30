@@ -570,7 +570,7 @@ function VentureMootRecap({ venture }: { venture: VentureParty }) {
   return (
     <section className="my-4 rounded-2xl border border-primary/35 bg-primary/[0.07] p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-meutuals-gradient text-white">
           <UsersRound className="h-4 w-4" />
         </span>
         <div>
@@ -985,6 +985,7 @@ function VenturePartyThread({
             onSend={() => void submit()}
             placeholder={replyTo ? "Write a reply…" : "Message the party"}
             accentColor="var(--color-primary)"
+            gradientAction
             replyTo={replyTo}
             onCancelReply={() => setReplyTo(null)}
             selectedImage={selectedImage}

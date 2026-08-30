@@ -51,9 +51,7 @@ export function RepostAudienceChoices({
           <span
             className={cn(
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-              allowWild
-                ? "bg-meutuals-gradient text-primary-foreground"
-                : "bg-primary/12 text-primary",
+              allowWild ? "bg-meutuals-gradient text-white" : "bg-primary/12 text-primary",
             )}
           >
             {allowWild ? <Globe2 className="h-5 w-5" /> : <Lock className="h-5 w-5" />}

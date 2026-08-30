@@ -1,19 +1,19 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
-  Heart,
-  MessageCircle,
-  Share2,
   MoreHorizontal,
   Pencil,
   Trash2,
   Loader2,
-  Bookmark,
   ImagePlus,
-  Repeat2,
   Quote,
   ChevronRight,
   X,
 } from "lucide-react";
+import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { PaperPlaneTiltIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneTilt";
+import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
+import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -346,7 +346,7 @@ export function PostCard({
     >
       {post.reposted_by && (
         <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-          <Repeat2 className="h-3.5 w-3.5" />
+          <RepeatIcon className="h-3.5 w-3.5" weight="bold" />
           Reposted by {post.reposted_by.display_name?.trim() || "Someone"}
         </p>
       )}
@@ -568,7 +568,7 @@ export function PostCard({
           )}
           aria-pressed={liked}
         >
-          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} /> {post.likes_count}
+          <HeartIcon className="h-4 w-4" weight={liked ? "fill" : "regular"} /> {post.likes_count}
         </button>
         <button
           onClick={() => {
@@ -585,7 +585,7 @@ export function PostCard({
           aria-label={`${post.replies_count} comments`}
           className="flex items-center gap-1.5 rounded-md text-xs transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <MessageCircle className="h-4 w-4" /> {post.replies_count}
+          <ChatCircleIcon className="h-4 w-4" weight="regular" /> {post.replies_count}
         </button>
         <div className="ml-auto">
           <button
@@ -600,7 +600,8 @@ export function PostCard({
             aria-label="Repost options"
             aria-pressed={reposted}
           >
-            <Repeat2 className="h-4 w-4" /> {post.reposts_count}
+            <RepeatIcon className="h-4 w-4" weight={reposted ? "fill" : "regular"} />{" "}
+            {post.reposts_count}
           </button>
         </div>
         <button
@@ -614,7 +615,7 @@ export function PostCard({
           aria-label={saved ? "Unsave post" : "Save post"}
           aria-pressed={saved}
         >
-          <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
+          <BookmarkSimpleIcon className="h-4 w-4" weight={saved ? "fill" : "regular"} />
         </button>
         <button
           onClick={share}
@@ -625,7 +626,8 @@ export function PostCard({
           aria-label="Share post"
           aria-pressed={shared}
         >
-          <Share2 className="h-4 w-4" fill={shared ? "currentColor" : "none"} /> {post.shares_count}
+          <PaperPlaneTiltIcon className="h-4 w-4" weight={shared ? "fill" : "regular"} />{" "}
+          {post.shares_count}
         </button>
       </footer>
 
@@ -681,7 +683,7 @@ export function PostCard({
                 className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/12 text-emerald-400">
-                  <Repeat2 className="h-5 w-5" />
+                  <RepeatIcon className="h-5 w-5" weight="fill" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">Undo repost</span>

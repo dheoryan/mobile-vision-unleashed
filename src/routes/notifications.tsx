@@ -408,7 +408,10 @@ function NotificationRowItem({
           <span className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
             {timeAgoLabel(notification.created_at)}
             {isUnread && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-meutuals-gradient"
+                aria-hidden
+              />
             )}
           </span>
         </span>

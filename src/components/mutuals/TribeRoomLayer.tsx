@@ -184,7 +184,7 @@ export function TribeRoomLayer({
                   Plans
                   {plans.length > 0 && (
                     <span
-                      className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-primary-foreground tabular-nums"
+                      className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white tabular-nums"
                       style={{ backgroundColor: tribeColor }}
                     >
                       {plans.length > 9 ? "9+" : plans.length}

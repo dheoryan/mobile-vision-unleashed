@@ -93,6 +93,7 @@ test("Plans count badge stays centered and inherits the active Tribe color", () 
     /inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center[^"]*leading-none/,
   );
   assert.match(tribeRoomLayer, /style=\{\{ backgroundColor: tribeColor \}\}/);
+  assert.match(tribeRoomLayer, /Plans[\s\S]{0,400}font-bold leading-none text-white tabular-nums/);
   assert.doesNotMatch(
     tribeRoomLayer,
     /Plans[\s\S]{0,220}rounded-full bg-primary[\s\S]{0,120}\{plans\.length/,

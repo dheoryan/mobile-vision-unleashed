@@ -211,7 +211,7 @@ export function ProfileScreen({
                       <ProfileTag
                         key={intent}
                         label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
-                        accent
+                        accentColor={tribe.colorVar}
                       />
                     ))}
                   </div>
@@ -516,13 +516,22 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
-function ProfileTag({ label, accent = false }: { label: string; accent?: boolean }) {
+function ProfileTag({ label, accentColor }: { label: string; accentColor?: string }) {
   return (
     <span
       className={cn(
-        "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-        accent ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground",
+        "rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+        !accentColor && "border-transparent bg-secondary text-foreground",
       )}
+      style={
+        accentColor
+          ? {
+              borderColor: `color-mix(in oklab, ${accentColor} 45%, transparent)`,
+              backgroundColor: `color-mix(in oklab, ${accentColor} 18%, transparent)`,
+              color: accentColor,
+            }
+          : undefined
+      }
     >
       {label}
     </span>
@@ -553,6 +562,7 @@ export function EditProfileModal({
   const [uploading, setUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const choiceTribe = tribeById(profile.tribeIds[0] ?? "wolf");
 
   const sanitizeHandle = (v: string) =>
     v
@@ -701,6 +711,7 @@ export function EditProfileModal({
             options={INTEREST_OPTIONS}
             selected={interests}
             onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))}
+            accentColor={choiceTribe.colorVar}
           />
           <ProfileChoiceGroup
             label="Here for"
@@ -709,6 +720,7 @@ export function EditProfileModal({
             onToggle={(id) =>
               setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))
             }
+            accentColor={choiceTribe.colorVar}
           />
           <ProfileChoiceGroup
             label="Usually free"
@@ -717,6 +729,7 @@ export function EditProfileModal({
             onToggle={(id) =>
               setAvailability(toggleSelection(availability, id as AvailabilityId, 4))
             }
+            accentColor={choiceTribe.colorVar}
           />
         </div>
 
@@ -755,7 +768,7 @@ export function EditProfileModal({
                 gender,
               });
             }}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+            className="w-full rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
           >
             {uploading ? "Saving photo…" : "Save changes"}
           </button>
@@ -1070,11 +1083,13 @@ function ProfileChoiceGroup({
   options,
   selected,
   onToggle,
+  accentColor,
 }: {
   label: string;
   options: ReadonlyArray<{ id: string; label: string }>;
   selected: string[];
   onToggle: (id: string) => void;
+  accentColor: string;
 }) {
   return (
     <fieldset>
@@ -1089,13 +1104,21 @@ function ProfileChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "min-h-10 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "min-h-10 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/70",
+                  ? "text-foreground"
+                  : "border-transparent bg-secondary text-foreground hover:bg-secondary/70",
               )}
+              style={
+                active
+                  ? {
+                      borderColor: accentColor,
+                      backgroundColor: `color-mix(in oklab, ${accentColor} 26%, var(--card))`,
+                    }
+                  : undefined
+              }
             >
-              {active && <Check className="mr-1 inline h-3 w-3" />}
+              {active && <Check className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />}
               {option.label}
             </button>
           );

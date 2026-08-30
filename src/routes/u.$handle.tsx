@@ -260,7 +260,7 @@ function PublicProfilePage() {
                       <SignalTag
                         key={intent}
                         label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
-                        accent
+                        accentColor={tribe.colorVar}
                       />
                     ))}
                   </div>
@@ -390,10 +390,19 @@ function ProfileActivityError({ copy, onRetry }: { copy: string; onRetry: () => 
   );
 }
 
-function SignalTag({ label, accent = false }: { label: string; accent?: boolean }) {
+function SignalTag({ label, accentColor }: { label: string; accentColor?: string }) {
   return (
     <span
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${accent ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}
+      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${accentColor ? "" : "border-transparent bg-secondary text-foreground"}`}
+      style={
+        accentColor
+          ? {
+              borderColor: `color-mix(in oklab, ${accentColor} 45%, transparent)`,
+              backgroundColor: `color-mix(in oklab, ${accentColor} 18%, transparent)`,
+              color: accentColor,
+            }
+          : undefined
+      }
     >
       {label}
     </span>

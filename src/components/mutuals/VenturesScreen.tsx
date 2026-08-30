@@ -885,7 +885,7 @@ function LookView({
             <Ticket className="h-3.5 w-3.5 text-primary" />
             My Ventures
             {joinedVentures.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-mono text-[9px] font-bold text-primary-foreground">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
                 {joinedVentures.length}
               </span>
             )}
@@ -1011,7 +1011,12 @@ function HostView({
                 openCreator();
               }
             }}
-            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary px-3.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className={cn(
+              "inline-flex min-h-11 items-center gap-1 rounded-full px-3.5 text-[11px] font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              formOpen
+                ? "border border-border text-muted-foreground transition-colors hover:text-foreground"
+                : "bg-meutuals-gradient text-white transition-[transform,filter] hover:brightness-110",
+            )}
           >
             {formOpen ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             {formOpen ? "Close" : "New"}
@@ -1047,7 +1052,7 @@ function HostView({
               <span
                 className={cn(
                   "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold",
-                  selected ? "bg-primary text-primary-foreground" : "bg-secondary",
+                  "bg-meutuals-gradient text-white",
                 )}
               >
                 {count}

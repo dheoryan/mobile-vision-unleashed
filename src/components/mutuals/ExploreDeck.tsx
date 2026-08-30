@@ -545,13 +545,13 @@ export function ExploreDeck({
                 {person.handle && <p className="mt-1 text-xs text-white/65">{person.handle}</p>}
                 {(person.city || person.distanceBand) && (
                   <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px]">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: tribe.colorVar }} />
                     {person.city && <span className="truncate text-white/75">{person.city}</span>}
                     {person.city && person.distanceBand && (
                       <span className="shrink-0 text-white/45">·</span>
                     )}
                     {person.distanceBand && (
-                      <span className="shrink-0 font-semibold text-primary">
+                      <span className="shrink-0 font-semibold" style={{ color: tribe.colorVar }}>
                         {person.distanceBand}
                       </span>
                     )}
@@ -561,8 +561,10 @@ export function ExploreDeck({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col p-4">
-              <section className="border-l-2 border-primary/75 pl-4">
-                <p className="label-mono text-primary">In their words</p>
+              <section className="border-l-2 pl-4" style={{ borderColor: tribe.colorVar }}>
+                <p className="label-mono" style={{ color: tribe.colorVar }}>
+                  In their words
+                </p>
                 <blockquote className="mt-1.5 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-foreground">
                   “{person.bio || "I’m open to meeting good people and trying something new."}”
                 </blockquote>
@@ -577,7 +579,13 @@ export function ExploreDeck({
                         key={reason.key}
                         className="flex items-start gap-2 text-xs text-foreground/85"
                       >
-                        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <span
+                          className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
+                          style={{
+                            backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
+                            color: tribe.colorVar,
+                          }}
+                        >
                           <Check className="h-2.5 w-2.5" />
                         </span>
                         {reason.label}
@@ -608,7 +616,7 @@ export function ExploreDeck({
                   <button
                     type="button"
                     onClick={() => intentStore.push({ kind: "openThreadWith", userId: person.id })}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-meutuals-gradient px-3 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <MessageCircle className="h-3.5 w-3.5" /> Message {person.name.split(" ")[0]}
                   </button>
@@ -624,7 +632,7 @@ export function ExploreDeck({
                   <button
                     type="button"
                     onClick={() => setHelloFor(person)}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-meutuals-gradient px-3 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <Hand className="h-3.5 w-3.5" /> {helloLabel(person)}
                   </button>

@@ -355,7 +355,7 @@ export function ComposerModal({
             disabled={!text.trim() && images.length === 0 && !quotedPost}
             className={cn(
               "mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground transition-[transform,filter] hover:brightness-105 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40",
-              effectiveAudience === "all" && "bg-meutuals-gradient",
+              effectiveAudience === "all" && "bg-meutuals-gradient text-white",
             )}
             style={effectiveAudience === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
           >
@@ -388,7 +388,7 @@ function AudienceSegment({
       className={cn(
         "min-h-9 flex-1 truncate rounded-full text-sm font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-        active && brandGradient && "bg-meutuals-gradient",
+        active && brandGradient && "bg-meutuals-gradient text-white",
       )}
       style={active && !brandGradient ? { backgroundColor: accent } : undefined}
     >

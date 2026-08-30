@@ -94,7 +94,7 @@ function TabButton({
       className={cn(
         "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
-          ? "bg-primary text-primary-foreground"
+          ? "bg-meutuals-gradient text-white"
           : "border border-border text-muted-foreground hover:text-foreground",
       )}
     >
@@ -103,7 +103,7 @@ function TabButton({
         <span
           className={cn(
             "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
-            active ? "bg-primary-foreground/20" : "bg-primary/15 text-primary",
+            active ? "bg-white/20 text-white" : "bg-primary/15 text-primary",
           )}
         >
           {count}

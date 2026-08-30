@@ -57,6 +57,10 @@ test("authors confirm before deleting their own reply", () => {
 
 test("Chats new-message action clears the Home Screen navigation with a visible gap", () => {
   assert.match(chatsSource, /bottom-\[calc\(5\.75rem\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(chatsSource, /aria-label="New message"[\s\S]*h-14 w-14/);
+  assert.match(chatsSource, /h-14 w-14[^"]*bg-meutuals-gradient text-white/);
+  assert.match(chatsSource, /<ChatCircleDotsIcon className="h-6 w-6" weight="fill"/);
+  assert.doesNotMatch(chatsSource, /<Plus className="h-4 w-4" \/> New message/);
 });
 
 test("unhide delegates directly to the RLS-authorized RPC", () => {

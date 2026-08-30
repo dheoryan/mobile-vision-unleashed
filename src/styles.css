@@ -64,15 +64,15 @@
   --popover: oklch(0.24 0 0);                    /* #222 */
   --popover-foreground: oklch(0.95 0.01 80);
 
-  /* Brand/system actions are deliberately separate from Tribe colors. The
-     solid rose is the accessible fallback for small controls and focus rings;
-     large Wild/global actions may use the full logo gradient below. */
+  /* The everyday system is monochrome. Brand color is reserved for The Wild,
+     unread attention signals, and identity moments; Tribe surfaces keep using
+     their own contextual colors. */
   --brand-solid: #ff006e;
-  --brand-foreground: #090909;
+  --brand-foreground: #ffffff;
   --brand-gradient: linear-gradient(100deg, #ff00b8 0%, #ff006e 52%, #ff7a00 100%);
 
-  --primary: var(--brand-solid);
-  --primary-foreground: var(--brand-foreground);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
 
   --secondary: oklch(0.27 0 0);
   --secondary-foreground: oklch(0.95 0.01 80);
@@ -91,7 +91,7 @@
 
   --border: oklch(0.28 0 0);
   --input: oklch(0.28 0 0);
-  --ring: var(--brand-solid);
+  --ring: var(--foreground);
 
   /* Tribe colors from brief */
   --tribe-wolf: oklch(0.6 0.18 35);     /* #C84B31 fire red */

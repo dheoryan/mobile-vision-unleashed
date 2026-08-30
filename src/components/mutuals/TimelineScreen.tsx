@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import type { Profile } from "./Onboarding";
 import { tribeById, TRIBES, type TribeId } from "@/lib/mutuals-data";
 import { ComposerModal } from "./ComposerModal";
-import { Compass, Plus } from "lucide-react";
+import { CompassIcon } from "@phosphor-icons/react/dist/csr/Compass";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { TribeMark } from "./TribeMark";
 import { FeedSkeleton } from "./Skeleton";
 
@@ -92,12 +93,10 @@ export function TimelineScreen({
             onClick={() => setTab("global")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              tab === "global"
-                ? "bg-meutuals-gradient text-primary-foreground"
-                : "text-muted-foreground",
+              tab === "global" ? "bg-meutuals-gradient text-white" : "text-muted-foreground",
             )}
           >
-            <Compass className="h-3.5 w-3.5" />
+            <CompassIcon className="h-3.5 w-3.5" weight="fill" />
             <span className="truncate">The Wild</span>
           </button>
         </div>
@@ -175,11 +174,11 @@ export function TimelineScreen({
           aria-label={tab === "global" ? "Post to The Wild" : `Post to ${tribe.name}`}
           className={cn(
             "pointer-events-auto flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-xl shadow-black/40 transition-[transform,filter] hover:brightness-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            tab === "global" && "bg-meutuals-gradient",
+            tab === "global" && "bg-meutuals-gradient text-white",
           )}
           style={tab === "tribe" ? { backgroundColor: tribe.colorVar } : undefined}
         >
-          <Plus className="h-6 w-6" aria-hidden="true" />
+          <PlusIcon className="h-6 w-6" weight="bold" aria-hidden="true" />
         </button>
       </div>
 

@@ -173,7 +173,7 @@ export function VentureTicket({
             <button
               type="button"
               onClick={onOpenChat}
-              className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-meutuals-gradient py-2.5 text-[11px] font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <MessageCircle className="h-3.5 w-3.5" /> Open party chat
             </button>
@@ -428,7 +428,7 @@ export function VentureTicketDetail({
               onClose();
               onOpenChat();
             }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-meutuals-gradient py-3 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <MessageCircle className="h-4 w-4" /> Open party chat
           </button>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Paperclip, Send, X } from "lucide-react";
 import { ReplyPreview } from "./ReplyPreview";
+import { cn } from "@/lib/utils";
 
 export interface ChatReplyTarget {
   id: string;
@@ -27,6 +28,7 @@ interface ChatComposerProps {
   onCaretChange?: (caret: number) => void;
   outerClassName?: string;
   keyboardOpen?: boolean;
+  gradientAction?: boolean;
 }
 
 /**
@@ -52,6 +54,7 @@ export function ChatComposer({
   onCaretChange,
   outerClassName,
   keyboardOpen = false,
+  gradientAction = false,
 }: ChatComposerProps) {
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -190,8 +193,13 @@ export function ChatComposer({
           type="button"
           onClick={onSend}
           disabled={!canSend}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-95 disabled:opacity-40"
-          style={{ backgroundColor: accentColor }}
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-[transform,filter] active:scale-95 disabled:opacity-40",
+            gradientAction
+              ? "bg-meutuals-gradient text-white hover:brightness-110"
+              : "text-primary-foreground",
+          )}
+          style={gradientAction ? undefined : { backgroundColor: accentColor }}
           aria-label={sending ? "Sending message" : "Send message"}
         >
           <Send className="h-4 w-4" />

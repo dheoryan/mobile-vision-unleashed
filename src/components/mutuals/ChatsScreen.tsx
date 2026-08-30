@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Hand, MessageCircle, Plus, UsersRound, X, Zap } from "lucide-react";
+import { Hand, MessageCircle, UsersRound, X, Zap } from "lucide-react";
+import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/csr/ChatCircleDots";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
 import { TRIBES, tribeById, type TribeId } from "@/lib/mutuals-data";
@@ -185,7 +186,7 @@ function Row({
         {hint && <span className="label-mono mt-1 block text-accent">{hint}</span>}
       </span>
       {!!unread && (
-        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+        <span className="bg-meutuals-gradient flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold leading-none text-white">
           {unread}
         </span>
       )}
@@ -305,7 +306,7 @@ export function ChatsScreen({
           >
             <Hand className="h-5 w-5" />
             {helloRequestCount > 0 && (
-              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+              <span className="bg-meutuals-gradient absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white">
                 {helloRequestCount > 9 ? "9+" : helloRequestCount}
               </span>
             )}
@@ -390,8 +391,8 @@ export function ChatsScreen({
                   <Row
                     key={venture.id}
                     leading={
-                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-card">
-                        <Zap className="h-4.5 w-4.5 text-primary" />
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
+                        <Zap className="h-4.5 w-4.5" />
                       </span>
                     }
                     title={venture.title}
@@ -419,8 +420,8 @@ export function ChatsScreen({
                   <Row
                     key={venture.id}
                     leading={
-                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
-                        <UsersRound className="h-4.5 w-4.5 text-primary" />
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
+                        <UsersRound className="h-4.5 w-4.5" />
                       </span>
                     }
                     title={venture.title}
@@ -474,7 +475,7 @@ export function ChatsScreen({
         {!isLoading && !nothingAtAll && showDirect && threads.length === 0 && (
           <div className="mt-6 rounded-2xl border border-dashed border-border p-6 text-center">
             <p className="text-xs text-muted-foreground">
-              No direct messages yet. Tap "New message" to start one with a Moot.
+              No direct messages yet. Tap the chat button to start one with a Moot.
             </p>
           </div>
         )}
@@ -500,9 +501,9 @@ export function ChatsScreen({
           type="button"
           onClick={() => setMootsPickerOpen(true)}
           aria-label="New message"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground shadow-xl shadow-black/30 transition-transform active:scale-95"
+          className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-meutuals-gradient text-white shadow-xl shadow-black/30 transition-[transform,filter] hover:brightness-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <Plus className="h-4 w-4" /> New message
+          <ChatCircleDotsIcon className="h-6 w-6" weight="fill" aria-hidden="true" />
         </button>
       </div>
 

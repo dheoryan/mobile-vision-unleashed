@@ -1,4 +1,9 @@
-import { Newspaper, Globe2, Zap, MessageCircle, User } from "lucide-react";
+import { NewspaperIcon } from "@phosphor-icons/react/dist/csr/Newspaper";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/csr/GlobeHemisphereWest";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/csr/ChatCircleDots";
+import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
+import type { Icon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,12 +23,12 @@ import { cn } from "@/lib/utils";
  */
 export type TabKey = "feed" | "discover" | "ventures" | "chats" | "profile";
 
-const tabs: { key: TabKey; label: string; icon: typeof Newspaper }[] = [
-  { key: "feed", label: "Timeline", icon: Newspaper },
-  { key: "discover", label: "Discover", icon: Globe2 },
-  { key: "ventures", label: "Ventures", icon: Zap },
-  { key: "chats", label: "Chats", icon: MessageCircle },
-  { key: "profile", label: "Profile", icon: User },
+const tabs: { key: TabKey; label: string; icon: Icon }[] = [
+  { key: "feed", label: "Timeline", icon: NewspaperIcon },
+  { key: "discover", label: "Discover", icon: GlobeHemisphereWestIcon },
+  { key: "ventures", label: "Ventures", icon: LightningIcon },
+  { key: "chats", label: "Chats", icon: ChatCircleDotsIcon },
+  { key: "profile", label: "Profile", icon: UserIcon },
 ];
 
 export function BottomNav({
@@ -56,24 +61,28 @@ export function BottomNav({
                 onClick={() => onChange(key)}
                 className={cn(
                   "flex w-full flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  isActive
+                    ? "font-semibold text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 aria-label={label}
               >
                 <span
                   className={cn(
-                    "relative flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                    "relative flex h-8 w-8 items-center justify-center",
                     // .animate-tab exists in styles.css for exactly this - a
                     // one-shot bounce - but had never been wired to a tab
                     // control. It's a class add on activation (isActive false
                     // -> true), not a looping state, so it naturally only
                     // plays once per switch rather than on every render.
-                    isActive ? "bg-primary/15 animate-tab" : "bg-transparent",
+                    isActive && "animate-tab",
                   )}
                 >
-                  <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+                  <Icon className="h-5 w-5" weight={isActive ? "fill" : "regular"} />
                   {!!badge && (
-                    <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
+                    <span className="bg-meutuals-gradient absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white ring-2 ring-background">
+                      {badge > 9 ? "9+" : badge}
+                    </span>
                   )}
                 </span>
                 <span className="text-[10px] font-medium tracking-wide">{label}</span>

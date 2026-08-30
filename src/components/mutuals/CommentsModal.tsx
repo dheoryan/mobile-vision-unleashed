@@ -11,9 +11,9 @@ import {
   ChevronDown,
   ChevronRight,
   Reply,
-  Heart,
-  Repeat2,
 } from "lucide-react";
+import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
+import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
 import { SafetyMenu } from "./SafetyMenu";
@@ -443,7 +443,7 @@ export function CommentsThread({
               className="group flex min-h-[4.75rem] w-full items-center gap-3 border-y border-border px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/12 text-emerald-400">
-                <Repeat2 className="h-5 w-5" />
+                <RepeatIcon className="h-5 w-5" weight="fill" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">Undo repost</span>
@@ -802,7 +802,7 @@ function CommentItem({
                   liked ? "text-rose-400" : "hover:text-rose-400",
                 )}
               >
-                <Heart className="h-3.5 w-3.5" fill={liked ? "currentColor" : "none"} />
+                <HeartIcon className="h-3.5 w-3.5" weight={liked ? "fill" : "regular"} />
                 {c.likes_count > 0 && <span>{c.likes_count}</span>}
               </button>
             )}
@@ -818,7 +818,7 @@ function CommentItem({
                   reposted ? "text-emerald-400" : "hover:text-emerald-400",
                 )}
               >
-                <Repeat2 className="h-3.5 w-3.5" />
+                <RepeatIcon className="h-3.5 w-3.5" weight={reposted ? "fill" : "regular"} />
                 {c.reposts_count > 0 && <span>{c.reposts_count}</span>}
               </button>
             )}
