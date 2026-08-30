@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Mobile repost options bottom sheet | `DEVLOG.md`, `src/components/mutuals/PostCard.tsx`, `tests/repost-sheet.test.ts` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,20 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Repost options moved to a mobile bottom sheet
+
+- Replaced the small post-anchored repost popover with the shared Radix-based
+  mobile bottom sheet. It now has a visible drag affordance, backdrop and
+  focus management, 64px action rows, and Home-indicator safe-area padding.
+- Kept the product's supported actions rather than copying unrelated controls
+  from the reference app: `Quote post` opens the existing quote composer;
+  `Repost only` performs the existing repost mutation and becomes
+  `Undo repost` when already active. Mutation failures now surface visibly.
+- Added `tests/repost-sheet.test.ts`. Eight targeted repost/iOS safe-area tests,
+  `npx tsc --noEmit`, and the full production Cloudflare build pass. Local
+  393x852 visual acceptance confirmed the sheet fills the mobile width and
+  clears the bottom edge; physical installed-iPhone acceptance remains.
 
 ### 2026-08-30 — Codex — iOS Home Screen comments and Chats safe-area repair
 

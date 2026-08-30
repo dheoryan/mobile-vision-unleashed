@@ -535,11 +535,11 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         >
           <MessageCircle className="h-4 w-4" /> {post.replies_count}
         </button>
-        <div className="relative ml-auto">
+        <div className="ml-auto">
           <button
             onClick={() => {
               if (post.id.startsWith("tmp-")) return;
-              setRepostMenuOpen((o) => !o);
+              setRepostMenuOpen(true);
             }}
             className={cn(
               "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
@@ -550,31 +550,6 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
           >
             <Repeat2 className="h-4 w-4" /> {post.reposts_count}
           </button>
-          {repostMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setRepostMenuOpen(false)} />
-              <div className="absolute left-0 top-9 z-40 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                <button
-                  onClick={() => {
-                    setRepostMenuOpen(false);
-                    toggleRepost.mutate(post.id);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
-                >
-                  <Repeat2 className="h-3.5 w-3.5" /> {reposted ? "Undo repost" : "Repost"}
-                </button>
-                <button
-                  onClick={() => {
-                    setRepostMenuOpen(false);
-                    setQuoteOpen(true);
-                  }}
-                  className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm hover:bg-secondary"
-                >
-                  <Quote className="h-3.5 w-3.5" /> Quote
-                </button>
-              </div>
-            </>
-          )}
         </div>
         <button
           onClick={() => {
@@ -608,6 +583,71 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
         postId={post.id}
         isPostOwner={isMine}
       />
+
+      <AnimatedModal
+        open={repostMenuOpen}
+        onOpenChange={setRepostMenuOpen}
+        title="Repost options"
+        contentClassName="overflow-hidden"
+      >
+        <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
+          <h2 className="px-1 pb-4 pt-5 text-center font-display text-base font-bold">
+            Repost options
+          </h2>
+
+          <div className="overflow-hidden rounded-2xl border border-border bg-secondary/35">
+            <button
+              type="button"
+              onClick={() => {
+                setRepostMenuOpen(false);
+                setQuoteOpen(true);
+              }}
+              className="flex min-h-16 w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-secondary active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              <span>
+                <span className="block text-sm font-semibold">Quote post</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Add your take before sharing
+                </span>
+              </span>
+              <Quote className="h-5 w-5 shrink-0 text-muted-foreground" />
+            </button>
+
+            <div className="mx-4 border-t border-border" />
+
+            <button
+              type="button"
+              disabled={toggleRepost.isPending}
+              onClick={() => {
+                setRepostMenuOpen(false);
+                toggleRepost.mutate(post.id, {
+                  onError: (error) =>
+                    toast.error(reposted ? "Repost wasn't removed" : "Post wasn't reposted", {
+                      description: (error as Error).message,
+                    }),
+                });
+              }}
+              className="flex min-h-16 w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-secondary active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              <span>
+                <span className="block text-sm font-semibold">
+                  {reposted ? "Undo repost" : "Repost only"}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {reposted ? "Remove it from your reposts" : "Share it without adding a note"}
+                </span>
+              </span>
+              <Repeat2
+                className={cn(
+                  "h-5 w-5 shrink-0",
+                  reposted ? "text-emerald-400" : "text-muted-foreground",
+                )}
+              />
+            </button>
+          </div>
+        </div>
+      </AnimatedModal>
 
       {quoteOpen && (
         <ComposerModal
