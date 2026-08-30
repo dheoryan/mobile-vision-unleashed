@@ -8,7 +8,15 @@ import { cn } from "@/lib/utils";
 
 type SortKey = "newest" | "oldest" | "likes";
 
-export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
+export function ProfilePostHistory({
+  posts,
+  searchPlaceholder = "Search your posts",
+  noMatchesCopy = "No posts match those filters.",
+}: {
+  posts: FeedPost[];
+  searchPlaceholder?: string;
+  noMatchesCopy?: string;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
   const [tribeFilter, setTribeFilter] = useState<string | null>(null);
@@ -24,8 +32,11 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
     if (tribeFilter) rows = rows.filter((p) => p.tribe_id === tribeFilter);
     if (q) rows = rows.filter((p) => p.content.toLowerCase().includes(q));
     const sorted = [...rows];
-    if (sort === "newest") sorted.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-    if (sort === "oldest") sorted.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+    const activityAt = (post: FeedPost) => post.profile_activity_at ?? post.created_at;
+    if (sort === "newest")
+      sorted.sort((a, b) => +new Date(activityAt(b)) - +new Date(activityAt(a)));
+    if (sort === "oldest")
+      sorted.sort((a, b) => +new Date(activityAt(a)) - +new Date(activityAt(b)));
     if (sort === "likes") sorted.sort((a, b) => (b.likes_count ?? 0) - (a.likes_count ?? 0));
     return sorted;
   }, [posts, query, sort, tribeFilter]);
@@ -33,7 +44,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
   const grouped = useMemo(() => {
     const map = new Map<string, FeedPost[]>();
     for (const p of filtered) {
-      const d = new Date(p.created_at);
+      const d = new Date(p.profile_activity_at ?? p.created_at);
       const key = d.toLocaleString(undefined, { month: "long", year: "numeric" });
       const arr = map.get(key) ?? [];
       arr.push(p);
@@ -56,7 +67,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search your posts"
+              placeholder={searchPlaceholder}
               className="w-full rounded-full border border-border bg-card py-2 pl-9 pr-8 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
             {query && (
@@ -102,7 +113,7 @@ export function ProfilePostHistory({ posts }: { posts: FeedPost[] }) {
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-          {posts.length === 0 ? "You haven't posted yet." : "No posts match those filters."}
+          {posts.length === 0 ? "No signals yet." : noMatchesCopy}
         </p>
       ) : (
         <div className="space-y-5">

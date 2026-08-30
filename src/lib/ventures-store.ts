@@ -11,6 +11,7 @@ import {
   decideVentureApplication,
   listMyHostedVentures,
   listMyJoinedVentures,
+  listProfileVentureHistory,
   listOpenVentures,
   listVentureMessages,
   sendVentureMessage,
@@ -23,6 +24,7 @@ import {
   type VentureMessage,
   type VentureCoordination,
   type VentureArrivalStatus,
+  type ProfileVentureHistoryItem,
 } from "@/lib/ventures.functions";
 import type { RichMessageInput } from "@/lib/chat";
 
@@ -36,6 +38,7 @@ export type {
   VentureArrivalStatus,
   VentureArrivalState,
   VentureAnnouncement,
+  ProfileVentureHistoryItem,
 } from "@/lib/ventures.functions";
 
 const VENTURES_KEY = ["ventures"] as const;
@@ -80,6 +83,16 @@ export function useMyJoinedVentures() {
     queryFn: () => fn(),
     enabled: !!user,
     staleTime: 10_000,
+  });
+}
+
+export function useProfileVentureHistory(profileId: string | null) {
+  const fn = useServerFn(listProfileVentureHistory);
+  return useQuery({
+    queryKey: ["ventures", "profile-history", profileId],
+    queryFn: () => fn({ data: { profile_id: profileId! } }),
+    enabled: !!profileId,
+    staleTime: 15_000,
   });
 }
 

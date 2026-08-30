@@ -48,6 +48,9 @@ export type FeedPost = {
    *  deletion so the card can render an unavailable-source placeholder. */
   quoted_comment: CommentRow | null;
   created_at: string;
+  /** Profile-history ordering timestamp. Reposts use the moment they were
+   *  reposted while the PostCard still renders the original post timestamp. */
+  profile_activity_at?: string;
   author: AuthorLite | null;
 };
 
@@ -416,6 +419,44 @@ export const listPostsByAuthor = createServerFn({ method: "GET" })
     return hydratePosts(supabase, rows ?? []);
   });
 
+const profilePostHistorySchema = z.object({ author_id: z.string().uuid() });
+
+async function listVisibleRepostedPosts(
+  supabase: Parameters<typeof hydratePosts>[0],
+  authorId: string,
+) {
+  const { data: rows, error } = await supabase
+    .from("reposts")
+    .select(`created_at, posts!inner(${POST_COLS})`)
+    .eq("user_id", authorId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  const repostRows = (rows ?? []) as Array<{
+    created_at: string;
+    posts: Record<string, unknown>;
+  }>;
+  const hydrated = await hydratePosts(
+    supabase,
+    repostRows.map((row) => row.posts),
+  );
+  return hydrated.map((post, index) => ({
+    ...post,
+    profile_activity_at: repostRows[index]?.created_at ?? post.created_at,
+  }));
+}
+
+/**
+ * A public profile's Reposts tab. The `reposts` rows are readable, while the
+ * embedded `posts` relation still passes through the caller's post RLS. A
+ * Tribe-only signal therefore disappears for viewers outside that Tribe
+ * instead of being leaked through the reposter's profile.
+ */
+export const listRepostedPostsByAuthor = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => profilePostHistorySchema.parse(input))
+  .handler(async ({ data, context }) => listVisibleRepostedPosts(context.supabase, data.author_id));
+
 // Backs the profile's "Reposts" tab - everything this viewer has reposted,
 // hydrated the same way the feed is. Named distinctly from social.functions'
 // listMyReposts (which returns bare post ids for the toggle-state Set, the
@@ -424,20 +465,7 @@ export const listPostsByAuthor = createServerFn({ method: "GET" })
 // belongs in its own history, not mixed into "your posts."
 export const listMyRepostedPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data: rows, error } = await supabase
-      .from("reposts")
-      .select(`created_at, posts!inner(${POST_COLS})`)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) throw new Error(error.message);
-    const postRows = ((rows ?? []) as Array<{ posts: Record<string, unknown> }>).map(
-      (r) => r.posts,
-    );
-    return hydratePosts(supabase, postRows);
-  });
+  .handler(async ({ context }) => listVisibleRepostedPosts(context.supabase, context.userId));
 
 const imagePathSchema = z.string().regex(POST_IMAGE_PATH, "Invalid post image path").max(200);
 

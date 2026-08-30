@@ -1,29 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Menu,
-  Bookmark,
-  Repeat2,
-  Zap,
-  X,
-  Loader2,
-  Check,
-  LocateFixed,
-  MapPin,
-  Grid3x3,
-} from "lucide-react";
+import { Menu, Zap, X, Loader2, Check, LocateFixed, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { useMyPosts, useMyRepostedPosts } from "@/lib/posts-store";
-import { useMyHostedVentures } from "@/lib/ventures-store";
+import { useProfileVentureHistory } from "@/lib/ventures-store";
 import { useProfileStats } from "@/lib/social-store";
 import { PostCard } from "./PostCard";
 import { ProfilePostHistory } from "./ProfilePostHistory";
-import { timeAgo } from "@/lib/time";
 import { intentStore } from "@/lib/intent-store";
-import { preferVentureHostingOnNextOpen } from "@/lib/ventures-mode";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -48,11 +35,10 @@ import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
 import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
 import { TribeMark } from "./TribeMark";
-import { timingLabel } from "@/lib/venture-time";
 import { avatarFileIssue } from "@/lib/avatar-file";
 import { AvatarLightbox } from "./AvatarLightbox";
-
-type GridTab = "posts" | "reposts" | "ventures";
+import { ProfileActivityTabs, type ProfileActivityTab } from "./ProfileActivityTabs";
+import { ProfileVentureHistory } from "./ProfileVentureHistory";
 
 export function ProfileScreen({
   profile,
@@ -64,7 +50,7 @@ export function ProfileScreen({
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
-  const [gridTab, setGridTab] = useState<GridTab>("posts");
+  const [gridTab, setGridTab] = useState<ProfileActivityTab>("signals");
   const hasPhotoAvatar = Boolean(
     profile.avatar?.startsWith("data:") || profile.avatar?.startsWith("http"),
   );
@@ -90,7 +76,7 @@ export function ProfileScreen({
 
   const repostedQuery = useMyRepostedPosts();
   const repostedPosts = repostedQuery.data ?? [];
-  const venturesQuery = useMyHostedVentures();
+  const venturesQuery = useProfileVentureHistory(user?.id ?? null);
   const ventures = venturesQuery.data ?? [];
 
   return (
@@ -359,23 +345,9 @@ export function ProfileScreen({
             fixes the "undecipherable" half of that without reintroducing the
             redundant-heading half — full width so each tab gets an equal,
             deliberate target instead of a left-packed cluster. */}
-        <div className="mb-5 mt-8 flex border-b border-border">
-          <TabBtn icon={Grid3x3} active={gridTab === "posts"} onClick={() => setGridTab("posts")}>
-            Posts
-          </TabBtn>
-          <TabBtn
-            icon={Repeat2}
-            active={gridTab === "reposts"}
-            onClick={() => setGridTab("reposts")}
-          >
-            Reposts
-          </TabBtn>
-          <TabBtn icon={Zap} active={gridTab === "ventures"} onClick={() => setGridTab("ventures")}>
-            Ventures
-          </TabBtn>
-        </div>
+        <ProfileActivityTabs value={gridTab} onChange={setGridTab} />
 
-        {gridTab === "posts" &&
+        {gridTab === "signals" &&
           (myPostsQuery.isLoading ? (
             // Real content here is full PostCards (via ProfilePostHistory),
             // not the plain text cards CompactListSkeleton mocks up - that
@@ -400,7 +372,7 @@ export function ProfileScreen({
               You haven't posted yet. Share a signal from the Timeline tab.
             </p>
           ) : (
-            <ProfilePostHistory posts={myPosts} />
+            <ProfilePostHistory posts={myPosts} searchPlaceholder="Search your signals" />
           ))}
 
         {gridTab === "reposts" &&
@@ -415,7 +387,7 @@ export function ProfileScreen({
             // how to draw its own "Reposted by X" line, so a repost here
             // looks exactly like it does in the feed, not a stripped-down
             // summary.
-            <ProfilePostHistory posts={repostedPosts} />
+            <ProfilePostHistory posts={repostedPosts} searchPlaceholder="Search your reposts" />
           ))}
 
         {gridTab === "ventures" && (
@@ -424,33 +396,20 @@ export function ProfileScreen({
               <CompactListSkeleton label="Loading your Ventures" />
             ) : ventures.length === 0 ? (
               <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                You haven't launched a Venture yet. Open the Ventures tab when you're ready to meet
-                someone in person.
+                No Venture history yet. Host or join one from the Ventures tab when you're ready to
+                meet someone in person.
               </div>
             ) : (
-              ventures.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => {
-                    if (user) preferVentureHostingOnNextOpen(user.id);
-                    intentStore.push({ kind: "openTab", tab: "ventures" });
-                  }}
-                  className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm transition-colors hover:border-primary/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate font-semibold">
-                      {v.title || v.intents.slice(0, 3).join(" · ") || "Open to anything"}
-                    </p>
-                    <span className="label-mono shrink-0 text-muted-foreground">{v.status}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {v.scope === "mine" ? "My Tribes" : "All Tribes"} ·{" "}
-                    {timingLabel(v) ?? "Any time"} · {v.filled_slots}/{v.max_slots} joined ·{" "}
-                    {timeAgo(v.created_at)}
-                  </p>
-                </button>
-              ))
+              <ProfileVentureHistory
+                ventures={ventures}
+                onSelect={(venture) =>
+                  intentStore.push({
+                    kind: "openVenture",
+                    ventureId: venture.id,
+                    mode: venture.host_id === user?.id ? "host" : "yours",
+                  })
+                }
+              />
             )}
           </div>
         )}
@@ -476,33 +435,6 @@ export function ProfileScreen({
         />
       )}
     </div>
-  );
-}
-
-function TabBtn({
-  icon: Icon,
-  active,
-  onClick,
-  children,
-}: {
-  icon: typeof Bookmark;
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex min-h-11 flex-1 items-center justify-center gap-1.5 pb-2.5 text-xs transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-        active
-          ? "font-bold text-primary shadow-[inset_0_-2px_0_var(--color-primary)]"
-          : "text-muted-foreground hover:text-foreground",
-      )}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {children}
-    </button>
   );
 }
 

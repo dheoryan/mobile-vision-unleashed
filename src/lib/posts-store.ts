@@ -14,6 +14,8 @@ import {
   listHiddenComments,
   listMyPosts,
   listMyRepostedPosts,
+  listPostsByAuthor,
+  listRepostedPostsByAuthor,
   listMySavedIds,
   listMySavedPosts,
   getTribeMemberCounts,
@@ -129,6 +131,26 @@ export function useMyPosts() {
     queryKey: [...MINE_KEY, user?.id ?? null],
     queryFn: () => fn(),
     enabled: !!user,
+    staleTime: 15_000,
+  });
+}
+
+export function usePostsByAuthor(authorId: string | null) {
+  const fn = useServerFn(listPostsByAuthor);
+  return useQuery({
+    queryKey: ["posts", "by-author", authorId],
+    queryFn: () => fn({ data: { author_id: authorId! } }),
+    enabled: !!authorId,
+    staleTime: 15_000,
+  });
+}
+
+export function useRepostedPostsByAuthor(authorId: string | null) {
+  const fn = useServerFn(listRepostedPostsByAuthor);
+  return useQuery({
+    queryKey: ["posts", "reposted-by-author", authorId],
+    queryFn: () => fn({ data: { author_id: authorId! } }),
+    enabled: !!authorId,
     staleTime: 15_000,
   });
 }

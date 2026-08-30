@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Public profile Signals/Reposts/Ventures tabs | `src/routes/u.$handle.tsx`, post/Venture functions and stores, Supabase migration/types, tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Profiles share Signals, Reposts, and Ventures history
+
+- Replaced the public profile's one-off Posts section with the same three-tab
+  activity model on the owner profile: Signals, Reposts, and Ventures. The tab
+  control is now shared, uses 44 px targets, and changes content inline without
+  another modal layer.
+- Added viewer-authorized public repost history. Embedded posts still pass
+  through post RLS, and repost history sorts by the repost moment without
+  changing the original signal timestamp shown on its card.
+- Added viewer-authorized Venture history for both owner and public profiles,
+  including Hosted/Joined roles plus Upcoming/Past grouping. It uses the normal
+  RLS-respecting Supabase client and never returns application messages,
+  participant-only arrival instructions, or private venue data.
+- Verified `/u/kiamu` at 390×844: all tabs measured 44 px high, Signals loaded
+  its history tools, Reposts showed its dedicated empty state, and Ventures
+  rendered two real visible upcoming hosted cards. Verification also includes
+  changed-source ESLint, `npx tsc --noEmit`, all 106 Node tests,
+  `git diff --check`, and the Cloudflare production build. No migration is
+  required.
 
 ### 2026-08-30 — Codex — Public profile back control matches secondary headers
 

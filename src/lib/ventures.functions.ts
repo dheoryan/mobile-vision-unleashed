@@ -78,6 +78,10 @@ export type VentureParty = {
   accepted_count: number;
 };
 
+export type ProfileVentureHistoryItem = VentureParty & {
+  profile_role: "hosted" | "joined";
+};
+
 export type VentureMessage = {
   id: string;
   venture_id: string;
@@ -510,7 +514,9 @@ async function requireVentureMember(
   return venture;
 }
 
-function ventureRowIsComplete(venture: VentureDbRow): boolean {
+function ventureRowIsComplete(
+  venture: Pick<VentureDbRow, "status" | "ends_at" | "closed_at" | "ended_at">,
+): boolean {
   const scheduledEnd = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
   return (
     venture.status === "closed" ||
@@ -801,6 +807,83 @@ export const listMyJoinedVentures = createServerFn({ method: "GET" })
         );
       })
       .filter(Boolean) as VentureParty[];
+  });
+
+/**
+ * Viewer-authorized Venture history for a profile.
+ *
+ * This deliberately uses the normal Supabase client. Hosted Ventures are
+ * filtered by the existing Venture SELECT policy. Joined Ventures first pass
+ * through venture_applications RLS, which means accepted participation is
+ * visible only to the target, the host, or another accepted member of that
+ * same Venture. No application message, private venue, or arrival detail is
+ * returned to the profile UI.
+ */
+export const listProfileVentureHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ profile_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<ProfileVentureHistoryItem[]> => {
+    const { supabase } = context;
+    const db = supabase as unknown as any;
+
+    const [hostedResult, joinedResult] = await Promise.all([
+      selectVenturesWithFallback((columns) =>
+        db
+          .from("ventures")
+          .select(columns)
+          .eq("user_id", data.profile_id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ),
+      db
+        .from("venture_applications")
+        .select("venture_id, created_at")
+        .eq("applicant_id", data.profile_id)
+        .eq("status", "accepted")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    if (hostedResult.error) throw new Error(hostedResult.error.message);
+    if (joinedResult.error) throw new Error(joinedResult.error.message);
+
+    const hostedRows = (hostedResult.data ?? []) as VentureDbRow[];
+    const joinedIds = uniq(
+      ((joinedResult.data ?? []) as Array<{ venture_id: string }>).map((row) => row.venture_id),
+    );
+    let joinedRows: VentureDbRow[] = [];
+    if (joinedIds.length) {
+      const joinedVenturesResult = await selectVenturesWithFallback((columns) =>
+        db.from("ventures").select(columns).in("id", joinedIds),
+      );
+      if (joinedVenturesResult.error) throw new Error(joinedVenturesResult.error.message);
+      joinedRows = (joinedVenturesResult.data ?? []) as VentureDbRow[];
+    }
+
+    const rowsById = new Map<string, { row: VentureDbRow; role: "hosted" | "joined" }>();
+    for (const row of hostedRows) rowsById.set(row.id, { row, role: "hosted" });
+    for (const row of joinedRows) {
+      if (!rowsById.has(row.id)) rowsById.set(row.id, { row, role: "joined" });
+    }
+    const scoped = [...rowsById.values()];
+    if (!scoped.length) return [];
+
+    const hosts = await fetchProfiles(
+      db,
+      scoped.map(({ row }) => row.user_id),
+    );
+    const ventures = scoped.map(({ row, role }) => ({
+      ...mapParty(row, hosts.get(row.user_id) ?? null),
+      profile_role: role,
+    }));
+
+    return ventures.sort((a, b) => {
+      const aComplete = ventureRowIsComplete(a);
+      const bComplete = ventureRowIsComplete(b);
+      if (aComplete !== bComplete) return aComplete ? 1 : -1;
+      const aTime = Date.parse(a.starts_at ?? a.created_at);
+      const bTime = Date.parse(b.starts_at ?? b.created_at);
+      return aComplete ? bTime - aTime : aTime - bTime;
+    });
   });
 
 export const listVentureInviteCandidates = createServerFn({ method: "GET" })

@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, MessageCircle, Hand, Clock, MapPin } from "lucide-react";
 import { getProfileByHandle } from "@/lib/profile.functions";
-import { listPostsByAuthor } from "@/lib/posts.functions";
+import { usePostsByAuthor, useRepostedPostsByAuthor } from "@/lib/posts-store";
+import { useProfileVentureHistory } from "@/lib/ventures-store";
 import { useProfileStats, useContactStatus } from "@/lib/social-store";
 import { useMyProfile } from "@/lib/profile-store";
 import { HelloModal } from "@/components/mutuals/HelloModal";
@@ -11,7 +12,6 @@ import { AvatarLightbox } from "@/components/mutuals/AvatarLightbox";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
-import { PostCard } from "@/components/mutuals/PostCard";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
@@ -23,7 +23,17 @@ import {
   optionLabel,
 } from "@/lib/profile-options";
 import { TribeMark } from "@/components/mutuals/TribeMark";
-import { AppBootstrapSkeleton, FeedSkeleton } from "@/components/mutuals/Skeleton";
+import {
+  AppBootstrapSkeleton,
+  CompactListSkeleton,
+  FeedSkeleton,
+} from "@/components/mutuals/Skeleton";
+import {
+  ProfileActivityTabs,
+  type ProfileActivityTab,
+} from "@/components/mutuals/ProfileActivityTabs";
+import { ProfilePostHistory } from "@/components/mutuals/ProfilePostHistory";
+import { ProfileVentureHistory } from "@/components/mutuals/ProfileVentureHistory";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
@@ -35,7 +45,6 @@ function PublicProfilePage() {
   const navigate = useNavigate();
 
   const profileFn = useServerFn(getProfileByHandle);
-  const postsFn = useServerFn(listPostsByAuthor);
 
   const profileQ = useQuery({
     queryKey: ["profile-public", handle],
@@ -46,17 +55,15 @@ function PublicProfilePage() {
   const profile = profileQ.data;
   const isMe = !!user && !!profile && profile.id === user.id;
 
-  const postsQ = useQuery({
-    queryKey: ["posts", "by-author", profile?.id ?? "none"],
-    queryFn: () => postsFn({ data: { author_id: profile!.id } }),
-    enabled: !!profile?.id,
-    staleTime: 15_000,
-  });
+  const postsQ = usePostsByAuthor(profile?.id ?? null);
+  const repostsQ = useRepostedPostsByAuthor(profile?.id ?? null);
+  const venturesQ = useProfileVentureHistory(profile?.id ?? null);
 
   const statsQ = useProfileStats(profile?.id ?? null);
   const contact = useContactStatus(isMe ? null : (profile?.id ?? null));
   const [helloOpen, setHelloOpen] = useState(false);
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
+  const [activityTab, setActivityTab] = useState<ProfileActivityTab>("signals");
   const myProfile = useMyProfile();
   const sameTribe = !!profile?.tribe_ids?.some((id) => myProfile?.tribeIds.includes(id as TribeId));
 
@@ -273,20 +280,57 @@ function PublicProfilePage() {
           )}
         </section>
 
-        <h3 className="label-mono mb-5 mt-8">Posts</h3>
-        {postsQ.isLoading ? (
-          <FeedSkeleton count={2} />
-        ) : (postsQ.data?.length ?? 0) === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-            No posts yet.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {postsQ.data!.map((p) => (
-              <PostCard key={p.id} post={p} showTribe />
-            ))}
-          </div>
-        )}
+        <ProfileActivityTabs value={activityTab} onChange={setActivityTab} />
+
+        {activityTab === "signals" &&
+          (postsQ.isLoading ? (
+            <FeedSkeleton count={2} />
+          ) : postsQ.isError ? (
+            <ProfileActivityError copy="Couldn't load these signals." onRetry={postsQ.refetch} />
+          ) : (postsQ.data?.length ?? 0) === 0 ? (
+            <ProfileActivityEmpty copy="No signals yet." />
+          ) : (
+            <ProfilePostHistory
+              posts={postsQ.data!}
+              searchPlaceholder="Search signals"
+              noMatchesCopy="No signals match those filters."
+            />
+          ))}
+
+        {activityTab === "reposts" &&
+          (repostsQ.isLoading ? (
+            <FeedSkeleton count={2} />
+          ) : repostsQ.isError ? (
+            <ProfileActivityError copy="Couldn't load these reposts." onRetry={repostsQ.refetch} />
+          ) : (repostsQ.data?.length ?? 0) === 0 ? (
+            <ProfileActivityEmpty copy="Nothing reposted yet." />
+          ) : (
+            <ProfilePostHistory
+              posts={repostsQ.data!}
+              searchPlaceholder="Search reposts"
+              noMatchesCopy="No reposts match those filters."
+            />
+          ))}
+
+        {activityTab === "ventures" &&
+          (venturesQ.isLoading ? (
+            <CompactListSkeleton label="Loading Venture history" />
+          ) : venturesQ.isError ? (
+            <ProfileActivityError
+              copy="Couldn't load this Venture history."
+              onRetry={venturesQ.refetch}
+            />
+          ) : (venturesQ.data?.length ?? 0) === 0 ? (
+            <ProfileActivityEmpty copy="No Venture history is visible to you yet." />
+          ) : (
+            <ProfileVentureHistory
+              ventures={venturesQ.data!}
+              onSelect={() => {
+                intentStore.push({ kind: "openTab", tab: "ventures" });
+                void navigate({ to: "/" });
+              }}
+            />
+          ))}
       </main>
 
       {profile && (
@@ -319,6 +363,29 @@ function Stat({ label, value }: { label: string; value: string }) {
         {value}
       </p>
       <p className="label-mono mt-2 text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function ProfileActivityEmpty({ copy }: { copy: string }) {
+  return (
+    <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+      {copy}
+    </p>
+  );
+}
+
+function ProfileActivityError({ copy, onRetry }: { copy: string; onRetry: () => void }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+      <p className="text-xs text-muted-foreground">{copy}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        Retry
+      </button>
     </div>
   );
 }
