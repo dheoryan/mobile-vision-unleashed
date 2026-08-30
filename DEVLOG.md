@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Comment-delete confirmation | `src/components/mutuals/CommentsModal.tsx`, `tests/ios-pwa-comments.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,19 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Comment deletion now requires confirmation
+
+- An author tapping the trash action now opens the app's accessible centered
+  confirmation dialog instead of deleting immediately.
+- The dialog makes the cascade behavior explicit: the reply disappears from the
+  signal thread and any nested replies are removed too. `Keep reply` is the safe
+  exit; `Delete reply` is the clearly destructive action.
+- The dialog stays open and cannot be dismissed while deletion is processing,
+  closes only on success, and retains the target on failure so the author can
+  retry. Verification: 5 focused tests, changed-source ESLint,
+  `npx tsc --noEmit`, `git diff --check`, and the full Cloudflare production
+  build pass. No database change is required.
 
 ### 2026-08-30 — Codex — Focused posts now use signal-thread language
 

@@ -43,6 +43,16 @@ test("the thread uses signal-specific reply copy", () => {
   assert.doesNotMatch(commentsModalSource, />CONVERSATION<\/p>/);
 });
 
+test("authors confirm before deleting their own reply", () => {
+  assert.match(commentsModalSource, /const \[deleteTarget, setDeleteTarget\]/);
+  assert.match(commentsModalSource, /onClick=\{\(\) => onDelete\(c\)\}/);
+  assert.match(commentsModalSource, /title="Delete this reply\?"/);
+  assert.match(commentsModalSource, /preventClose=\{deleteComment\.isPending\}/);
+  assert.match(commentsModalSource, /If it has replies, they’ll be removed/);
+  assert.match(commentsModalSource, /Keep reply/);
+  assert.match(commentsModalSource, /Delete reply/);
+});
+
 test("Chats new-message action clears the Home Screen navigation safe area", () => {
   assert.match(chatsSource, /bottom-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
 });

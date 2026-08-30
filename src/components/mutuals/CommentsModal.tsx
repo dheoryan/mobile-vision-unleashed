@@ -61,6 +61,7 @@ export function CommentsThread({
   const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<CommentRow | null>(null);
   const [repostTarget, setRepostTarget] = useState<CommentRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CommentRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const commentsQuery = useComments(postId);
@@ -303,7 +304,7 @@ export function CommentsThread({
                 meAvatar={me?.avatar ?? "🙂"}
                 meName={me?.name?.trim() || "You"}
                 onReply={startReply}
-                onDelete={(id) => deleteComment.mutate(id)}
+                onDelete={setDeleteTarget}
                 isPostOwner={isPostOwner}
                 onHide={(id) => hideComment.mutate(id)}
                 likedIds={commentLikes.data ?? new Set<string>()}
@@ -436,6 +437,55 @@ export function CommentsThread({
           </div>
         </div>
       </AnimatedModal>
+
+      <AnimatedModal
+        open={!!deleteTarget}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !deleteComment.isPending) setDeleteTarget(null);
+        }}
+        title="Delete this reply?"
+        center
+        preventClose={deleteComment.isPending}
+        contentClassName="mx-4 max-w-sm p-5"
+        zIndex={70}
+      >
+        <p className="label-mono text-destructive">REMOVE REPLY</p>
+        <h2 className="mt-1 font-display text-lg font-bold">Delete this reply?</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          This reply will disappear from the signal thread. If it has replies, they’ll be removed
+          too. This can’t be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(null)}
+            disabled={deleteComment.isPending}
+            className="min-h-11 rounded-full border border-border px-4 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          >
+            Keep reply
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!deleteTarget) return;
+              deleteComment.mutate(deleteTarget.id, {
+                onSuccess: () => {
+                  setDeleteTarget(null);
+                  toast.success("Reply deleted");
+                },
+                onError: (error) =>
+                  toast.error("Reply wasn't deleted", {
+                    description: (error as Error).message,
+                  }),
+              });
+            }}
+            disabled={!deleteTarget || deleteComment.isPending}
+            className="min-h-11 rounded-full bg-destructive px-4 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50"
+          >
+            {deleteComment.isPending ? "Deleting…" : "Delete reply"}
+          </button>
+        </div>
+      </AnimatedModal>
     </>
   );
 }
@@ -463,7 +513,7 @@ function CommentNode({
   meAvatar: string;
   meName: string;
   onReply: (c: CommentRow) => void;
-  onDelete: (id: string) => void;
+  onDelete: (comment: CommentRow) => void;
   isPostOwner: boolean;
   onHide: (id: string) => void;
   likedIds: Set<string>;
@@ -557,7 +607,7 @@ function CommentItem({
   meAvatar: string;
   meName: string;
   onReply: (c: CommentRow) => void;
-  onDelete: (id: string) => void;
+  onDelete: (comment: CommentRow) => void;
   isPostOwner: boolean;
   onHide: (id: string) => void;
   liked: boolean;
@@ -750,7 +800,7 @@ function CommentItem({
         </div>
         {mine && !isPending && (
           <button
-            onClick={() => onDelete(c.id)}
+            onClick={() => onDelete(c)}
             aria-label="Delete comment"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           >
