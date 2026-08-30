@@ -18,3 +18,11 @@ test("own and public profile identity blocks show a normalized @handle", () => {
     assert.match(source, /truncate text-sm font-medium text-muted-foreground/);
   }
 });
+
+test("public profiles use the shared secondary-header back control", () => {
+  assert.match(publicProfileSource, /grid-cols-\[1fr_auto_1fr\]/);
+  assert.match(publicProfileSource, /aria-label="Back to MEUTUALS"/);
+  assert.match(publicProfileSource, /className="flex h-11 w-11/);
+  assert.match(publicProfileSource, /<ChevronLeft className="h-5 w-5"/);
+  assert.doesNotMatch(publicProfileSource, /<ArrowLeft[^>]*\/> Back/);
+});

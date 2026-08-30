@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Public-profile secondary header consistency | `src/routes/u.$handle.tsx`, focused test | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Public profile back control matches secondary headers
+
+- Replaced the public-profile header's legacy `Back` text link with the same
+  circular chevron control used by Notifications and Signal Thread.
+- Moved the header to the shared three-column layout so the normalized handle
+  stays visually centered while the 44×44 px back and safety actions remain
+  balanced, safe-area aware, and keyboard accessible.
+- Verified the signed-in `/u/kiamu` view in the local browser (including the
+  44×44 px measured target), changed-source ESLint, `npx tsc --noEmit`, all
+  102 Node tests, `git diff --check`, and the Cloudflare production build.
+  No database change is required.
 
 ### 2026-08-30 — Codex — Group-room notifications are conversation-sized
 

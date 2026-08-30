@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, MessageCircle, Hand, Clock, MapPin } from "lucide-react";
+import { ChevronLeft, MessageCircle, Hand, Clock, MapPin } from "lucide-react";
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { listPostsByAuthor } from "@/lib/posts.functions";
 import { useProfileStats, useContactStatus } from "@/lib/social-store";
@@ -87,22 +87,27 @@ function PublicProfilePage() {
   return (
     <div className="bg-habitat min-h-screen pb-24">
       <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
+        <div className="mx-auto grid min-h-14 max-w-md grid-cols-[1fr_auto_1fr] items-center px-3">
           <Link
             to="/"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Back to MEUTUALS"
+            className="flex h-11 w-11 shrink-0 items-center justify-center justify-self-start rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ChevronLeft className="h-5 w-5" />
           </Link>
-          <p className="font-display text-sm font-bold">@{profile.handle ?? "user"}</p>
-          {isMe ? (
-            <span className="w-10" />
-          ) : (
-            <SafetyMenu
-              targetName={profile.display_name || profile.handle || "this user"}
-              targetUserId={profile.id}
-            />
-          )}
+          <p className="truncate text-center font-display text-sm font-bold">
+            @{profile.handle?.replace(/^@/, "") ?? "user"}
+          </p>
+          <div className="flex justify-end">
+            {isMe ? (
+              <span className="h-11 w-11" aria-hidden />
+            ) : (
+              <SafetyMenu
+                targetName={profile.display_name || profile.handle || "this user"}
+                targetUserId={profile.id}
+              />
+            )}
+          </div>
         </div>
       </header>
 
