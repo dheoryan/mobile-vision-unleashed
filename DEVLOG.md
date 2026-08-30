@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Record comment-social DB verification | `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — User + Codex — Comment social database verified
+
+- The user manually applied
+  `supabase/migrations/20260830040000_comment_likes_and_reposts.sql` and ran
+  `LOVABLE_COMMENT_SOCIAL_RELEASE_VERIFY.sql`; every verification result was
+  `true`.
+- Production now has the RLS-protected comment-like relation, trigger-maintained
+  Like/Repost counters, audience and source guards for comment reposts, and the
+  `comment_like` / `comment_repost` notification triggers required by commit
+  `66a7ef0`. The application code is now safe to test and deploy against the
+  production schema.
 
 ### 2026-08-30 — Codex — Comment likes and feed-visible reposts
 
