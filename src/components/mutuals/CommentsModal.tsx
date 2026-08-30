@@ -10,6 +10,8 @@ import {
   Eye,
   ChevronDown,
   Reply,
+  Heart,
+  Repeat2,
 } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
@@ -21,6 +23,10 @@ import {
   useHideComment,
   useHiddenComments,
   useUnhideComment,
+  useMyCommentLikes,
+  useMyCommentReposts,
+  useToggleCommentLike,
+  useToggleCommentRepost,
   type CommentRow,
 } from "@/lib/posts-store";
 import { useMyProfile } from "@/lib/profile-store";
@@ -64,6 +70,10 @@ export function CommentsModal({
   const commentsQuery = useComments(open ? postId : null);
   const addComment = useAddComment(postId ?? "");
   const deleteComment = useDeleteComment(postId ?? "");
+  const commentLikes = useMyCommentLikes(open ? postId : null);
+  const commentReposts = useMyCommentReposts(open ? postId : null);
+  const toggleCommentLike = useToggleCommentLike(postId ?? "");
+  const toggleCommentRepost = useToggleCommentRepost(postId ?? "");
   const hideComment = useHideComment(postId ?? "");
   const [hiddenOpen, setHiddenOpen] = useState(false);
   // Only fetched once the panel is actually opened - most posts have
@@ -297,6 +307,26 @@ export function CommentsModal({
               onDelete={(id) => deleteComment.mutate(id)}
               isPostOwner={isPostOwner}
               onHide={(id) => hideComment.mutate(id)}
+              likedIds={commentLikes.data ?? new Set<string>()}
+              repostedIds={commentReposts.data ?? new Set<string>()}
+              onLike={(id) =>
+                toggleCommentLike.mutate(id, {
+                  onError: (error) =>
+                    toast.error("Like wasn't updated", {
+                      description: (error as Error).message,
+                    }),
+                })
+              }
+              onRepost={(id) =>
+                toggleCommentRepost.mutate(id, {
+                  onSuccess: (result) =>
+                    toast.success(result.reposted ? "Comment reposted" : "Comment repost removed"),
+                  onError: (error) =>
+                    toast.error("Repost wasn't updated", {
+                      description: (error as Error).message,
+                    }),
+                })
+              }
             />
           ))
         )}
@@ -358,6 +388,10 @@ function CommentNode({
   onDelete,
   isPostOwner,
   onHide,
+  likedIds,
+  repostedIds,
+  onLike,
+  onRepost,
 }: {
   c: CommentRow;
   replies: CommentRow[];
@@ -369,6 +403,10 @@ function CommentNode({
   onDelete: (id: string) => void;
   isPostOwner: boolean;
   onHide: (id: string) => void;
+  likedIds: Set<string>;
+  repostedIds: Set<string>;
+  onLike: (id: string) => void;
+  onRepost: (id: string) => void;
 }) {
   return (
     <div>
@@ -382,6 +420,10 @@ function CommentNode({
         onDelete={onDelete}
         isPostOwner={isPostOwner}
         onHide={onHide}
+        liked={likedIds.has(c.id)}
+        reposted={repostedIds.has(c.id)}
+        onLike={onLike}
+        onRepost={onRepost}
       />
       {replies.length > 0 && (
         <div className="mt-2 space-y-2 border-l border-border/60 pl-4">
@@ -397,6 +439,10 @@ function CommentNode({
               onDelete={onDelete}
               isPostOwner={isPostOwner}
               onHide={onHide}
+              liked={likedIds.has(r.id)}
+              reposted={repostedIds.has(r.id)}
+              onLike={onLike}
+              onRepost={onRepost}
             />
           ))}
         </div>
@@ -437,6 +483,10 @@ function CommentItem({
   onDelete,
   isPostOwner,
   onHide,
+  liked,
+  reposted,
+  onLike,
+  onRepost,
 }: {
   c: CommentRow;
   tribeColor: string;
@@ -447,6 +497,10 @@ function CommentItem({
   onDelete: (id: string) => void;
   isPostOwner: boolean;
   onHide: (id: string) => void;
+  liked: boolean;
+  reposted: boolean;
+  onLike: (id: string) => void;
+  onRepost: (id: string) => void;
 }) {
   const mine = !!meId && c.author_id === meId;
   const isPending = c.id.startsWith("tmp-");
@@ -583,7 +637,7 @@ function CommentItem({
             )}
           </div>
           <p className="text-sm text-foreground">{renderContent(c.content)}</p>
-          <div className="mt-0.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="mt-0.5 flex min-h-11 items-center gap-3 text-[10px] text-muted-foreground">
             <span>{isPending ? "sending…" : timeAgoLabel(c.created_at)}</span>
             {!isPending && (
               <button
@@ -591,6 +645,37 @@ function CommentItem({
                 className="inline-flex items-center gap-1 rounded transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Reply className="h-3 w-3" /> Reply
+              </button>
+            )}
+            {!isPending && (
+              <button
+                type="button"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onLike(c.id)}
+                aria-label={liked ? "Unlike comment" : "Like comment"}
+                aria-pressed={liked}
+                className={cn(
+                  "inline-flex min-h-11 items-center gap-1 rounded px-0.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  liked ? "text-rose-400" : "hover:text-foreground",
+                )}
+              >
+                <Heart className="h-3.5 w-3.5" fill={liked ? "currentColor" : "none"} />
+                {c.likes_count}
+              </button>
+            )}
+            {!isPending && (
+              <button
+                type="button"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onRepost(c.id)}
+                aria-label={reposted ? "Remove comment repost" : "Repost comment"}
+                aria-pressed={reposted}
+                className={cn(
+                  "inline-flex min-h-11 items-center gap-1 rounded px-0.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  reposted ? "text-emerald-400" : "hover:text-foreground",
+                )}
+              >
+                <Repeat2 className="h-3.5 w-3.5" /> {c.reposts_count}
               </button>
             )}
           </div>

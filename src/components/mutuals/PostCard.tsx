@@ -23,6 +23,7 @@ import { SafetyMenu } from "./SafetyMenu";
 import { CommentsModal } from "./CommentsModal";
 import { ComposerModal } from "./ComposerModal";
 import { QuotedPostPreview, QuotedPostUnavailable } from "./QuotedPostPreview";
+import { QuotedCommentPreview, QuotedCommentUnavailable } from "./QuotedCommentPreview";
 import {
   useSocial,
   useToggleLike,
@@ -513,6 +514,12 @@ export function PostCard({ post, showTribe = false }: { post: FeedPost; showTrib
               <QuotedPostPreview post={post.quoted_post} />
             ) : (
               <QuotedPostUnavailable />
+            ))}
+          {post.quoted_comment_id &&
+            (post.quoted_comment ? (
+              <QuotedCommentPreview comment={post.quoted_comment} />
+            ) : (
+              <QuotedCommentUnavailable />
             ))}
         </>
       )}

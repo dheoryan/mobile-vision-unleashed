@@ -15,7 +15,9 @@ export type PushNotificationKind =
   | "hello_accepted"
   | "tribe_pulse"
   | "repost"
-  | "quote";
+  | "quote"
+  | "comment_like"
+  | "comment_repost";
 
 const KIND_TEXT: Record<PushNotificationKind, string> = {
   like: "liked your post",
@@ -38,6 +40,8 @@ const KIND_TEXT: Record<PushNotificationKind, string> = {
   tribe_pulse: "posted today's Tribevia",
   repost: "reposted your post",
   quote: "quoted your post",
+  comment_like: "liked your comment",
+  comment_repost: "reposted your comment",
 };
 
 const PRIVATE_PREVIEW_KINDS = new Set<PushNotificationKind>([

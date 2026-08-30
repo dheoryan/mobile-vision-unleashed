@@ -1,0 +1,48 @@
+import { Ban, MessageSquare } from "lucide-react";
+import type { CommentRow } from "@/lib/posts-store";
+import { timeAgoLabel } from "@/lib/time";
+
+/** Read-only source card inside a comment repost. Keeping it separate from a
+ * live CommentItem avoids nested actions and ambiguous tap targets. */
+export function QuotedCommentPreview({ comment }: { comment: CommentRow }) {
+  const name = comment.author?.display_name?.trim() || "Someone";
+  const handle = comment.author?.handle?.trim();
+  const avatar = comment.author?.avatar_url || comment.author?.avatar_emoji || "🙂";
+  const imageAvatar = avatar.startsWith("data:") || avatar.startsWith("http");
+
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-background/35 p-3">
+      <div className="mb-2 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        <MessageSquare className="h-3 w-3" /> Reposted comment
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
+          {imageAvatar ? (
+            <img src={avatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            avatar
+          )}
+        </span>
+        <span className="min-w-0 truncate text-xs font-semibold">{name}</span>
+        {handle && (
+          <span className="min-w-0 truncate text-[11px] text-muted-foreground">@{handle}</span>
+        )}
+        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+          {timeAgoLabel(comment.created_at)}
+        </span>
+      </div>
+      <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+        {comment.content}
+      </p>
+    </div>
+  );
+}
+
+export function QuotedCommentUnavailable() {
+  return (
+    <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+      <Ban className="h-3.5 w-3.5 shrink-0" />
+      This comment is no longer available.
+    </div>
+  );
+}

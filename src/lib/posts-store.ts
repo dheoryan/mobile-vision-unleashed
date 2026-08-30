@@ -8,6 +8,8 @@ import {
   editPost,
   hideComment,
   listComments,
+  listMyCommentLikes,
+  listMyCommentReposts,
   listFeed,
   listHiddenComments,
   listMyPosts,
@@ -16,6 +18,8 @@ import {
   listMySavedPosts,
   getTribeMemberCounts,
   toggleSavePost,
+  toggleCommentLike,
+  toggleCommentRepost,
   unhideComment,
   type CommentRow,
   type FeedPost,
@@ -187,6 +191,8 @@ export function useCreatePost() {
         reposted_by: null,
         quoted_post_id: input.quoted_post_id ?? null,
         quoted_post: input.quoted_post ?? null,
+        quoted_comment_id: null,
+        quoted_comment: null,
         created_at: new Date().toISOString(),
         author: null,
       };
@@ -295,6 +301,132 @@ export function useComments(postId: string | null) {
   });
 }
 
+const COMMENT_LIKES_KEY = (postId: string, userId: string | null) =>
+  ["comments", postId, "my-likes", userId] as const;
+const COMMENT_REPOSTS_KEY = (postId: string, userId: string | null) =>
+  ["comments", postId, "my-reposts", userId] as const;
+
+export function useMyCommentLikes(postId: string | null) {
+  const fn = useServerFn(listMyCommentLikes);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: COMMENT_LIKES_KEY(postId ?? "none", user?.id ?? null),
+    queryFn: () => fn({ data: { post_id: postId! } }),
+    enabled: !!user && !!postId && !postId.startsWith("tmp-"),
+    staleTime: 10_000,
+    select: (ids) => new Set(ids),
+  });
+}
+
+export function useMyCommentReposts(postId: string | null) {
+  const fn = useServerFn(listMyCommentReposts);
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: COMMENT_REPOSTS_KEY(postId ?? "none", user?.id ?? null),
+    queryFn: () => fn({ data: { post_id: postId! } }),
+    enabled: !!user && !!postId && !postId.startsWith("tmp-"),
+    staleTime: 10_000,
+    select: (ids) => new Set(ids),
+  });
+}
+
+export function useToggleCommentLike(postId: string) {
+  const fn = useServerFn(toggleCommentLike);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const key = COMMENT_LIKES_KEY(postId, user?.id ?? null);
+  return useMutation({
+    mutationFn: (commentId: string) => fn({ data: { comment_id: commentId } }),
+    onMutate: async (commentId) => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: COMMENTS_KEY(postId) }),
+        qc.cancelQueries({ queryKey: key }),
+      ]);
+      const previousIds = qc.getQueryData<string[]>(key) ?? [];
+      const wasLiked = previousIds.includes(commentId);
+      qc.setQueryData<string[]>(key, (current = []) =>
+        wasLiked ? current.filter((id) => id !== commentId) : [...current, commentId],
+      );
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (current = []) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                likes_count: Math.max(comment.likes_count + (wasLiked ? -1 : 1), 0),
+              }
+            : comment,
+        ),
+      );
+      return { previousIds };
+    },
+    onError: (_error, _commentId, context) => {
+      if (context) qc.setQueryData(key, context.previousIds);
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (current = []) =>
+        current.map((comment) =>
+          comment.id === result.comment_id
+            ? { ...comment, likes_count: result.likes_count }
+            : comment,
+        ),
+      );
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+    },
+  });
+}
+
+export function useToggleCommentRepost(postId: string) {
+  const fn = useServerFn(toggleCommentRepost);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const key = COMMENT_REPOSTS_KEY(postId, user?.id ?? null);
+  return useMutation({
+    mutationFn: (commentId: string) => fn({ data: { comment_id: commentId } }),
+    onMutate: async (commentId) => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: COMMENTS_KEY(postId) }),
+        qc.cancelQueries({ queryKey: key }),
+      ]);
+      const previousIds = qc.getQueryData<string[]>(key) ?? [];
+      const wasReposted = previousIds.includes(commentId);
+      qc.setQueryData<string[]>(key, (current = []) =>
+        wasReposted ? current.filter((id) => id !== commentId) : [...current, commentId],
+      );
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (current = []) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                reposts_count: Math.max(comment.reposts_count + (wasReposted ? -1 : 1), 0),
+              }
+            : comment,
+        ),
+      );
+      return { previousIds };
+    },
+    onError: (_error, _commentId, context) => {
+      if (context) qc.setQueryData(key, context.previousIds);
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (current = []) =>
+        current.map((comment) =>
+          comment.id === result.comment_id
+            ? { ...comment, reposts_count: result.reposts_count }
+            : comment,
+        ),
+      );
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+      invalidateAllPostLists(qc);
+    },
+  });
+}
+
 export type AddCommentInput = {
   content: string;
   parent_id?: string | null;
@@ -329,6 +461,8 @@ export function useAddComment(postId: string) {
         created_at: new Date().toISOString(),
         parent_id: obj.parent_id ?? null,
         mentions: obj.mentions ?? [],
+        likes_count: 0,
+        reposts_count: 0,
         author: null,
       };
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [...(cur ?? []), optimistic]);

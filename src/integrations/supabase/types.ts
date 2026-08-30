@@ -121,39 +121,78 @@ export type Database = {
           },
         ]
       }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_id: string
           content: string
           created_at: string
           id: string
+          likes_count: number
           mentions: string[]
           moderation_hidden_at: string | null
           moderation_hidden_by: string | null
           parent_id: string | null
           post_id: string
+          reposts_count: number
         }
         Insert: {
           author_id: string
           content: string
           created_at?: string
           id?: string
+          likes_count?: number
           mentions?: string[]
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id: string
+          reposts_count?: number
         }
         Update: {
           author_id?: string
           content?: string
           created_at?: string
           id?: string
+          likes_count?: number
           mentions?: string[]
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
           parent_id?: string | null
           post_id?: string
+          reposts_count?: number
         }
         Relationships: [
           {
@@ -489,6 +528,7 @@ export type Database = {
           moderation_hidden_at: string | null
           moderation_hidden_by: string | null
           quoted_post_id: string | null
+          quoted_comment_id: string | null
           replies_count: number
           reposts_count: number
           shares_count: number
@@ -508,6 +548,7 @@ export type Database = {
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
           quoted_post_id?: string | null
+          quoted_comment_id?: string | null
           replies_count?: number
           reposts_count?: number
           shares_count?: number
@@ -527,6 +568,7 @@ export type Database = {
           moderation_hidden_at?: string | null
           moderation_hidden_by?: string | null
           quoted_post_id?: string | null
+          quoted_comment_id?: string | null
           replies_count?: number
           reposts_count?: number
           shares_count?: number

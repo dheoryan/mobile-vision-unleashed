@@ -43,6 +43,10 @@ export type FeedPost = {
    *  never resolved further). Null both when nothing is quoted and when the
    *  quoted post has been deleted - callers distinguish via `quoted_post_id`. */
   quoted_post: FeedPost | null;
+  quoted_comment_id: string | null;
+  /** A reposted comment, hydrated read-only. The id intentionally survives
+   *  deletion so the card can render an unavailable-source placeholder. */
+  quoted_comment: CommentRow | null;
   created_at: string;
   author: AuthorLite | null;
 };
@@ -55,6 +59,8 @@ export type CommentRow = {
   created_at: string;
   parent_id: string | null;
   mentions: string[];
+  likes_count: number;
+  reposts_count: number;
   author: AuthorLite | null;
 };
 
@@ -191,6 +197,7 @@ async function hydratePosts(
       image_paths: multi?.paths ?? (p.image_path ? [p.image_path] : []),
       reposted_by: null,
       quoted_post: null,
+      quoted_comment: null,
     };
   }) as FeedPost[];
 
@@ -199,18 +206,30 @@ async function hydratePosts(
   const quotedIds = Array.from(
     new Set(hydrated.map((p) => p.quoted_post_id).filter((id): id is string => !!id)),
   );
-  if (!quotedIds.length) return hydrated;
-
-  const { data: quotedRows, error } = await supabase
-    .from("posts")
-    .select(POST_COLS)
-    .in("id", quotedIds);
-  if (error) throw new Error(error.message);
-  const quotedHydrated = await hydratePosts(supabase, quotedRows ?? [], { shallow: true });
-  const quotedById = new Map(quotedHydrated.map((p) => [p.id, p]));
-  return hydrated.map((p) =>
-    p.quoted_post_id ? { ...p, quoted_post: quotedById.get(p.quoted_post_id) ?? null } : p,
+  const quotedCommentIds = Array.from(
+    new Set(hydrated.map((p) => p.quoted_comment_id).filter((id): id is string => !!id)),
   );
+  if (!quotedIds.length && !quotedCommentIds.length) return hydrated;
+
+  const [quotedResult, commentResult] = await Promise.all([
+    quotedIds.length
+      ? supabase.from("posts").select(POST_COLS).in("id", quotedIds)
+      : Promise.resolve({ data: [], error: null }),
+    quotedCommentIds.length
+      ? supabase.from("comments").select(COMMENT_COLS).in("id", quotedCommentIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (quotedResult.error) throw new Error(quotedResult.error.message);
+  if (commentResult.error) throw new Error(commentResult.error.message);
+  const quotedHydrated = await hydratePosts(supabase, quotedResult.data ?? [], { shallow: true });
+  const quotedComments = (await attachAuthors(supabase, commentResult.data ?? [])) as CommentRow[];
+  const quotedById = new Map(quotedHydrated.map((p) => [p.id, p]));
+  const commentsById = new Map(quotedComments.map((comment) => [comment.id, comment]));
+  return hydrated.map((p) => ({
+    ...p,
+    quoted_post: p.quoted_post_id ? (quotedById.get(p.quoted_post_id) ?? null) : null,
+    quoted_comment: p.quoted_comment_id ? (commentsById.get(p.quoted_comment_id) ?? null) : null,
+  }));
 }
 
 async function getRepliesCount(
@@ -227,9 +246,10 @@ async function getRepliesCount(
 }
 
 const POST_COLS =
-  "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, reposts_count, quoted_post_id, created_at";
+  "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, reposts_count, quoted_post_id, quoted_comment_id, created_at";
 
-const COMMENT_COLS = "id, post_id, author_id, content, created_at, parent_id, mentions";
+const COMMENT_COLS =
+  "id, post_id, author_id, content, created_at, parent_id, mentions, likes_count, reposts_count";
 
 /**
  * Two feeds, two audiences, no overlap.
@@ -604,6 +624,168 @@ export const addComment = createServerFn({ method: "POST" })
     };
   });
 
+const commentSocialListSchema = z.object({ post_id: z.string().uuid() });
+const commentSocialToggleSchema = z.object({ comment_id: z.string().uuid() });
+
+export const listMyCommentLikes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => commentSocialListSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: comments, error: commentsError } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("post_id", data.post_id)
+      .limit(500);
+    if (commentsError) throw new Error(commentsError.message);
+    const ids = (comments ?? []).map((comment: { id: string }) => comment.id);
+    if (!ids.length) return [] as string[];
+    const { data: likes, error } = await supabase
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("user_id", userId)
+      .in("comment_id", ids);
+    if (error) throw new Error(error.message);
+    return (likes ?? []).map((like: { comment_id: string }) => like.comment_id);
+  });
+
+export const toggleCommentLike = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => commentSocialToggleSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: comment, error: commentError } = await supabase
+      .from("comments")
+      .select("id, post_id")
+      .eq("id", data.comment_id)
+      .maybeSingle();
+    if (commentError) throw new Error(commentError.message);
+    if (!comment) throw new Error("Comment is no longer available");
+
+    const { data: existing, error: existingError } = await supabase
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("comment_id", data.comment_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existingError) throw new Error(existingError.message);
+
+    if (existing) {
+      const { error } = await supabase
+        .from("comment_likes")
+        .delete()
+        .eq("comment_id", data.comment_id)
+        .eq("user_id", userId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("comment_likes")
+        .insert({ comment_id: data.comment_id, user_id: userId });
+      if (error) throw new Error(error.message);
+    }
+
+    const { data: updated, error: countError } = await supabase
+      .from("comments")
+      .select("likes_count")
+      .eq("id", data.comment_id)
+      .single();
+    if (countError) throw new Error(countError.message);
+    return {
+      comment_id: data.comment_id,
+      post_id: comment.post_id as string,
+      liked: !existing,
+      likes_count: updated.likes_count as number,
+    };
+  });
+
+export const listMyCommentReposts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => commentSocialListSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: comments, error: commentsError } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("post_id", data.post_id)
+      .limit(500);
+    if (commentsError) throw new Error(commentsError.message);
+    const ids = (comments ?? []).map((comment: { id: string }) => comment.id);
+    if (!ids.length) return [] as string[];
+    const { data: reposts, error } = await supabase
+      .from("posts")
+      .select("quoted_comment_id")
+      .eq("author_id", userId)
+      .in("quoted_comment_id", ids);
+    if (error) throw new Error(error.message);
+    return (reposts ?? [])
+      .map((post: { quoted_comment_id: string | null }) => post.quoted_comment_id)
+      .filter((id: string | null): id is string => !!id);
+  });
+
+export const toggleCommentRepost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => commentSocialToggleSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: comment, error: commentError } = await supabase
+      .from("comments")
+      .select("id, post_id")
+      .eq("id", data.comment_id)
+      .maybeSingle();
+    if (commentError) throw new Error(commentError.message);
+    if (!comment) throw new Error("Comment is no longer available");
+
+    const { data: existing, error: existingError } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("author_id", userId)
+      .eq("quoted_comment_id", data.comment_id)
+      .maybeSingle();
+    if (existingError) throw new Error(existingError.message);
+
+    let reposted = false;
+    let repostPostId: string | null = null;
+    if (existing) {
+      const { error } = await supabase.from("posts").delete().eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: source, error: sourceError } = await supabase
+        .from("posts")
+        .select("tribe_id, audience")
+        .eq("id", comment.post_id)
+        .single();
+      if (sourceError) throw new Error(sourceError.message);
+      const { data: inserted, error } = await supabase
+        .from("posts")
+        .insert({
+          author_id: userId,
+          tribe_id: source.tribe_id,
+          audience: source.audience,
+          content: "",
+          quoted_comment_id: data.comment_id,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      reposted = true;
+      repostPostId = inserted.id as string;
+    }
+
+    const { data: updated, error: countError } = await supabase
+      .from("comments")
+      .select("reposts_count")
+      .eq("id", data.comment_id)
+      .single();
+    if (countError) throw new Error(countError.message);
+    return {
+      comment_id: data.comment_id,
+      post_id: comment.post_id as string,
+      reposted,
+      repost_post_id: repostPostId,
+      reposts_count: updated.reposts_count as number,
+    };
+  });
+
 // ---------- Saved posts (bookmarks) ----------
 
 export const listMySavedIds = createServerFn({ method: "GET" })
@@ -739,7 +921,12 @@ export const listHiddenComments = createServerFn({ method: "GET" })
       _post_id: data.post_id,
     });
     if (error) throw new Error(error.message);
-    return (await attachAuthors(supabase, rows ?? [])) as CommentRow[];
+    const withAuthors = await attachAuthors(supabase, rows ?? []);
+    return withAuthors.map((comment) => ({
+      ...comment,
+      likes_count: "likes_count" in comment ? Number(comment.likes_count) : 0,
+      reposts_count: "reposts_count" in comment ? Number(comment.reposts_count) : 0,
+    })) as CommentRow[];
   });
 
 export const unhideComment = createServerFn({ method: "POST" })

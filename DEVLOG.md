@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Comment likes + reposts | `supabase/migrations/20260830040000_comment_likes_and_reposts.sql`, `LOVABLE_COMMENT_SOCIAL_RELEASE_VERIFY.sql`, `src/integrations/supabase/types.ts`, `src/lib/{posts.functions,posts-store,notifications.functions,notification-presenter,push-payload,push-preferences}.ts`, `src/components/mutuals/{CommentsModal,PostCard,QuotedCommentPreview}.tsx`, `src/routes/notifications.tsx`, `tests/comment-social.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,29 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Comment likes and feed-visible reposts
+
+- Added independent comment Likes and Reposts to the Comments sheet with
+  optimistic counters, clear active states, accessible pressed labels, and
+  iOS-sized touch targets.
+- A comment repost is a real signal carrying `quoted_comment_id`, not a dead
+  counter: it appears in feeds with source-comment attribution, inherits the
+  source post's audience, and can be undone. Database guards keep Tribe-only
+  comments inside their Tribe and prevent changing a repost's source through
+  direct REST calls.
+- Added RLS-protected `comment_likes`, trigger-maintained comment counts,
+  uniqueness constraints, source hydration/unavailable placeholders, and
+  `comment_like` / `comment_repost` in-app plus push notifications.
+- Migration `20260830040000_comment_likes_and_reposts.sql` is intentionally
+  pending manual production application; run
+  `LOVABLE_COMMENT_SOCIAL_RELEASE_VERIFY.sql` afterward. Do not deploy the app
+  code before the migration because the feed now selects the new columns.
+- Verification: all 90 Node tests pass, changed-source ESLint passes (the
+  generated Supabase types retain their pre-existing generated formatting),
+  `npx tsc --noEmit`, `git diff --check`, and the full Cloudflare production
+  build all pass. Browser mutation acceptance was deliberately skipped because
+  localhost is connected to production and the migration is not live yet.
 
 ### 2026-08-30 — Codex — Hide comment consolidated into Comment options
 

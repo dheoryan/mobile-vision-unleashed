@@ -80,6 +80,8 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   hello_accepted: <Hand className="h-3.5 w-3.5" />,
   repost: <Repeat2 className="h-3.5 w-3.5" />,
   quote: <Quote className="h-3.5 w-3.5" />,
+  comment_like: <Heart className="h-3.5 w-3.5" fill="currentColor" />,
+  comment_repost: <Repeat2 className="h-3.5 w-3.5" />,
 };
 
 const CATEGORY_STYLES: Record<NotificationCategory, string> = {
@@ -106,6 +108,8 @@ const TEXTS: Record<NotificationKind, string> = {
   hello_accepted: "accepted your Hello",
   repost: "reposted your post",
   quote: "quoted your post",
+  comment_like: "liked your comment",
+  comment_repost: "reposted your comment",
 };
 
 function NotificationsPage() {

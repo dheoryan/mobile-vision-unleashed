@@ -21,7 +21,9 @@ export type NotificationKind =
   | "hello"
   | "hello_accepted"
   | "repost"
-  | "quote";
+  | "quote"
+  | "comment_like"
+  | "comment_repost";
 
 export type NotificationRow = {
   id: string;
