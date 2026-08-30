@@ -39,9 +39,18 @@ test("comment actions are optimistic, accessible, and expose counts", () => {
   assert.match(store, /export function useToggleCommentLike/);
   assert.match(store, /export function useToggleCommentRepost/);
   assert.match(comments, /aria-label=\{liked \? "Unlike comment" : "Like comment"\}/);
-  assert.match(comments, /aria-label=\{reposted \? "Remove comment repost" : "Repost comment"\}/);
+  assert.match(comments, /aria-label="Repost options"/);
   assert.match(comments, /aria-pressed=\{liked\}/);
   assert.match(comments, /min-h-11/);
+});
+
+test("comment repost opens the same safe-area bottom-sheet pattern as post repost", () => {
+  assert.match(comments, /title="Repost options"/);
+  assert.match(comments, /zIndex=\{60\}/);
+  assert.match(comments, /pb-\[max\(1\.25rem,env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(comments, /repostTargetActive \? "Undo repost" : "Repost only"/);
+  assert.match(comments, /aria-label="Close repost options"/);
+  assert.doesNotMatch(comments, /onClick=\{\(\) => onRepost\(c\.id\)\}/);
 });
 
 test("comment reposts render their source and notify both web and push surfaces", () => {

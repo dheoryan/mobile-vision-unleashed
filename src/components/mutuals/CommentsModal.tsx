@@ -9,6 +9,7 @@ import {
   EyeOff,
   Eye,
   ChevronDown,
+  ChevronRight,
   Reply,
   Heart,
   Repeat2,
@@ -64,6 +65,7 @@ export function CommentsModal({
   const [text, setText] = useState("");
   const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<CommentRow | null>(null);
+  const [repostTarget, setRepostTarget] = useState<CommentRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const visualViewport = useVisualViewport(open && !!postId);
 
@@ -187,193 +189,262 @@ export function CommentsModal({
     }
   };
 
-  return (
-    <AnimatedModal
-      open={open && !!postId}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-      title="Comments"
-      contentClassName="flex h-[80dvh] max-h-full min-h-0 flex-col"
-      viewportStyle={visualViewportStyle(visualViewport)}
-    >
-      <header className="flex items-center justify-between border-b border-border px-5 py-3">
-        <h2 className="font-display text-base font-bold">Comments</h2>
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </header>
+  const repostTargetActive = repostTarget
+    ? (commentReposts.data?.has(repostTarget.id) ?? false)
+    : false;
 
-      {isPostOwner && (
-        <div className="shrink-0 border-b border-border">
+  return (
+    <>
+      <AnimatedModal
+        open={open && !!postId}
+        onOpenChange={(o) => {
+          if (!o) onClose();
+        }}
+        title="Comments"
+        contentClassName="flex h-[80dvh] max-h-full min-h-0 flex-col"
+        viewportStyle={visualViewportStyle(visualViewport)}
+      >
+        <header className="flex items-center justify-between border-b border-border px-5 py-3">
+          <h2 className="font-display text-base font-bold">Comments</h2>
           <button
-            type="button"
-            onClick={() => setHiddenOpen((v) => !v)}
-            className="flex w-full items-center gap-1.5 px-5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <EyeOff className="h-3.5 w-3.5" />
-            Comments you've hidden
-            <ChevronDown
-              className={cn("h-3.5 w-3.5 transition-transform", hiddenOpen && "rotate-180")}
-            />
+            <X className="h-5 w-5" />
           </button>
-          {hiddenOpen && (
-            <div className="max-h-40 space-y-2 overflow-y-auto px-5 pb-3">
-              {hiddenQuery.isLoading ? (
-                <p className="text-xs text-muted-foreground">Loading…</p>
-              ) : hiddenQuery.isError ? (
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">Couldn't load this.</p>
-                  <button
-                    onClick={() => hiddenQuery.refetch()}
-                    className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : !hiddenQuery.data?.length ? (
-                <p className="text-xs text-muted-foreground">
-                  Nothing here - comments you hide on this post will show up in this list.
-                </p>
-              ) : (
-                hiddenQuery.data.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold">
-                        {c.author?.display_name || "Someone"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{c.content}</p>
-                    </div>
+        </header>
+
+        {isPostOwner && (
+          <div className="shrink-0 border-b border-border">
+            <button
+              type="button"
+              onClick={() => setHiddenOpen((v) => !v)}
+              className="flex w-full items-center gap-1.5 px-5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+              Comments you've hidden
+              <ChevronDown
+                className={cn("h-3.5 w-3.5 transition-transform", hiddenOpen && "rotate-180")}
+              />
+            </button>
+            {hiddenOpen && (
+              <div className="max-h-40 space-y-2 overflow-y-auto px-5 pb-3">
+                {hiddenQuery.isLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading…</p>
+                ) : hiddenQuery.isError ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">Couldn't load this.</p>
                     <button
-                      onClick={() =>
-                        unhideComment.mutate(c.id, {
-                          onError: (error) =>
-                            toast.error("Comment wasn't unhidden", {
-                              description: (error as Error).message,
-                            }),
-                        })
-                      }
-                      disabled={unhideComment.isPending && unhideComment.variables === c.id}
-                      className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+                      onClick={() => hiddenQuery.refetch()}
+                      className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
-                      <Eye className="h-3 w-3" /> Unhide
+                      Retry
                     </button>
                   </div>
-                ))
-              )}
+                ) : !hiddenQuery.data?.length ? (
+                  <p className="text-xs text-muted-foreground">
+                    Nothing here - comments you hide on this post will show up in this list.
+                  </p>
+                ) : (
+                  hiddenQuery.data.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold">
+                          {c.author?.display_name || "Someone"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{c.content}</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          unhideComment.mutate(c.id, {
+                            onError: (error) =>
+                              toast.error("Comment wasn't unhidden", {
+                                description: (error as Error).message,
+                              }),
+                          })
+                        }
+                        disabled={unhideComment.isPending && unhideComment.variables === c.id}
+                        className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+                      >
+                        <Eye className="h-3 w-3" /> Unhide
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
+          {commentsQuery.isLoading ? (
+            <SkeletonList tribeColor={tribeColor} />
+          ) : commentsQuery.isError ? (
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <AlertTriangle className="h-10 w-10 text-destructive" />
+              <p className="text-sm text-foreground">Couldn't load comments.</p>
+              <button
+                onClick={() => commentsQuery.refetch()}
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                Retry
+              </button>
             </div>
+          ) : roots.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <MessageSquare className="h-10 w-10 text-muted-foreground" />
+              <p className="text-sm font-semibold">No comments yet</p>
+              <p className="text-xs text-muted-foreground">Be the first to say something.</p>
+            </div>
+          ) : (
+            roots.map((c) => (
+              <CommentNode
+                key={c.id}
+                c={c}
+                replies={tree.get(c.id) ?? []}
+                tribeColor={tribeColor}
+                meId={user?.id ?? null}
+                meAvatar={me?.avatar ?? "🙂"}
+                meName={me?.name?.trim() || "You"}
+                onReply={startReply}
+                onDelete={(id) => deleteComment.mutate(id)}
+                isPostOwner={isPostOwner}
+                onHide={(id) => hideComment.mutate(id)}
+                likedIds={commentLikes.data ?? new Set<string>()}
+                repostedIds={commentReposts.data ?? new Set<string>()}
+                onLike={(id) =>
+                  toggleCommentLike.mutate(id, {
+                    onError: (error) =>
+                      toast.error("Like wasn't updated", {
+                        description: (error as Error).message,
+                      }),
+                  })
+                }
+                onRepost={setRepostTarget}
+              />
+            ))
           )}
         </div>
-      )}
 
-      <div className="scroll-panel flex-1 space-y-3 overflow-y-auto px-5 py-4">
-        {commentsQuery.isLoading ? (
-          <SkeletonList tribeColor={tribeColor} />
-        ) : commentsQuery.isError ? (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <AlertTriangle className="h-10 w-10 text-destructive" />
-            <p className="text-sm text-foreground">Couldn't load comments.</p>
+        <div className="relative border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {replyTo && (
+            <ReplyPreview
+              name={replyTo.author?.display_name || "comment"}
+              snippet={replyTo.content || ""}
+              accentColor={tribeColor}
+              onCancel={() => setReplyTo(null)}
+            />
+          )}
+          <div className="relative">
+            <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
+            <div className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2">
+              <input
+                ref={inputRef}
+                value={text}
+                onChange={onChange}
+                onKeyUp={(e) =>
+                  setCaret(e.currentTarget.selectionStart ?? e.currentTarget.value.length)
+                }
+                onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+                placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
+                className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm"
+              />
+              <button
+                onClick={send}
+                disabled={!text.trim()}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+                style={{ backgroundColor: tribeColor }}
+                aria-label="Send comment"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </AnimatedModal>
+
+      <AnimatedModal
+        open={!!repostTarget}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setRepostTarget(null);
+        }}
+        title="Repost options"
+        contentClassName="overflow-hidden"
+        zIndex={60}
+      >
+        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
+          <div className="flex items-center justify-between px-5 pb-3 pt-3">
+            <div>
+              <p className="label-mono text-primary">PASS IT ON</p>
+              <h2 className="mt-0.5 font-display text-xl font-bold">Repost comment</h2>
+            </div>
             <button
-              onClick={() => commentsQuery.refetch()}
-              className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              type="button"
+              onClick={() => setRepostTarget(null)}
+              aria-label="Close repost options"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              Retry
+              <X className="h-5 w-5" />
             </button>
           </div>
-        ) : roots.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <MessageSquare className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-semibold">No comments yet</p>
-            <p className="text-xs text-muted-foreground">Be the first to say something.</p>
-          </div>
-        ) : (
-          roots.map((c) => (
-            <CommentNode
-              key={c.id}
-              c={c}
-              replies={tree.get(c.id) ?? []}
-              tribeColor={tribeColor}
-              meId={user?.id ?? null}
-              meAvatar={me?.avatar ?? "🙂"}
-              meName={me?.name?.trim() || "You"}
-              onReply={startReply}
-              onDelete={(id) => deleteComment.mutate(id)}
-              isPostOwner={isPostOwner}
-              onHide={(id) => hideComment.mutate(id)}
-              likedIds={commentLikes.data ?? new Set<string>()}
-              repostedIds={commentReposts.data ?? new Set<string>()}
-              onLike={(id) =>
-                toggleCommentLike.mutate(id, {
-                  onError: (error) =>
-                    toast.error("Like wasn't updated", {
-                      description: (error as Error).message,
-                    }),
-                })
-              }
-              onRepost={(id) =>
-                toggleCommentRepost.mutate(id, {
+
+          <div className="border-y border-border">
+            <button
+              type="button"
+              disabled={!repostTarget || toggleCommentRepost.isPending}
+              onClick={() => {
+                if (!repostTarget) return;
+                const commentId = repostTarget.id;
+                const wasReposted = repostTargetActive;
+                setRepostTarget(null);
+                toggleCommentRepost.mutate(commentId, {
                   onSuccess: (result) =>
                     toast.success(result.reposted ? "Comment reposted" : "Comment repost removed"),
                   onError: (error) =>
-                    toast.error("Repost wasn't updated", {
+                    toast.error(wasReposted ? "Repost wasn't removed" : "Comment wasn't reposted", {
                       description: (error as Error).message,
                     }),
-                })
-              }
-            />
-          ))
-        )}
-      </div>
-
-      <div className="relative border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {replyTo && (
-          <ReplyPreview
-            name={replyTo.author?.display_name || "comment"}
-            snippet={replyTo.content || ""}
-            accentColor={tribeColor}
-            onCancel={() => setReplyTo(null)}
-          />
-        )}
-        <div className="relative">
-          <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
-          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2">
-            <input
-              ref={inputRef}
-              value={text}
-              onChange={onChange}
-              onKeyUp={(e) =>
-                setCaret(e.currentTarget.selectionStart ?? e.currentTarget.value.length)
-              }
-              onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
+                });
               }}
-              placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
-              className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm"
-            />
-            <button
-              onClick={send}
-              disabled={!text.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
-              style={{ backgroundColor: tribeColor }}
-              aria-label="Send comment"
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
-              <Send className="h-4 w-4" />
+              <span
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                  repostTargetActive
+                    ? "bg-emerald-400/12 text-emerald-400"
+                    : "bg-primary/12 text-primary",
+                )}
+              >
+                <Repeat2 className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">
+                  {repostTargetActive ? "Undo repost" : "Repost only"}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {repostTargetActive
+                    ? "Remove it from your reposts"
+                    : "Share the comment as a signal"}
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         </div>
-      </div>
-    </AnimatedModal>
+      </AnimatedModal>
+    </>
   );
 }
 
@@ -406,7 +477,7 @@ function CommentNode({
   likedIds: Set<string>;
   repostedIds: Set<string>;
   onLike: (id: string) => void;
-  onRepost: (id: string) => void;
+  onRepost: (comment: CommentRow) => void;
 }) {
   return (
     <div>
@@ -500,7 +571,7 @@ function CommentItem({
   liked: boolean;
   reposted: boolean;
   onLike: (id: string) => void;
-  onRepost: (id: string) => void;
+  onRepost: (comment: CommentRow) => void;
 }) {
   const mine = !!meId && c.author_id === meId;
   const isPending = c.id.startsWith("tmp-");
@@ -667,8 +738,8 @@ function CommentItem({
               <button
                 type="button"
                 onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => onRepost(c.id)}
-                aria-label={reposted ? "Remove comment repost" : "Repost comment"}
+                onClick={() => onRepost(c)}
+                aria-label="Repost options"
                 aria-pressed={reposted}
                 className={cn(
                   "inline-flex min-h-11 items-center gap-1 rounded px-0.5 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",

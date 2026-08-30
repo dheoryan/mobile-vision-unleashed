@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Comment repost-sheet parity + quote comment | `src/components/mutuals/{CommentsModal,ComposerModal,PostCard}.tsx`, `src/lib/{posts.functions,posts-store}.ts`, `tests/comment-social.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Comment repost aligned with the post repost sheet
+
+- Replaced the comment row's immediate repost mutation with the same deliberate
+  bottom-sheet interaction used by post reposts. Selecting the repeat action
+  now opens a nested `Repost options` sheet, and the mutation runs only after
+  the member chooses `Repost only` or `Undo repost`.
+- Matched the MEUTUALS repost treatment with a drag handle, amber mono eyebrow,
+  close control, 44 px action target, active-state copy, and Home Screen safe-area
+  padding. The nested sheet sits above the Comments dialog and preserves Radix
+  focus and dismissal behavior.
+- Browser acceptance confirmed that the sheet opens and closes correctly inside
+  Comments without firing a production-connected repost. Verification: all 91
+  Node tests, changed-source ESLint, `npx tsc --noEmit`, `git diff --check`, and
+  the full Cloudflare production build pass.
 
 ### 2026-08-30 — User + Codex — Comment social database verified
 
