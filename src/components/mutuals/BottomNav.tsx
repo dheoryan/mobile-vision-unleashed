@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 export type TabKey = "feed" | "discover" | "ventures" | "chats" | "profile";
 
 const tabs: { key: TabKey; label: string; icon: typeof Newspaper }[] = [
-  { key: "feed", label: "Feed", icon: Newspaper },
+  { key: "feed", label: "Timeline", icon: Newspaper },
   { key: "discover", label: "Discover", icon: Globe2 },
   { key: "ventures", label: "Ventures", icon: Zap },
   { key: "chats", label: "Chats", icon: MessageCircle },

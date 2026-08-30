@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Timeline navigation copy consistency | `src/components/mutuals/BottomNav.tsx`, `tests/mobile-safe-area.test.ts`, `DEVLOG.md` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,16 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Timeline naming is consistent in navigation
+
+- Renamed the bottom-navigation `Feed` label to `Timeline`, matching the screen
+  title while preserving `SIGNALS` as the branded eyebrow and the existing
+  internal `feed` tab key.
+- Kept the existing five-column navigation layout, icon, touch target, and ARIA
+  label behavior. Verification: 4 focused tests, changed-source ESLint,
+  `npx tsc --noEmit`, `git diff --check`, and the full Cloudflare production
+  build pass. No database change is required.
 
 ### 2026-08-30 — Codex — Comment deletion now requires confirmation
 

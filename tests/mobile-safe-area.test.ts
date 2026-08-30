@@ -29,3 +29,8 @@ test("bottom navigation matches the shared header glass treatment", () => {
   }
   assert.match(bottomNavSource, /pb-\[max\(env\(safe-area-inset-bottom\),0\.4rem\)\]/);
 });
+
+test("bottom navigation uses the same Timeline name as the screen header", () => {
+  assert.match(bottomNavSource, /key: "feed", label: "Timeline"/);
+  assert.doesNotMatch(bottomNavSource, /label: "Feed"/);
+});
