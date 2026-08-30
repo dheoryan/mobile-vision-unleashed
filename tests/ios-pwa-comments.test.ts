@@ -53,8 +53,8 @@ test("authors confirm before deleting their own reply", () => {
   assert.match(commentsModalSource, /Delete reply/);
 });
 
-test("Chats new-message action clears the Home Screen navigation safe area", () => {
-  assert.match(chatsSource, /bottom-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
+test("Chats new-message action clears the Home Screen navigation with a visible gap", () => {
+  assert.match(chatsSource, /bottom-\[calc\(5\.75rem\+env\(safe-area-inset-bottom\)\)\]/);
 });
 
 test("unhide delegates directly to the RLS-authorized RPC", () => {

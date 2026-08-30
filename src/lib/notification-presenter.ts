@@ -5,7 +5,14 @@ export type NotificationCategory = "social" | "conversation" | "venture" | "trib
 export interface NotificationSection {
   key: "new" | "today" | "week" | "earlier";
   label: string;
-  items: NotificationRow[];
+  items: NotificationViewItem[];
+}
+
+export interface NotificationViewItem extends NotificationRow {
+  /** Every source row represented by this card. */
+  notification_ids: string[];
+  message_count: number;
+  actor_count: number;
 }
 
 export type NotificationDestination =
@@ -35,6 +42,57 @@ export function notificationCategory(kind: NotificationKind): NotificationCatego
   if (VENTURE_KINDS.has(kind)) return "venture";
   if (kind === "tribe_join") return "tribe";
   return "social";
+}
+
+/**
+ * A busy group room should occupy one place in the activity inbox, not one
+ * card per message. Direct mentions intentionally remain individual because
+ * they require the member's attention. Input is newest-first and output keeps
+ * that ordering, using the latest message as the card preview.
+ */
+export function groupChatNotifications(items: NotificationRow[]): NotificationViewItem[] {
+  const grouped = new Map<string, { item: NotificationViewItem; actorIds: Set<string> }>();
+  const result: NotificationViewItem[] = [];
+
+  for (const notification of items) {
+    const groupKey =
+      notification.kind === "venture_message" && notification.venture_id
+        ? `venture:${notification.venture_id}`
+        : null;
+
+    if (!groupKey) {
+      result.push({
+        ...notification,
+        notification_ids: [notification.id],
+        message_count: 1,
+        actor_count: notification.actor_id ? 1 : 0,
+      });
+      continue;
+    }
+
+    const existing = grouped.get(groupKey);
+    if (!existing) {
+      const actorIds = new Set<string>();
+      if (notification.actor_id) actorIds.add(notification.actor_id);
+      const item: NotificationViewItem = {
+        ...notification,
+        notification_ids: [notification.id],
+        message_count: 1,
+        actor_count: actorIds.size,
+      };
+      grouped.set(groupKey, { item, actorIds });
+      result.push(item);
+      continue;
+    }
+
+    existing.item.notification_ids.push(notification.id);
+    existing.item.message_count += 1;
+    if (notification.actor_id) existing.actorIds.add(notification.actor_id);
+    existing.item.actor_count = existing.actorIds.size;
+    if (!notification.read_at) existing.item.read_at = null;
+  }
+
+  return result;
 }
 
 export function notificationDestination(item: NotificationRow): NotificationDestination {
@@ -105,15 +163,15 @@ function startOfLocalDay(value: Date): number {
  * rolling 24-hour window.
  */
 export function notificationSections(
-  items: NotificationRow[],
+  items: NotificationViewItem[],
   now = new Date(),
 ): NotificationSection[] {
   const today = startOfLocalDay(now);
   const week = today - 6 * 24 * 60 * 60 * 1000;
-  const unread: NotificationRow[] = [];
-  const todayItems: NotificationRow[] = [];
-  const weekItems: NotificationRow[] = [];
-  const earlier: NotificationRow[] = [];
+  const unread: NotificationViewItem[] = [];
+  const todayItems: NotificationViewItem[] = [];
+  const weekItems: NotificationViewItem[] = [];
+  const earlier: NotificationViewItem[] = [];
 
   for (const item of items) {
     if (!item.read_at) {

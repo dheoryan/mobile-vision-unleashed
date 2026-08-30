@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Group-chat notification aggregation + Chats FAB spacing | notification pipeline/UI, `src/components/mutuals/ChatsScreen.tsx`, tests | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,29 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Group-room notifications are conversation-sized
+
+- Collapsed ordinary Venture chat activity into one newest-first notification
+  card per Venture. The card names the room, keeps the latest sender/preview,
+  counts messages and distinct senders, and remains unread while any source row
+  is unread. Selecting it marks every represented row read in one authorized
+  server call and opens the party chat.
+- Kept direct mentions individual and high-priority. Tribe chat currently
+  creates notification rows only for direct mentions; those cards now name the
+  Tribe room without adding noisy every-message fan-out.
+- Device pushes for ordinary Venture chat now share a per-Venture replacement
+  tag, so newer messages replace the room's prior OS alert. Private message and
+  meetup content remains hidden from lock-screen copy.
+- Hydrated Tribe and Venture names safely, including legacy Tribe keys such as
+  `cat`, and preserved old push deep links by resolving any source id inside an
+  aggregated card.
+- Raised the Chats `New message` action from 5 rem to 5.75 rem above the safe
+  area. A 390×844 browser check measured about 18 px between the action and the
+  bottom navigation, with no console errors.
+- Verification: all 101 Node tests, changed-source ESLint, `npx tsc --noEmit`,
+  `git diff --check`, signed-in browser checks, and the Cloudflare production
+  build pass. No database migration is required.
 
 ### 2026-08-30 — Codex — Timeline naming is consistent in navigation
 

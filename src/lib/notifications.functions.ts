@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { attachPostImageUrls, type AuthorLite } from "@/lib/posts.functions";
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type NotificationKind =
   | "like"
@@ -39,6 +40,9 @@ export type NotificationRow = {
   read_at: string | null;
   created_at: string;
   actor: AuthorLite | null;
+  /** Human-readable room name for group-chat activity. Hydrated after the
+   * notification query so the database row remains a small routing record. */
+  conversation_name: string | null;
   /** Short-lived signed URL for the related post's image, when it has one -
    *  Instagram-style thumbnail on the notification row. Never persisted. */
   post_image_url: string | null;
@@ -94,9 +98,65 @@ export const listMyNotifications = createServerFn({ method: "GET" })
       for (const p of hydrated) postImageMap.set(p.id, p.image_url);
     }
 
-    return ((rows ?? []) as Omit<NotificationRow, "actor" | "post_image_url">[]).map((r) => ({
+    const ventureIds = Array.from(
+      new Set(
+        ((rows ?? []) as Array<{ venture_id: string | null }>)
+          .map((row) => row.venture_id)
+          .filter(Boolean) as string[],
+      ),
+    );
+    const ventureNameMap = new Map<string, string>();
+    if (ventureIds.length) {
+      const { data: ventures, error: venturesError } = await supabase
+        .from("ventures")
+        .select("id, title")
+        .in("id", ventureIds);
+      if (venturesError) throw new Error(venturesError.message);
+      for (const venture of ventures ?? []) ventureNameMap.set(venture.id, venture.title);
+    }
+
+    const tribeIds = Array.from(
+      new Set(
+        ((rows ?? []) as Array<{ tribe_id: string | null }>)
+          .map((row) => row.tribe_id)
+          .filter(Boolean) as string[],
+      ),
+    );
+    const tribeNameMap = new Map<string, string>();
+    if (tribeIds.length) {
+      // `notifications.tribe_id` contains the stable Tribe key (`cat`, `owl`,
+      // etc.) for current chat rows, while a few legacy rows may contain the
+      // table UUID. Split the lookups so Postgres never receives `cat` as a
+      // UUID input.
+      const tribeUuids = tribeIds.filter((id) => UUID_PATTERN.test(id));
+      const tribeKeys = tribeIds.filter((id) => !UUID_PATTERN.test(id));
+      const [uuidResult, keyResult] = await Promise.all([
+        tribeUuids.length
+          ? supabase.from("tribes").select("id, key, name").in("id", tribeUuids)
+          : Promise.resolve({ data: [], error: null }),
+        tribeKeys.length
+          ? supabase.from("tribes").select("id, key, name").in("key", tribeKeys)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (uuidResult.error) throw new Error(uuidResult.error.message);
+      if (keyResult.error) throw new Error(keyResult.error.message);
+      for (const tribe of [...(uuidResult.data ?? []), ...(keyResult.data ?? [])]) {
+        if (!tribe.name) continue;
+        tribeNameMap.set(tribe.id, tribe.name);
+        if (tribe.key) tribeNameMap.set(tribe.key, tribe.name);
+      }
+    }
+
+    return (
+      (rows ?? []) as Omit<NotificationRow, "actor" | "conversation_name" | "post_image_url">[]
+    ).map((r) => ({
       ...r,
       actor: r.actor_id ? (actorMap.get(r.actor_id) ?? null) : null,
+      conversation_name: r.venture_id
+        ? (ventureNameMap.get(r.venture_id) ?? null)
+        : r.tribe_id
+          ? (tribeNameMap.get(r.tribe_id) ?? null)
+          : null,
       post_image_url: r.post_id ? (postImageMap.get(r.post_id) ?? null) : null,
     }));
   });
@@ -127,6 +187,24 @@ export const markNotificationRead = createServerFn({ method: "POST" })
       .is("read_at", null);
     if (error) throw new Error(error.message);
     return { id: data.id };
+  });
+
+export const markNotificationsRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(80) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const ids = Array.from(new Set(data.ids));
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", ids)
+      .eq("user_id", userId)
+      .is("read_at", null);
+    if (error) throw new Error(error.message);
+    return { ids };
   });
 
 export const deleteNotification = createServerFn({ method: "POST" })

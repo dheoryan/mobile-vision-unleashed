@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { buildPushCopy, type PushNotificationKind } from "@/lib/push-payload";
+import { buildPushCopy, pushNotificationTag, type PushNotificationKind } from "@/lib/push-payload";
 import {
   allowsPushKind,
   DEFAULT_PUSH_PREFERENCES,
@@ -106,10 +106,12 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
           icon: "/icons/icon-192.png",
           badge: "/icons/icon-192.png",
           url,
-          tag:
-            kind === "tribe_join"
-              ? `${kind}-${notif.id}`
-              : `${kind}-${notif.post_id ?? notif.actor_id ?? notif.id}`,
+          tag: pushNotificationTag(kind, {
+            notificationId: notif.id,
+            postId: notif.post_id,
+            actorId: notif.actor_id,
+            ventureId: notif.venture_id,
+          }),
         };
 
         // Missing rows intentionally use product defaults. A preference lookup

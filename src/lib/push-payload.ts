@@ -60,6 +60,23 @@ export interface PushCopy {
   body: string;
 }
 
+interface PushTagContext {
+  notificationId: string;
+  postId: string | null;
+  actorId: string | null;
+  ventureId: string | null;
+}
+
+/** Browser notifications with the same tag replace one another. Group-room
+ * traffic therefore behaves like one evolving conversation alert. */
+export function pushNotificationTag(kind: PushNotificationKind, context: PushTagContext): string {
+  if (kind === "tribe_join") return `${kind}-${context.notificationId}`;
+  if (kind === "venture_message" && context.ventureId) {
+    return `${kind}-${context.ventureId}`;
+  }
+  return `${kind}-${context.postId ?? context.actorId ?? context.notificationId}`;
+}
+
 /** Keep private conversation and meetup details off lock screens by default. */
 export function buildPushCopy(
   actorName: string,

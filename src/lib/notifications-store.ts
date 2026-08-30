@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listMyNotifications,
   markAllNotificationsRead,
-  markNotificationRead,
+  markNotificationsRead,
   type NotificationRow,
 } from "@/lib/notifications.functions";
+import { groupChatNotifications } from "@/lib/notification-presenter";
 import { useAuth } from "@/lib/auth-context";
 
 export type DerivedNotif = NotificationRow;
@@ -28,9 +30,9 @@ export function useNotificationsQuery() {
 export function useNotifications() {
   const q = useNotificationsQuery();
   const markAllFn = useServerFn(markAllNotificationsRead);
-  const markOneFn = useServerFn(markNotificationRead);
+  const markManyFn = useServerFn(markNotificationsRead);
   const qc = useQueryClient();
-  const items: NotificationRow[] = q.data ?? [];
+  const items = useMemo(() => groupChatNotifications(q.data ?? []), [q.data]);
   const unread = items.filter((n) => !n.read_at).length;
 
   const markAll = useMutation({
@@ -52,15 +54,16 @@ export function useNotifications() {
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFS_KEY }),
   });
 
-  const markOne = useMutation({
-    mutationFn: (id: string) => markOneFn({ data: { id } }),
-    onMutate: async (id) => {
+  const markMany = useMutation({
+    mutationFn: (ids: string[]) => markManyFn({ data: { ids } }),
+    onMutate: async (ids) => {
       await qc.cancelQueries({ queryKey: NOTIFS_KEY });
       const snapshots = qc.getQueriesData<NotificationRow[]>({ queryKey: NOTIFS_KEY });
       const readAt = new Date().toISOString();
+      const idSet = new Set(ids);
       qc.setQueriesData<NotificationRow[]>({ queryKey: NOTIFS_KEY }, (notifications) =>
         notifications?.map((notification) =>
-          notification.id === id && !notification.read_at
+          idSet.has(notification.id) && !notification.read_at
             ? { ...notification, read_at: readAt }
             : notification,
         ),
@@ -82,7 +85,7 @@ export function useNotifications() {
     refetch: q.refetch,
     isRefetching: q.isRefetching,
     markAllRead: markAll.mutateAsync,
-    markNotificationRead: markOne.mutateAsync,
+    markNotificationsRead: markMany.mutateAsync,
     markingAll: markAll.isPending,
   };
 }

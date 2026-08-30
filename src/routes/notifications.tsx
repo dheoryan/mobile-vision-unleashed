@@ -38,6 +38,7 @@ import {
   notificationDestination,
   notificationSections,
   type NotificationCategory,
+  type NotificationViewItem,
 } from "@/lib/notification-presenter";
 import { cn } from "@/lib/utils";
 import { notificationHomeSearch } from "@/lib/notification-navigation";
@@ -122,7 +123,7 @@ function NotificationsPage() {
     refetch,
     isRefetching,
     markAllRead,
-    markNotificationRead,
+    markNotificationsRead,
     markingAll,
   } = useNotifications();
   const navigate = useNavigate();
@@ -131,7 +132,7 @@ function NotificationsPage() {
   const sections = useMemo(() => notificationSections(items), [items]);
 
   const openDestination = useCallback(
-    (notification: NotificationRow) => {
+    (notification: NotificationViewItem) => {
       const destination = notificationDestination(notification);
       if (destination.kind === "post") {
         void navigate({
@@ -162,9 +163,9 @@ function NotificationsPage() {
   );
 
   const selectNotification = useCallback(
-    (notification: NotificationRow) => {
+    (notification: NotificationViewItem) => {
       if (!notification.read_at) {
-        void markNotificationRead(notification.id).catch((markError: unknown) =>
+        void markNotificationsRead(notification.notification_ids).catch((markError: unknown) =>
           toast.error("Could not update this notification", {
             description: markError instanceof Error ? markError.message : "Try again shortly.",
           }),
@@ -172,12 +173,14 @@ function NotificationsPage() {
       }
       openDestination(notification);
     },
-    [markNotificationRead, openDestination],
+    [markNotificationsRead, openDestination],
   );
 
   useEffect(() => {
     if (!open || isLoading || openedFromPush.current === open) return;
-    const notification = items.find((item) => item.id === open);
+    const notification = items.find(
+      (item) => item.id === open || item.notification_ids.includes(open),
+    );
     if (!notification) return;
     openedFromPush.current = open;
     selectNotification(notification);
@@ -284,8 +287,8 @@ function NotificationSection({
   onSelect,
 }: {
   title: string;
-  items: NotificationRow[];
-  onSelect: (notification: NotificationRow) => void;
+  items: NotificationViewItem[];
+  onSelect: (notification: NotificationViewItem) => void;
 }) {
   const headingId = `notifications-${title.replace(/\s+/g, "-").toLowerCase()}`;
   return (
@@ -316,8 +319,8 @@ function NotificationRowItem({
   notification,
   onSelect,
 }: {
-  notification: NotificationRow;
-  onSelect: (notification: NotificationRow) => void;
+  notification: NotificationViewItem;
+  onSelect: (notification: NotificationViewItem) => void;
 }) {
   const actorName = notification.actor?.display_name?.trim() || "Someone";
   const actorAvatar = notification.actor?.avatar_url || notification.actor?.avatar_emoji;
@@ -326,6 +329,9 @@ function NotificationRowItem({
   );
   const isUnread = !notification.read_at;
   const category = notificationCategory(notification.kind);
+  const isGroupedVentureMessage =
+    notification.kind === "venture_message" && notification.message_count > 1;
+  const additionalActors = Math.max(0, notification.actor_count - 1);
 
   return (
     <li className="relative">
@@ -363,7 +369,36 @@ function NotificationRowItem({
           <span className="block text-sm leading-snug">
             {isUnread && <span className="sr-only">Unread. </span>}
             <span className="font-semibold text-foreground">{actorName}</span>{" "}
-            <span className="text-muted-foreground">{TEXTS[notification.kind]}</span>
+            {isGroupedVentureMessage ? (
+              <span className="text-muted-foreground">
+                {additionalActors > 0 &&
+                  `and ${additionalActors} other${additionalActors === 1 ? "" : "s"} `}
+                sent {notification.message_count} messages
+                {notification.conversation_name && (
+                  <>
+                    {" "}
+                    in{" "}
+                    <span className="font-medium text-foreground/90">
+                      {notification.conversation_name}
+                    </span>
+                  </>
+                )}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {TEXTS[notification.kind]}
+                {(notification.kind === "venture_message" || notification.kind === "mention") &&
+                  notification.conversation_name && (
+                    <>
+                      {" "}
+                      in{" "}
+                      <span className="font-medium text-foreground/90">
+                        {notification.conversation_name}
+                      </span>
+                    </>
+                  )}
+              </span>
+            )}
           </span>
           {notification.preview && (
             <span className="mt-1.5 line-clamp-2 block text-xs leading-relaxed text-foreground/75">

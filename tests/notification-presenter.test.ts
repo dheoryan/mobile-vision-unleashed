@@ -26,6 +26,7 @@ function notification(overrides: Partial<NotificationRow>): NotificationRow {
     read_at: "2026-08-26T09:00:00.000Z",
     created_at: "2026-08-26T09:00:00.000Z",
     actor: null,
+    conversation_name: null,
     post_image_url: null,
     ...overrides,
   };
