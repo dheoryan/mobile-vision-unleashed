@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Harden and reconcile like/share post counters | `DEVLOG.md`, `supabase/migrations/20260830030000_harden_like_share_counters.sql`, `LOVABLE_LIKE_SHARE_COUNTER_RELEASE_VERIFY.sql` | 2026-08-30 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,30 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-08-30 — Codex — Like/share counter hardening and drift repair prepared
+
+- Confirmed the repository's current `sync_likes_count` and
+  `sync_shares_count` functions were already `security definer`; the known-
+  issue note was therefore not a missing-code diagnosis. Added the explicit
+  Red migration `20260830030000_harden_like_share_counters.sql` to repair a
+  production instance that may have drifted onto the legacy invoker functions.
+- The migration reasserts atomic `security definer` functions with a pinned
+  `public` search path, revokes direct execution, replaces either legacy
+  trigger binding with the hardened functions, and reconciles stored like and
+  share counts with their source tables in one set-based pass.
+- Added `LOVABLE_LIKE_SHARE_COUNTER_RELEASE_VERIFY.sql` with seven read-only
+  checks for trigger bindings, security, legacy-trigger removal, nonnegative
+  values, and zero count drift.
+- Rehearsed against an isolated Postgres 16 database seeded with the legacy
+  `security invoker` failure shape and deliberately drifted `7/9` counters.
+  The migration reconciled both to zero; a second user then liked/shared the
+  author's post (`0 -> 1`) and undid both (`1 -> 0`) under RLS. All seven
+  verifier rows returned `true`.
+- Verification: `git diff --check`, `npx tsc --noEmit`, and the full Cloudflare
+  production build pass. The migration is Red and remains unapplied: take a
+  Lovable backup, apply it manually, then require all seven verifier rows to
+  return `true` before calling the repair live.
 
 ### 2026-08-30 — Claude — Live-testing the repost/quote migration caught three bugs the rehearsal couldn't
 
