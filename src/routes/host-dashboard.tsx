@@ -1,7 +1,6 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { ChatTextIcon } from "@phosphor-icons/react/dist/csr/ChatText";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
@@ -10,6 +9,7 @@ import { PushPinIcon } from "@phosphor-icons/react/dist/csr/PushPin";
 import { MegaphoneIcon } from "@phosphor-icons/react/dist/csr/Megaphone";
 import { PEOPLE, POSTS, tribeById } from "@/lib/mutuals-data";
 import { TribeMark } from "@/components/mutuals/TribeMark";
+import { BackButton } from "@/components/mutuals/Shared";
 
 export const Route = createFileRoute("/host-dashboard")({
   // 100% fabricated analytics (hardcoded member counts, invented growth chart,
@@ -38,9 +38,7 @@ function HostDashboard() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-          <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to app
-          </Link>
+          <BackButton label="Back to app" />
           <div className="flex items-center gap-2">
             <TribeMark tribe={tribe} size="sm" />
             <div className="leading-tight">

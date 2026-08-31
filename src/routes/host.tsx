@@ -1,9 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { TRIBES } from "@/lib/mutuals-data";
+import { BackButton } from "@/components/mutuals/Shared";
 
 export const Route = createFileRoute("/host")({
   // Advertises $199–$499/month plans and "we'll be in touch within 48 hours",
@@ -45,9 +45,7 @@ function HostApplyPage() {
   return (
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-md px-5 pt-6">
-        <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
-        </Link>
+        <BackButton />
 
         <header className="mt-6">
           <p className="label-mono text-muted-foreground">For brands & venues</p>

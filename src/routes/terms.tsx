@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { createFileRoute } from "@tanstack/react-router";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
+import { BackButton } from "@/components/mutuals/Shared";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -24,12 +24,7 @@ function TermsPage() {
   return (
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-2xl px-5 pt-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
-        </Link>
+        <BackButton />
         <header className="mt-6">
           <p className="label-mono text-muted-foreground">Legal</p>
           <h1 className="mt-2 font-display text-4xl font-bold leading-tight">Terms of Service</h1>

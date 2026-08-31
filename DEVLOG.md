@@ -205,6 +205,85 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — BackButton's fixed `to="/"` sent Settings' Policies links to the wrong place; Community Guidelines still said 21+
+
+User asked to double-check the three Policies rows (Settings → Privacy &
+safety → Community Guidelines / Privacy Policy / Terms of Service) for
+content and behavioral consistency, and this surfaced a real bug in
+yesterday's own `BackButton` fix: `SettingsLink` navigates to these as
+genuinely separate routes, so tapping "Community Guidelines" from deep
+inside Settings and then hitting the new back button sent the user to `/`
+(Timeline) instead of back to Settings - `BackButton` had a hardcoded `to`
+destination, correct for none of its real entry points (Settings' Policies
+list, the auth-screen `LegalFooter`, a cold-opened shared link). Fixed by
+going back through real browser history first (`window.history.back()`
+when `window.history.length > 1`, matching the pattern `p.$postId.tsx`'s
+header already established), falling back to the `to` prop only when
+there's genuinely no history - i.e. the page was opened directly.
+
+Also found real content drift while reviewing the pages themselves:
+Community Guidelines' "21 and up" rule was never touched by yesterday's
+`20260830090000_lower_adult_gate_to_18.sql` migration (which explicitly
+updated Terms, Privacy, signup, onboarding, and the manifest - Guidelines
+wasn't on that list), so it was silently contradicting the Terms of
+Service page sitting one tap away, which correctly says 18. Updated the
+title and body to 18+ and confirmed via `grep` that no other stale
+21+/21-and-up copy exists anywhere else in `src`.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean (the file's
+pre-existing compact-array formatting was left as-is, matching its
+untouched sibling rows). Live-verified end to end in the browser: opened
+Community Guidelines from Settings → Privacy & safety, confirmed "18 and
+up" renders, tapped back, and landed exactly back on the Privacy & safety
+view (`settings?view=safety` in the URL) rather than Timeline. No console
+errors beyond the known pre-existing browser-extension hydration warning.
+
+### 2026-08-31 — Claude — Confirmed zero lucide-react left after the icon migration; unified the back-button pattern across 8 files; a second white toggle found
+
+Three follow-ups from a user screenshot comparison (Settings' header back
+button vs. Community Guidelines/Privacy/Terms').
+
+**Re-verified the full app-wide lucide→Phosphor migration from earlier
+today**: `grep -rn "lucide-react" src` returns zero matches, confirmed
+clean, nothing was missed.
+
+**Back-button inconsistency, real and worth fixing**: `notifications.tsx`,
+`p.$postId.tsx`, `u.$handle.tsx`, and `SettingsScreen.tsx` all use the
+app's proper 44px circular icon-only back button inside a real header bar
+- but 7 standalone routes (`community-guidelines.tsx`, `privacy.tsx`,
+`terms.tsx`, `tiers.tsx`, `upgrade.tsx`, `host.tsx`, `host-dashboard.tsx`)
+had each independently grown a smaller inline "← Back" text link instead,
+with a much smaller tap target. Extracted a shared `BackButton`
+(`Shared.tsx`) matching the established 44px circular pattern and swapped
+all 7 routes to it. Also caught a second-order inconsistency while at it:
+of the four "proper" back buttons, three already used `CaretLeftIcon` and
+only `SettingsScreen.tsx` used `ArrowLeftIcon` - standardized on
+`CaretLeftIcon` (the majority, and the better semantic fit for "step back
+one level" vs. "exit/leave" that `ArrowLeftIcon` reads as) everywhere,
+`BackButton` included.
+
+**A second white-on-white toggle**: the earlier `Switch` component fix
+only caught the 3 places using the shared shadcn `<Switch>` - the "Push
+notifications" master toggle in `EnablePushBanner.tsx`'s `PushSettingsRow`
+turned out to be a hand-rolled `role="switch"` button that never used the
+shared component at all (`bg-primary` track, `bg-primary-foreground`
+thumb - white-on-dark, not literally invisible like the original bug, but
+still off the app's now-established accent-green "on" language and its
+own separate implementation to keep in sync). Replaced it with the actual
+shared `<Switch>` component (`checked` always true here since it only
+renders in the active state; `onCheckedChange` calls the existing
+`disable()` handler) - same fix, same color, one implementation instead of
+two.
+
+Verification: `npx tsc --noEmit` clean; targeted ESLint clean on every
+touched line (the 69 flagged errors across 5 route files are 100%
+pre-existing `head: meta` formatting debt, confirmed via `git diff` to sit
+outside every line this touched). Live-verified in the browser: Community
+Guidelines and Terms both render the icon-only back button and navigate
+correctly; Settings' Notifications view shows the header's CaretLeft icon
+and every toggle (the master Push notifications switch and all five
+category rows) rendering the same accent green when on.
+
 ### 2026-08-31 — Claude — Toggle switches were white-on-white when on; added a manual "Check for updates" row
 
 User flagged that every toggle's "on" state looked washed out - a white

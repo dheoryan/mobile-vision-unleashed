@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
 import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
 import { BookOpenTextIcon } from "@phosphor-icons/react/dist/csr/BookOpenText";
@@ -125,7 +125,7 @@ export function SettingsScreen({
             aria-label={view === "main" ? "Back to profile" : "Back to settings"}
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowLeftIcon className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </button>
           <div className="min-w-0 text-center">
             <p className="label-mono text-primary">MEUTUALS</p>

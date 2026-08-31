@@ -23,6 +23,7 @@ import {
   type PushAvailability,
 } from "@/lib/push-subscribe";
 import { saveSubscription, deleteSubscription } from "@/lib/push.functions";
+import { Switch } from "@/components/ui/switch";
 
 const DISMISS_KEY = "mutuals.push-banner.dismissed-session";
 const DEVICE_DISABLED_KEY = "mutuals.push.device-disabled";
@@ -465,19 +466,12 @@ export function PushSettingsRow() {
           </p>
         </div>
         {status === "active" && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked="true"
-            aria-label="Turn off push notifications on this device"
-            onClick={disable}
+          <Switch
+            checked
             disabled={loading}
-            className="relative h-11 w-12 shrink-0 rounded-full transition-transform active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
-          >
-            <span className="absolute inset-x-0 top-2 h-7 rounded-full bg-primary transition-colors">
-              <span className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary-foreground shadow-sm" />
-            </span>
-          </button>
+            aria-label="Turn off push notifications on this device"
+            onCheckedChange={() => disable()}
+          />
         )}
       </div>
       {status !== "active" && !connecting && (

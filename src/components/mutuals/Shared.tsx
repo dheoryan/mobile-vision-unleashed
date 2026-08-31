@@ -1,7 +1,44 @@
+import { useNavigate } from "@tanstack/react-router";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import logoMark from "@/assets/logo-mark.svg";
 import { NotificationBell } from "./NotificationBell";
 import { TribeMark } from "./TribeMark";
 import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
+
+/**
+ * The 44px circular back button used everywhere else in the app
+ * (Notifications, post detail, profile, Settings) - standalone pages
+ * (legal docs, upgrade, host application) had each grown their own smaller
+ * inline "← Back" text link instead, a real tap-target and visual
+ * inconsistency once you land on both kinds of page back to back.
+ *
+ * Actually goes back through browser history (same pattern as
+ * `p.$postId.tsx`'s header) rather than a fixed `to` route - these pages
+ * are reached from genuinely different places (Settings' Policies list,
+ * the auth-screen footer, a shared link opened cold), and a hardcoded
+ * destination is only ever right for one of them. `to` is purely the
+ * fallback for when there's no history to return to at all.
+ */
+export function BackButton({ to = "/", label = "Back" }: { to?: string; label?: string }) {
+  const navigate = useNavigate();
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    void navigate({ to });
+  };
+  return (
+    <button
+      type="button"
+      onClick={goBack}
+      aria-label={label}
+      className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <CaretLeftIcon className="h-5 w-5" />
+    </button>
+  );
+}
 
 /**
  * The messages button used to live here because conversations had no tab —

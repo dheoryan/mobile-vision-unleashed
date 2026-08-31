@@ -1,10 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
+import { BackButton } from "@/components/mutuals/Shared";
 
 export const Route = createFileRoute("/upgrade")({
   // Same reasoning as /tiers — and this one previously mounted a card-entry
@@ -31,9 +31,7 @@ function UpgradePage() {
   return (
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-md px-5 pt-6">
-        <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
-        </Link>
+        <BackButton />
 
         <header className="mt-6 text-center">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">

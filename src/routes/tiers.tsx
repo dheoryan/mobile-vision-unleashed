@@ -1,10 +1,10 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { CompassIcon } from "@phosphor-icons/react/dist/csr/Compass";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { CrownIcon } from "@phosphor-icons/react/dist/csr/Crown";
+import { BackButton } from "@/components/mutuals/Shared";
 
 export const Route = createFileRoute("/tiers")({
   // Advertises paid plans. Unreachable while monetization is off — otherwise a
@@ -27,9 +27,7 @@ function TiersPage() {
   return (
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-3xl px-5 pt-6">
-        <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
-        </Link>
+        <BackButton />
 
         <header className="mt-6 text-center">
           <p className="label-mono text-muted-foreground">Subscription tiers</p>
