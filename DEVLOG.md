@@ -205,6 +205,27 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Same Android autofill-icon fix extended to the post-comments composer
+
+User's device screenshot showed the same key/card/pin icon row above the
+keyboard on the Signal Thread (post detail) comment box - a separate
+component (`CommentsModal.tsx`) from the three chat surfaces fixed
+earlier today, so the shared-composer fix didn't cover it. Applied the
+identical treatment (`type="search"`, the `::-webkit-search-*` resets,
+`enterKeyHint="send"`, `autoComplete="off"` + password-manager ignore
+hints) to this input too.
+
+Checked whether the earlier "stick to bottom only if already there"
+scroll fix also applied here and it doesn't need to: Comments has no
+scroll-to-bottom-on-new-reply behavior at all (comments load once,
+render top to bottom, no live-chat-style auto-scroll effect exists in
+this file), so there was nothing to break here in the first place.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean. Live-checked
+the real DOM in the browser via the Signal Thread on a real post -
+`type="search"`, computed `-webkit-appearance: none`, `enterKeyHint`, and
+`role` all confirmed applied; no console errors.
+
 ### 2026-08-31 — Claude — Chat scroll position now respects where the user left it; a real fix for Chrome/Android's autofill icons; iOS's accessory bar is not fixable from the web
 
 User pushed back on the previous keyboard-scroll fix with the correct

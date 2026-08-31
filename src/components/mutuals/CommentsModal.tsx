@@ -376,8 +376,21 @@ export function CommentsThread({
           <div className="relative">
             <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
             <div className="flex min-h-12 items-center gap-2 rounded-full border border-border/90 bg-background/75 px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+              {/* Same fix as the shared chat composer: type="search" is what
+                  actually excludes this field from Chrome/Android's
+                  password/payment/address autofill icon row -
+                  autoComplete="off" alone does not. */}
               <input
                 ref={inputRef}
+                type="search"
+                enterKeyHint="send"
+                role="textbox"
+                name="comment-message"
+                autoComplete="off"
+                autoCorrect="on"
+                autoCapitalize="sentences"
+                data-lpignore="true"
+                data-1p-ignore
                 value={text}
                 onChange={onChange}
                 onKeyUp={(e) =>
@@ -391,7 +404,7 @@ export function CommentsThread({
                   }
                 }}
                 placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
-                className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm"
+                className="min-w-0 flex-1 appearance-none bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
               />
               <button
                 onClick={send}
