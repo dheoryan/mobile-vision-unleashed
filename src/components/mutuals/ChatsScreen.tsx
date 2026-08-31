@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Hand, MessageCircle, UsersRound, X, Zap } from "lucide-react";
+import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/csr/ChatCircleDots";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
@@ -304,7 +308,7 @@ export function ChatsScreen({
             }
             className="relative flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Hand className="h-5 w-5" />
+            <HandIcon className="h-5 w-5" />
             {helloRequestCount > 0 && (
               <span className="bg-meutuals-gradient absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white">
                 {helloRequestCount > 9 ? "9+" : helloRequestCount}
@@ -392,7 +396,7 @@ export function ChatsScreen({
                     key={venture.id}
                     leading={
                       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
-                        <Zap className="h-4.5 w-4.5" />
+                        <LightningIcon className="h-4.5 w-4.5" weight="fill" />
                       </span>
                     }
                     title={venture.title}
@@ -421,7 +425,7 @@ export function ChatsScreen({
                     key={venture.id}
                     leading={
                       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
-                        <UsersRound className="h-4.5 w-4.5" />
+                        <UsersIcon className="h-4.5 w-4.5" weight="fill" />
                       </span>
                     }
                     title={venture.title}
@@ -482,7 +486,7 @@ export function ChatsScreen({
 
         {!isLoading && nothingAtAll && (
           <div className="mt-10 rounded-2xl border border-dashed border-border p-8 text-center">
-            <MessageCircle className="mx-auto h-6 w-6 text-muted-foreground" />
+            <ChatCircleIcon className="mx-auto h-6 w-6 text-muted-foreground" />
             <p className="mt-3 text-sm font-semibold">No conversations yet</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Join a Venture or say hello to someone in Discover, and it will show up here.
@@ -579,7 +583,7 @@ function MootsPickerSheet({
           aria-label="Close"
           className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
       </div>
 

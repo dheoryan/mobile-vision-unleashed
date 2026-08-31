@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
-import {
-  BadgeCheck,
-  Check,
-  Clock,
-  ExternalLink,
-  Loader2,
-  LogOut,
-  Map,
-  MapPin,
-  MessageCircle,
-  ShieldCheck,
-  Users,
-  X,
-} from "lucide-react";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOut";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { MapTrifoldIcon } from "@phosphor-icons/react/dist/csr/MapTrifold";
+import { SealCheckIcon } from "@phosphor-icons/react/dist/csr/SealCheck";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 import type { VentureParty } from "@/lib/ventures.functions";
@@ -133,13 +131,16 @@ export function VentureTicket({
             <p className="flex min-w-0 items-center gap-1 text-xs text-foreground/85">
               <span className="truncate">{venture.venue.host_label}</span>
               {venture.venue.google_place_id && (
-                <BadgeCheck className="h-3 w-3 shrink-0 text-accent" aria-label="Verified place" />
+                <SealCheckIcon
+                  className="h-3 w-3 shrink-0 text-accent"
+                  aria-label="Verified place"
+                />
               )}
             </p>
           )}
 
           <p className="flex items-center gap-1 font-mono text-[9.5px] uppercase tracking-wider text-muted-foreground">
-            <Users className="h-2.5 w-2.5" />
+            <UsersIcon className="h-2.5 w-2.5" />
             {venture.filled_slots} of {venture.max_slots} going
           </p>
 
@@ -153,7 +154,7 @@ export function VentureTicket({
                 disabled={busy}
                 className="flex-1 rounded-xl border border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
-                <X className="mr-1 inline h-3 w-3" /> Pass
+                <XIcon className="mr-1 inline h-3 w-3" /> Pass
               </button>
               <button
                 type="button"
@@ -162,9 +163,9 @@ export function VentureTicket({
                 className="inline-flex flex-[1.4] items-center justify-center gap-1 rounded-xl bg-primary py-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 {busy ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <SpinnerGapIcon className="h-3 w-3 animate-spin" />
                 ) : (
-                  <Check className="h-3 w-3" />
+                  <CheckIcon className="h-3 w-3" />
                 )}
                 Accept
               </button>
@@ -175,7 +176,7 @@ export function VentureTicket({
               onClick={onOpenChat}
               className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-meutuals-gradient py-2.5 text-[11px] font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <MessageCircle className="h-3.5 w-3.5" /> Open party chat
+              <ChatCircleIcon className="h-3.5 w-3.5" /> Open party chat
             </button>
           ) : (
             venture.my_application && (
@@ -254,7 +255,7 @@ export function VentureTicketDetail({
           <h2 className="text-lg font-extrabold leading-tight tracking-tight">{venture.title}</h2>
           {timing && (
             <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" /> {timing}
+              <ClockIcon className="h-3 w-3" /> {timing}
             </p>
           )}
         </div>
@@ -288,12 +289,12 @@ export function VentureTicketDetail({
           <section className="space-y-2">
             <p className="label-mono text-muted-foreground">Where</p>
             <div className="flex items-start gap-2.5 rounded-xl bg-secondary/40 p-3">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-sm font-semibold">
                   <span className="truncate">{venture.venue.host_label}</span>
                   {GOOGLE_PLACES_ENABLED && venture.venue.google_place_id && (
-                    <BadgeCheck
+                    <SealCheckIcon
                       className="h-3.5 w-3.5 shrink-0 text-accent"
                       aria-label="Verified place"
                     />
@@ -305,7 +306,7 @@ export function VentureTicketDetail({
                 {accepted && venture.private_venue ? (
                   <div className="mt-3 border-t border-border/70 pt-3">
                     <p className="mb-1 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-accent">
-                      <ShieldCheck className="h-3 w-3" /> Accepted members only
+                      <ShieldCheckIcon className="h-3 w-3" /> Accepted members only
                     </p>
                     <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/85">
                       {venture.private_venue.arrival_details}
@@ -318,7 +319,7 @@ export function VentureTicketDetail({
                   </p>
                 ) : (
                   <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <ShieldCheck className="h-3 w-3" /> Exact arrival details unlock after
+                    <ShieldCheckIcon className="h-3 w-3" /> Exact arrival details unlock after
                     acceptance.
                   </p>
                 )}
@@ -343,7 +344,7 @@ export function VentureTicketDetail({
                     className="flex min-h-28 w-full flex-col items-center justify-center gap-2 px-5 py-4 text-center transition-colors hover:bg-secondary/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Map className="h-4 w-4" />
+                      <MapTrifoldIcon className="h-4 w-4" />
                     </span>
                     <span className="text-xs font-semibold">Load the meeting map</span>
                     <span className="text-[10px] leading-relaxed text-muted-foreground">
@@ -352,7 +353,7 @@ export function VentureTicketDetail({
                   </button>
                 ) : (
                   <div className="flex min-h-24 flex-col items-center justify-center gap-2 px-5 py-4 text-center">
-                    <Map className="h-4 w-4 text-muted-foreground" />
+                    <MapTrifoldIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-[11px] text-muted-foreground">
                       Map preview is unavailable. Open the place in Maps instead.
                     </span>
@@ -364,7 +365,7 @@ export function VentureTicketDetail({
                   rel="noreferrer"
                   className="flex min-h-11 items-center justify-center gap-1.5 border-t border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 >
-                  Open in Maps <ExternalLink className="h-3 w-3" />
+                  Open in Maps <ArrowSquareOutIcon className="h-3 w-3" />
                 </a>
               </div>
             )}
@@ -430,7 +431,7 @@ export function VentureTicketDetail({
             }}
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-meutuals-gradient py-3 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <MessageCircle className="h-4 w-4" /> Open party chat
+            <ChatCircleIcon className="h-4 w-4" /> Open party chat
           </button>
         )}
         {venture.my_application && (
@@ -440,7 +441,7 @@ export function VentureTicketDetail({
             disabled={leaving}
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-2.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <SignOutIcon className="h-3.5 w-3.5" />
             {leaving ? "Leaving…" : accepted ? "Leave this Venture" : "Withdraw my request"}
           </button>
         )}
@@ -479,7 +480,7 @@ function Stamp({ status }: { status?: string }) {
         stamp.className,
       )}
     >
-      {stamp.icon && <BadgeCheck className="h-2.5 w-2.5" />}
+      {stamp.icon && <SealCheckIcon className="h-2.5 w-2.5" />}
       {stamp.label}
     </span>
   );

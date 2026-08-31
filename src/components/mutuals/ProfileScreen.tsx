@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, Zap, X, Loader2, Check, LocateFixed, MapPin } from "lucide-react";
+import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { Link } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
@@ -92,7 +98,7 @@ export function ProfileScreen({
             aria-label="Settings"
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Menu className="h-5 w-5" />
+            <ListIcon className="h-5 w-5" />
           </Link>
         }
       />
@@ -130,7 +136,7 @@ export function ProfileScreen({
                 </h2>
                 {showPlusBadge(profile.plan) && (
                   <span className="label-mono inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-primary">
-                    <Zap className="h-3 w-3" fill="currentColor" /> PLUS
+                    <LightningIcon className="h-3 w-3" weight="fill" /> PLUS
                   </span>
                 )}
               </div>
@@ -182,7 +188,7 @@ export function ProfileScreen({
               like these, so a colored outlier here read as a mistake. */}
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" />
+              <MapPinIcon className="h-3.5 w-3.5" />
               {profile.city || "Somewhere"}
             </span>
             {profile.gender && <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>}
@@ -299,7 +305,7 @@ export function ProfileScreen({
                   to="/upgrade"
                   className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <Zap className="h-3.5 w-3.5" fill="currentColor" /> Upgrade
+                  <LightningIcon className="h-3.5 w-3.5" weight="fill" /> Upgrade
                 </Link>
               )}
             </div>
@@ -506,7 +512,7 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
     <div>
       <p className="label-mono mb-1 text-muted-foreground">City or local area</p>
       <div className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background/60 px-4">
-        <LocateFixed className="h-4 w-4 shrink-0 text-primary" />
+        <CrosshairIcon className="h-4 w-4 shrink-0 text-primary" />
         <span className="min-w-0 flex-1 truncate text-sm">{value || "Not set yet"}</span>
         <button
           type="button"
@@ -640,7 +646,7 @@ export function EditProfileModal({
           aria-label="Close"
           className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">Edit profile</h2>
 
@@ -661,7 +667,7 @@ export function EditProfileModal({
             </span>
             {uploading && (
               <span className="absolute inset-0 z-20 flex items-center justify-center rounded-full bg-background/70 backdrop-blur-sm">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <SpinnerGapIcon className="h-5 w-5 animate-spin text-primary" />
               </span>
             )}
           </button>
@@ -962,7 +968,7 @@ function AvatarCropModal({
           aria-label="Close cropper"
           className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
         >
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
 
         <h3 className="font-display text-xl font-bold">Adjust profile photo</h3>
@@ -1046,7 +1052,7 @@ function AvatarCropModal({
             disabled={saving || !imageSize || imageLoadFailed}
             className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {saving && <SpinnerGapIcon className="h-4 w-4 animate-spin" />}
             Use photo
           </button>
         </div>
@@ -1132,7 +1138,9 @@ function ProfileChoiceGroup({
                   : undefined
               }
             >
-              {active && <Check className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />}
+              {active && (
+                <CheckIcon className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />
+              )}
               {option.label}
             </button>
           );

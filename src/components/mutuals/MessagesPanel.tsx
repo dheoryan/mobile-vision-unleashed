@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Handshake,
-  Loader2,
-  MessageCircle,
-  Reply,
-  UserPlus,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { HandshakeIcon } from "@phosphor-icons/react/dist/csr/Handshake";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import {
   useMarkThreadRead,
   useProfileById,
@@ -100,7 +98,7 @@ function MessageSwipeRow({
               transform: `scale(${ready ? 1.12 : 0.9})`,
             }}
           >
-            <Reply className="h-3.5 w-3.5" />
+            <ArrowBendUpLeftIcon className="h-3.5 w-3.5" />
           </span>
         </div>
       )}
@@ -273,7 +271,7 @@ function Inbox({
             onClick={onClose}
             className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
       </header>
@@ -346,7 +344,7 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
         className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-card active:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
       >
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <MessageCircle className="h-5 w-5" />
+          <ChatCircleIcon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -495,11 +493,11 @@ function VentureMootPerson({
 
   let action: React.ReactNode;
   if (contact.isLoading) {
-    action = <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+    action = <SpinnerGapIcon className="h-4 w-4 animate-spin text-muted-foreground" />;
   } else if (status === "accepted") {
     action = (
       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500">
-        <Check className="h-3.5 w-3.5" /> Moots
+        <CheckIcon className="h-3.5 w-3.5" /> Moots
       </span>
     );
   } else if (status === "pending" && contact.data?.awaiting_my_answer) {
@@ -511,9 +509,9 @@ function VentureMootPerson({
         className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
       >
         {accepting ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <Handshake className="h-3.5 w-3.5" />
+          <HandshakeIcon className="h-3.5 w-3.5" />
         )}
         Accept
       </button>
@@ -533,9 +531,9 @@ function VentureMootPerson({
         className="inline-flex min-h-8 items-center gap-1 rounded-full border border-primary/50 px-3 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
       >
         {requesting ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <UserPlus className="h-3.5 w-3.5" />
+          <UserPlusIcon className="h-3.5 w-3.5" />
         )}
         Add as Moot
       </button>
@@ -571,7 +569,7 @@ function VentureMootRecap({ venture }: { venture: VentureParty }) {
     <section className="my-4 rounded-2xl border border-primary/35 bg-primary/[0.07] p-4 shadow-sm">
       <div className="flex items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-meutuals-gradient text-white">
-          <UsersRound className="h-4 w-4" />
+          <UsersIcon className="h-4 w-4" />
         </span>
         <div>
           <p className="label-mono text-primary">Venture complete</p>
@@ -736,10 +734,10 @@ function VenturePartyThread({
             aria-label="Back to messages"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </button>
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <MessageCircle className="h-4 w-4" />
+            <ChatCircleIcon className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{venture.title}</p>
@@ -751,11 +749,11 @@ function VenturePartyThread({
             >
               <span>{isComplete ? "Venture memory" : "Party chat"}</span>
               <span aria-hidden="true">·</span>
-              <UsersRound className="h-3 w-3 shrink-0" />
+              <UsersIcon className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {participants.length} {participants.length === 1 ? "participant" : "participants"}
               </span>
-              <ChevronRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+              <CaretRightIcon className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
             </button>
           </div>
         </div>
@@ -1111,7 +1109,7 @@ function Thread({
             aria-label="Back to messages"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </button>
           <button
             type="button"

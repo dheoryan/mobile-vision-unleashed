@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { MoreHorizontal, X, Flag, Ban, ChevronRight, EyeOff } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
+import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
+import { FlagIcon } from "@phosphor-icons/react/dist/csr/Flag";
+import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useBlockUser } from "@/lib/blocked-store";
@@ -63,7 +68,7 @@ export function SafetyMenu({
             buttonClassName,
           )}
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <DotsThreeIcon className="h-4 w-4" />
         </button>
       </div>
 
@@ -87,7 +92,7 @@ export function SafetyMenu({
               aria-label={`Close ${kind} options`}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-5 w-5" />
+              <XIcon className="h-5 w-5" />
             </button>
           </div>
 
@@ -102,7 +107,7 @@ export function SafetyMenu({
                 className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                  <EyeOff className="h-5 w-5" />
+                  <EyeSlashIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">Hide comment</span>
@@ -110,7 +115,7 @@ export function SafetyMenu({
                     Remove it from your post; restore it later
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </button>
             )}
 
@@ -126,7 +131,7 @@ export function SafetyMenu({
               )}
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                <Flag className="h-5 w-5" />
+                <FlagIcon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">Report {kind}</span>
@@ -134,7 +139,7 @@ export function SafetyMenu({
                   Send this to the MEUTUALS safety team
                 </span>
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
 
             {targetUserId && (
@@ -158,7 +163,7 @@ export function SafetyMenu({
                 className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left text-destructive transition-colors hover:bg-destructive/8 active:bg-destructive/12 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/12 text-destructive">
-                  <Ban className="h-5 w-5" />
+                  <ProhibitIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">Block {targetName}</span>
@@ -166,7 +171,7 @@ export function SafetyMenu({
                     Hide their posts and messages
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </button>
             )}
           </div>
@@ -238,7 +243,7 @@ function ReportModal({
           aria-label="Close"
           className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
         <h2 className="font-display text-xl font-bold">
           Report {kind === "user" ? `@${targetName}` : kind}

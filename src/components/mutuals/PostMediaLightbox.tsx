@@ -5,7 +5,10 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent,
 } from "react";
-import { Minus, Plus, RotateCcw, X } from "lucide-react";
+import { MinusIcon } from "@phosphor-icons/react/dist/csr/Minus";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { cn } from "@/lib/utils";
 
@@ -230,7 +233,7 @@ export function PostMediaLightbox({
             className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="Close photo"
           >
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
 
@@ -259,7 +262,7 @@ export function PostMediaLightbox({
             className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-35"
             aria-label="Zoom out"
           >
-            <Minus className="h-4 w-4" />
+            <MinusIcon className="h-4 w-4" />
           </button>
           <span className="min-w-14 text-center text-xs font-semibold tabular-nums">
             {Math.round(scale * 100)}%
@@ -271,7 +274,7 @@ export function PostMediaLightbox({
             className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-35"
             aria-label="Zoom in"
           >
-            <Plus className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -282,7 +285,7 @@ export function PostMediaLightbox({
             )}
             aria-label="Reset zoom"
           >
-            <RotateCcw className="h-4 w-4" />
+            <ArrowCounterClockwiseIcon className="h-4 w-4" />
           </button>
         </div>
 

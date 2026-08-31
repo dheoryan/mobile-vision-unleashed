@@ -1,4 +1,5 @@
-import { Check, Lock } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
 import { cn } from "@/lib/utils";
 import { GENDER_OPTIONS, type GenderId } from "@/lib/profile-options";
 
@@ -71,7 +72,9 @@ export function GenderSelect({
                   : undefined
               }
             >
-              {active && <Check className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />}
+              {active && (
+                <CheckIcon className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />
+              )}
               {option.label}
             </button>
           );
@@ -79,7 +82,7 @@ export function GenderSelect({
       </div>
       {locked && (
         <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Lock className="h-3 w-3" /> Can't be changed once set
+          <LockIcon className="h-3 w-3" /> Can't be changed once set
         </p>
       )}
     </fieldset>

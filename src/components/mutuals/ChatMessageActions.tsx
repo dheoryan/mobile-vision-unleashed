@@ -1,4 +1,4 @@
-import { Reply } from "lucide-react";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { cn } from "@/lib/utils";
 import {
   CHAT_REACTIONS,
@@ -69,7 +69,7 @@ export function ChatMessageActions({
             aria-label="Reply to message"
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Reply className="h-4 w-4" />
+            <ArrowBendUpLeftIcon className="h-4 w-4" />
           </button>
         </div>
       )}

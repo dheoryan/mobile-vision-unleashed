@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
-import {
-  CalendarClock,
-  CheckCircle2,
-  ChevronDown,
-  CircleSlash,
-  Clock3,
-  MapPin,
-  Navigation,
-  Pencil,
-  Pin,
-  ShieldCheck,
-  Trash2,
-  X,
-} from "lucide-react";
+import { CalendarDotIcon } from "@phosphor-icons/react/dist/csr/CalendarDot";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { NavigationArrowIcon } from "@phosphor-icons/react/dist/csr/NavigationArrow";
+import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
+import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
+import { PushPinIcon } from "@phosphor-icons/react/dist/csr/PushPin";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { VentureArrivalStatus, VentureCoordination, VentureParty } from "@/lib/ventures-store";
 import {
@@ -24,11 +22,11 @@ import { timingLabel } from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
 
 const ARRIVAL_ICONS = {
-  on_my_way: Navigation,
-  arrived: CheckCircle2,
-  running_late: Clock3,
-  cant_make_it: CircleSlash,
-} satisfies Record<VentureArrivalStatus, typeof Navigation>;
+  on_my_way: NavigationArrowIcon,
+  arrived: CheckCircleIcon,
+  running_late: ClockIcon,
+  cant_make_it: ProhibitIcon,
+} satisfies Record<VentureArrivalStatus, typeof NavigationArrowIcon>;
 
 export function VentureCoordinationPanel({
   venture,
@@ -84,7 +82,7 @@ export function VentureCoordinationPanel({
           className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Details
-          <ChevronDown
+          <CaretDownIcon
             className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")}
           />
         </button>
@@ -93,13 +91,13 @@ export function VentureCoordinationPanel({
       <div className="mt-2 space-y-1.5 text-xs">
         {when && (
           <p className="flex items-start gap-2 text-foreground">
-            <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <CalendarDotIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <span>{when}</span>
           </p>
         )}
         {place && (
           <p className="flex items-start gap-2 text-foreground">
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <MapPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <span>{place}</span>
           </p>
         )}
@@ -125,7 +123,7 @@ export function VentureCoordinationPanel({
             </div>
           )}
           <p className="flex items-start gap-2 pt-1 text-muted-foreground">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <ShieldCheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             Meet in a public place and keep personal location sharing optional.
           </p>
         </div>
@@ -133,7 +131,7 @@ export function VentureCoordinationPanel({
 
       {(coordination?.announcement || (controlsReady && isHost)) && (
         <div className="mt-3 flex items-start gap-2 border-t border-border/70 pt-3">
-          <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <PushPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
               Host update
@@ -155,7 +153,7 @@ export function VentureCoordinationPanel({
               aria-label={coordination?.announcement ? "Edit pinned update" : "Pin an update"}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <Pencil className="h-4 w-4" />
+              <PencilIcon className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -225,7 +223,7 @@ export function VentureCoordinationPanel({
               aria-label="Close pinned update editor"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
 
@@ -254,7 +252,7 @@ export function VentureCoordinationPanel({
                 disabled={announcementPending}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-destructive/50 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive disabled:opacity-50"
               >
-                <Trash2 className="h-3.5 w-3.5" /> Remove
+                <TrashIcon className="h-3.5 w-3.5" /> Remove
               </button>
             )}
             <button

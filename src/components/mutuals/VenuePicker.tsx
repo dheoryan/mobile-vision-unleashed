@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { BadgeCheck, Loader2, MapPin, PenLine, Search, X } from "lucide-react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { PencilLineIcon } from "@phosphor-icons/react/dist/csr/PencilLine";
+import { SealCheckIcon } from "@phosphor-icons/react/dist/csr/SealCheck";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { resolvePlace, searchPlaces, type PlaceSuggestion } from "@/lib/places.functions";
 import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
@@ -187,12 +192,12 @@ export function VenuePicker({
   if (value) {
     return (
       <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
-        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-sm font-semibold">
             <span className="truncate">{value.host_label}</span>
             {value.google_place_id && (
-              <BadgeCheck
+              <SealCheckIcon
                 className="h-3.5 w-3.5 shrink-0 text-accent"
                 aria-label="Verified place"
               />
@@ -217,7 +222,7 @@ export function VenuePicker({
           aria-label="Change venue"
           className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
     );
@@ -227,7 +232,7 @@ export function VenuePicker({
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] p-3">
-          <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <PencilLineIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <div>
             <p className="text-xs font-semibold">Name the place your way</p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
@@ -287,7 +292,7 @@ export function VenuePicker({
               }}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <MapPin className="h-3.5 w-3.5" />
+              <MapPinIcon className="h-3.5 w-3.5" />
               Find a verified pin with Google Maps
             </button>
             <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
@@ -309,7 +314,7 @@ export function VenuePicker({
             one while carefully avoiding the other was just inconsistent. */}
         {chosen.place_id && (
           <div className="flex items-start gap-2 rounded-xl bg-secondary/40 p-3">
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <MapPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold">{chosen.suggestion}</p>
               {chosen.area && (
@@ -324,7 +329,7 @@ export function VenuePicker({
 
         {!chosen.place_id && (
           <div className="flex items-start gap-2 rounded-xl border border-dashed border-border p-3">
-            <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <PencilLineIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               An unlisted place. It works exactly like any other Venture — it just has no map pin,
               so no distance shows on the board.
@@ -399,7 +404,7 @@ export function VenuePicker({
         </button>
       </div>
       <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:border-primary">
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <MagnifyingGlassIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           autoFocus
           value={query}
@@ -408,7 +413,7 @@ export function VenuePicker({
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
         {searching && (
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+          <SpinnerGapIcon className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
         )}
       </div>
 

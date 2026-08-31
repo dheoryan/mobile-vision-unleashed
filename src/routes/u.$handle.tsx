@@ -1,7 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, MessageCircle, Hand, Clock, MapPin } from "lucide-react";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { usePostsByAuthor, useRepostedPostsByAuthor } from "@/lib/posts-store";
 import { useProfileVentureHistory } from "@/lib/ventures-store";
@@ -100,7 +104,7 @@ function PublicProfilePage() {
             aria-label="Back to MEUTUALS"
             className="flex h-11 w-11 shrink-0 items-center justify-center justify-self-start rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </Link>
           <p className="truncate text-center font-display text-sm font-bold">
             @{profile.handle?.replace(/^@/, "") ?? "user"}
@@ -181,7 +185,7 @@ function PublicProfilePage() {
               name instead (see above). Same treatment as your own Profile. */}
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" />
+              <MapPinIcon className="h-3.5 w-3.5" />
               {profile.city || "Somewhere"}
             </span>
             {profile.gender && <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>}
@@ -210,14 +214,14 @@ function PublicProfilePage() {
                   }}
                   className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold hover:bg-background/60"
                 >
-                  <MessageCircle className="h-3.5 w-3.5" /> Message
+                  <ChatCircleIcon className="h-3.5 w-3.5" /> Message
                 </button>
               ) : contact.data?.hello_status === "pending" ? (
                 <button
                   disabled
                   className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold text-muted-foreground disabled:opacity-70"
                 >
-                  <Clock className="h-3.5 w-3.5" />
+                  <ClockIcon className="h-3.5 w-3.5" />
                   {contact.data.awaiting_my_answer ? "Hello received" : "Hello sent"}
                 </button>
               ) : contact.data?.hello_status === "declined" ? (
@@ -225,7 +229,7 @@ function PublicProfilePage() {
                   disabled
                   className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold text-muted-foreground disabled:opacity-60"
                 >
-                  <MessageCircle className="h-3.5 w-3.5" /> Not accepting
+                  <ChatCircleIcon className="h-3.5 w-3.5" /> Not accepting
                 </button>
               ) : (
                 <button
@@ -238,7 +242,7 @@ function PublicProfilePage() {
                   }}
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary bg-primary/10 py-2.5 text-xs font-semibold text-primary hover:bg-primary/15"
                 >
-                  <Hand className="h-3.5 w-3.5" /> Say hello
+                  <HandIcon className="h-3.5 w-3.5" /> Say hello
                 </button>
               )}
             </div>

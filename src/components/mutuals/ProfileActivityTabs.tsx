@@ -1,12 +1,14 @@
-import { Grid3x3, Repeat2, Zap } from "lucide-react";
+import { GridFourIcon } from "@phosphor-icons/react/dist/csr/GridFour";
+import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { cn } from "@/lib/utils";
 
 export type ProfileActivityTab = "signals" | "reposts" | "ventures";
 
 const TABS = [
-  { id: "signals", label: "Signals", icon: Grid3x3 },
-  { id: "reposts", label: "Reposts", icon: Repeat2 },
-  { id: "ventures", label: "Ventures", icon: Zap },
+  { id: "signals", label: "Signals", icon: GridFourIcon },
+  { id: "reposts", label: "Reposts", icon: RepeatIcon },
+  { id: "ventures", label: "Ventures", icon: LightningIcon },
 ] as const;
 
 export function ProfileActivityTabs({

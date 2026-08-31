@@ -1,26 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import {
-  AlertTriangle,
-  AtSign,
-  Bell,
-  CheckCheck,
-  ChevronLeft,
-  ChevronRight,
-  Hand,
-  Heart,
-  Mail,
-  MessageSquare,
-  Quote,
-  RefreshCw,
-  Repeat2,
-  Reply,
-  Sparkles,
-  UserCheck,
-  UserPlus,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { AtIcon } from "@phosphor-icons/react/dist/csr/At";
+import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
+import { ChecksIcon } from "@phosphor-icons/react/dist/csr/Checks";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
+import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { QuotesIcon } from "@phosphor-icons/react/dist/csr/Quotes";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
+import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
+import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { toast } from "sonner";
 import {
   useNotifications,
@@ -65,31 +63,31 @@ export const Route = createFileRoute("/notifications")({
 });
 
 const ICONS: Record<NotificationKind, React.ReactNode> = {
-  like: <Heart className="h-3.5 w-3.5" fill="currentColor" />,
-  comment: <MessageSquare className="h-3.5 w-3.5" />,
-  reply: <Reply className="h-3.5 w-3.5" />,
-  mention: <AtSign className="h-3.5 w-3.5" />,
-  follow: <UserPlus className="h-3.5 w-3.5" />,
-  message: <Mail className="h-3.5 w-3.5" />,
-  new_post: <Sparkles className="h-3.5 w-3.5" />,
-  venture_apply: <Users className="h-3.5 w-3.5" />,
-  venture_invite: <Users className="h-3.5 w-3.5" />,
-  venture_accept: <UserCheck className="h-3.5 w-3.5" />,
-  venture_message: <MessageSquare className="h-3.5 w-3.5" />,
-  tribe_join: <Users className="h-3.5 w-3.5" />,
-  hello: <Hand className="h-3.5 w-3.5" />,
-  hello_accepted: <Hand className="h-3.5 w-3.5" />,
-  repost: <Repeat2 className="h-3.5 w-3.5" />,
-  quote: <Quote className="h-3.5 w-3.5" />,
-  comment_like: <Heart className="h-3.5 w-3.5" fill="currentColor" />,
-  comment_repost: <Repeat2 className="h-3.5 w-3.5" />,
+  like: <HeartIcon className="h-3.5 w-3.5" weight="fill" />,
+  comment: <ChatCircleIcon className="h-3.5 w-3.5" weight="fill" />,
+  reply: <ArrowBendUpLeftIcon className="h-3.5 w-3.5" weight="fill" />,
+  mention: <AtIcon className="h-3.5 w-3.5" weight="fill" />,
+  follow: <UserPlusIcon className="h-3.5 w-3.5" weight="fill" />,
+  message: <EnvelopeSimpleIcon className="h-3.5 w-3.5" weight="fill" />,
+  new_post: <SparkleIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_apply: <UsersIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_invite: <UsersIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_accept: <UserCheckIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_message: <ChatCircleIcon className="h-3.5 w-3.5" weight="fill" />,
+  tribe_join: <UsersIcon className="h-3.5 w-3.5" weight="fill" />,
+  hello: <HandIcon className="h-3.5 w-3.5" weight="fill" />,
+  hello_accepted: <HandIcon className="h-3.5 w-3.5" weight="fill" />,
+  repost: <RepeatIcon className="h-3.5 w-3.5" weight="fill" />,
+  quote: <QuotesIcon className="h-3.5 w-3.5" weight="fill" />,
+  comment_like: <HeartIcon className="h-3.5 w-3.5" weight="fill" />,
+  comment_repost: <RepeatIcon className="h-3.5 w-3.5" weight="fill" />,
 };
 
 const CATEGORY_STYLES: Record<NotificationCategory, string> = {
-  social: "bg-rose-500/15 text-rose-400",
-  conversation: "bg-primary/15 text-primary",
-  venture: "bg-accent/15 text-accent",
-  tribe: "bg-primary/15 text-primary",
+  social: "bg-rose-500 text-white",
+  conversation: "bg-primary text-primary-foreground",
+  venture: "bg-accent text-accent-foreground",
+  tribe: "bg-primary text-primary-foreground",
 };
 
 const TEXTS: Record<NotificationKind, string> = {
@@ -203,7 +201,7 @@ function NotificationsPage() {
             aria-label="Back to MEUTUALS"
             className="flex h-11 w-11 shrink-0 items-center justify-center justify-self-start rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </Link>
           <div className="text-center">
             <h1 className="font-display text-sm font-bold">Notifications</h1>
@@ -219,7 +217,7 @@ function NotificationsPage() {
                 disabled={markingAll}
                 className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
-                <CheckCheck className={cn("h-3.5 w-3.5", markingAll && "animate-pulse")} />
+                <ChecksIcon className={cn("h-3.5 w-3.5", markingAll && "animate-pulse")} />
                 Read all
               </button>
             ) : (
@@ -240,7 +238,7 @@ function NotificationsPage() {
           </div>
         ) : isError ? (
           <section role="alert" className="mt-8 border-y border-border py-8 text-center">
-            <AlertTriangle className="mx-auto h-7 w-7 text-accent" />
+            <WarningIcon className="mx-auto h-7 w-7 text-accent" />
             <h2 className="mt-3 font-display text-lg font-bold">Activity could not load.</h2>
             <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
               {error instanceof Error ? error.message : "Check your connection and try again."}
@@ -251,13 +249,13 @@ function NotificationsPage() {
               disabled={isRefetching}
               className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin")} />
+              <ArrowClockwiseIcon className={cn("h-3.5 w-3.5", isRefetching && "animate-spin")} />
               Try again
             </button>
           </section>
         ) : items.length === 0 ? (
           <EmptyState
-            icon={<Bell className="mx-auto h-12 w-12 text-muted-foreground" />}
+            icon={<BellIcon className="mx-auto h-12 w-12 text-muted-foreground" />}
             headline="You’re all caught up."
             sub="Hellos, replies, Venture updates, and new conversations will appear here."
           />
@@ -350,13 +348,13 @@ function NotificationRowItem({
             ) : actorAvatar ? (
               actorAvatar
             ) : (
-              <UserRound className="h-5 w-5 text-muted-foreground" />
+              <UserIcon className="h-5 w-5 text-muted-foreground" />
             )}
           </span>
           {showPlusBadge(notification.actor?.plan) && <PlusBadge />}
           <span
             className={cn(
-              "absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full ring-2 ring-background",
+              "absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full",
               CATEGORY_STYLES[category],
             )}
             aria-hidden
@@ -424,7 +422,7 @@ function NotificationRowItem({
               className="h-11 w-11 rounded-md object-cover"
             />
           ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-active:translate-x-0.5" />
+            <CaretRightIcon className="h-4 w-4 text-muted-foreground transition-transform group-active:translate-x-0.5" />
           )}
         </span>
       </button>

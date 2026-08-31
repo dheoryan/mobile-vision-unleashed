@@ -1,7 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
-import { ArrowLeft, Check, Zap } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
 
 export const Route = createFileRoute("/upgrade")({
@@ -30,12 +32,12 @@ function UpgradePage() {
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-md px-5 pt-6">
         <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Link>
 
         <header className="mt-6 text-center">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-            <Zap className="h-7 w-7" fill="currentColor" />
+            <LightningIcon className="h-7 w-7" weight="fill" />
           </span>
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight">
             <span className="text-primary">MEUTUALS+</span>
@@ -94,7 +96,7 @@ function UpgradePage() {
           disabled
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground disabled:opacity-40"
         >
-          <Zap className="h-4 w-4" fill="currentColor" /> Coming soon
+          <LightningIcon className="h-4 w-4" weight="fill" /> Coming soon
         </button>
         <p className="mt-3 text-center text-[11px] text-muted-foreground">MEUTUALS+ isn't available for purchase yet.</p>
 
@@ -123,7 +125,7 @@ function PlanCard({
       <ul className="mt-4 space-y-2">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-xs">
-            <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${highlighted ? "text-primary" : "text-muted-foreground"}`} />
+            <CheckIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${highlighted ? "text-primary" : "text-muted-foreground"}`} />
             <span className={highlighted ? "text-foreground" : "text-muted-foreground"}>{f}</span>
           </li>
         ))}

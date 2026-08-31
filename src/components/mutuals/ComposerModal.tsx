@@ -1,5 +1,9 @@
 import { useRef, useState } from "react";
-import { X, ImagePlus, Camera, Loader2, AlertTriangle } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { CameraIcon } from "@phosphor-icons/react/dist/csr/Camera";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { useCreatePost, type FeedPost } from "@/lib/posts-store";
 import { QuotedPostPreview } from "./QuotedPostPreview";
@@ -212,13 +216,13 @@ export function ComposerModal({
         aria-label="Close"
         className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-5 w-5" />
+        <XIcon className="h-5 w-5" />
       </button>
 
       {confirmDiscard ? (
         <div className="relative">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
-            <AlertTriangle className="h-6 w-6" />
+            <WarningIcon className="h-6 w-6" />
           </span>
           <h2 className="mt-4 font-display text-xl font-bold leading-tight">Discard this post?</h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -319,9 +323,9 @@ export function ComposerModal({
                 className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
               >
                 {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <SpinnerGapIcon className="h-4 w-4 animate-spin" />
                 ) : (
-                  <ImagePlus className="h-4 w-4" />
+                  <ImageIcon className="h-4 w-4" />
                 )}
                 {uploading
                   ? "Uploading…"
@@ -336,7 +340,7 @@ export function ComposerModal({
                 aria-label="Take photo"
                 className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
               >
-                <Camera className="h-4 w-4" />
+                <CameraIcon className="h-4 w-4" />
                 Camera
               </button>
             </div>

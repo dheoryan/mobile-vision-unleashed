@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  X,
-  Send,
-  AlertTriangle,
-  MessageSquare,
-  Trash2,
-  EyeOff,
-  Eye,
-  ChevronDown,
-  ChevronRight,
-  Reply,
-} from "lucide-react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { PaperPlaneTiltIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneTilt";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { ChatTextIcon } from "@phosphor-icons/react/dist/csr/ChatText";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
+import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
 import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
 import { AnimatedModal } from "@/components/ui/animated-modal";
@@ -246,9 +244,9 @@ export function CommentsThread({
               onClick={() => setHiddenOpen((v) => !v)}
               className="flex min-h-11 w-full items-center gap-1.5 px-4 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
-              <EyeOff className="h-3.5 w-3.5" />
+              <EyeSlashIcon className="h-3.5 w-3.5" />
               Comments you've hidden
-              <ChevronDown
+              <CaretDownIcon
                 className={cn("h-3.5 w-3.5 transition-transform", hiddenOpen && "rotate-180")}
               />
             </button>
@@ -294,7 +292,7 @@ export function CommentsThread({
                         disabled={unhideComment.isPending && unhideComment.variables === c.id}
                         className="flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                       >
-                        <Eye className="h-3 w-3" /> Unhide
+                        <EyeIcon className="h-3 w-3" /> Unhide
                       </button>
                     </div>
                   ))
@@ -309,7 +307,7 @@ export function CommentsThread({
             <SkeletonList tribeColor={tribeColor} />
           ) : commentsQuery.isError ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <AlertTriangle className="h-10 w-10 text-destructive" />
+              <WarningIcon className="h-10 w-10 text-destructive" />
               <p className="text-sm text-foreground">Couldn't load comments.</p>
               <button
                 onClick={() => commentsQuery.refetch()}
@@ -320,7 +318,7 @@ export function CommentsThread({
             </div>
           ) : roots.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <MessageSquare className="h-10 w-10 text-muted-foreground" />
+              <ChatTextIcon className="h-10 w-10 text-muted-foreground" />
               <p className="text-sm font-semibold">No replies yet</p>
               <p className="text-xs text-muted-foreground">
                 Be the first to respond to this signal.
@@ -402,7 +400,7 @@ export function CommentsThread({
                 style={{ backgroundColor: tribeColor }}
                 aria-label="Send comment"
               >
-                <Send className="h-4 w-4" />
+                <PaperPlaneTiltIcon className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -431,7 +429,7 @@ export function CommentsThread({
               aria-label="Close repost options"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-5 w-5" />
+              <XIcon className="h-5 w-5" />
             </button>
           </div>
 
@@ -451,7 +449,7 @@ export function CommentsThread({
                   Remove it from your reposts
                 </span>
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
           ) : (
             <RepostAudienceChoices
@@ -728,7 +726,7 @@ function CommentItem({
             className="flex h-7 w-7 items-center justify-center rounded-full"
             style={{ backgroundColor: `color-mix(in oklab, ${tribeColor} 24%, transparent)` }}
           >
-            <Reply className="h-3.5 w-3.5" />
+            <ArrowBendUpLeftIcon className="h-3.5 w-3.5" />
           </span>
         </div>
       )}
@@ -830,7 +828,7 @@ function CommentItem({
             aria-label="Delete comment"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <TrashIcon className="h-3.5 w-3.5" />
           </button>
         )}
         {!mine && !isPending && (

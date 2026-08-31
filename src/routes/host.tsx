@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { TRIBES } from "@/lib/mutuals-data";
 
 export const Route = createFileRoute("/host")({
@@ -33,7 +34,7 @@ function HostApplyPage() {
   if (submitted) {
     return (
       <div className="bg-habitat flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <CheckCircle2 className="h-12 w-12 text-primary" />
+        <CheckCircleIcon className="h-12 w-12 text-primary" />
         <h1 className="mt-4 font-display text-3xl font-bold">Application received.</h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">We'll be in touch within 48 hours about hosting on MEUTUALS.</p>
         <Link to="/" className="mt-6 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Back to MEUTUALS</Link>
@@ -45,7 +46,7 @@ function HostApplyPage() {
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-md px-5 pt-6">
         <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Link>
 
         <header className="mt-6">
@@ -62,7 +63,7 @@ function HostApplyPage() {
             "Weekly opt-in DM blast",
             "Venue tagging on Ventures",
           ].map((f) => (
-            <li key={f} className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> {f}</li>
+            <li key={f} className="flex items-center gap-2"><CheckCircleIcon className="h-3.5 w-3.5 text-primary" /> {f}</li>
           ))}
         </ul>
 

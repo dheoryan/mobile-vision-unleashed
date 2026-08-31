@@ -205,6 +205,36 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Wrote `NEARBY_VENTURES_PUSH_PLAN.md` (research + plan only, no code)
+
+User asked for the Google Places venue-geocoding research from `HANDOFF.md`
+(2026-08-24, untracked file already in the working copy) merged with the
+"Ventures near you" realtime push notification feature discussed in chat -
+explicitly not to be implemented yet. Wrote it up as its own file rather
+than folding into `HANDOFF.md` (whose scope is specifically the venue/clock
+work) since this is a distinct next objective that happens to depend on
+that same venue-coordinate data.
+
+Key connection worth remembering: `GOOGLE_PLACES_ENABLED = false` in
+production right now, so `venue_place_coordinates` (which the proposed
+nearby-notification trigger would read from, via the already-existing
+`list_venture_distance_bands` haversine calc) is likely near-empty. That's
+flagged in the doc as the real prerequisite to check before building
+anything, not the trigger itself.
+
+No code touched, nothing to verify. File is untracked, same as `HANDOFF.md`.
+
+### 2026-08-31 — Claude — Fixed near-invisible notification kind badges
+
+The small circular badge overlaid on each notification's avatar (the icon
+identifying like/comment/message/etc.) used `bg-{color}/15` - 15% opacity
+- against the dark theme, which read as barely-there. `CATEGORY_STYLES` in
+`notifications.tsx` now uses solid category-color fills with foreground-
+matched icon color instead of tint-on-tint.
+
+`tsc` clean, `eslint` clean, 131/131 tests, `npm run build` succeeds. Not
+committed.
+
 ### 2026-08-31 — Claude — Brand gradient on the push-notification enable buttons
 
 Extended the same `.bg-meutuals-gradient` pass to `EnablePushBanner.tsx`'s

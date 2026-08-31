@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Bell, BellOff, Check, X, Smartphone, Loader2 } from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
+import { BellSlashIcon } from "@phosphor-icons/react/dist/csr/BellSlash";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { DeviceMobileIcon } from "@phosphor-icons/react/dist/csr/DeviceMobile";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -105,7 +111,7 @@ export function EnablePushBanner() {
     if (dismissed) return null;
     return (
       <div className="mx-3 mt-3 flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
-        <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <DeviceMobileIcon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1 text-xs">
           <p className="font-semibold text-foreground">Get push notifications on iPhone</p>
           <p className="mt-1 text-muted-foreground">
@@ -119,7 +125,7 @@ export function EnablePushBanner() {
           aria-label="Dismiss"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
     );
@@ -132,7 +138,7 @@ export function EnablePushBanner() {
 
   return (
     <div className="mx-3 mt-3 flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
-      <Bell className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+      <BellIcon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
       <div className="min-w-0 flex-1 text-xs">
         <p className="font-semibold text-foreground">Don't miss a beat</p>
         <p className="mt-1 text-muted-foreground">
@@ -145,7 +151,11 @@ export function EnablePushBanner() {
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-full bg-meutuals-gradient px-3 py-1.5 text-[11px] font-semibold text-white transition-[filter] hover:brightness-110 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
           >
-            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
+            {loading ? (
+              <SpinnerGapIcon className="h-3 w-3 animate-spin" />
+            ) : (
+              <BellIcon className="h-3 w-3" />
+            )}
             <span aria-live="polite">{progressLabel(progress, "Enable")}</span>
           </button>
           <button
@@ -161,7 +171,7 @@ export function EnablePushBanner() {
         aria-label="Dismiss"
         className="rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-4 w-4" />
+        <XIcon className="h-4 w-4" />
       </button>
     </div>
   );
@@ -246,7 +256,7 @@ export function PushSettingsRow() {
       <div className="overflow-hidden rounded-2xl border border-primary/30 bg-background">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-            <Smartphone className="h-5 w-5" />
+            <DeviceMobileIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0 pt-0.5">
             <p className="text-sm font-semibold">Install to turn on notifications</p>
@@ -265,7 +275,7 @@ export function PushSettingsRow() {
   if (availability === "unsupported") {
     return (
       <NotificationStateCard
-        icon={<BellOff className="h-5 w-5" />}
+        icon={<BellSlashIcon className="h-5 w-5" />}
         title="Notifications unavailable"
         detail="This device or browser does not support web notifications."
       />
@@ -275,7 +285,7 @@ export function PushSettingsRow() {
   if (availability === "insecure") {
     return (
       <NotificationStateCard
-        icon={<AlertTriangle className="h-5 w-5" />}
+        icon={<WarningIcon className="h-5 w-5" />}
         title="Open the secure MEUTUALS app"
         detail="Notifications can only be connected from the published HTTPS app."
         tone="warning"
@@ -358,7 +368,7 @@ export function PushSettingsRow() {
       <div className="overflow-hidden rounded-2xl border border-destructive/30 bg-background">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
-            <BellOff className="h-5 w-5" />
+            <BellSlashIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0 pt-0.5">
             <p className="text-sm font-semibold">Notifications are blocked</p>
@@ -382,7 +392,7 @@ export function PushSettingsRow() {
   if (status === "success") {
     return (
       <NotificationStateCard
-        icon={<Check className="h-5 w-5" />}
+        icon={<CheckIcon className="h-5 w-5" />}
         title="Notifications are on"
         detail="You’ll hear about important activity while MEUTUALS is closed."
         tone="success"
@@ -396,7 +406,7 @@ export function PushSettingsRow() {
       <div className="overflow-hidden rounded-2xl border border-primary/30 bg-background">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-            <AlertTriangle className="h-5 w-5" />
+            <WarningIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0 pt-0.5">
             <p className="text-sm font-semibold">Notifications need attention</p>
@@ -411,7 +421,7 @@ export function PushSettingsRow() {
             onClick={enable}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <Bell className="h-4 w-4" />
+            <BellIcon className="h-4 w-4" />
             Repair connection
           </button>
         </div>
@@ -430,11 +440,11 @@ export function PushSettingsRow() {
           }`}
         >
           {connecting ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <SpinnerGapIcon className="h-5 w-5 animate-spin" />
           ) : status === "active" ? (
-            <Bell className="h-5 w-5" />
+            <BellIcon className="h-5 w-5" />
           ) : (
-            <BellOff className="h-5 w-5" />
+            <BellSlashIcon className="h-5 w-5" />
           )}
         </span>
         <div className="min-w-0 flex-1">
@@ -477,7 +487,7 @@ export function PushSettingsRow() {
             onClick={enable}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <Bell className="h-4 w-4" />
+            <BellIcon className="h-4 w-4" />
             Turn on notifications
           </button>
         </div>

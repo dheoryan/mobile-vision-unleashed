@@ -1,31 +1,29 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  Clock,
-  Loader2,
-  Lock,
-  MessageCircle,
-  Plus,
-  Search,
-  ShieldCheck,
-  SlidersHorizontal,
-  UserCheck,
-  UserPlus,
-  Zap,
-  Users,
-  UserX,
-  X,
-  ImagePlus,
-  Pencil,
-  RotateCcw,
-  ChevronRight,
-  Ticket,
-  LocateFixed,
-} from "lucide-react";
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
+import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { SlidersHorizontalIcon } from "@phosphor-icons/react/dist/csr/SlidersHorizontal";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
+import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
+import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
+import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
 import { INTENT_GROUPS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
@@ -301,7 +299,7 @@ export function VenturesScreen({
               aria-label="Host a Venture"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <Plus className="h-5 w-5" />
+              <PlusIcon className="h-5 w-5" />
             </button>
           ) : undefined
         }
@@ -328,7 +326,7 @@ export function VenturesScreen({
                   onClick={() => switchMode("look")}
                   className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <CaretLeftIcon className="h-4 w-4" />
                   Back to Venture board
                 </button>
               </div>
@@ -491,7 +489,7 @@ function YoursView({
     return (
       <div className="mt-5">
         <EmptyPanel
-          icon={<Ticket className="h-6 w-6" />}
+          icon={<TicketIcon className="h-6 w-6" />}
           title="No Ventures yet."
           body="Your invitations, requests, and joined plans will appear here."
           actionLabel="Browse the board"
@@ -583,7 +581,7 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <FeatureIllustration src={venturesArt} size="lg" className="mb-5" />
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          <Zap className="h-5 w-5" />
+          <LightningIcon className="h-5 w-5" />
         </span>
         <h2 className="mt-5 font-display text-2xl font-bold leading-tight">
           Ventures are optional.
@@ -617,7 +615,7 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
 
       <section className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
         <div className="flex items-center gap-2 text-emerald-300">
-          <ShieldCheck className="h-4 w-4" />
+          <ShieldCheckIcon className="h-4 w-4" />
           <h3 className="text-sm font-semibold">Meet safely</h3>
         </div>
         <ul className="mt-2 space-y-1 text-xs leading-relaxed text-muted-foreground">
@@ -635,7 +633,7 @@ function VenturesIntro({ onContinue }: { onContinue: () => void }) {
         className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         Choose Looking or Hosting
-        <ArrowRight className="h-4 w-4" />
+        <ArrowRightIcon className="h-4 w-4" />
       </button>
     </div>
   );
@@ -675,13 +673,13 @@ function VentureRoleChooser({
 
         <div className="mt-5 grid gap-3">
           <RoleChoiceCard
-            icon={<Search className="h-5 w-5" />}
+            icon={<MagnifyingGlassIcon className="h-5 w-5" />}
             title="Looking"
             body="Browse open Ventures, request to join, then chat after you are accepted."
             onClick={() => onChoose("look")}
           />
           <RoleChoiceCard
-            icon={<Plus className="h-5 w-5" />}
+            icon={<PlusIcon className="h-5 w-5" />}
             title="Hosting"
             body="Create an open party, review requests, and keep the crew organized."
             onClick={() => onChoose("host")}
@@ -725,7 +723,7 @@ function RoleChoiceCard({
         <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{body}</span>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary">
           {title === "Looking" ? "Browse Ventures" : "Create Venture"}
-          <ArrowRight className="h-3.5 w-3.5" />
+          <ArrowRightIcon className="h-3.5 w-3.5" />
         </span>
       </span>
     </button>
@@ -833,14 +831,14 @@ function LookView({
       <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1">
         <RoleButton
           active={scope === "all"}
-          icon={<SlidersHorizontal className="h-4 w-4" />}
+          icon={<SlidersHorizontalIcon className="h-4 w-4" />}
           onClick={() => setScope("all")}
         >
           All Tribes
         </RoleButton>
         <RoleButton
           active={scope === "mine"}
-          icon={<Users className="h-4 w-4" />}
+          icon={<UsersIcon className="h-4 w-4" />}
           onClick={() => setScope("mine")}
         >
           {mineLabel}
@@ -856,9 +854,9 @@ function LookView({
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
             {locating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <SpinnerGapIcon className="h-4 w-4 animate-spin" />
             ) : (
-              <LocateFixed className="h-4 w-4" />
+              <CrosshairIcon className="h-4 w-4" />
             )}
           </span>
           <span className="min-w-0">
@@ -882,7 +880,7 @@ function LookView({
             onClick={onOpenMine}
             className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Ticket className="h-3.5 w-3.5 text-primary" />
+            <TicketIcon className="h-3.5 w-3.5 text-primary" />
             My Ventures
             {joinedVentures.length > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
@@ -910,7 +908,7 @@ function LookView({
         />
       ) : (
         <EmptyPanel
-          icon={<Search className="h-6 w-6" />}
+          icon={<MagnifyingGlassIcon className="h-6 w-6" />}
           title={
             activeParties.length ? "No more open Ventures here." : "No open Ventures here yet."
           }
@@ -1018,7 +1016,7 @@ function HostView({
                 : "bg-meutuals-gradient text-white transition-[transform,filter] hover:brightness-110",
             )}
           >
-            {formOpen ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            {formOpen ? <XIcon className="h-3.5 w-3.5" /> : <PlusIcon className="h-3.5 w-3.5" />}
             {formOpen ? "Close" : "New"}
           </button>
         }
@@ -1092,7 +1090,7 @@ function HostView({
           </div>
         ) : hostTab === "active" ? (
           <EmptyPanel
-            icon={<Users className="h-6 w-6" />}
+            icon={<UsersIcon className="h-6 w-6" />}
             title="No active Ventures."
             body="Create a new plan and review requests here as they arrive."
             actionLabel="Create Venture"
@@ -1100,7 +1098,7 @@ function HostView({
           />
         ) : (
           <EmptyPanel
-            icon={<RotateCcw className="h-6 w-6" />}
+            icon={<ArrowCounterClockwiseIcon className="h-6 w-6" />}
             title="No closed Ventures yet."
             body="Ventures you close will stay here, ready to review or reopen."
             actionLabel="Back to active"
@@ -1437,9 +1435,9 @@ function HostForm({
           className="inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {create.isPending || update.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <SpinnerGapIcon className="h-4 w-4 animate-spin" />
           ) : (
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRightIcon className="h-4 w-4" />
           )}
           {isEditing ? "Save changes" : "Go live"}
         </button>
@@ -1453,7 +1451,7 @@ function HostForm({
           <section className="space-y-2 border-t border-border pt-4">
             <div className="flex items-start gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                <Lock className="h-4 w-4" />
+                <LockIcon className="h-4 w-4" />
               </span>
               <span>
                 <span className="block text-sm font-semibold">After acceptance</span>
@@ -1621,7 +1619,7 @@ function HostForm({
         <div className="grid gap-3">
           <FieldLabel label="Slots">
             <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <UsersIcon className="h-4 w-4 text-muted-foreground" />
               <input
                 type="number"
                 min={2}
@@ -1675,7 +1673,7 @@ function HostForm({
                     className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
                   >
                     {intent}
-                    <X className="h-3 w-3" />
+                    <XIcon className="h-3 w-3" />
                   </button>
                 ))}
               </div>
@@ -1744,9 +1742,9 @@ function HostForm({
               ) : (
                 <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
                   {uploading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <SpinnerGapIcon className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ImagePlus className="h-5 w-5" />
+                    <ImageIcon className="h-5 w-5" />
                   )}
                   <span className="text-[11px] font-semibold">
                     {uploading ? "Uploading…" : "Add a photo of the place"}
@@ -1849,9 +1847,9 @@ function HostedVentureCard({
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {reopen.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <SpinnerGapIcon className="h-4 w-4 animate-spin" />
           ) : (
-            <RotateCcw className="h-4 w-4" />
+            <ArrowCounterClockwiseIcon className="h-4 w-4" />
           )}
           Reopen
         </button>
@@ -1864,7 +1862,7 @@ function HostedVentureCard({
             onClick={() => setEditOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Pencil className="h-4 w-4" /> Edit
+            <PencilIcon className="h-4 w-4" /> Edit
           </button>
         )}
         <button
@@ -1872,7 +1870,7 @@ function HostedVentureCard({
           onClick={onOpenChat}
           className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <MessageCircle className="h-4 w-4" /> Chat
+          <ChatCircleIcon className="h-4 w-4" /> Chat
         </button>
         {!isClosed && (
           <button
@@ -1885,7 +1883,7 @@ function HostedVentureCard({
                 : "border-border bg-background text-foreground",
             )}
           >
-            <UserPlus className="h-4 w-4" /> Invite
+            <UserPlusIcon className="h-4 w-4" /> Invite
           </button>
         )}
         {!isClosed && (
@@ -1896,9 +1894,9 @@ function HostedVentureCard({
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {close.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <SpinnerGapIcon className="h-4 w-4 animate-spin" />
             ) : (
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             )}
             Close
           </button>
@@ -1982,7 +1980,7 @@ function HostedVentureCard({
               aria-label="Close editor"
               className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
           <HostForm
@@ -2055,7 +2053,7 @@ function InviteConnectedUsersPanel({
       </div>
 
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-        <Search className="h-3.5 w-3.5 text-muted-foreground" />
+        <MagnifyingGlassIcon className="h-3.5 w-3.5 text-muted-foreground" />
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -2066,7 +2064,7 @@ function InviteConnectedUsersPanel({
 
       {candidatesQuery.isLoading ? (
         <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading people
+          <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" /> Loading people
         </div>
       ) : candidatesQuery.isError ? (
         <button
@@ -2154,9 +2152,9 @@ function InviteCandidateRow({
         )}
       >
         {busy ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <UserPlus className="h-3.5 w-3.5" />
+          <UserPlusIcon className="h-3.5 w-3.5" />
         )}
         {statusLabel}
       </button>
@@ -2253,7 +2251,7 @@ function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hid
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         {timingLabel(venture) && (
           <span className="inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" /> {timingLabel(venture)}
+            <ClockIcon className="h-3.5 w-3.5" /> {timingLabel(venture)}
           </span>
         )}
         <span>{venture.scope === "mine" ? "Host tribes only" : "All tribes"}</span>
@@ -2311,7 +2309,7 @@ function ApplicantRow({
           disabled={busy}
           className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
-          <UserX className="h-3.5 w-3.5" /> Decline
+          <UserMinusIcon className="h-3.5 w-3.5" /> Decline
         </button>
         <button
           type="button"
@@ -2320,9 +2318,9 @@ function ApplicantRow({
           className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {busy ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <Check className="h-3.5 w-3.5" />
+            <CheckIcon className="h-3.5 w-3.5" />
           )}
           Accept
         </button>
@@ -2452,7 +2450,7 @@ function FormRow({
           <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{hint}</span>
         )}
       </span>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <CaretRightIcon className="h-4 w-4 text-muted-foreground" />
     </button>
   );
 }

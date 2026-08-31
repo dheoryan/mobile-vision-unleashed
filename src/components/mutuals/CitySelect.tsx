@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Globe2, MapPin } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
+import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import {
   Command,
   CommandEmpty,
@@ -42,11 +45,11 @@ export function CitySelect({ value, onChange, label = "City" }: { value: string;
               countryOpen && "border-primary",
             )}
           >
-            <Globe2 className="h-4 w-4 shrink-0 text-primary" />
+            <GlobeIcon className="h-4 w-4 shrink-0 text-primary" />
             <span className={cn("min-w-0 flex-1 truncate", !value && "text-muted-foreground")}>
               {country || "Country"}
             </span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <CaretUpDownIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" sideOffset={6} className="w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-2xl border-border bg-popover p-0 shadow-2xl">
@@ -70,7 +73,7 @@ export function CitySelect({ value, onChange, label = "City" }: { value: string;
                         }}
                         className="min-h-11 rounded-xl px-3"
                       >
-                        <Check className={cn("h-4 w-4 text-primary", country === item ? "opacity-100" : "opacity-0")} />
+                        <CheckIcon className={cn("h-4 w-4 text-primary", country === item ? "opacity-100" : "opacity-0")} />
                         <span className="min-w-0 flex-1 truncate">{item}</span>
                       </CommandItem>
                   ))}
@@ -86,9 +89,9 @@ export function CitySelect({ value, onChange, label = "City" }: { value: string;
           <button type="button" role="combobox" aria-expanded={cityOpen} aria-label={`Choose ${label.toLowerCase()}`} disabled={!country}
             className={cn("flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-card px-4 text-left text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-45", cityOpen && "border-primary")}
           >
-            <MapPin className="h-4 w-4 shrink-0 text-primary" />
+            <MapPinIcon className="h-4 w-4 shrink-0 text-primary" />
             <span className={cn("min-w-0 flex-1 truncate", !selected && "text-muted-foreground")}>{selected?.city || "City"}</span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <CaretUpDownIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" sideOffset={6} className="w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-2xl border-border bg-popover p-0 shadow-2xl">
@@ -100,7 +103,7 @@ export function CitySelect({ value, onChange, label = "City" }: { value: string;
                 {cities.map((city) => {
                   const nextValue = cityValue(city);
                   return <CommandItem key={nextValue} value={city.city} onSelect={() => { onChange(nextValue); setCityOpen(false); }} className="min-h-11 rounded-xl px-3">
-                    <Check className={cn("h-4 w-4 text-primary", value === nextValue ? "opacity-100" : "opacity-0")} />
+                    <CheckIcon className={cn("h-4 w-4 text-primary", value === nextValue ? "opacity-100" : "opacity-0")} />
                     <span className="min-w-0 flex-1 truncate">{city.city}</span>
                   </CommandItem>;
                 })}

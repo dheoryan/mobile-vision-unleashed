@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  ArrowRight,
-  CalendarPlus,
-  Check,
-  Clock3,
-  Loader2,
-  MapPin,
-  Plus,
-  RefreshCw,
-  Share2,
-  Sparkles,
-  Ticket,
-  Users,
-  X,
-} from "lucide-react";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
+import { CalendarPlusIcon } from "@phosphor-icons/react/dist/csr/CalendarPlus";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
+import { ShareNetworkIcon } from "@phosphor-icons/react/dist/csr/ShareNetwork";
+import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useAuth } from "@/lib/auth-context";
@@ -213,7 +211,7 @@ export function TribeRoomLayer({
             onClick={() => room.refetch()}
             className="inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold text-foreground transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <RefreshCw className="h-3.5 w-3.5" /> Retry
+            <ArrowClockwiseIcon className="h-3.5 w-3.5" /> Retry
           </button>
         </div>
       )}
@@ -275,7 +273,7 @@ export function TribeRoomLayer({
                 className="mx-auto flex h-11 w-11 items-center justify-center rounded-full text-background"
                 style={{ backgroundColor: tribeColor }}
               >
-                <CalendarPlus className="h-5 w-5" />
+                <CalendarPlusIcon className="h-5 w-5" />
               </span>
               <p className="mt-4 font-display text-lg font-bold">Put an idea on the table.</p>
               <p className="mx-auto mt-1 max-w-64 text-xs leading-relaxed text-muted-foreground">
@@ -370,7 +368,7 @@ function DailyPulse({
     >
       <div className="flex items-center justify-between gap-3">
         <span className="label-mono inline-flex items-center gap-1.5" style={{ color: tribeColor }}>
-          <Sparkles className="h-3.5 w-3.5" /> Daily Tribevia
+          <SparkleIcon className="h-3.5 w-3.5" /> Daily Tribevia
         </span>
         <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           {streak >= 2 && (
@@ -398,7 +396,7 @@ function DailyPulse({
           className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-xs font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60"
           style={{ backgroundColor: tribeColor }}
         >
-          {answered ? <Check className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+          {answered ? <CheckIcon className="h-4 w-4" /> : <ArrowRightIcon className="h-4 w-4" />}
           {answered ? "Answered" : "Add yours"}
         </button>
       </div>
@@ -498,12 +496,12 @@ function PulseAnswer({
               color: tribeColor,
             }}
           >
-            Turn into Venture <ArrowRight className="h-3 w-3" />
+            Turn into Venture <ArrowRightIcon className="h-3 w-3" />
           </button>
         )}
         {linked && (
           <span className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full bg-secondary/60 px-2.5 text-[11px] font-semibold text-muted-foreground">
-            <Check className="h-3 w-3" /> Venture live
+            <CheckIcon className="h-3 w-3" /> Venture live
           </span>
         )}
       </div>
@@ -570,13 +568,13 @@ function PlanRow({
           {note && <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{note}</p>}
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="h-3.5 w-3.5" /> {whenLabel}
+              <ClockIcon className="h-3.5 w-3.5" /> {whenLabel}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" /> {area}
+              <MapPinIcon className="h-3.5 w-3.5" /> {area}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" /> up to {maxSlots}
+              <UsersIcon className="h-3.5 w-3.5" /> up to {maxSlots}
             </span>
           </div>
           {timingMode === "poll" && timeOptions.length >= 2 && (
@@ -654,7 +652,7 @@ function PlanRow({
             disabled={share.isPending}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold text-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
-            <Share2 className="h-3.5 w-3.5" /> Share to chat
+            <ShareNetworkIcon className="h-3.5 w-3.5" /> Share to chat
           </button>
         )}
         {mine && !linked && onStartVenture && (
@@ -679,12 +677,12 @@ function PlanRow({
               color: tribeColor,
             }}
           >
-            Turn into Venture <ArrowRight className="h-3.5 w-3.5" />
+            Turn into Venture <ArrowRightIcon className="h-3.5 w-3.5" />
           </button>
         )}
         {linked && (
           <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-secondary/60 px-3 text-xs font-semibold text-muted-foreground">
-            <Check className="h-3.5 w-3.5" /> Venture live
+            <CheckIcon className="h-3.5 w-3.5" /> Venture live
           </span>
         )}
       </div>
@@ -739,7 +737,7 @@ function VentureAnnouncement({
           </p>
         </div>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
-          {complete ? <Sparkles className="h-4 w-4" /> : <Ticket className="h-4 w-4" />}
+          {complete ? <SparkleIcon className="h-4 w-4" /> : <TicketIcon className="h-4 w-4" />}
         </span>
       </div>
       {onOpen && (
@@ -750,7 +748,7 @@ function VentureAnnouncement({
           style={{ color: tribeColor }}
         >
           {complete ? "Open Venture memories" : "Open Venture"}
-          <ArrowRight className="h-3.5 w-3.5" />
+          <ArrowRightIcon className="h-3.5 w-3.5" />
         </button>
       )}
     </article>
@@ -812,7 +810,7 @@ function PulseComposer({
             aria-label="Close"
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
         <label className="mt-5 block">
@@ -835,9 +833,9 @@ function PulseComposer({
             style={{ backgroundColor: tribeColor }}
           >
             {mutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <SpinnerGapIcon className="h-4 w-4 animate-spin" />
             ) : (
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRightIcon className="h-4 w-4" />
             )}
             Add to Tribevia
           </button>
@@ -978,7 +976,7 @@ function PlanComposer({
             aria-label="Close"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
         <div className="scroll-panel min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
@@ -1145,7 +1143,7 @@ function PlanComposer({
                           aria-label={`Remove option ${index + 1}`}
                           className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
-                          <X className="h-4 w-4" />
+                          <XIcon className="h-4 w-4" />
                         </button>
                       )}
                     </div>
@@ -1158,7 +1156,7 @@ function PlanComposer({
                     className="inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     style={{ color: tribeColor }}
                   >
-                    <Plus className="h-3.5 w-3.5" /> Add another time
+                    <PlusIcon className="h-3.5 w-3.5" /> Add another time
                   </button>
                 )}
                 {!validTiming && (
@@ -1219,9 +1217,9 @@ function PlanComposer({
             style={{ backgroundColor: tribeColor }}
           >
             {mutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <SpinnerGapIcon className="h-4 w-4 animate-spin" />
             ) : (
-              <CalendarPlus className="h-4 w-4" />
+              <CalendarPlusIcon className="h-4 w-4" />
             )}
             Share plan with the room
           </button>

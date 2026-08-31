@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Paperclip, Send, X } from "lucide-react";
+import { CameraIcon } from "@phosphor-icons/react/dist/csr/Camera";
+import { PaperclipIcon } from "@phosphor-icons/react/dist/csr/Paperclip";
+import { PaperPlaneTiltIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneTilt";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { ReplyPreview } from "./ReplyPreview";
 import { cn } from "@/lib/utils";
 
@@ -124,7 +127,7 @@ export function ChatComposer({
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="Remove selected photo"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -178,7 +181,7 @@ export function ChatComposer({
           onClick={() => attachmentInputRef.current?.click()}
           aria-label="Attach a photo"
         >
-          <Paperclip className="h-5 w-5" />
+          <PaperclipIcon className="h-5 w-5" />
         </button>
         <button
           type="button"
@@ -187,7 +190,7 @@ export function ChatComposer({
           onClick={() => cameraInputRef.current?.click()}
           aria-label="Take a photo"
         >
-          <Camera className="h-5 w-5" />
+          <CameraIcon className="h-5 w-5" />
         </button>
         <button
           type="button"
@@ -202,7 +205,7 @@ export function ChatComposer({
           style={gradientAction ? undefined : { backgroundColor: accentColor }}
           aria-label={sending ? "Sending message" : "Send message"}
         >
-          <Send className="h-4 w-4" />
+          <PaperPlaneTiltIcon className="h-4 w-4" />
         </button>
       </div>
     </div>

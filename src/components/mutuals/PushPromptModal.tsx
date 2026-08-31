@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, Download, Loader2, Plus, Share, Smartphone, X } from "lucide-react";
+import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { DownloadIcon } from "@phosphor-icons/react/dist/csr/Download";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
+import { ShareIcon } from "@phosphor-icons/react/dist/csr/Share";
+import { DeviceMobileIcon } from "@phosphor-icons/react/dist/csr/DeviceMobile";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useServerFn } from "@tanstack/react-start";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { toast } from "sonner";
@@ -191,25 +198,31 @@ export function PushPromptModal() {
 
   const iosSteps = [
     {
-      icon: <Share className="h-4 w-4" />,
+      icon: <ShareIcon className="h-4 w-4" />,
       text: "Open your browser's Share menu. In Safari, tap Share in the toolbar.",
     },
-    { icon: <Plus className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
+    { icon: <PlusIcon className="h-4 w-4" />, text: 'Scroll and tap "Add to Home Screen".' },
     {
-      icon: <Smartphone className="h-4 w-4" />,
+      icon: <DeviceMobileIcon className="h-4 w-4" />,
       text: 'Tap "Add", then open MEUTUALS from your home screen.',
     },
-    { icon: <Bell className="h-4 w-4" />, text: "Come back here and tap Enable notifications." },
+    {
+      icon: <BellIcon className="h-4 w-4" />,
+      text: "Come back here and tap Enable notifications.",
+    },
   ];
 
   const androidSteps = [
-    { icon: <Smartphone className="h-4 w-4" />, text: "Open Chrome's menu (⋮ in the top right)." },
-    { icon: <Plus className="h-4 w-4" />, text: 'Tap "Install app" or "Add to Home screen".' },
     {
-      icon: <Smartphone className="h-4 w-4" />,
+      icon: <DeviceMobileIcon className="h-4 w-4" />,
+      text: "Open Chrome's menu (⋮ in the top right).",
+    },
+    { icon: <PlusIcon className="h-4 w-4" />, text: 'Tap "Install app" or "Add to Home screen".' },
+    {
+      icon: <DeviceMobileIcon className="h-4 w-4" />,
       text: "Confirm, then open MEUTUALS from your home screen.",
     },
-    { icon: <Bell className="h-4 w-4" />, text: "Tap Enable notifications when prompted." },
+    { icon: <BellIcon className="h-4 w-4" />, text: "Tap Enable notifications when prompted." },
   ];
 
   return (
@@ -228,10 +241,14 @@ export function PushPromptModal() {
         aria-label="Close"
         className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-4 w-4" />
+        <XIcon className="h-4 w-4" />
       </button>
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-        {iosNeedsInstall ? <Smartphone className="h-6 w-6" /> : <Bell className="h-6 w-6" />}
+        {iosNeedsInstall ? (
+          <DeviceMobileIcon className="h-6 w-6" />
+        ) : (
+          <BellIcon className="h-6 w-6" />
+        )}
       </div>
       <h2 className="mt-4 font-display text-lg font-bold text-foreground">
         {iosNeedsInstall ? "Get push notifications on iPhone or iPad" : copy.title}
@@ -276,7 +293,11 @@ export function PushPromptModal() {
             disabled={busy}
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+            {busy ? (
+              <SpinnerGapIcon className="h-4 w-4 animate-spin" />
+            ) : (
+              <BellIcon className="h-4 w-4" />
+            )}
             <span aria-live="polite">{enableLabel(enableStage)}</span>
           </button>
           <div className="flex items-center justify-between gap-2">
@@ -309,7 +330,7 @@ export function PushPromptModal() {
               }}
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <Download className="h-4 w-4" />
+              <DownloadIcon className="h-4 w-4" />
               Install MEUTUALS on home screen
             </button>
           )}
@@ -318,10 +339,10 @@ export function PushPromptModal() {
             <details className="group mt-3 rounded-2xl border border-border/60 bg-secondary/30 p-3">
               <summary className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-foreground">
                 <span className="inline-flex items-center gap-2">
-                  <Smartphone className="h-4 w-4 text-primary" />
+                  <DeviceMobileIcon className="h-4 w-4 text-primary" />
                   Install MEUTUALS on Android
                 </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                <CaretDownIcon className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Optional — installing gives a fullscreen app and more reliable notifications.

@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
-import {
-  Bell,
-  Check,
-  Download,
-  Menu,
-  MoreVertical,
-  Share,
-  Smartphone,
-  SquarePlus,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { DownloadIcon } from "@phosphor-icons/react/dist/csr/Download";
+import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
+import { DotsThreeVerticalIcon } from "@phosphor-icons/react/dist/csr/DotsThreeVertical";
+import { ShareIcon } from "@phosphor-icons/react/dist/csr/Share";
+import { DeviceMobileIcon } from "@phosphor-icons/react/dist/csr/DeviceMobile";
+import { PlusSquareIcon } from "@phosphor-icons/react/dist/csr/PlusSquare";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import type { Icon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import {
@@ -47,7 +45,7 @@ export function PwaInstallRow() {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300">
-          <Check className="h-4 w-4" />
+          <CheckIcon className="h-4 w-4" />
         </span>
         <div>
           <p className="text-sm font-semibold">Installed app</p>
@@ -81,7 +79,7 @@ export function PwaInstallRow() {
       <>
         <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
           <div className="flex min-w-0 items-center gap-3">
-            <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+            <DeviceMobileIcon className="h-4 w-4 shrink-0 text-primary" />
             <div className="min-w-0">
               <p className="text-sm font-semibold">Install on iPhone</p>
               <p className="text-[11px] text-muted-foreground">
@@ -106,7 +104,7 @@ export function PwaInstallRow() {
     <>
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+          <DeviceMobileIcon className="h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0">
             <p className="text-sm font-semibold">Install MEUTUALS</p>
             <p className="text-[11px] text-muted-foreground">
@@ -135,29 +133,29 @@ export function PwaInstallRow() {
 }
 
 interface GuideStep {
-  icon: LucideIcon;
+  icon: Icon;
   title: string;
   detail: string;
 }
 
 const IOS_STEPS: GuideStep[] = [
   {
-    icon: Smartphone,
+    icon: DeviceMobileIcon,
     title: "Open MEUTUALS in Safari",
     detail: "If you are viewing this in another browser, copy the address and open it in Safari.",
   },
   {
-    icon: Share,
+    icon: ShareIcon,
     title: "Tap the Share button",
     detail: "It is the square with an upward arrow in Safari's toolbar.",
   },
   {
-    icon: SquarePlus,
+    icon: PlusSquareIcon,
     title: "Choose Add to Home Screen",
     detail: "Scroll down in the Share menu if the option is not immediately visible.",
   },
   {
-    icon: Check,
+    icon: CheckIcon,
     title: "Tap Add, then open the icon",
     detail: "MEUTUALS will launch full-screen from your Home Screen like an installed app.",
   },
@@ -165,23 +163,23 @@ const IOS_STEPS: GuideStep[] = [
 
 const ANDROID_STEPS: GuideStep[] = [
   {
-    icon: MoreVertical,
+    icon: DotsThreeVerticalIcon,
     title: "Open your browser menu",
     detail: "In Chrome, tap ⋮ at the top right. In Samsung Internet, tap ≡ at the bottom right.",
   },
   {
-    icon: Download,
+    icon: DownloadIcon,
     title: "Choose the install option",
     detail:
       'Tap "Install app" or "Add to Home screen". Samsung Internet may show "Add page to" first.',
   },
   {
-    icon: Check,
+    icon: CheckIcon,
     title: "Confirm Install or Add",
     detail: "Your browser will create a MEUTUALS icon on the Home Screen or in the app drawer.",
   },
   {
-    icon: Smartphone,
+    icon: DeviceMobileIcon,
     title: "Open MEUTUALS from its icon",
     detail: "It will launch without the normal browser controls and feel like a standalone app.",
   },
@@ -189,18 +187,18 @@ const ANDROID_STEPS: GuideStep[] = [
 
 const DESKTOP_STEPS: GuideStep[] = [
   {
-    icon: Menu,
+    icon: ListIcon,
     title: "Open Chrome or Edge",
     detail: "MEUTUALS installation is supported best in a Chromium-based desktop browser.",
   },
   {
-    icon: Download,
+    icon: DownloadIcon,
     title: "Choose Install MEUTUALS",
     detail:
       "Use the install icon in the address bar, or open the browser menu and choose Install app.",
   },
   {
-    icon: Check,
+    icon: CheckIcon,
     title: "Confirm the installation",
     detail: "MEUTUALS will open in its own window and can be pinned like another desktop app.",
   },
@@ -237,7 +235,7 @@ function InstallGuide({
         aria-label="Close installation guide"
         className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-5 w-5" />
+        <XIcon className="h-5 w-5" />
       </button>
 
       <p className="label-mono text-primary">Install MEUTUALS</p>
@@ -270,7 +268,7 @@ function InstallGuide({
       </ol>
 
       <div className="mt-5 flex items-start gap-3 border-l-2 border-primary pl-4">
-        <Bell className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <BellIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           After opening the installed app, enable notifications in Settings if you want Venture,
           Chat, and request alerts on this device.

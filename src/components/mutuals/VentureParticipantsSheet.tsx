@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MessageCircle, Search, UsersRound, X } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { VentureArrivalState, VentureParty, VentureProfileLite } from "@/lib/ventures-store";
 import type { VentureParticipant } from "@/lib/venture-participants";
@@ -77,7 +81,7 @@ export function VentureParticipantsSheet({
         <div className="h-1 shrink-0 bg-primary" aria-hidden="true" />
         <header className="flex shrink-0 items-start gap-3 border-b border-border px-5 pb-4 pt-5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <UsersRound className="h-5 w-5" />
+            <UsersIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="label-mono text-muted-foreground">Together in this Venture</p>
@@ -93,7 +97,7 @@ export function VentureParticipantsSheet({
             aria-label="Close participant list"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </header>
 
@@ -101,7 +105,7 @@ export function VentureParticipantsSheet({
           <div className="shrink-0 border-b border-border px-5 py-3">
             <label className="relative block">
               <span className="sr-only">Search Venture participants</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
                 value={query}
@@ -116,7 +120,7 @@ export function VentureParticipantsSheet({
         <div className="scroll-panel min-h-0 flex-1 overflow-y-auto px-2 py-2" aria-live="polite">
           {participants.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-              <UsersRound className="h-7 w-7 text-muted-foreground" />
+              <UsersIcon className="h-7 w-7 text-muted-foreground" />
               <p className="mt-3 text-sm font-semibold">Nobody is listed yet</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Accepted participants will appear here.
@@ -172,7 +176,7 @@ export function VentureParticipantsSheet({
                             {arrivalStatus ? ` · ${arrivalStatusLabel(arrivalStatus)}` : ""}
                           </span>
                           {canOpenProfile && (
-                            <ChevronRight
+                            <CaretRightIcon
                               className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 group-active:translate-x-1"
                               aria-hidden="true"
                             />
@@ -197,7 +201,7 @@ export function VentureParticipantsSheet({
                             aria-label={`Message ${profile.display_name || "participant"}`}
                             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           >
-                            <MessageCircle className="h-4 w-4" />
+                            <ChatCircleIcon className="h-4 w-4" />
                           </button>
                         )}
                         <SafetyMenu

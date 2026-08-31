@@ -1,5 +1,8 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { GripVertical, ImagePlus, Loader2, X } from "lucide-react";
+import { DotsSixVerticalIcon } from "@phosphor-icons/react/dist/csr/DotsSixVertical";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { cn } from "@/lib/utils";
 
 export type ComposedImage = { path: string; previewUrl: string };
@@ -99,7 +102,7 @@ export function ImageStrip({
           )}
           {images.length > 1 && (
             <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/45 text-white/80">
-              <GripVertical className="h-3 w-3" />
+              <DotsSixVerticalIcon className="h-3 w-3" />
             </span>
           )}
           <button
@@ -109,7 +112,7 @@ export function ImageStrip({
             aria-label={`Remove photo ${i + 1}`}
             className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <X className="h-3 w-3" />
+            <XIcon className="h-3 w-3" />
           </button>
         </div>
       ))}
@@ -122,9 +125,9 @@ export function ImageStrip({
           className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
         >
           {uploading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <SpinnerGapIcon className="h-5 w-5 animate-spin" />
           ) : (
-            <ImagePlus className="h-5 w-5" />
+            <ImageIcon className="h-5 w-5" />
           )}
         </button>
       )}

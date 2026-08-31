@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { X, Check, Loader2, Lock } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
 import { toast } from "sonner";
 import { TRIBES, type TribeId } from "@/lib/mutuals-data";
 import { AnimatedModal } from "@/components/ui/animated-modal";
@@ -85,7 +88,7 @@ export function AddTribeSheet({
         aria-label="Close"
         className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-5 w-5" />
+        <XIcon className="h-5 w-5" />
       </button>
 
       {target ? (
@@ -106,7 +109,7 @@ export function AddTribeSheet({
             >
               {switchTribe.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Moving…
+                  <SpinnerGapIcon className="h-4 w-4 animate-spin" /> Moving…
                 </>
               ) : (
                 `Yes, move to ${target.name}`
@@ -148,7 +151,7 @@ export function AddTribeSheet({
 
           {locked ? (
             <div className="mt-5 flex items-start gap-2 rounded-2xl border border-dashed border-border bg-background/40 p-4">
-              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <LockIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="text-xs text-muted-foreground">
                 <p className="font-semibold text-foreground">
                   You can change Tribe again in {daysLeft} {daysLeft === 1 ? "day" : "days"}.
@@ -184,7 +187,7 @@ export function AddTribeSheet({
               </ul>
               {status.data?.available_at === null && status.data.can_switch && (
                 <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Check className="h-3.5 w-3.5 text-primary" /> You can change Tribe freely for
+                  <CheckIcon className="h-3.5 w-3.5 text-primary" /> You can change Tribe freely for
                   now.
                 </p>
               )}

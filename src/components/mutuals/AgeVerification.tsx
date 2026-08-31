@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { CalendarDays, Loader2, LogOut } from "lucide-react";
+import { CalendarIcon } from "@phosphor-icons/react/dist/csr/Calendar";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useVerifyAge } from "@/lib/profile-store";
@@ -36,7 +38,7 @@ export function AgeVerification({ locked = false }: { locked?: boolean }) {
     <main className="bg-habitat flex min-h-screen items-center justify-center px-6">
       <section className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          <CalendarDays className="h-5 w-5" />
+          <CalendarIcon className="h-5 w-5" />
         </span>
         <p className="label-mono mt-5 text-muted-foreground">Age assurance</p>
         <h1 className="mt-2 font-display text-3xl font-bold leading-tight">
@@ -67,7 +69,7 @@ export function AgeVerification({ locked = false }: { locked?: boolean }) {
               disabled={!dateOfBirth || verifyAge.isPending}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
-              {verifyAge.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {verifyAge.isPending && <SpinnerGapIcon className="h-4 w-4 animate-spin" />}
               Continue
             </button>
           </form>
@@ -78,7 +80,7 @@ export function AgeVerification({ locked = false }: { locked?: boolean }) {
           onClick={() => void signOut()}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <LogOut className="h-4 w-4" /> Sign out
+          <SignOutIcon className="h-4 w-4" /> Sign out
         </button>
 
         {!locked && dateOfBirth && !isEligibleDateOfBirth(dateOfBirth) && (

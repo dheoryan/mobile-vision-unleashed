@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Hand, X } from "lucide-react";
+import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import {
@@ -48,7 +49,7 @@ export function HelloRequestsSheet({ open, onClose }: { open: boolean; onClose: 
           aria-label="Close"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
       </div>
 
@@ -117,7 +118,7 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-10 text-center">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-        <Hand className="h-6 w-6" />
+        <HandIcon className="h-6 w-6" weight="fill" />
       </span>
       <p className="mt-4 max-w-[26ch] text-sm text-muted-foreground">{label}</p>
     </div>

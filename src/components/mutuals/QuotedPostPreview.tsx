@@ -1,4 +1,4 @@
-import { Ban } from "lucide-react";
+import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { timeAgoLabel } from "@/lib/time";
 import type { FeedPost } from "@/lib/posts-store";
@@ -47,7 +47,7 @@ export function QuotedPostPreview({ post }: { post: FeedPost }) {
 export function QuotedPostUnavailable() {
   return (
     <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-      <Ban className="h-3.5 w-3.5 shrink-0" />
+      <ProhibitIcon className="h-3.5 w-3.5 shrink-0" />
       This post is no longer available.
     </div>
   );

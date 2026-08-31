@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft } from "lucide-react";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { useEffect } from "react";
 import { PostCard } from "@/components/mutuals/PostCard";
 import { CommentsThread } from "@/components/mutuals/CommentsModal";
@@ -89,7 +89,7 @@ function SharedPostPage() {
             aria-label={from === "notifications" ? "Back to notifications" : "Back to MEUTUALS"}
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </button>
           <h1 className="truncate text-center font-display text-sm font-bold">Signal Thread</h1>
           <span aria-hidden />

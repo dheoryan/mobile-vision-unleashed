@@ -1,11 +1,9 @@
-import {
-  CalendarDays,
-  Heart,
-  MessageCircle,
-  Sparkles,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+import { CalendarIcon } from "@phosphor-icons/react/dist/csr/Calendar";
+import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import type { Icon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { DEFAULT_PUSH_PREFERENCES, type PushPreferenceKey } from "@/lib/push-preferences";
@@ -16,7 +14,7 @@ interface CategoryDefinition {
   key: PushPreferenceKey;
   label: string;
   detail: string;
-  icon: LucideIcon;
+  icon: Icon;
 }
 
 const CATEGORIES: CategoryDefinition[] = [
@@ -24,31 +22,31 @@ const CATEGORIES: CategoryDefinition[] = [
     key: "messages_mentions",
     label: "Messages & mentions",
     detail: "DMs, Hellos, and when someone calls you into a conversation.",
-    icon: MessageCircle,
+    icon: ChatCircleIcon,
   },
   {
     key: "venture_activity",
     label: "Venture activity",
     detail: "Join requests, invitations, acceptances, and party chat.",
-    icon: CalendarDays,
+    icon: CalendarIcon,
   },
   {
     key: "social_activity",
     label: "Comments & reactions",
     detail: "Likes, replies, comments, and new followers.",
-    icon: Heart,
+    icon: HeartIcon,
   },
   {
     key: "tribe_activity",
     label: "Tribe activity",
     detail: "Important changes inside your Tribe.",
-    icon: UsersRound,
+    icon: UsersIcon,
   },
   {
     key: "new_posts",
     label: "New Tribe posts",
     detail: "A push whenever someone shares a new Tribe signal.",
-    icon: Sparkles,
+    icon: SparkleIcon,
   },
 ];
 

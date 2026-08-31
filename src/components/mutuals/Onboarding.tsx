@@ -2,41 +2,39 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { FeatureIllustration } from "./FeatureIllustration";
 import welcomeArt from "@/assets/app-illustrations/onboarding-01.webp";
-import {
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  Loader2,
-  LocateFixed,
-  ShieldCheck,
-  TreePine,
-  Dumbbell,
-  BookOpen,
-  Music2,
-  Palette,
-  Utensils,
-  Coffee,
-  MoonStar,
-  Cpu,
-  BriefcaseBusiness,
-  HeartPulse,
-  Gamepad2,
-  Users,
-  Activity,
-  MessageCircle,
-  Compass,
-  Network,
-  Lightbulb,
-  Sunrise,
-  Sunset,
-  CalendarDays,
-  Zap,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { TreeIcon } from "@phosphor-icons/react/dist/csr/Tree";
+import { BarbellIcon } from "@phosphor-icons/react/dist/csr/Barbell";
+import { BookOpenIcon } from "@phosphor-icons/react/dist/csr/BookOpen";
+import { MusicNoteIcon } from "@phosphor-icons/react/dist/csr/MusicNote";
+import { PaletteIcon } from "@phosphor-icons/react/dist/csr/Palette";
+import { ForkKnifeIcon } from "@phosphor-icons/react/dist/csr/ForkKnife";
+import { CoffeeIcon } from "@phosphor-icons/react/dist/csr/Coffee";
+import { MoonStarsIcon } from "@phosphor-icons/react/dist/csr/MoonStars";
+import { CpuIcon } from "@phosphor-icons/react/dist/csr/Cpu";
+import { BriefcaseIcon } from "@phosphor-icons/react/dist/csr/Briefcase";
+import { HeartbeatIcon } from "@phosphor-icons/react/dist/csr/Heartbeat";
+import { GameControllerIcon } from "@phosphor-icons/react/dist/csr/GameController";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { PulseIcon } from "@phosphor-icons/react/dist/csr/Pulse";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { CompassIcon } from "@phosphor-icons/react/dist/csr/Compass";
+import { NetworkIcon } from "@phosphor-icons/react/dist/csr/Network";
+import { LightbulbIcon } from "@phosphor-icons/react/dist/csr/Lightbulb";
+import { SunIcon } from "@phosphor-icons/react/dist/csr/Sun";
+import { SunHorizonIcon } from "@phosphor-icons/react/dist/csr/SunHorizon";
+import { CalendarIcon } from "@phosphor-icons/react/dist/csr/Calendar";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
+import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import type { Icon } from "@phosphor-icons/react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import { LegalFooter } from "./LegalFooter";
 import { uploadAvatar } from "@/lib/uploads";
@@ -224,7 +222,7 @@ export function Onboarding({
               step === 0 && "invisible",
             )}
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div
             className={cn("flex gap-1.5", step === 0 && "invisible")}
@@ -260,7 +258,7 @@ export function Onboarding({
             </div>
             <div className="mt-auto pt-10">
               <PrimaryButton onClick={() => setStep(1)}>
-                Get started <ArrowRight className="h-4 w-4" />
+                Get started <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
               <p className="mt-3 text-center text-[11px] text-muted-foreground">
                 For socially curious adults, 18+
@@ -288,7 +286,7 @@ export function Onboarding({
                 }}
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <CaretLeftIcon className="h-5 w-5" />
               </button>
               <div className="text-center">
                 <p className="label-mono text-muted-foreground">
@@ -307,7 +305,7 @@ export function Onboarding({
                 }}
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <ChevronRight className="h-5 w-5" />
+                <CaretRightIcon className="h-5 w-5" />
               </button>
             </div>
 
@@ -340,7 +338,7 @@ export function Onboarding({
                       </span>
                       {tribeId === viewedTribe.id && (
                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="h-4 w-4" />
+                          <CheckIcon className="h-4 w-4" />
                         </span>
                       )}
                     </span>
@@ -348,7 +346,8 @@ export function Onboarding({
                       <span className="font-display text-3xl font-bold">{viewedTribe.name}</span>
                       <span className="mt-1 block text-xs text-white/70">{viewedTribe.scene}</span>
                       <span className="mt-4 flex items-center gap-2 label-mono text-white/75">
-                        <RotateCcw className="h-3.5 w-3.5" /> Tap to reveal the Tribe
+                        <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Tap to reveal the
+                        Tribe
                       </span>
                     </span>
                   </span>
@@ -366,7 +365,7 @@ export function Onboarding({
                     />
                     <span className="relative flex items-center justify-between">
                       <span className="label-mono text-primary">Inside the card</span>
-                      <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                      <ArrowCounterClockwiseIcon className="h-4 w-4 text-muted-foreground" />
                     </span>
                     <span className="relative mt-3 font-display text-2xl font-bold">
                       {viewedTribe.motto}
@@ -383,7 +382,7 @@ export function Onboarding({
                           key={item}
                           className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-1.5 text-[11px] font-semibold"
                         >
-                          <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <SparkleIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
                           {item}
                         </span>
                       ))}
@@ -432,7 +431,7 @@ export function Onboarding({
                 {tribeId === viewedTribe.id
                   ? `Continue with ${viewedTribe.name}`
                   : `Choose ${viewedTribe.name}`}{" "}
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
               {tribeId && tribeId !== viewedTribe.id && (
                 <p className="mt-2 text-center text-[10px] text-muted-foreground">
@@ -471,7 +470,7 @@ export function Onboarding({
                 </span>
                 {uploading && (
                   <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70 backdrop-blur-sm">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <SpinnerGapIcon className="h-5 w-5 animate-spin text-primary" />
                   </span>
                 )}
               </button>
@@ -529,7 +528,7 @@ export function Onboarding({
                 disabled={!name.trim() || !handleValid || !gender || uploading}
                 onClick={() => setStep(3)}
               >
-                Build my social signal <ArrowRight className="h-4 w-4" />
+                Build my social signal <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
             </div>
           </div>
@@ -552,7 +551,7 @@ export function Onboarding({
                   <div className="rounded-2xl border border-primary/35 bg-primary/10 p-4">
                     <div className="flex items-start gap-3">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-meutuals-gradient text-white">
-                        <Check className="h-4 w-4" />
+                        <CheckIcon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
@@ -576,9 +575,9 @@ export function Onboarding({
                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-primary/35 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                       >
                         {locating ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <SpinnerGapIcon className="h-4 w-4 animate-spin" />
                         ) : (
-                          <LocateFixed className="h-4 w-4" />
+                          <CrosshairIcon className="h-4 w-4" />
                         )}
                         Check again
                       </button>
@@ -603,9 +602,9 @@ export function Onboarding({
                       className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                     >
                       {locating ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <SpinnerGapIcon className="h-4 w-4 animate-spin" />
                       ) : (
-                        <LocateFixed className="h-4 w-4" />
+                        <CrosshairIcon className="h-4 w-4" />
                       )}
                       {locating ? "Finding your area…" : "Use my current area"}
                     </button>
@@ -659,7 +658,7 @@ export function Onboarding({
             </div>
             <div className="mt-auto pt-8">
               <PrimaryButton disabled={!socialProfileReady} onClick={() => setStep(4)}>
-                Set nearby preferences <ArrowRight className="h-4 w-4" />
+                Set nearby preferences <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
             </div>
           </div>
@@ -675,7 +674,7 @@ export function Onboarding({
             <div className="mt-7 rounded-3xl border border-border bg-card p-5">
               <div className="flex items-start gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                  <ShieldCheck className="h-5 w-5" />
+                  <ShieldCheckIcon className="h-5 w-5" />
                 </span>
                 <div>
                   <p className="font-display text-lg font-bold">Private by design</p>
@@ -695,7 +694,7 @@ export function Onboarding({
               </div>
               {location ? (
                 <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary/10 p-4 text-primary">
-                  <Check className="h-5 w-5" />
+                  <CheckIcon className="h-5 w-5" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Approximate location ready</p>
                     <p className="text-[11px] text-muted-foreground">
@@ -711,9 +710,9 @@ export function Onboarding({
                   className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary disabled:opacity-60"
                 >
                   {locating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <SpinnerGapIcon className="h-4 w-4 animate-spin" />
                   ) : (
-                    <LocateFixed className="h-4 w-4" />
+                    <CrosshairIcon className="h-4 w-4" />
                   )}
                   {locating ? "Finding your area…" : "Use approximate location"}
                 </button>
@@ -726,7 +725,7 @@ export function Onboarding({
                   : location
                     ? "Finish nearby setup"
                     : "Finish my profile"}
-                {!saving && <ArrowRight className="h-4 w-4" />}
+                {!saving && <ArrowRightIcon className="h-4 w-4" />}
               </PrimaryButton>
               {!location && (
                 <button
@@ -777,29 +776,29 @@ function PrimaryButton({
   );
 }
 
-const OPTION_ICONS: Record<string, LucideIcon> = {
-  outdoors: TreePine,
-  fitness: Dumbbell,
-  books: BookOpen,
-  music: Music2,
-  art: Palette,
-  food: Utensils,
-  coffee: Coffee,
-  nightlife: MoonStar,
-  tech: Cpu,
-  business: BriefcaseBusiness,
-  wellness: HeartPulse,
-  games: Gamepad2,
-  make_friends: Users,
-  activity_partner: Activity,
-  casual_hangouts: MessageCircle,
-  local_exploration: Compass,
-  networking: Network,
-  creative_collab: Lightbulb,
-  weekday_mornings: Sunrise,
-  weekday_evenings: Sunset,
-  weekends: CalendarDays,
-  spontaneous: Zap,
+const OPTION_ICONS: Record<string, Icon> = {
+  outdoors: TreeIcon,
+  fitness: BarbellIcon,
+  books: BookOpenIcon,
+  music: MusicNoteIcon,
+  art: PaletteIcon,
+  food: ForkKnifeIcon,
+  coffee: CoffeeIcon,
+  nightlife: MoonStarsIcon,
+  tech: CpuIcon,
+  business: BriefcaseIcon,
+  wellness: HeartbeatIcon,
+  games: GameControllerIcon,
+  make_friends: UsersIcon,
+  activity_partner: PulseIcon,
+  casual_hangouts: ChatCircleIcon,
+  local_exploration: CompassIcon,
+  networking: NetworkIcon,
+  creative_collab: LightbulbIcon,
+  weekday_mornings: SunIcon,
+  weekday_evenings: SunHorizonIcon,
+  weekends: CalendarIcon,
+  spontaneous: LightningIcon,
 };
 
 function ChoiceGroup({
@@ -824,7 +823,7 @@ function ChoiceGroup({
       <div className="mt-2 grid grid-cols-2 gap-2">
         {options.map((option) => {
           const active = selected.includes(option.id);
-          const Icon = OPTION_ICONS[option.id] ?? Check;
+          const Icon = OPTION_ICONS[option.id] ?? CheckIcon;
           return (
             <button
               type="button"
@@ -849,7 +848,7 @@ function ChoiceGroup({
                 <Icon className="h-4 w-4" />
               </span>
               <span className="leading-snug">{option.label}</span>
-              {active && <Check className="absolute right-2 top-2 h-3 w-3" />}
+              {active && <CheckIcon className="absolute right-2 top-2 h-3 w-3" />}
             </button>
           );
         })}
@@ -884,7 +883,7 @@ function SetupStage({
           done ? "bg-meutuals-gradient text-white" : "bg-secondary text-muted-foreground",
         )}
       >
-        {done ? <Check className="h-3.5 w-3.5" /> : "·"}
+        {done ? <CheckIcon className="h-3.5 w-3.5" /> : "·"}
       </span>
       <p className="mt-1.5 text-[9px] font-semibold text-muted-foreground">{label}</p>
     </div>

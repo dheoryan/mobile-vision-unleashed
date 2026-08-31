@@ -1,4 +1,5 @@
-import { Zap, X } from "lucide-react";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { Link } from "@tanstack/react-router";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 
@@ -42,11 +43,11 @@ export function UpsellModal({
         aria-label="Close"
         className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-5 w-5" />
+        <XIcon className="h-5 w-5" />
       </button>
 
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-        <Zap className="h-6 w-6" fill="currentColor" />
+        <LightningIcon className="h-6 w-6" weight="fill" />
       </span>
       <h2 className="mt-4 font-display text-2xl font-bold leading-tight">
         You've used your {used} free Ventures this month.

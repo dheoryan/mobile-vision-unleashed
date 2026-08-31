@@ -1,7 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
 import { useState } from "react";
-import { ArrowLeft, Users, MessageSquare, Zap, TrendingUp, Pin, Megaphone } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { ChatTextIcon } from "@phosphor-icons/react/dist/csr/ChatText";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { TrendUpIcon } from "@phosphor-icons/react/dist/csr/TrendUp";
+import { PushPinIcon } from "@phosphor-icons/react/dist/csr/PushPin";
+import { MegaphoneIcon } from "@phosphor-icons/react/dist/csr/Megaphone";
 import { PEOPLE, POSTS, tribeById } from "@/lib/mutuals-data";
 import { TribeMark } from "@/components/mutuals/TribeMark";
 
@@ -33,7 +39,7 @@ function HostDashboard() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
           <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to app
+            <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to app
           </Link>
           <div className="flex items-center gap-2">
             <TribeMark tribe={tribe} size="sm" />
@@ -79,10 +85,10 @@ function HostDashboard() {
 
 function Overview({ members, posts }: { members: number; posts: number }) {
   const stats = [
-    { icon: Users, label: "Members", value: "11,230" },
-    { icon: MessageSquare, label: "Posts this week", value: String(posts * 6) },
-    { icon: Zap, label: "Active Ventures", value: "27" },
-    { icon: TrendingUp, label: "New (30d)", value: "+412" },
+    { icon: UsersIcon, label: "Members", value: "11,230" },
+    { icon: ChatTextIcon, label: "Posts this week", value: String(posts * 6) },
+    { icon: LightningIcon, label: "Active Ventures", value: "27" },
+    { icon: TrendUpIcon, label: "New (30d)", value: "+412" },
   ];
   const weeks = [320, 410, 380, 470, 540, 612, 700, 812];
   const max = Math.max(...weeks);
@@ -145,7 +151,7 @@ function Posts({ posts }: { posts: typeof POSTS }) {
             <p className="text-sm">{p.content}</p>
             <p className="mt-1 text-[11px] text-muted-foreground">{p.likes} likes · {p.replies} replies · {p.time} ago</p>
           </div>
-          <button className="flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"><Pin className="h-3 w-3" /> Pin</button>
+          <button className="flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"><PushPinIcon className="h-3 w-3" /> Pin</button>
         </article>
       ))}
     </div>
@@ -190,7 +196,7 @@ function Announcements() {
     <div className="space-y-4">
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center gap-2">
-          <Megaphone className="h-4 w-4 text-primary" />
+          <MegaphoneIcon className="h-4 w-4 text-primary" />
           <p className="font-display text-base font-bold">New announcement</p>
         </div>
         <textarea

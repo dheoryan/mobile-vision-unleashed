@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AtSign, CalendarPlus, ChevronLeft, Reply, UsersRound } from "lucide-react";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { AtIcon } from "@phosphor-icons/react/dist/csr/At";
+import { CalendarPlusIcon } from "@phosphor-icons/react/dist/csr/CalendarPlus";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { type TribeId, tribeById } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader } from "./Shared";
@@ -67,7 +71,7 @@ function SwipeReplyRow({
               transform: `scale(${ready ? 1.12 : 0.9})`,
             }}
           >
-            <Reply className="h-3.5 w-3.5" />
+            <ArrowBendUpLeftIcon className="h-3.5 w-3.5" />
           </span>
         </div>
       )}
@@ -140,7 +144,7 @@ export function TribeScreen({
       aria-label="New plan"
       className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
-      <CalendarPlus className="h-5 w-5" />
+      <CalendarPlusIcon className="h-5 w-5" />
     </button>
   ) : null;
 
@@ -158,7 +162,7 @@ export function TribeScreen({
               aria-label="Back to Chats"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <CaretLeftIcon className="h-5 w-5" />
             </button>
             <TribeMark tribe={tribe} size="sm" className="h-9 w-9" decorative={false} />
             <button
@@ -172,7 +176,7 @@ export function TribeScreen({
               </h1>
               <span className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-                <UsersRound className="h-3 w-3 shrink-0" />
+                <UsersIcon className="h-3 w-3 shrink-0" />
                 <span className="truncate">
                   {onlineMemberIds.size} online · {membersQuery.data?.total ?? members.length}{" "}
                   members
@@ -356,7 +360,7 @@ function RoomMemberStatus({
       className="-ml-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       aria-label={`View ${memberLabel ?? "Tribe"} members, ${onlineLabel} online`}
     >
-      <UsersRound className="h-3.5 w-3.5" />
+      <UsersIcon className="h-3.5 w-3.5" />
       <span>
         <span className="text-foreground">{onlineLabel}</span> online
       </span>
@@ -974,7 +978,7 @@ function GroupChat({
             mentionSuggestions.length > 0 ? (
               <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  <AtSign className="h-3 w-3" /> Mention members
+                  <AtIcon className="h-3 w-3" /> Mention members
                 </div>
                 {mentionSuggestions.map((member) => (
                   <button

@@ -1,28 +1,26 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  Ban,
-  Bell,
-  Bookmark,
-  BookOpenCheck,
-  ChevronRight,
-  KeyRound,
-  LifeBuoy,
-  Loader2,
-  LocateFixed,
-  LogOut,
-  Mail,
-  MapPin,
-  MapPinOff,
-  RefreshCw,
-  Scale,
-  ShieldCheck,
-  Smartphone,
-  Trash2,
-  UserRound,
-  UsersRound,
-} from "lucide-react";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
+import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
+import { BookOpenTextIcon } from "@phosphor-icons/react/dist/csr/BookOpenText";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
+import { DeviceMobileIcon } from "@phosphor-icons/react/dist/csr/DeviceMobile";
+import { EnvelopeIcon } from "@phosphor-icons/react/dist/csr/Envelope";
+import { KeyIcon } from "@phosphor-icons/react/dist/csr/Key";
+import { LifebuoyIcon } from "@phosphor-icons/react/dist/csr/Lifebuoy";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { MapPinLineIcon } from "@phosphor-icons/react/dist/csr/MapPinLine";
+import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
+import { ScalesIcon } from "@phosphor-icons/react/dist/csr/Scales";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { toast } from "sonner";
 import safetyArt from "@/assets/app-illustrations/safety-privacy.webp";
 import { Switch } from "@/components/ui/switch";
@@ -127,7 +125,7 @@ export function SettingsScreen({
             aria-label={view === "main" ? "Back to profile" : "Back to settings"}
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div className="min-w-0 text-center">
             <p className="label-mono text-primary">MEUTUALS</p>
@@ -218,19 +216,19 @@ function SettingsHome({
 
       <SettingsGroup label="You">
         <SettingsRow
-          icon={UserRound}
+          icon={UserIcon}
           title="Account & identity"
           detail={email}
           onClick={() => onOpen("account")}
         />
         <SettingsRow
-          icon={Bell}
+          icon={BellIcon}
           title="Notifications"
           detail="Push alerts and activity"
           onClick={() => onOpen("notifications")}
         />
         <SettingsRow
-          icon={Bookmark}
+          icon={BookmarkSimpleIcon}
           title="Saved posts"
           detail="Posts you've bookmarked"
           onClick={() => onOpen("savedPosts")}
@@ -239,13 +237,13 @@ function SettingsHome({
 
       <SettingsGroup label="Discovery">
         <SettingsRow
-          icon={MapPin}
+          icon={MapPinIcon}
           title="Nearby discovery"
           detail="Approximate area and mutual radius"
           onClick={() => onOpen("nearby")}
         />
         <SettingsRow
-          icon={ShieldCheck}
+          icon={ShieldCheckIcon}
           title="Privacy & safety"
           detail="Policies, controls, and blocked accounts"
           onClick={() => onOpen("safety")}
@@ -254,7 +252,7 @@ function SettingsHome({
 
       <SettingsGroup label="MEUTUALS">
         <SettingsRow
-          icon={Smartphone}
+          icon={DeviceMobileIcon}
           title="Install the app"
           detail="Add MEUTUALS to this device"
           onClick={() => onOpen("installation")}
@@ -267,7 +265,7 @@ function SettingsHome({
           onClick={onLogout}
           className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <LogOut className="h-4 w-4" /> Log out
+          <SignOutIcon className="h-4 w-4" /> Log out
         </button>
       </div>
 
@@ -277,7 +275,7 @@ function SettingsHome({
           onClick={onDelete}
           className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
         >
-          <Trash2 className="h-4 w-4" /> Delete account
+          <TrashIcon className="h-4 w-4" /> Delete account
         </button>
       </div>
     </div>
@@ -315,7 +313,7 @@ function AccountSettings({
       </div>
       <SettingsGroup label="Profile">
         <SettingsRow
-          icon={UserRound}
+          icon={UserIcon}
           title="Edit profile"
           detail="Photo, bio, home city, and social signals"
           onClick={onEdit}
@@ -332,12 +330,12 @@ function AccountSettings({
               {tribe.name} · View movement timing and choices
             </span>
           </span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <CaretRightIcon className="h-4 w-4 text-muted-foreground" />
         </button>
       </SettingsGroup>
       <SettingsGroup label="Sign-in">
         <div className="flex min-h-16 items-center gap-3 px-3">
-          <Mail className="h-4 w-4 text-muted-foreground" />
+          <EnvelopeIcon className="h-4 w-4 text-muted-foreground" />
           <span className="min-w-0">
             <span className="block text-sm font-semibold">Email</span>
             <span className="block truncate text-xs text-muted-foreground">{email}</span>
@@ -347,12 +345,12 @@ function AccountSettings({
           to="/reset-password"
           className="flex min-h-16 items-center gap-3 border-t border-border px-3 transition-colors hover:bg-secondary/60 active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         >
-          <KeyRound className="h-4 w-4 text-muted-foreground" />
+          <KeyIcon className="h-4 w-4 text-muted-foreground" />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold">Change password</span>
             <span className="block text-xs text-muted-foreground">Send a secure reset link</span>
           </span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <CaretRightIcon className="h-4 w-4 text-muted-foreground" />
         </Link>
       </SettingsGroup>
     </div>
@@ -425,7 +423,7 @@ function NearbySettings() {
         ) : !location ? (
           <div>
             <div className="flex items-start gap-3">
-              <MapPinOff className="mt-0.5 h-5 w-5 text-muted-foreground" />
+              <MapPinLineIcon className="mt-0.5 h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-semibold">City-only discovery</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -440,9 +438,9 @@ function NearbySettings() {
               className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
               {locating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <SpinnerGapIcon className="h-4 w-4 animate-spin" />
               ) : (
-                <LocateFixed className="h-4 w-4" />
+                <CrosshairIcon className="h-4 w-4" />
               )}{" "}
               Use my current area
             </button>
@@ -451,7 +449,7 @@ function NearbySettings() {
           <div>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
+                <ShieldCheckIcon className="mt-0.5 h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-semibold">Approximate area saved</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -500,7 +498,8 @@ function NearbySettings() {
                 disabled={locating}
                 className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border text-xs font-semibold"
               >
-                <RefreshCw className={cn("h-3.5 w-3.5", locating && "animate-spin")} /> Update area
+                <ArrowClockwiseIcon className={cn("h-3.5 w-3.5", locating && "animate-spin")} />{" "}
+                Update area
               </button>
               <button
                 type="button"
@@ -511,7 +510,7 @@ function NearbySettings() {
                 }
                 className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border text-xs font-semibold text-muted-foreground"
               >
-                <MapPinOff className="h-3.5 w-3.5" /> Remove
+                <MapPinLineIcon className="h-3.5 w-3.5" /> Remove
               </button>
             </div>
           </div>
@@ -535,7 +534,7 @@ function SafetySettings({ onBlocked }: { onBlocked: () => void }) {
       </div>
       <SettingsGroup label="Controls">
         <SettingsRow
-          icon={UsersRound}
+          icon={UsersIcon}
           title="Blocked accounts"
           detail="Review and unblock people"
           onClick={onBlocked}
@@ -543,15 +542,15 @@ function SafetySettings({ onBlocked }: { onBlocked: () => void }) {
       </SettingsGroup>
       <SettingsGroup label="Policies">
         <SettingsLink
-          icon={BookOpenCheck}
+          icon={BookOpenTextIcon}
           title="Community Guidelines"
           to="/community-guidelines"
         />
-        <SettingsLink icon={ShieldCheck} title="Privacy Policy" to="/privacy" />
-        <SettingsLink icon={Scale} title="Terms of Service" to="/terms" />
+        <SettingsLink icon={ShieldCheckIcon} title="Privacy Policy" to="/privacy" />
+        <SettingsLink icon={ScalesIcon} title="Terms of Service" to="/terms" />
       </SettingsGroup>
       <div className="mt-6 flex items-start gap-3 border-t border-border pt-5">
-        <LifeBuoy className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        <LifebuoyIcon className="mt-0.5 h-4 w-4 text-muted-foreground" />
         <p className="text-xs leading-relaxed text-muted-foreground">
           Need help with a safety issue? Report the member or content from its own menu so the
           review includes the right context.
@@ -569,7 +568,7 @@ function BlockedSettings() {
   if (blockedPeople.length === 0)
     return (
       <div className="py-16 text-center">
-        <Ban className="mx-auto h-8 w-8 text-muted-foreground" />
+        <ProhibitIcon className="mx-auto h-8 w-8 text-muted-foreground" />
         <p className="mt-4 font-display text-lg font-bold">No blocked accounts</p>
         <p className="mt-1 text-sm text-muted-foreground">People you block will appear here.</p>
       </div>
@@ -616,7 +615,7 @@ function SavedPostsSettings() {
   if (savedPosts.length === 0)
     return (
       <div className="py-16 text-center">
-        <Bookmark className="mx-auto h-8 w-8 text-muted-foreground" />
+        <BookmarkSimpleIcon className="mx-auto h-8 w-8 text-muted-foreground" />
         <p className="mt-4 font-display text-lg font-bold">No saved posts</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Tap the bookmark on any post to save it here.
@@ -652,7 +651,7 @@ function SettingsRow({
   detail,
   onClick,
 }: {
-  icon: typeof LifeBuoy;
+  icon: typeof LifebuoyIcon;
   title: string;
   detail: string;
   onClick: () => void;
@@ -668,7 +667,7 @@ function SettingsRow({
         <span className="block text-sm font-semibold">{title}</span>
         <span className="block truncate text-xs text-muted-foreground">{detail}</span>
       </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
   );
 }
@@ -678,7 +677,7 @@ function SettingsLink({
   title,
   to,
 }: {
-  icon: typeof LifeBuoy;
+  icon: typeof LifebuoyIcon;
   title: string;
   to: "/community-guidelines" | "/privacy" | "/terms";
 }) {
@@ -689,7 +688,7 @@ function SettingsLink({
     >
       <Icon className="h-4 w-4 text-muted-foreground" />
       <span className="flex-1 text-sm font-semibold">{title}</span>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <CaretRightIcon className="h-4 w-4 text-muted-foreground" />
     </Link>
   );
 }

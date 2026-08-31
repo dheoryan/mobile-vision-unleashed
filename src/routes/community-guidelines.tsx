@@ -1,5 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Heart, ShieldCheck, Lock, Sparkles, X } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
+import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
 
 export const Route = createFileRoute("/community-guidelines")({
@@ -15,11 +20,11 @@ export const Route = createFileRoute("/community-guidelines")({
 });
 
 const RULES = [
-  { icon: Heart,       title: "Be authentic", body: "No impersonating others, no fake personas designed to deceive. Your profile should represent who you actually are." },
-  { icon: ShieldCheck, title: "Be kind",      body: "No harassment, hate speech, or discrimination of any kind." },
-  { icon: Lock,        title: "Be safe",      body: "Don't share other people's personal info without their consent." },
-  { icon: Sparkles,    title: "21 and up",    body: "MEUTUALS is for adults. Underage accounts will be removed." },
-  { icon: X,           title: "Keep it clean", body: "No explicit, violent, or unlawful content." },
+  { icon: HeartIcon,       title: "Be authentic", body: "No impersonating others, no fake personas designed to deceive. Your profile should represent who you actually are." },
+  { icon: ShieldCheckIcon, title: "Be kind",      body: "No harassment, hate speech, or discrimination of any kind." },
+  { icon: LockIcon,        title: "Be safe",      body: "Don't share other people's personal info without their consent." },
+  { icon: SparkleIcon,     title: "21 and up",    body: "MEUTUALS is for adults. Underage accounts will be removed." },
+  { icon: XIcon,           title: "Keep it clean", body: "No explicit, violent, or unlawful content." },
 ];
 
 function GuidelinesPage() {
@@ -27,7 +32,7 @@ function GuidelinesPage() {
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-2xl px-5 pt-6">
         <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Link>
         <header className="mt-6 text-center">
           <p className="label-mono text-muted-foreground">Community</p>

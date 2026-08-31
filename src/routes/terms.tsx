@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
 import { LegalFooter } from "@/components/mutuals/LegalFooter";
 
 export const Route = createFileRoute("/terms")({
@@ -28,7 +28,7 @@ function TermsPage() {
           to="/"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Link>
         <header className="mt-6">
           <p className="label-mono text-muted-foreground">Legal</p>

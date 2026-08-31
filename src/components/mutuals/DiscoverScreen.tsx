@@ -1,26 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  AlertTriangle,
-  Bookmark,
-  Check,
-  ChevronLeft,
-  Coffee,
-  Hand,
-  LayoutGrid,
-  Loader2,
-  MapPin,
-  Moon,
-  Palette,
-  Search,
-  ShieldCheck,
-  SlidersHorizontal,
-  Shuffle,
-  UserPlus,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CoffeeIcon } from "@phosphor-icons/react/dist/csr/Coffee";
+import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { SquaresFourIcon } from "@phosphor-icons/react/dist/csr/SquaresFour";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { MoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
+import { PaletteIcon } from "@phosphor-icons/react/dist/csr/Palette";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+import { SlidersHorizontalIcon } from "@phosphor-icons/react/dist/csr/SlidersHorizontal";
+import { ShuffleIcon } from "@phosphor-icons/react/dist/csr/Shuffle";
+import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { TRIBES, tribeById, type Person, type Tribe, type TribeId } from "@/lib/mutuals-data";
 import {
   listDiscoverProfiles,
@@ -53,7 +51,7 @@ import { ExploreDeck, type ExploreDeckPhase } from "./ExploreDeck";
 import { HelloModal } from "./HelloModal";
 import { AddTribeSheet } from "./AddTribeSheet";
 import type { MootProfile } from "@/lib/social.functions";
-import { Wand2 } from "lucide-react";
+import { MagicWandIcon } from "@phosphor-icons/react/dist/csr/MagicWand";
 import { useExploreMatches } from "@/lib/explore-store";
 import type { ExploreMatch } from "@/lib/explore.functions";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
@@ -78,11 +76,11 @@ type DiscoverPerson = Person & {
 const VALID_TRIBES = new Set<TribeId>(TRIBES.map((t) => t.id));
 const PAGE_SIZE = 20;
 const MOOD_OPTIONS = [
-  { id: "surprise", label: "Surprise me", Icon: Shuffle },
-  { id: "coffee", label: "Coffee nearby", Icon: Coffee },
-  { id: "friends", label: "Make friends", Icon: UsersRound },
-  { id: "create", label: "Create something", Icon: Palette },
-  { id: "tonight", label: "Tonight", Icon: Moon },
+  { id: "surprise", label: "Surprise me", Icon: ShuffleIcon },
+  { id: "coffee", label: "Coffee nearby", Icon: CoffeeIcon },
+  { id: "friends", label: "Make friends", Icon: UsersIcon },
+  { id: "create", label: "Create something", Icon: PaletteIcon },
+  { id: "tonight", label: "Tonight", Icon: MoonIcon },
 ] as const;
 
 function localDayKey(): string {
@@ -248,7 +246,7 @@ export function DiscoverScreen() {
     myProfile.availability.length === 0;
   const selectedMoodLabel =
     MOOD_OPTIONS.find((option) => option.id === mood)?.label ?? "Surprise me";
-  const SelectedMoodIcon = MOOD_OPTIONS.find((option) => option.id === mood)?.Icon ?? Shuffle;
+  const SelectedMoodIcon = MOOD_OPTIONS.find((option) => option.id === mood)?.Icon ?? ShuffleIcon;
   const searchMode = searchOpen || query.length > 0;
   const deckSectionTitle =
     deckPhase === "doors"
@@ -297,7 +295,7 @@ export function DiscoverScreen() {
             aria-label="Search people, Tribes, and cities"
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Search className="h-5 w-5" />
+            <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
         }
       />
@@ -324,7 +322,7 @@ export function DiscoverScreen() {
               aria-label="Add profile interests for better matches"
               className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary transition-colors hover:text-primary/80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <Wand2 className="h-3.5 w-3.5" /> Improve matches
+              <MagicWandIcon className="h-3.5 w-3.5" /> Improve matches
             </button>
           )}
         </div>
@@ -337,10 +335,10 @@ export function DiscoverScreen() {
               aria-label="Close search"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <CaretLeftIcon className="h-5 w-5" />
             </button>
             <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card px-4">
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <MagnifyingGlassIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 ref={searchInputRef}
                 value={query}
@@ -348,7 +346,9 @@ export function DiscoverScreen() {
                 placeholder="Search people, Tribes, cities"
                 className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
               />
-              {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              {isSearching && (
+                <SpinnerGapIcon className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
             </div>
           </div>
         ) : (
@@ -360,7 +360,7 @@ export function DiscoverScreen() {
             >
               <SelectedMoodIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="truncate">{selectedMoodLabel}</span>
-              <SlidersHorizontal className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <SlidersHorizontalIcon className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </button>
             <button
               type="button"
@@ -380,9 +380,9 @@ export function DiscoverScreen() {
               )}
             >
               {locating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <MapPin className="h-3.5 w-3.5" />
+                <MapPinIcon className="h-3.5 w-3.5" />
               )}
               {locationQuery.data?.discoverable ? `${locationQuery.data.radius_km} km` : "Area"}
             </button>
@@ -392,7 +392,7 @@ export function DiscoverScreen() {
               aria-label="Browse: Tribes and Saved"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <LayoutGrid className="h-4 w-4" />
+              <SquaresFourIcon className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -408,7 +408,7 @@ export function DiscoverScreen() {
           {searchMode && !query.trim() ? (
             <div className="flex h-full flex-col items-center justify-center px-8 text-center">
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                <Search className="h-6 w-6" />
+                <MagnifyingGlassIcon className="h-6 w-6" />
               </span>
               <h3 className="mt-4 font-display text-xl font-bold">Search directly</h3>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -419,7 +419,7 @@ export function DiscoverScreen() {
             <PeopleSkeleton />
           ) : activeQuery.isError ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
-              <AlertTriangle className="h-9 w-9 text-destructive" />
+              <WarningIcon className="h-9 w-9 text-destructive" />
               <p className="text-sm font-semibold">Couldn't load registered users.</p>
               <button
                 onClick={() => activeQuery.refetch()}
@@ -457,7 +457,7 @@ export function DiscoverScreen() {
                   className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-xs font-semibold transition-colors hover:border-primary/40 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                 >
                   {activeQuery.isFetchingNextPage ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
                   ) : null}
                   Load more
                 </button>
@@ -599,7 +599,7 @@ function MoodPickerSheet({
           aria-label="Close mood picker"
           className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
         <div className="mt-6 grid gap-2">
           {MOOD_OPTIONS.map(({ id, label, Icon }) => (
@@ -617,7 +617,7 @@ function MoodPickerSheet({
             >
               <Icon className="h-4 w-4" />
               {label}
-              {value === id && <Check className="ml-auto h-4 w-4" />}
+              {value === id && <CheckIcon className="ml-auto h-4 w-4" />}
             </button>
           ))}
         </div>
@@ -659,7 +659,7 @@ function BrowseMenuSheet({
         className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-          <UsersRound className="h-4 w-4" />
+          <UsersIcon className="h-4 w-4" />
         </span>
         <span>
           Explore Tribes
@@ -674,7 +674,7 @@ function BrowseMenuSheet({
         className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors hover:bg-secondary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-          <Bookmark className="h-4 w-4" />
+          <BookmarkSimpleIcon className="h-4 w-4" />
         </span>
         <span>
           Saved
@@ -715,7 +715,7 @@ function TribeBrowserSheet({
             aria-label="Back to today’s five"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </button>
           <div>
             <p className="label-mono text-muted-foreground">Inside Discover</p>
@@ -811,7 +811,7 @@ function SavedProfilesSheet({
           aria-label="Back to today’s five"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <CaretLeftIcon className="h-5 w-5" />
         </button>
         <div>
           <p className="label-mono text-muted-foreground">Inside Discover</p>
@@ -832,7 +832,7 @@ function SavedProfilesSheet({
         ) : people.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-              <Bookmark className="h-6 w-6" />
+              <BookmarkSimpleIcon className="h-6 w-6" />
             </span>
             <h4 className="mt-4 font-display text-lg font-bold">Nothing saved yet</h4>
             <p className="mt-2 max-w-[26ch] text-xs leading-relaxed text-muted-foreground">
@@ -899,7 +899,7 @@ function NearbyPreferencesSheet({
       <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-start gap-3 pr-10">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-            <ShieldCheck className="h-5 w-5" />
+            <ShieldCheckIcon className="h-5 w-5" />
           </span>
           <div>
             <h3 className="font-display text-xl font-bold">Nearby preferences</h3>
@@ -915,7 +915,7 @@ function NearbyPreferencesSheet({
           aria-label="Close nearby preferences"
           className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
 
         <div className="mt-6 flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-border bg-background/60 px-4">
@@ -944,7 +944,7 @@ function NearbyPreferencesSheet({
         </div>
 
         <div className="mt-4 flex items-start gap-2 rounded-xl bg-primary/8 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <ShieldCheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <p>
             The radius is mutual: both people must allow the distance. Members only see a broad
             distance band.
@@ -1023,7 +1023,7 @@ function TribePreviewSheet({
           aria-label="Close"
           className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/40 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
         {displayTribe && (
           <div className="p-6">
@@ -1092,7 +1092,7 @@ function TribePreviewSheet({
 
             {isHome ? (
               <p className="mt-6 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background/30 py-3 text-sm font-semibold text-muted-foreground">
-                <Check className="h-4 w-4 text-primary" /> This is your Tribe
+                <CheckIcon className="h-4 w-4 text-primary" /> This is your Tribe
               </p>
             ) : (
               <button
@@ -1174,7 +1174,7 @@ function PersonRow({
             <span>{person.city || person.handle || "Registered member"}</span>
             {person.distanceBand && (
               <span className="inline-flex items-center gap-1 text-primary">
-                <MapPin className="h-3 w-3" /> {person.distanceBand}
+                <MapPinIcon className="h-3 w-3" /> {person.distanceBand}
               </span>
             )}
           </div>
@@ -1198,14 +1198,14 @@ function PersonRow({
           )}
         >
           {pending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
           ) : following ? (
             <>
-              <Check className="h-3.5 w-3.5" /> Saved
+              <CheckIcon className="h-3.5 w-3.5" /> Saved
             </>
           ) : (
             <>
-              <UserPlus className="h-3.5 w-3.5" /> Save
+              <UserPlusIcon className="h-3.5 w-3.5" /> Save
             </>
           )}
         </button>
@@ -1216,7 +1216,7 @@ function PersonRow({
           onClick={onSayHello}
           className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/10 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <Hand className="h-3.5 w-3.5" /> Say hello
+          <HandIcon className="h-3.5 w-3.5" /> Say hello
         </button>
       )}
     </div>

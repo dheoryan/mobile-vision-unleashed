@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { Search, X, ArrowUpDown } from "lucide-react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { ArrowsDownUpIcon } from "@phosphor-icons/react/dist/csr/ArrowsDownUp";
 import type { FeedPost } from "@/lib/posts-store";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
@@ -63,7 +65,7 @@ export function ProfilePostHistory({
       <div className="mb-3 space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -76,7 +78,7 @@ export function ProfilePostHistory({
                 aria-label="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <X className="h-3 w-3" />
+                <XIcon className="h-3 w-3" />
               </button>
             )}
           </div>
@@ -84,7 +86,7 @@ export function ProfilePostHistory({
             onClick={cycleSort}
             className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowUpDown className="h-3 w-3" /> {sortLabel}
+            <ArrowsDownUpIcon className="h-3 w-3" /> {sortLabel}
           </button>
         </div>
 

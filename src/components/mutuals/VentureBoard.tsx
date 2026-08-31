@@ -1,17 +1,15 @@
 import { useMemo, useState } from "react";
-import {
-  BadgeCheck,
-  CalendarClock,
-  ChevronDown,
-  Loader2,
-  Lock,
-  MapPin,
-  MessageCircle,
-  Navigation,
-  Ticket,
-  Users,
-  UserCheck,
-} from "lucide-react";
+import { CalendarDotIcon } from "@phosphor-icons/react/dist/csr/CalendarDot";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
+import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { NavigationArrowIcon } from "@phosphor-icons/react/dist/csr/NavigationArrow";
+import { SealCheckIcon } from "@phosphor-icons/react/dist/csr/SealCheck";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
+import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import type { VentureParty } from "@/lib/ventures.functions";
 import { dayKey, dayLabel, timingLabel, ventureTz } from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
@@ -177,7 +175,7 @@ function BoardListItem({
       >
         <div className="relative h-[6.5rem] w-[5.5rem] overflow-hidden rounded-xl bg-secondary/50">
           <span className="absolute inset-0 flex items-center justify-center text-muted-foreground/45">
-            <Ticket className="h-5 w-5" aria-hidden />
+            <TicketIcon className="h-5 w-5" aria-hidden />
           </span>
           <VentureImage
             path={venture.image_url}
@@ -205,7 +203,7 @@ function BoardListItem({
             >
               {statusLabel}
             </span>
-            <ChevronDown
+            <CaretDownIcon
               className={cn(
                 "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
                 open && "rotate-180",
@@ -226,19 +224,22 @@ function BoardListItem({
             <span className="mt-1 flex min-w-0 items-center gap-1 text-[11px] leading-tight text-foreground/80">
               <span className="truncate">{venture.venue.host_label}</span>
               {venture.venue.google_place_id && (
-                <BadgeCheck className="h-3 w-3 shrink-0 text-accent" aria-label="Verified place" />
+                <SealCheckIcon
+                  className="h-3 w-3 shrink-0 text-accent"
+                  aria-label="Verified place"
+                />
               )}
             </span>
           )}
 
           <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Users className="h-2.5 w-2.5" />
+              <UsersIcon className="h-2.5 w-2.5" />
               {venture.filled_slots}/{venture.max_slots} going
             </span>
             {venture.distance_band && (
               <span className="inline-flex items-center gap-1 text-primary">
-                <Navigation className="h-2.5 w-2.5" aria-hidden />
+                <NavigationArrowIcon className="h-2.5 w-2.5" aria-hidden />
                 {venture.distance_band}
               </span>
             )}
@@ -253,16 +254,16 @@ function BoardListItem({
           className="animate-rise space-y-4 border-t border-border px-4 pb-4 pt-4"
         >
           <div className="grid grid-cols-2 gap-3">
-            <DetailItem icon={<CalendarClock className="h-3.5 w-3.5" />} label="When">
+            <DetailItem icon={<CalendarDotIcon className="h-3.5 w-3.5" />} label="When">
               {timing || "Time arranged with host"}
             </DetailItem>
-            <DetailItem icon={<Users className="h-3.5 w-3.5" />} label="Group">
+            <DetailItem icon={<UsersIcon className="h-3.5 w-3.5" />} label="Group">
               {venture.filled_slots} going · {remaining} open
             </DetailItem>
-            <DetailItem icon={<UserCheck className="h-3.5 w-3.5" />} label="Hosted by">
+            <DetailItem icon={<UserCheckIcon className="h-3.5 w-3.5" />} label="Hosted by">
               {venture.host?.display_name || "A Meutuals member"}
             </DetailItem>
-            <DetailItem icon={<MapPin className="h-3.5 w-3.5" />} label="Area">
+            <DetailItem icon={<MapPinIcon className="h-3.5 w-3.5" />} label="Area">
               {venture.venue
                 ? [venture.venue.host_label, venture.venue.area].filter(Boolean).join(" · ")
                 : venture.host?.city || "Shared after acceptance"}
@@ -300,12 +301,12 @@ function BoardListItem({
               onClick={onOpenChat}
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <MessageCircle className="h-4 w-4" /> Open party chat
+              <ChatCircleIcon className="h-4 w-4" /> Open party chat
             </button>
           ) : pending || declined ? (
             <div className="space-y-2">
               <div className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-semibold text-muted-foreground">
-                {pending ? <Users className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {pending ? <UsersIcon className="h-4 w-4" /> : <LockIcon className="h-4 w-4" />}
                 {pending ? "Request pending" : "Request declined"}
               </div>
               {pending && application && (
@@ -338,9 +339,9 @@ function BoardListItem({
                 className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
               >
                 {applying ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <SpinnerGapIcon className="h-4 w-4 animate-spin" />
                 ) : (
-                  <UserCheck className="h-4 w-4" />
+                  <UserCheckIcon className="h-4 w-4" />
                 )}
                 {full ? "This one is full" : "Request this Venture"}
               </button>

@@ -1,4 +1,5 @@
-import { Reply, X } from "lucide-react";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 
 /**
  * Compact reply preview that appears above the composer input
@@ -32,7 +33,7 @@ export function ReplyPreview({
             color: accentColor,
           }}
         >
-          <Reply className="h-3 w-3" />
+          <ArrowBendUpLeftIcon className="h-3 w-3" />
         </span>
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-[11px] font-semibold" style={{ color: accentColor }}>
@@ -47,7 +48,7 @@ export function ReplyPreview({
         className="my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label="Cancel reply"
       >
-        <X className="h-3.5 w-3.5" />
+        <XIcon className="h-3.5 w-3.5" />
       </button>
     </div>
   );

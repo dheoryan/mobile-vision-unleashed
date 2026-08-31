@@ -1,4 +1,6 @@
-import { ChevronRight, Globe2, Lock } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
+import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { cn } from "@/lib/utils";
 import { TribeMark } from "./TribeMark";
@@ -36,7 +38,7 @@ export function RepostAudienceChoices({
               Only people in {tribe.name}
             </span>
           </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
         </button>
 
         <button
@@ -54,7 +56,7 @@ export function RepostAudienceChoices({
               allowWild ? "bg-meutuals-gradient text-white" : "bg-primary/12 text-primary",
             )}
           >
-            {allowWild ? <Globe2 className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+            {allowWild ? <GlobeIcon className="h-5 w-5" /> : <LockIcon className="h-5 w-5" />}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold">The Wild</span>
@@ -63,7 +65,7 @@ export function RepostAudienceChoices({
             </span>
           </span>
           {allowWild && (
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           )}
         </button>
       </div>

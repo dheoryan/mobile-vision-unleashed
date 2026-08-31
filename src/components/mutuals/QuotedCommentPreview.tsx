@@ -1,4 +1,5 @@
-import { Ban, MessageSquare } from "lucide-react";
+import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
+import { ChatTextIcon } from "@phosphor-icons/react/dist/csr/ChatText";
 import type { CommentRow } from "@/lib/posts-store";
 import { timeAgoLabel } from "@/lib/time";
 
@@ -13,7 +14,7 @@ export function QuotedCommentPreview({ comment }: { comment: CommentRow }) {
   return (
     <div className="mt-3 rounded-xl border border-border bg-background/35 p-3">
       <div className="mb-2 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        <MessageSquare className="h-3 w-3" /> Reposted comment
+        <ChatTextIcon className="h-3 w-3" /> Reposted comment
       </div>
       <div className="flex items-center gap-2">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
@@ -41,7 +42,7 @@ export function QuotedCommentPreview({ comment }: { comment: CommentRow }) {
 export function QuotedCommentUnavailable() {
   return (
     <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-      <Ban className="h-3.5 w-3.5 shrink-0" />
+      <ProhibitIcon className="h-3.5 w-3.5 shrink-0" />
       This comment is no longer available.
     </div>
   );

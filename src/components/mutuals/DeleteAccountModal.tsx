@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { X, AlertTriangle, Loader2 } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { toast } from "sonner";
 import { useDeleteAccount } from "@/lib/account-store";
 import { AnimatedModal } from "@/components/ui/animated-modal";
@@ -38,10 +40,10 @@ export function DeleteAccountModal({
           aria-label="Close"
           className="absolute right-0 top-0 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
-          <AlertTriangle className="h-6 w-6" />
+          <WarningIcon className="h-6 w-6" />
         </span>
         <h2 className="mt-4 font-display text-2xl font-bold leading-tight">Delete your account?</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -77,7 +79,7 @@ export function DeleteAccountModal({
             >
               {deleteAccount.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Deleting…
+                  <SpinnerGapIcon className="h-4 w-4 animate-spin" /> Deleting…
                 </>
               ) : (
                 "Yes, permanently delete"

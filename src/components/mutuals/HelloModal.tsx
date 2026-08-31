@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
-import { X, Loader2, Hand, Wand2 } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { MagicWandIcon } from "@phosphor-icons/react/dist/csr/MagicWand";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSendHello } from "@/lib/social-store";
@@ -90,11 +93,11 @@ export function HelloModal({
         aria-label="Close"
         className="absolute right-4 top-4 rounded-full text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <X className="h-5 w-5" />
+        <XIcon className="h-5 w-5" />
       </button>
 
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-        <Hand className="h-6 w-6" />
+        <HandIcon className="h-6 w-6" />
       </span>
       <h2 className="mt-4 font-display text-xl font-bold leading-tight">
         Say hello to {recipientName}
@@ -124,7 +127,7 @@ export function HelloModal({
           onClick={() => setMessage(opener)}
           className="mt-3 flex w-full items-start gap-2.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-left transition-colors hover:bg-primary/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <Wand2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <MagicWandIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <span>
             <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">
               Use this opener
@@ -154,7 +157,7 @@ export function HelloModal({
       >
         {send.isPending ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Sending…
+            <SpinnerGapIcon className="h-4 w-4 animate-spin" /> Sending…
           </>
         ) : (
           "Send Hello"

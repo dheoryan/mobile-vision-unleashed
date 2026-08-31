@@ -1,14 +1,12 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Loader2,
-  ImagePlus,
-  Quote,
-  ChevronRight,
-  X,
-} from "lucide-react";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
+import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { QuotesIcon } from "@phosphor-icons/react/dist/csr/Quotes";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
 import { PaperPlaneTiltIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneTilt";
@@ -411,7 +409,7 @@ export function PostCard({
               aria-label="Post actions"
               className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <DotsThreeIcon className="h-4 w-4" />
             </button>
             {menuOpen && (
               <>
@@ -421,7 +419,7 @@ export function PostCard({
                     onClick={startEdit}
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Edit post
+                    <PencilIcon className="h-3.5 w-3.5" /> Edit post
                   </button>
                   <button
                     onClick={() => {
@@ -430,7 +428,7 @@ export function PostCard({
                     }}
                     className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> Delete post
+                    <TrashIcon className="h-3.5 w-3.5" /> Delete post
                   </button>
                 </div>
               </>
@@ -473,9 +471,9 @@ export function PostCard({
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
               {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <ImagePlus className="h-3.5 w-3.5" />
+                <ImageIcon className="h-3.5 w-3.5" />
               )}
               {uploading
                 ? "Uploading…"
@@ -650,7 +648,7 @@ export function PostCard({
               aria-label="Close repost options"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-5 w-5" />
+              <XIcon className="h-5 w-5" />
             </button>
           </div>
 
@@ -664,7 +662,7 @@ export function PostCard({
               className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                <Quote className="h-5 w-5" />
+                <QuotesIcon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">Quote signal</span>
@@ -672,7 +670,7 @@ export function PostCard({
                   Add your own words before sharing
                 </span>
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </button>
 
             {reposted && (
@@ -691,7 +689,7 @@ export function PostCard({
                     Remove it from your reposts
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </button>
             )}
           </div>

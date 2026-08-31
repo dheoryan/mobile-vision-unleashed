@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MessageCircle, RefreshCw, Search, UsersRound, X } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { Tribe } from "@/lib/mutuals-data";
 import { visibleTribeMembers, type TribeMemberSummary } from "@/lib/tribe-members";
@@ -97,7 +102,7 @@ export function TribeMembersSheet({
             aria-label="Close member list"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </header>
 
@@ -105,7 +110,7 @@ export function TribeMembersSheet({
           <div className="shrink-0 border-b border-border px-5 py-3">
             <label className="relative block">
               <span className="sr-only">Search Tribe members</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
                 value={query}
@@ -129,7 +134,7 @@ export function TribeMembersSheet({
             </div>
           ) : error ? (
             <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-              <UsersRound className="h-7 w-7 text-muted-foreground" />
+              <UsersIcon className="h-7 w-7 text-muted-foreground" />
               <p className="mt-3 text-sm font-semibold">Members couldn’t load</p>
               <p className="mt-1 text-xs text-muted-foreground">The room is still available.</p>
               <button
@@ -137,12 +142,12 @@ export function TribeMembersSheet({
                 onClick={onRetry}
                 className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs font-semibold transition-colors hover:bg-secondary/60 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Retry
+                <ArrowClockwiseIcon className="h-3.5 w-3.5" /> Retry
               </button>
             </div>
           ) : members.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-              <UsersRound className="h-7 w-7 text-muted-foreground" />
+              <UsersIcon className="h-7 w-7 text-muted-foreground" />
               <p className="mt-3 text-sm font-semibold">The room is quiet</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 No registered members are visible yet.
@@ -210,7 +215,7 @@ export function TribeMembersSheet({
                                   : "Tribe member"}
                           </span>
                           {canOpenProfile && (
-                            <ChevronRight
+                            <CaretRightIcon
                               className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 group-active:translate-x-1"
                               aria-hidden="true"
                             />
@@ -246,7 +251,7 @@ export function TribeMembersSheet({
                             aria-label={`Message ${member.display_name}`}
                             className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           >
-                            <MessageCircle className="h-4 w-4" />
+                            <ChatCircleIcon className="h-4 w-4" />
                           </button>
                         )}
                         <SafetyMenu

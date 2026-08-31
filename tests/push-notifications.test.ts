@@ -68,7 +68,7 @@ test("push operations reject instead of leaving the UI loading forever", async (
 });
 
 test("private conversations and meetup details never appear in push previews", () => {
-  for (const kind of ["message", "hello", "venture_apply", "venture_message"] as const) {
+  for (const kind of ["message", "mention", "hello", "venture_apply", "venture_message"] as const) {
     const copy = buildPushCopy("Pear", kind, "Meet me at 19:00 behind the station");
     assert.equal(copy.body, "Open MEUTUALS to view it.");
     assert.equal(copy.body.includes("station"), false);
@@ -79,5 +79,24 @@ test("public social activity can retain a useful short preview", () => {
   assert.deepEqual(buildPushCopy("Pear", "comment", "Love this idea"), {
     title: "Pear commented on your post",
     body: "Love this idea",
+  });
+});
+
+test("a new Tribevia notification has no single actor to name", () => {
+  assert.deepEqual(buildPushCopy("Pear", "tribe_pulse", "Iron Wolf: Sunrise run this week?"), {
+    title: "New Tribevia",
+    body: "Iron Wolf: Sunrise run this week?",
+  });
+  assert.equal(buildPushCopy("Pear", "tribe_pulse", null).body, "Today's question is up.");
+});
+
+test("repost and quote notifications name the actor and keep the preview public", () => {
+  assert.deepEqual(buildPushCopy("Pear", "repost", "Original post text"), {
+    title: "Pear reposted your post",
+    body: "Original post text",
+  });
+  assert.deepEqual(buildPushCopy("Pear", "quote", "Original post text"), {
+    title: "Pear quoted your post",
+    body: "Original post text",
   });
 });

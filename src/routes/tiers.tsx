@@ -1,6 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MONETIZATION_ENABLED } from "@/lib/feature-flags";
-import { ArrowLeft, Check, Compass, Zap, Crown } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CompassIcon } from "@phosphor-icons/react/dist/csr/Compass";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
+import { CrownIcon } from "@phosphor-icons/react/dist/csr/Crown";
 
 export const Route = createFileRoute("/tiers")({
   // Advertises paid plans. Unreachable while monetization is off — otherwise a
@@ -24,7 +28,7 @@ function TiersPage() {
     <div className="bg-habitat min-h-screen pb-16">
       <div className="mx-auto max-w-3xl px-5 pt-6">
         <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Link>
 
         <header className="mt-6 text-center">
@@ -35,13 +39,13 @@ function TiersPage() {
 
         <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-3">
           <Tier
-            icon={<Compass className="h-5 w-5" />}
+            icon={<CompassIcon className="h-5 w-5" />}
             name="Explorer"
             price="Free"
             features={["1 Tribe", "3 Ventures / month", "Standard discovery"]}
           />
           <Tier
-            icon={<Zap className="h-5 w-5" fill="currentColor" />}
+            icon={<LightningIcon className="h-5 w-5" weight="fill" />}
             name="Venturer"
             price="$9.99/mo"
             highlighted
@@ -55,7 +59,7 @@ function TiersPage() {
             ]}
           />
           <Tier
-            icon={<Crown className="h-5 w-5" />}
+            icon={<CrownIcon className="h-5 w-5" />}
             name="Scene Maker"
             price="$24.99/mo"
             features={[
@@ -89,7 +93,7 @@ function Tier({ icon, name, price, features, highlighted }: { icon: React.ReactN
       <ul className="mt-4 space-y-2">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-xs">
-            <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${highlighted ? "text-primary" : "text-muted-foreground"}`} />
+            <CheckIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${highlighted ? "text-primary" : "text-muted-foreground"}`} />
             <span className={highlighted ? "text-foreground" : "text-muted-foreground"}>{f}</span>
           </li>
         ))}

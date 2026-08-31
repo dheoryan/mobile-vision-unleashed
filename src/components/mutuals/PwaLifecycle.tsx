@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, WifiOff, X } from "lucide-react";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { WifiSlashIcon } from "@phosphor-icons/react/dist/csr/WifiSlash";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 
 const UPDATE_CHECK_MS = 60 * 60 * 1000;
 
@@ -125,7 +127,11 @@ export function PwaLifecycle() {
         className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          {offline ? <WifiOff className="h-5 w-5" /> : <RefreshCw className="h-5 w-5" />}
+          {offline ? (
+            <WifiSlashIcon className="h-5 w-5" />
+          ) : (
+            <ArrowClockwiseIcon className="h-5 w-5" />
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">
@@ -152,7 +158,7 @@ export function PwaLifecycle() {
               aria-label="Dismiss update"
               className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </button>
           </>
         )}

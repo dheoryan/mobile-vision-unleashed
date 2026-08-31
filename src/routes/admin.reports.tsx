@@ -2,7 +2,13 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, CheckCircle2, Clock3, EyeOff, Loader2, ShieldAlert, UserX } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
+import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
+import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { ShieldWarningIcon } from "@phosphor-icons/react/dist/csr/ShieldWarning";
+import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { toast } from "sonner";
 import {
   decideModerationReport,
@@ -35,15 +41,15 @@ function ModerationQueuePage() {
     refetchInterval: 60_000,
   });
 
-  if (access.isLoading) return <PageMessage icon={<Loader2 className="h-6 w-6 animate-spin" />} text="Checking access…" />;
-  if (!access.data?.moderator) return <PageMessage icon={<ShieldAlert className="h-7 w-7" />} text="Moderator access required." />;
+  if (access.isLoading) return <PageMessage icon={<SpinnerGapIcon className="h-6 w-6 animate-spin" />} text="Checking access…" />;
+  if (!access.data?.moderator) return <PageMessage icon={<ShieldWarningIcon className="h-7 w-7" />} text="Moderator access required." />;
 
   return (
     <div className="min-h-screen bg-habitat pb-12">
       <header className="glass sticky top-0 z-20 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3">
           <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> App
+            <ArrowLeftIcon className="h-4 w-4" /> App
           </Link>
           <div className="ml-auto text-right">
             <p className="label-mono text-muted-foreground">Trust & safety</p>
@@ -69,13 +75,13 @@ function ModerationQueuePage() {
 
         <div className="mt-5 space-y-3">
           {reports.isLoading ? (
-            <PageMessage icon={<Loader2 className="h-6 w-6 animate-spin" />} text="Loading reports…" inline />
+            <PageMessage icon={<SpinnerGapIcon className="h-6 w-6 animate-spin" />} text="Loading reports…" inline />
           ) : reports.isError ? (
             <div className="rounded-2xl border border-destructive/30 bg-card p-5 text-sm">
               Couldn't load the queue. <button onClick={() => reports.refetch()} className="font-semibold underline">Retry</button>
             </div>
           ) : !reports.data?.length ? (
-            <PageMessage icon={<CheckCircle2 className="h-7 w-7 text-emerald-400" />} text={`No ${status === "all" ? "" : status + " "}reports.`} inline />
+            <PageMessage icon={<CheckCircleIcon className="h-7 w-7 text-emerald-400" />} text={`No ${status === "all" ? "" : status + " "}reports.`} inline />
           ) : (
             reports.data.map((report) => <ReportCard key={report.id} report={report} />)
           )}
@@ -114,7 +120,7 @@ function ReportCard({ report }: { report: ModerationReport }) {
           {report.target_preview && <p className="mt-2 rounded-xl bg-background/60 p-3 text-xs text-muted-foreground">{report.target_preview}</p>}
         </div>
         <div className={`inline-flex items-center gap-1 text-[11px] ${overdue ? "text-destructive" : "text-muted-foreground"}`}>
-          <Clock3 className="h-3.5 w-3.5" />
+          <ClockIcon className="h-3.5 w-3.5" />
           {report.status === "pending" ? `Due ${new Date(report.due_at).toLocaleString()}` : report.status}
         </div>
       </div>
@@ -133,8 +139,8 @@ function ReportCard({ report }: { report: ModerationReport }) {
           />
           <div className="mt-3 flex flex-wrap gap-2">
             <ActionButton disabled={decide.isPending} onClick={() => decide.mutate("dismiss")} label="Dismiss" />
-            {canHide && <ActionButton disabled={decide.isPending} onClick={() => decide.mutate("hide_content")} label="Hide content" icon={<EyeOff className="h-3.5 w-3.5" />} />}
-            {canSuspend && <ActionButton destructive disabled={decide.isPending} onClick={() => decide.mutate("suspend_user")} label="Suspend user" icon={<UserX className="h-3.5 w-3.5" />} />}
+            {canHide && <ActionButton disabled={decide.isPending} onClick={() => decide.mutate("hide_content")} label="Hide content" icon={<EyeSlashIcon className="h-3.5 w-3.5" />} />}
+            {canSuspend && <ActionButton destructive disabled={decide.isPending} onClick={() => decide.mutate("suspend_user")} label="Suspend user" icon={<UserMinusIcon className="h-3.5 w-3.5" />} />}
           </div>
         </>
       ) : (

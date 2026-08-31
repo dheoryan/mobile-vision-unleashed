@@ -1,4 +1,5 @@
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarIcon } from "@phosphor-icons/react/dist/csr/Calendar";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import type { ProfileVentureHistoryItem } from "@/lib/ventures.functions";
 import { isPast, timingLabel } from "@/lib/venture-time";
 
@@ -26,11 +27,11 @@ function VentureHistoryCard({
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <CalendarDays className="h-3.5 w-3.5" />
+          <CalendarIcon className="h-3.5 w-3.5" />
           {timingLabel(venture) ?? (completed ? "Completed" : "Schedule pending")}
         </span>
         <span className="inline-flex items-center gap-1">
-          <Users className="h-3.5 w-3.5" />
+          <UsersIcon className="h-3.5 w-3.5" />
           {venture.filled_slots}/{venture.max_slots} joined
         </span>
       </div>

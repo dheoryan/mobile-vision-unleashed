@@ -1,4 +1,3 @@
-import { MessageCircle } from "lucide-react";
 import logoMark from "@/assets/logo-mark.svg";
 import { NotificationBell } from "./NotificationBell";
 import { TribeMark } from "./TribeMark";
