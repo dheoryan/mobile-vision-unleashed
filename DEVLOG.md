@@ -205,6 +205,37 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Brand gradient on the push-notification enable buttons
+
+Extended the same `.bg-meutuals-gradient` pass to `EnablePushBanner.tsx`'s
+two user-flagged buttons - the inline "Don't miss a beat" reminder banner's
+Enable button, and Settings' "Turn on notifications" row - plus "Repair
+connection" (shown instead of "Turn on notifications" when a device's
+subscription needs re-establishing rather than a first-time enable): same
+underlying action in a different state, so leaving it solid `bg-primary`
+while its sibling went gradient would've read as an unfinished pass, same
+reasoning as the verify-email page's "Continue to Meutuals" earlier.
+
+`tsc` clean, `eslint` clean, 131/131 tests, `npm run build` succeeds. Not
+committed.
+
+### 2026-08-31 — Claude — Gender pill's selected state now matches the other option groups in Edit profile
+
+Caught from a live screenshot after the previous deploy: the Tribe-colored
+Gender selector I'd added used a solid `accentColor` fill, while
+`ProfileChoiceGroup` (Interests/Here for/Usually free, right below it in the
+same form) uses a subtler tinted-outline treatment - `border: accentColor` +
+`background: color-mix(accentColor 26%, var(--card))` + foreground text,
+not a solid fill. Visibly two different pill languages in one form.
+`GenderSelect.tsx` now uses the identical style/structure, keeping only its
+own radio-vs-checkbox semantics different.
+
+`tsc` clean, `eslint` clean, 131/131 tests, `npm run build` succeeds. Not
+live-verified in the browser (no authenticated session available in this
+tab), but it's now byte-for-byte the same class/style pattern as
+`ProfileChoiceGroup`'s already-confirmed-correct active state. Not
+committed.
+
 ### 2026-08-31 — Claude — Balanced the onboarding welcome headline's line wraps
 
 The Step 0 headline ("Start with your Tribe. / Venture when you're

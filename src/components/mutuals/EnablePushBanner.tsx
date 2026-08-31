@@ -143,7 +143,7 @@ export function EnablePushBanner() {
           <button
             onClick={enable}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-meutuals-gradient px-3 py-1.5 text-[11px] font-semibold text-white transition-[filter] hover:brightness-110 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
             <span aria-live="polite">{progressLabel(progress, "Enable")}</span>
@@ -409,7 +409,7 @@ export function PushSettingsRow() {
           <button
             type="button"
             onClick={enable}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <Bell className="h-4 w-4" />
             Repair connection
@@ -475,7 +475,7 @@ export function PushSettingsRow() {
           <button
             type="button"
             onClick={enable}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <Bell className="h-4 w-4" />
             Turn on notifications
