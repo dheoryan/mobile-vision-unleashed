@@ -13,6 +13,7 @@ import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSendHello } from "@/lib/social-store";
 import { suggestedOpener, type MatchSignals } from "@/lib/explore-reasons";
 import { cn } from "@/lib/utils";
+import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 
 /**
  * Compose a Hello — the message request you send someone you have no
@@ -54,6 +55,7 @@ export function HelloModal({
   const isFree = sameTribe ?? signals?.same_tribe ?? false;
   const [message, setMessage] = useState("");
   const send = useSendHello();
+  const visualViewport = useVisualViewport(open);
   const opener = useMemo(
     () => (signals ? suggestedOpener(signals, recipientName) : null),
     [signals, recipientName],
@@ -92,7 +94,8 @@ export function HelloModal({
       }}
       title={`Say hello to ${recipientName}`}
       preventClose={send.isPending}
-      contentClassName="p-6"
+      contentClassName="max-h-[85dvh] overflow-y-auto scroll-panel p-6"
+      viewportStyle={visualViewportStyle(visualViewport)}
     >
       <button
         onClick={close}

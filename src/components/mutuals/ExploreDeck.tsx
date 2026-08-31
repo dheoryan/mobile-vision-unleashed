@@ -45,6 +45,7 @@ export interface DeckPerson {
   sharedAvailability?: string[];
   plus?: boolean;
   distanceBand?: string | null;
+  outsideRadius?: boolean;
   matchScore?: number;
   signals?: MatchSignals;
   openVentureId?: string | null;
@@ -549,19 +550,29 @@ export function ExploreDeck({
                   {person.name}
                 </h3>
                 {person.handle && <p className="mt-1 text-xs text-white/65">{person.handle}</p>}
-                {(person.city || person.distanceBand) && (
+                {(person.city || person.distanceBand || person.outsideRadius) && (
                   <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px]">
                     <MapPinIcon
                       className="h-3.5 w-3.5 shrink-0"
                       style={{ color: tribe.colorVar }}
                     />
                     {person.city && <span className="truncate text-white/75">{person.city}</span>}
-                    {person.city && person.distanceBand && (
+                    {person.city && (person.distanceBand || person.outsideRadius) && (
                       <span className="shrink-0 text-white/45">·</span>
                     )}
                     {person.distanceBand && (
                       <span className="shrink-0 font-semibold" style={{ color: tribe.colorVar }}>
                         {person.distanceBand}
+                      </span>
+                    )}
+                    {/* Confirmed outside the mutual radius, not just unmeasured -
+                        the honest label the missing chip should have been all
+                        along. Only shown when we positively know they're too
+                        far, never for the (much more common) "hasn't opted
+                        into Nearby" case, which stays silent as before. */}
+                    {!person.distanceBand && person.outsideRadius && (
+                      <span className="shrink-0 font-semibold text-white/55">
+                        Outside your radius
                       </span>
                     )}
                   </p>

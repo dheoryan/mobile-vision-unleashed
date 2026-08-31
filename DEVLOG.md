@@ -205,6 +205,140 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-01 — Claude — Today's Five ranked distance as one signal among several; two profiles hundreds/thousands of km away were outranking genuinely nearby ones
+
+User spotted two Discover matches (Medan, Kudus) surfacing in a Jakarta-
+area account's Today's Five with a 50 km radius set, and asked how to
+handle it. Traced `list_explore_matches`: `distance_band` was already null
+whenever a candidate is outside the mutual radius or distance can't be
+measured, by design (documented in the SQL itself - the label would leak
+a radius someone chose to keep private) - but nothing distinguished
+"outside radius" from "distance unknown" for RANKING, and distance was
+just a flat +10 among several additive signals (shared intents worth 30,
+interests up to 30). A far-away stranger with strong interest overlap
+could easily out-score a genuinely nearby but weaker match, while the
+client shows a "50 km" pill styled like a scope over the whole deck. That
+mismatch between what the control implies and what the ranking does was
+the actual bug, not people appearing outside the radius per se.
+
+Discussed the fix direction with the user first rather than assuming: a
+hard radius filter would fix the honesty problem but risks empty decks for
+a tight radius in a small Tribe (worse failure mode). Agreed on a tiered
+fallback instead - confirmed-in-radius candidates always rank ahead of
+everyone else; out-of-radius/unknown-distance candidates only ever fill
+remaining slots, never bump a nearby match down. Turned out to be a small
+diff: `distance_band` was already exactly null in both "outside radius"
+and "unknown" cases, so the tier key is just `(distance_band is not null)
+desc` prepended to the existing `order by`. Added one new column,
+`outside_radius` - true only when both locations are known and distance is
+*confirmed* to exceed the mutual radius, false for "never opted into
+Nearby" - so the client can label a fallback card honestly ("Outside your
+radius") instead of silently omitting the chip, which is what let this go
+unnoticed until a user found it by hand.
+
+New migration `20260901000000_explore_radius_tier.sql` (drop + recreate;
+`create or replace` can't add an output column to an existing function).
+Rehearsed against the local Docker Supabase stack (already running,
+separate from the production instance the app actually talks to) rather
+than only reading the SQL: synced the sandbox to the actual latest
+pre-fix function first (it was missing the 20260828 impressions-freshness
+migration), seeded a same-tribe candidate genuinely ~1400km away with
+maxed-out interest/intent overlap plus a same-tribe candidate with no
+location row at all, and confirmed the exact reported failure - both
+outranked a real 2km-away match under the old function. Reapplied with the
+new migration and confirmed the tier fix directly: the 2km match now
+sorts first regardless of score, `outside_radius` reads `true` for the
+confirmed-far candidate and `false` for the no-location one, and a
+`limit=1` query returns only the in-radius candidate while `limit=3`
+correctly backfills with the two fallback candidates - proving the tier
+is absolute, not just usually-wins-on-score, and that fallback only fills
+remaining slots.
+
+Threaded `outside_radius` through `explore.functions.ts` (`ExploreMatch`/
+`MatchRow`), `DiscoverScreen.tsx`, and `ExploreDeck.tsx`'s card (the
+"Outside your radius" label sits next to the city line, muted rather than
+tribe-accented, replacing the distance chip only when it's genuinely
+absent - never touches the true-unknown case, which stays silent as
+before).
+
+Verification: `npx tsc --noEmit`, targeted ESLint, and a full
+`npm run build` all clean. Live-checked the real (not-yet-migrated)
+production-connected dev server to confirm the client degrades safely
+against a response that doesn't have the new column yet (`?? false`
+fallback) - no console errors, cards render exactly as before. The
+migration itself is not applied to production; per standing practice it's
+handed off for the user to run via the Supabase SQL editor.
+
+### 2026-08-31 — Claude — Timeline's The Wild/Tribe tab reset after visiting a post and going back
+
+User's exact repro: Timeline → The Wild → comment on a post → dedicated
+post screen → back → landed back on Timeline reset to the Tribe-only tab.
+
+Root cause: `/p/$postId` is a separate top-level route, not a layer inside
+`/` the way the Tribe room or a chat thread are - so visiting it and
+coming back genuinely unmounts and remounts `TimelineScreen`. Its
+Tribe/Wild audience tab was a plain local `useState("tribe")`, entirely
+outside the app's existing (and fairly sophisticated) navigation-
+persistence system in `routes/index.tsx` - that system already handles
+this exact class of problem for the *top-level* tab (Timeline/Discover/
+Ventures/Chats/Profile survives this same kind of remount via
+`localStorage` under `mutuals.tab:{userId}`), but nothing carried the
+sub-tab *within* Timeline.
+
+Fixed by persisting it the identical way, under its own key
+(`mutuals.timeline-tab:{userId}`) - lazy-initialized from storage on
+mount, written back on every change. Scoped per-user like the existing
+key, for the same reason: an installed PWA keeps localStorage across
+sign-outs, so a device-wide key would leak one account's last-viewed tab
+into the next person who signs in on the same device.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean. Live-
+reproduced the exact user flow in the browser: switched to The Wild,
+opened a post from the comment icon, hit back, and confirmed via the
+active button's class list and `localStorage` (`...timeline-tab:{id}
+=global`) that it correctly stayed on The Wild instead of reverting. No
+console errors.
+
+### 2026-08-31 — Claude — iOS keyboard covered the post composer; AnimatedModal's keyboard-aware props existed but were wired up nowhere in the app
+
+User sent an iPhone screenshot of the "What's the signal?" post composer
+with the keyboard open: the input and Send Signal button were pushed
+behind the keyboard, with iOS's own accessory bar sitting on top.
+
+Root cause: `AnimatedModal` (`animated-modal.tsx`) already has
+`viewportStyle`/`contentStyle` props specifically built for this - the
+comment on `contentStyle` even says "e.g. a JS-measured
+window.visualViewport height on iOS" - but a repo-wide grep for
+`viewportStyle=`/`contentStyle=` turned up zero call sites. Whatever
+modal originally exercised this (the 2026-08-29 Comments-sheet keyboard
+saga) has since moved to its own hand-rolled full-screen layout with
+`useVisualViewport` wired directly, leaving the AnimatedModal-based path
+built but never actually connected to anything - including the main post
+composer, which has carried this bug the whole time.
+
+Wired `ComposerModal.tsx` up: `useVisualViewport(open)` +
+`viewportStyle={visualViewportStyle(visualViewport)}` on `AnimatedModal`,
+so the modal's positioning container tracks the real visible area instead
+of the full layout viewport once the keyboard covers part of it. Also
+added `max-h-[85dvh] overflow-y-auto` to its content - without a height
+cap, content taller than the now-correctly-shrunk visible area would
+still overflow past the top of the sheet rather than scrolling internally
+(the same pattern `EditProfileModal` already uses for the same reason).
+Found and fixed the identical gap in `HelloModal.tsx` while there - same
+shape (`AnimatedModal` + a free-text `textarea`, zero keyboard awareness).
+Deliberately did not sweep every other `AnimatedModal` usage in the app;
+those are the two places with a real text-input-vs-keyboard conflict
+found this pass.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean. Live-checked
+both modals open and render correctly with no console errors, and
+confirmed via `javascript_tool` that the wrapper's inline style
+(`height`/`top`/`bottom: auto`) and the content's `max-h-[85dvh]
+overflow-y-auto` classes are both actually applied at runtime. The keyboard
+resize behavior itself needs a real iPhone to confirm end to end - desktop
+tooling has no on-screen keyboard to trigger the visualViewport resize
+against, same limitation as every other keyboard fix this session.
+
 ### 2026-08-31 — Claude — BackButton's fixed `to="/"` sent Settings' Policies links to the wrong place; Community Guidelines still said 21+
 
 User asked to double-check the three Policies rows (Settings → Privacy &

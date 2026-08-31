@@ -3,6 +3,7 @@ import { PostCard } from "./PostCard";
 import { FeatureIllustration } from "./FeatureIllustration";
 import timelineArt from "@/assets/app-illustrations/timeline.webp";
 import { AppHeader } from "./Shared";
+import { useAuth } from "@/lib/auth-context";
 import { useBlocked } from "@/lib/blocked-store";
 import { useFeedPosts } from "@/lib/posts-store";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,29 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { TribeMark } from "./TribeMark";
 import { FeedSkeleton } from "./Skeleton";
 
+const TIMELINE_TAB_KEY = "mutuals.timeline-tab";
+
+function timelineTabKey(userId: string): string {
+  return `${TIMELINE_TAB_KEY}:${userId}`;
+}
+
+/**
+ * `/p/$postId` is a separate top-level route, not a layer within this one -
+ * visiting a post from a comment and hitting back unmounts and remounts
+ * TimelineScreen, which used to reset this to its "tribe" default even if
+ * the user had switched to The Wild right before leaving. Persisted the
+ * same way the app's top-level tab already is (mutuals.tab:{userId}) so it
+ * survives that round trip.
+ */
+function loadTimelineTab(userId: string | undefined): "tribe" | "global" {
+  if (!userId || typeof window === "undefined") return "tribe";
+  try {
+    return window.localStorage.getItem(timelineTabKey(userId)) === "global" ? "global" : "tribe";
+  } catch {
+    return "tribe";
+  }
+}
+
 export function TimelineScreen({
   profile,
   scrollToPostId,
@@ -23,8 +47,18 @@ export function TimelineScreen({
   scrollToPostId?: string | null;
   onScrolledToPost?: () => void;
 }) {
-  const [tab, setTab] = useState<"tribe" | "global">("tribe");
+  const { user } = useAuth();
+  const [tab, setTab] = useState<"tribe" | "global">(() => loadTimelineTab(user?.id));
   const blocked = useBlocked();
+
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      window.localStorage.setItem(timelineTabKey(user.id), tab);
+    } catch {
+      /* Storage can be unavailable in privacy modes. */
+    }
+  }, [tab, user?.id]);
 
   // Tribe feed state
   const joinedTribes = TRIBES.filter((t) => profile.tribeIds.includes(t.id));

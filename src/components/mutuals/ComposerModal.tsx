@@ -22,6 +22,7 @@ import {
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { ImageStrip, type ComposedImage } from "./ImageStrip";
 import { cn } from "@/lib/utils";
+import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB pre-compression cap
 const MAX_IMAGES = 10;
@@ -58,6 +59,7 @@ export function ComposerModal({
   const createPost = useCreatePost();
   const { register, registry } = useMentionRegistry();
   const mentionPicker = useMentionPicker(text, caret);
+  const visualViewport = useVisualViewport(open);
 
   const tribe = tribeById(effectiveTribeId);
   /**
@@ -209,7 +211,8 @@ export function ComposerModal({
           ? "Quote post"
           : `New post — ${effectiveAudience === "all" ? "The Wild" : tribe.name}`
       }
-      contentClassName="p-6"
+      contentClassName="max-h-[85dvh] overflow-y-auto scroll-panel p-6"
+      viewportStyle={visualViewportStyle(visualViewport)}
     >
       <button
         onClick={close}

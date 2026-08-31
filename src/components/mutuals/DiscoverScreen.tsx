@@ -67,6 +67,7 @@ type DiscoverPerson = Person & {
   availability: string[];
   sharedAvailability?: string[];
   distanceBand?: string | null;
+  outsideRadius?: boolean;
   matchScore?: number;
   signals?: MatchSignals;
   openVentureId?: string | null;
@@ -117,6 +118,7 @@ function rowToPerson(row: DiscoverProfile | NearbyProfile | ExploreMatch): Disco
     mutuals: 0,
     allTribeIds: allTribeIds.length ? allTribeIds : [tribeId],
     distanceBand: "distance_band" in row ? row.distance_band : undefined,
+    outsideRadius: "outside_radius" in row ? row.outside_radius : undefined,
     matchScore: "match_score" in row ? row.match_score : undefined,
     signals: scored
       ? {
@@ -1176,6 +1178,11 @@ function PersonRow({
             {person.distanceBand && (
               <span className="inline-flex items-center gap-1 text-primary">
                 <MapPinIcon className="h-3 w-3" /> {person.distanceBand}
+              </span>
+            )}
+            {!person.distanceBand && person.outsideRadius && (
+              <span className="inline-flex items-center gap-1 text-muted-foreground/80">
+                <MapPinIcon className="h-3 w-3" /> Outside your radius
               </span>
             )}
           </div>

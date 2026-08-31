@@ -33,6 +33,13 @@ export type ExploreMatch = {
   same_tribe: boolean;
   /** Coarse band, and only inside the mutual radius. Null otherwise. */
   distance_band: string | null;
+  /** True only when both people's locations are known and the distance is
+   *  confirmed to exceed the mutual radius - distinct from "unknown"
+   *  (nobody, or only one side, has opted into Nearby), which stays false.
+   *  Confirmed-in-radius candidates always rank ahead of everyone else;
+   *  this is what lets the client label a fallback card honestly instead
+   *  of just silently omitting the distance chip. */
+  outside_radius: boolean;
   open_venture_id: string | null;
   open_venture_title: string | null;
 };
@@ -50,6 +57,7 @@ type MatchRow = {
   shared_availability: string[] | null;
   same_tribe: boolean | null;
   distance_band: string | null;
+  outside_radius: boolean | null;
   open_venture_id: string | null;
   open_venture_title: string | null;
 };
@@ -106,6 +114,7 @@ export const listExploreMatches = createServerFn({ method: "GET" })
           shared_availability: match.shared_availability ?? [],
           same_tribe: match.same_tribe ?? false,
           distance_band: match.distance_band,
+          outside_radius: match.outside_radius ?? false,
           open_venture_id: match.open_venture_id,
           open_venture_title: match.open_venture_title,
         } as ExploreMatch,
