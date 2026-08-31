@@ -205,6 +205,53 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Chat scroll position now respects where the user left it; a real fix for Chrome/Android's autofill icons; iOS's accessory bar is not fixable from the web
+
+User pushed back on the previous keyboard-scroll fix with the correct
+WhatsApp benchmark: opening/closing the keyboard should only snap to the
+latest message if the user was already caught up - if they'd scrolled up
+to read older messages, the list should stay exactly where they left it.
+The earlier fix (`keyboardOpen` in the messages effect's own dependency
+array) always snapped to bottom on every keyboard toggle regardless of
+scroll position, which is wrong and was a step backward from doing
+nothing. Replaced it with a shared `useStickToBottomOnKeyboard` hook
+(`src/hooks/`): tracks "was the user at/near the bottom" continuously via
+a passive scroll listener (so the check reflects state from *before* the
+keyboard resizes the list, not after - measuring after would always read
+"not at bottom" purely because the container got shorter), and only
+re-pins to the bottom sentinel on a keyboard toggle if that was true.
+New-message-arrival scrolling is untouched - still always scrolls, which
+is correct and wasn't what was reported broken. Required adding a
+`listRef` to `TribeScreen.tsx`'s message list (didn't have one) and
+reusing the already-present-but-unused `scrollRef` in both of
+`MessagesPanel.tsx`'s lists.
+
+Also went back to the Android autofill-icon fix from earlier today:
+`autoComplete="off"` alone does not suppress Chrome's password-manager
+manual-fallback icon specifically - this is a known, deliberate Chrome
+design choice (it intentionally still offers manual password access on
+non-login fields), not something more autocomplete-adjacent attributes can
+patch around. The actually-reliable fix is `type="search"` - Chrome's
+Autofill agent excludes search inputs from all three (password/payment/
+address) icon rows entirely, since they're not valid autofill targets.
+Applied to `ChatComposer.tsx`'s message input along with the standard
+`::-webkit-search-*` resets (strips the native rounded/inset search-field
+chrome and cancel button) and `enterKeyHint="send"` (keeps the mobile
+keyboard's action key labeled Send, not Search). Verified live that the
+DOM attributes and computed `-webkit-appearance: none` are actually
+applied; couldn't get a clean device screenshot this round due to a
+browser-tool glitch, but the reset pattern itself is well-established.
+
+For the iPhone screenshot showing the chevron-up/chevron-down/checkmark
+bar above the keyboard: this is the exact same element already diagnosed
+in the 2026-08-29 entries below as iOS Safari/WKWebView's own native
+input-accessory toolbar (Previous/Next/Done). It is not rendered by this
+app and there is no public web API to suppress it - every text input in
+Safari gets it, on every site. Told the user directly rather than
+attempting a fix that contradicts this codebase's own prior finding.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean.
+
 ### 2026-08-31 — Claude — Latest chat message hidden behind the keyboard on first tap (Tribe, Venture, DM)
 
 User sent WhatsApp-vs-MEUTUALS comparison screenshots: on WhatsApp, opening

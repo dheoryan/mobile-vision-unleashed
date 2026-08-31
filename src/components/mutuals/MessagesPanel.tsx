@@ -65,6 +65,7 @@ import {
   startsChatGroup,
 } from "@/lib/chat-grouping";
 import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
+import { useStickToBottomOnKeyboard } from "@/hooks/use-stick-to-bottom";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -661,11 +662,7 @@ function VenturePartyThread({
     if (!msgs?.length) return;
     // See the DM Thread's identical comment below - scrollIntoView on a
     // sentinel, after a double rAF, measures the real post-transition
-    // layout instead of a scrollHeight read that can be stale. Also re-runs
-    // on keyboardOpen: without it, the last message you were already
-    // looking at ends up hidden behind the keyboard the instant you tap the
-    // composer, since the list shrinks to the new visual viewport but
-    // nothing re-pins the scroll to match (WhatsApp always keeps it pinned).
+    // layout instead of a scrollHeight read that can be stale.
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
@@ -676,7 +673,8 @@ function VenturePartyThread({
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
     };
-  }, [msgs, isComplete, keyboardOpen]);
+  }, [msgs, isComplete]);
+  useStickToBottomOnKeyboard(scrollRef, bottomRef, keyboardOpen);
 
   const submit = async () => {
     const body = text.trim();
@@ -1063,10 +1061,7 @@ function Thread({
     // real bottom, which is exactly the "opens scrolled up a bit" bug.
     // scrollIntoView on a sentinel measures the actual current layout
     // instead, and the double rAF gives the transition/images one more
-    // paint to settle before that measurement happens. Also re-runs on
-    // keyboardOpen for the same reason: tapping the composer shrinks this
-    // list to the new visual viewport, and without re-pinning here the
-    // last message ends up hidden behind the keyboard on first tap.
+    // paint to settle before that measurement happens.
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
@@ -1077,7 +1072,8 @@ function Thread({
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
     };
-  }, [lastMessageId, otherId, keyboardOpen]);
+  }, [lastMessageId, otherId]);
+  useStickToBottomOnKeyboard(scrollRef, bottomRef, keyboardOpen);
 
   const submit = async () => {
     const body = text.trim();

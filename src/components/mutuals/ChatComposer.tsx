@@ -149,13 +149,22 @@ export function ChatComposer({
           onChange={(event) => choose(event.target.files?.[0])}
           aria-label="Take a photo"
         />
-        {/* A plain unmarked text input reads to Chrome/Android as a
-            candidate for its password/payment/address autofill, which
-            surfaces a row of key/card/pin icons above the keyboard on every
-            chat surface that uses this composer. autoComplete="off" plus
-            the password-manager ignore hints keep this a message box. */}
+        {/* autoComplete="off" alone does not suppress Chrome/Android's
+            password-manager "manual fallback" icon above the keyboard - it's
+            a deliberate Chrome design choice, not something the off value
+            was meant to block, and it holds regardless. type="search" is
+            what actually works: Chrome's Autofill agent treats search
+            inputs as non-fillable and excludes them from all three
+            (password/payment/address) icon rows entirely. The three
+            ::-webkit-search-* rules below strip the native rounded/inset
+            search-field chrome so it still looks identical to a plain text
+            field; enterKeyHint keeps the mobile keyboard's action key
+            labeled Send instead of Search. */}
         <input
           ref={inputRef}
+          type="search"
+          enterKeyHint="send"
+          role="textbox"
           value={value}
           maxLength={maxLength}
           name="chat-message"
@@ -183,7 +192,7 @@ export function ChatComposer({
           placeholder={placeholder}
           aria-label={placeholder}
           disabled={disabled || sending}
-          className="min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground focus:outline-none disabled:opacity-60 sm:text-sm"
+          className="min-w-0 flex-1 appearance-none bg-transparent text-base placeholder:text-muted-foreground focus:outline-none disabled:opacity-60 sm:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
         />
         <button
           type="button"

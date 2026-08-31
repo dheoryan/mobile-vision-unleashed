@@ -40,6 +40,7 @@ import {
   startsChatGroup,
 } from "@/lib/chat-grouping";
 import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
+import { useStickToBottomOnKeyboard } from "@/hooks/use-stick-to-bottom";
 
 function SwipeReplyRow({
   children,
@@ -429,6 +430,7 @@ function GroupChat({
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const toggleReaction = useToggleTribeRoomReaction(tribeId);
 
@@ -640,13 +642,9 @@ function GroupChat({
   }, [dbTribeId]);
 
   useEffect(() => {
-    // Re-pin to the latest message when the keyboard opens or closes too,
-    // not just when a new message arrives - otherwise the last message you
-    // were already looking at ends up hidden behind the keyboard the moment
-    // you tap the composer, since the message list shrinks to the new
-    // visual viewport but nothing tells it to scroll to match.
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, keyboardOpen]);
+  }, [messages]);
+  useStickToBottomOnKeyboard(listRef, endRef, keyboardOpen);
 
   const mentionRange = mentionRangeAtCaret(text, caret);
   const mentionSuggestions =
@@ -792,7 +790,10 @@ function GroupChat({
       />
       <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <div className="scroll-panel flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-2 py-4">
+        <div
+          ref={listRef}
+          className="scroll-panel flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-2 py-4"
+        >
           {loading && <MessageThreadSkeleton />}
           {!loading && messages.length === 0 && (
             <p className="py-8 text-center text-xs text-muted-foreground">
