@@ -107,8 +107,44 @@ export const updateMyProfile = createServerFn({ method: "POST" })
       .eq("id", userId)
       .select(MY_PROFILE_COLS)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      // The live check in useHandleAvailability is what normally catches a
+      // taken handle before this ever runs - this is only the defensive
+      // backstop against someone else grabbing it in the gap between that
+      // check and the actual save.
+      if ((error as { code?: string }).code === "23505") {
+        throw new Error("That handle is already taken.");
+      }
+      throw new Error(error.message);
+    }
     return row as ProfileRow;
+  });
+
+/** Live check for the @handle field, debounced client-side. Excludes the
+ *  caller's own row so re-saving your current handle never reads as taken. */
+export const checkHandleAvailable = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        handle: z
+          .string()
+          .min(3)
+          .max(30)
+          .regex(/^[a-z0-9_]+$/),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ available: boolean }> => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("handle", data.handle)
+      .neq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { available: !row };
   });
 
 export const verifyMyAge = createServerFn({ method: "POST" })

@@ -352,7 +352,16 @@ function App() {
   const unread = useUnreadCount(threadsQuery.data);
 
   // Locally-applied profile setter that syncs to DB. Passing null = sign out.
-  const setProfile = (updater: Profile | null | ((p: Profile | null) => Profile | null)) => {
+  // `options` lets a caller (the edit-profile modal) react to the real save
+  // result instead of assuming success the moment this is called - without
+  // it, the previous behaviour showed "Profile updated" and closed the
+  // modal before the mutation had actually resolved, so a real failure (a
+  // handle taken in the split second after the live check passed, for
+  // example) landed as a confusing error toast right after a success toast.
+  const setProfile = (
+    updater: Profile | null | ((p: Profile | null) => Profile | null),
+    options?: { onSuccess?: () => void; onError?: (error: Error) => void },
+  ) => {
     const next =
       typeof updater === "function"
         ? (updater as (p: Profile | null) => Profile | null)(profile)
@@ -362,7 +371,14 @@ function App() {
       return;
     }
     updateProfile.mutate(profileToPatch(next), {
-      onError: (err) => toast.error((err as Error).message),
+      onSuccess: () => options?.onSuccess?.(),
+      onError: (err) => {
+        if (options?.onError) {
+          options.onError(err as Error);
+        } else {
+          toast.error((err as Error).message);
+        }
+      },
     });
   };
 

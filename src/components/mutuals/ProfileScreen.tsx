@@ -45,13 +45,21 @@ import { avatarFileIssue } from "@/lib/avatar-file";
 import { AvatarLightbox } from "./AvatarLightbox";
 import { ProfileActivityTabs, type ProfileActivityTab } from "./ProfileActivityTabs";
 import { ProfileVentureHistory } from "./ProfileVentureHistory";
+import {
+  useHandleAvailability,
+  handleFieldHint,
+  handleFieldHintTone,
+} from "@/hooks/use-handle-availability";
 
 export function ProfileScreen({
   profile,
   setProfile,
 }: {
   profile: Profile;
-  setProfile?: (updater: (p: Profile | null) => Profile | null) => void;
+  setProfile?: (
+    updater: (p: Profile | null) => Profile | null,
+    options?: { onSuccess?: () => void; onError?: (error: Error) => void },
+  ) => void;
 }) {
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
@@ -434,10 +442,18 @@ export function ProfileScreen({
         open={editOpen}
         profile={profile}
         onClose={() => setEditOpen(false)}
-        onSave={(patch) => {
-          setProfile?.((p) => (p ? { ...p, ...patch } : p));
-          setEditOpen(false);
-          toast.success("Profile updated.");
+        onSave={(patch, { onSuccess, onError }) => {
+          setProfile?.((p) => (p ? { ...p, ...patch } : p), {
+            onSuccess: () => {
+              setEditOpen(false);
+              toast.success("Profile updated.");
+              onSuccess();
+            },
+            onError: (error) => {
+              toast.error("Couldn't save your profile", { description: error.message });
+              onError(error);
+            },
+          });
         }}
       />
 
@@ -562,11 +578,15 @@ export function EditProfileModal({
   open: boolean;
   profile: Profile;
   onClose: () => void;
-  onSave: (patch: Partial<Profile>) => void;
+  onSave: (
+    patch: Partial<Profile>,
+    options: { onSuccess: () => void; onError: (error: Error) => void },
+  ) => void;
 }) {
   const { user } = useAuth();
   const [name, setName] = useState(profile.name);
-  const [handle, setHandle] = useState((profile.handle ?? "").replace(/^@/, ""));
+  const currentHandle = (profile.handle ?? "").replace(/^@/, "");
+  const [handle, setHandle] = useState(currentHandle);
   const [city, setCity] = useState(profile.city);
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
@@ -575,6 +595,7 @@ export function EditProfileModal({
   const [availability, setAvailability] = useState<AvailabilityId[]>(profile.availability);
   const [gender, setGender] = useState<GenderId | null>(profile.gender);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const choiceTribe = tribeById(profile.tribeIds[0] ?? "wolf");
@@ -586,6 +607,7 @@ export function EditProfileModal({
       .replace(/[^a-z0-9_]/g, "")
       .slice(0, 30);
   const handleValid = handle.length >= 3 && handle.length <= 30;
+  const handleAvailability = useHandleAvailability(handle, handleValid, currentHandle);
 
   if (!open) return null;
 
@@ -704,7 +726,12 @@ export function EditProfileModal({
             label="@handle"
             value={handle}
             onChange={(v) => setHandle(sanitizeHandle(v))}
-            hint={handleValid ? `@${handle}` : "3–30 chars · a–z, 0–9, _"}
+            hint={
+              handle
+                ? handleFieldHint(handle, handleValid, handleAvailability)
+                : "3–30 chars · a–z, 0–9, _"
+            }
+            hintTone={handleFieldHintTone(handleAvailability)}
           />
           <CityField value={city} onChange={setCity} />
           <Input
@@ -759,10 +786,13 @@ export function EditProfileModal({
               !name.trim() ||
               !city.trim() ||
               !handleValid ||
+              handleAvailability === "taken" ||
+              handleAvailability === "checking" ||
               interests.length < 2 ||
               socialIntents.length < 1 ||
               availability.length < 1 ||
-              uploading
+              uploading ||
+              saving
             }
             onClick={() => {
               // Same "never override a real photo" rule as Onboarding, plus:
@@ -776,21 +806,28 @@ export function EditProfileModal({
                 !isCustomAvatar && justSetGender
                   ? (defaultAvatarUrl(profile.tribeIds[0] ?? null, gender) ?? avatar)
                   : avatar;
-              onSave({
-                name: name.trim(),
-                handle,
-                city: city.trim(),
-                bio,
-                avatar: resolvedAvatar,
-                interests,
-                socialIntents,
-                availability,
-                gender,
-              });
+              setSaving(true);
+              onSave(
+                {
+                  name: name.trim(),
+                  handle,
+                  city: city.trim(),
+                  bio,
+                  avatar: resolvedAvatar,
+                  interests,
+                  socialIntents,
+                  availability,
+                  gender,
+                },
+                {
+                  onSuccess: () => setSaving(false),
+                  onError: () => setSaving(false),
+                },
+              );
             }}
             className="w-full rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
           >
-            {uploading ? "Saving photo…" : "Save changes"}
+            {uploading ? "Saving photo…" : saving ? "Saving…" : "Save changes"}
           </button>
           <button
             onClick={onClose}
@@ -1067,18 +1104,31 @@ function Input({
   onChange,
   multiline,
   hint,
+  hintTone = "muted",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
   hint?: string;
+  hintTone?: "muted" | "success" | "danger";
 }) {
   return (
     <label className="block">
       <div className="mb-1 flex items-center justify-between">
         <span className="label-mono text-muted-foreground">{label}</span>
-        {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+        {hint && (
+          <span
+            className={cn(
+              "text-[10px]",
+              hintTone === "success" && "text-accent",
+              hintTone === "danger" && "text-destructive",
+              hintTone === "muted" && "text-muted-foreground",
+            )}
+          >
+            {hint}
+          </span>
+        )}
       </div>
       {multiline ? (
         <textarea

@@ -640,8 +640,13 @@ function GroupChat({
   }, [dbTribeId]);
 
   useEffect(() => {
+    // Re-pin to the latest message when the keyboard opens or closes too,
+    // not just when a new message arrives - otherwise the last message you
+    // were already looking at ends up hidden behind the keyboard the moment
+    // you tap the composer, since the message list shrinks to the new
+    // visual viewport but nothing tells it to scroll to match.
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, keyboardOpen]);
 
   const mentionRange = mentionRangeAtCaret(text, caret);
   const mentionSuggestions =

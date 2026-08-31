@@ -205,6 +205,87 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Latest chat message hidden behind the keyboard on first tap (Tribe, Venture, DM)
+
+User sent WhatsApp-vs-MEUTUALS comparison screenshots: on WhatsApp, opening
+the keyboard always keeps the latest message visible right above the
+composer; on MEUTUALS (Tribe chat shown, but confirmed the same root cause
+in Venture/DM), the first tap into the composer left the latest message
+hidden behind the keyboard until something else (a new message, manual
+scroll) happened to re-trigger a scroll.
+
+Root cause: all three scroll-to-bottom effects
+(`TribeScreen.tsx`'s `GroupChat`, and both message-list effects in
+`MessagesPanel.tsx` for DM and Venture) only re-ran when the message array
+changed. `useVisualViewport`'s `keyboardOpen` boolean (already computed and
+already threaded down as a prop to all three, per the 2026-08-28 visual-
+viewport work) was available but never in any of their dependency arrays -
+so the container correctly shrinks to the real visible area when the
+keyboard opens, but nothing told the list to re-pin its scroll to match.
+Added `keyboardOpen` to all three effects' dependency arrays. No behavior
+change when the keyboard isn't in play.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean. Confirmed live
+that Tribe chat still loads and scrolls normally with no console errors.
+The keyboard-open re-pin itself needs a real Android/iOS device to confirm
+end to end - desktop browser tooling has no real IME to trigger
+`visualViewport` resize events against.
+
+### 2026-08-31 — Claude — Live @handle availability check; fixed a false-success-then-error sequence in Edit profile
+
+User asked whether there was any toast/warning for a taken @handle - there
+wasn't: only client-side length validation, no live check, and the actual
+duplicate-handle rejection surfaced as a raw Postgres error string
+(`duplicate key value violates unique constraint "profiles_handle_key"`).
+Worse, in Edit profile specifically, `onSave` set local state, closed the
+modal, and fired `toast.success("Profile updated.")` *before* the mutation
+had actually resolved - a genuine failure (handle taken, or anything else)
+then showed up as a confusing raw-error toast right after the false success
+one.
+
+Built `checkHandleAvailable` (`profile.functions.ts`) - excludes the
+caller's own row so re-saving your current handle never reads as taken -
+and a shared `useHandleAvailability` hook (`src/hooks/`) that debounces
+(450ms) and guards against a stale slower response landing after a newer
+one. Wired into both @handle fields (Onboarding step 2, Edit profile):
+hint line reads "Checking availability…" / "Already taken" (red) /
+`@handle` (green) as you type, and both step-forward/Save buttons are
+disabled while checking or taken. `updateMyProfile` also now maps a 23505
+unique-violation on handle to "That handle is already taken." instead of
+the raw Postgres string, as the defensive backstop for the race between the
+live check and the actual save.
+
+Fixed the false-success sequence by threading real `onSuccess`/`onError`
+through `setProfile` (`routes/index.tsx`) instead of the modal assuming
+success the instant it's called - additive optional second parameter, so
+the other `setProfile` call sites (the dev Plus-plan toggle, VenturesScreen,
+TribeScreen) are unaffected. Edit profile's Save button now shows a real
+"Saving…" pending state and only closes/toasts success once the mutation
+actually resolves; on error it stays open with a friendly toast.
+
+Verification: `npx tsc --noEmit` and targeted ESLint both clean. Live-
+verified in the browser against the real account - typed an existing
+handle (`kiamu`) and watched it resolve to "Already taken" in red with Save
+disabled, then a fresh handle resolve to green/available with Save
+re-enabled; closed via Cancel/X both times so no production row was
+written.
+
+### 2026-08-31 — Claude — Fixed Chrome/Android's key/card/pin autofill strip showing above the keyboard on every chat screen
+
+User sent two screenshots (keyboard open vs. closed) showing a row of
+key/card/location-pin icons appearing above the Android keyboard while
+typing in a Tribe chat - Chrome's native password/payment/address autofill
+"quick-fill" strip, not anything MEUTUALS renders. Root cause: the shared
+message `<input>` in `ChatComposer.tsx` (used by Tribe, Venture, and DM
+chat via `TribeScreen.tsx`/`MessagesPanel.tsx` - one component, all three
+surfaces) had no `autoComplete`/`name` attributes, so Chrome treated it as
+an unmarked candidate for autofill. Added `autoComplete="off"`, a
+non-credential-looking `name`, and `data-lpignore`/`data-1p-ignore` for
+desktop password-manager extensions. Verification: `npx tsc --noEmit` and
+targeted ESLint clean; behavior itself needs a real Android device to
+confirm (pinch/gesture-zoom fix earlier the same day had the same
+limitation for iOS).
+
 ### 2026-08-31 — Claude — Wrote `NEARBY_VENTURES_PUSH_PLAN.md` (research + plan only, no code)
 
 User asked for the Google Places venue-geocoding research from `HANDOFF.md`

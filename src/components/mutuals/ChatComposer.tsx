@@ -149,10 +149,21 @@ export function ChatComposer({
           onChange={(event) => choose(event.target.files?.[0])}
           aria-label="Take a photo"
         />
+        {/* A plain unmarked text input reads to Chrome/Android as a
+            candidate for its password/payment/address autofill, which
+            surfaces a row of key/card/pin icons above the keyboard on every
+            chat surface that uses this composer. autoComplete="off" plus
+            the password-manager ignore hints keep this a message box. */}
         <input
           ref={inputRef}
           value={value}
           maxLength={maxLength}
+          name="chat-message"
+          autoComplete="off"
+          autoCorrect="on"
+          autoCapitalize="sentences"
+          data-lpignore="true"
+          data-1p-ignore
           onChange={(event) => {
             onChange(event.target.value);
             onCaretChange?.(event.target.selectionStart ?? event.target.value.length);

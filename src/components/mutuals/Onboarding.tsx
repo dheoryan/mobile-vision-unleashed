@@ -51,6 +51,11 @@ import {
   type InterestId,
   type SocialIntentId,
 } from "@/lib/profile-options";
+import {
+  useHandleAvailability,
+  handleFieldHint,
+  handleFieldHintTone,
+} from "@/hooks/use-handle-availability";
 import { GenderSelect } from "./GenderSelect";
 import { defaultAvatarUrl } from "@/lib/default-avatar";
 import {
@@ -117,6 +122,7 @@ export function Onboarding({
   const tribe = tribeId ? tribeById(tribeId) : null;
   const viewedTribe = TRIBES[tribeIndex];
   const handleValid = handle.length >= 3 && handle.length <= 30;
+  const handleAvailability = useHandleAvailability(handle, handleValid);
   const socialProfileReady = Boolean(
     city.trim() && interests.length >= 2 && socialIntents.length >= 1 && availability.length >= 1,
   );
@@ -513,19 +519,21 @@ export function Onboarding({
                 onChange={(value) => setHandle(sanitizeHandle(value))}
                 placeholder="alexrivera"
                 autoComplete="username"
-                hint={
-                  handle
-                    ? handleValid
-                      ? `@${handle}`
-                      : "Use at least 3 characters"
-                    : "Letters, numbers, underscore"
-                }
+                hint={handleFieldHint(handle, handleValid, handleAvailability)}
+                hintTone={handleFieldHintTone(handleAvailability)}
               />
               <GenderSelect value={gender} onChange={setGender} hint="Shown on your profile" />
             </div>
             <div className="mt-auto pt-8">
               <PrimaryButton
-                disabled={!name.trim() || !handleValid || !gender || uploading}
+                disabled={
+                  !name.trim() ||
+                  !handleValid ||
+                  handleAvailability === "taken" ||
+                  handleAvailability === "checking" ||
+                  !gender ||
+                  uploading
+                }
                 onClick={() => setStep(3)}
               >
                 Build my social signal <ArrowRightIcon className="h-4 w-4" />
@@ -897,6 +905,7 @@ function Field({
   placeholder,
   multiline,
   hint,
+  hintTone = "muted",
   autoComplete,
 }: {
   label: string;
@@ -905,13 +914,25 @@ function Field({
   placeholder?: string;
   multiline?: boolean;
   hint?: string;
+  hintTone?: "muted" | "success" | "danger";
   autoComplete?: string;
 }) {
   return (
     <label className="block">
       <div className="mb-1 flex items-center justify-between gap-3">
         <span className="label-mono text-muted-foreground">{label}</span>
-        {hint && <span className="text-right text-[10px] text-muted-foreground">{hint}</span>}
+        {hint && (
+          <span
+            className={cn(
+              "text-right text-[10px]",
+              hintTone === "success" && "text-accent",
+              hintTone === "danger" && "text-destructive",
+              hintTone === "muted" && "text-muted-foreground",
+            )}
+          >
+            {hint}
+          </span>
+        )}
       </div>
       {multiline ? (
         <textarea
