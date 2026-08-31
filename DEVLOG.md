@@ -205,6 +205,113 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Toggle switches were white-on-white when on; added a manual "Check for updates" row
+
+User flagged that every toggle's "on" state looked washed out - a white
+track with a white thumb, barely distinguishable from "off" except by
+thumb position. Audited every `<Switch>` usage app-wide first
+(`src/components/ui/switch.tsx` is a single shared shadcn primitive; exactly
+3 call sites - Discover's and Settings' nearby-discovery toggles, and each
+push-notification category row in `PushCategorySettings.tsx` - none with a
+custom className override), so one fix to the shared component's
+`data-[state=checked]` class covers all of them. Root cause: checked state
+used `bg-primary`, which resolves to `var(--foreground)` (near-white) in
+this theme. Changed it to `bg-accent` (the forest green already used
+app-wide for "active/positive" states - success toasts, the Hello modal's
+free pill), keeping the white thumb, matching the standard colored-track /
+light-thumb toggle convention.
+
+Also added a "Check for updates" row to Settings, directly below "Install
+the app" as requested. Deliberately does NOT reimplement the update-apply
+flow: `PwaLifecycle.tsx` already owns a working one (SKIP_WAITING +
+controllerchange-driven reload, checked hourly and on visibility change),
+and `registration.update()` fires the same `updatefound` event regardless
+of what triggered it - so the new row's `check()` just calls `.update()`
+on the same registration PwaLifecycle already has listeners on, and reports
+the result via toast ("You're up to date." / "Update found - look for the
+banner"). Two independent places able to apply an update would be a race
+worth avoiding, not a feature.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean. Live-verified
+both: the nearby-discovery toggle's checked state now computes to a green
+`lab()` color instead of white, and the new Settings row correctly fires a
+`sonner` toast reading "You're up to date." against the real service worker
+registration (no console errors either time).
+
+### 2026-08-31 — Claude — Discover's "end of five" screen redesigned; gradient/tribe-color consistency pass; HelloModal opener + free-pill polish
+
+Three related rounds of UI/UX feedback, all in Discover-adjacent screens.
+
+**ExploreDeck's "Where do you want to go next?"** (shown after finishing
+Today's five) was flagged as flat and hard to parse - a muted `text-primary`
+label, a `bg-primary/8` "Meet another five" card whose icon badge and pill
+row were barely distinguishable from the plain gray page, and "Find a
+Venture" below it as a visually smaller, un-badged afterthought despite
+being the stronger, more concrete alternative. Redesigned: the completion
+label is now a small pill with a check icon; "Meet another five"'s icon
+badge is the one gradient moment on the screen (reserved for a single
+featured action, not spread across every icon); its pill row switched from
+thin ghost-outlines to filled `bg-secondary` chips with real tap
+affordance; "Find a Venture" was rebuilt to match "Meet another five"'s
+icon-badge card shape exactly, using the accent color (not the gradient) so
+the two read as genuinely parallel choices rather than primary-plus-
+leftover. Live-verified by exhausting a real Today's five and reaching this
+screen.
+
+**Gradient/tribe-color consistency pass**, per direct user request after
+seeing the Nearby-preferences modal: its shield icon badge and "Done"
+button now both use the gradient (previously only requested for HelloModal
+last entry); the same "Use my current area" button in Settings'
+`NearbySettings` got the same treatment since it's functionally the same
+action reached from a second entry point. Separately, both "Move to
+{Tribe}" buttons (Discover's tribe-preview sheet, and `AddTribeSheet`'s
+switch-confirmation) now fill with that tribe's own `colorVar` instead of
+plain `bg-primary` white, matching the established distinction this session
+has held throughout: brand-level actions get the gradient, tribe-scoped
+actions get that tribe's own color - using `text-primary-foreground` (dark
+text) over the solid tribe fill, the same pairing `TimelineScreen.tsx`'s
+active-tab pills already use, since several tribe colors (amber especially)
+don't have safe contrast with literal white text.
+
+**HelloModal follow-up**: the "Use this opener" suggestion box had a
+dashed border, which reads as an empty placeholder to fill rather than a
+tappable suggestion - switched to a solid tinted border, added an icon
+badge (matching the fact-row treatment from the earlier redesign) and a
+trailing arrow to signal it's actionable. The footer's "Free — ..." pill
+(added earlier this session) turned out to be word-for-word redundant with
+the fact row already saying "Free — you're already Tribemates" a few lines
+above - removed for the free case entirely; the pill now only renders when
+it's carrying information the fact rows don't (the remaining monthly Hello
+quota).
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean across all five
+touched files (`ExploreDeck.tsx`, `DiscoverScreen.tsx`, `SettingsScreen.tsx`,
+`AddTribeSheet.tsx`, `HelloModal.tsx`). Live-verified the Nearby-preferences
+modal and the exhausted-deck screen in the browser against the real
+account; the Move-to-Tribe buttons are type-verified (`colorVar` resolves)
+but not screenshot-confirmed this round due to a flaky browser-tool
+connection.
+
+### 2026-08-31 — Claude — HelloModal: brand gradient on Send Hello, dense paragraph broken into scannable facts
+
+User asked for the Send Hello button to use the brand gradient and for the
+modal to feel less like a wall of text. The one explanatory paragraph
+("You're not in the same Tribe, so this needs their okay first. If they
+accept...") carried three distinct facts (Tribe status, needs their okay,
+30-day retry) in a single dense sentence - same information, restructured
+as three short icon-led rows (Sparkle/Users, Handshake, ArrowClockwise),
+matching the "Why you might click" row pattern already used on Discover
+cards. Hero icon badge also switched from a muted `bg-primary/15` square to
+the gradient, so the icon and the CTA read as one visual system instead of
+the CTA being the only branded element in an otherwise flat modal.
+
+Verification: `npx tsc --noEmit` and targeted ESLint clean. Live-checked
+in the browser via an actual not-yet-connected Discover match - confirmed
+the three fact rows, the gradient hero icon, and both the disabled (empty
+message) and full-brightness (message typed) states of the gradient
+button. Closed via X rather than sending, so no Hello was actually sent
+against production.
+
 ### 2026-08-31 — Claude — Same Android autofill-icon fix extended to the post-comments composer
 
 User's device screenshot showed the same key/card/pin icon row above the

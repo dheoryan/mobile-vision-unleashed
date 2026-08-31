@@ -287,7 +287,9 @@ export function ExploreDeck({
     return (
       <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
         <div className="shrink-0">
-          <p className="label-mono text-primary">{primarySetLabel} complete</p>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            <CheckIcon className="h-3 w-3 text-accent" weight="bold" /> {primarySetLabel} complete
+          </span>
           <h3 className="mt-2 font-display text-[28px] font-bold leading-[1.05]">
             Where do you want to go next?
           </h3>
@@ -298,8 +300,8 @@ export function ExploreDeck({
 
         <div className="mt-4 rounded-3xl border border-primary/35 bg-primary/8 p-4">
           <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-              <ShuffleIcon className="h-5 w-5" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
+              <ShuffleIcon className="h-5 w-5" weight="fill" />
             </span>
             <div className="min-w-0">
               <h4 className="font-display text-lg font-bold">Meet another five</h4>
@@ -314,7 +316,7 @@ export function ExploreDeck({
                 key={option.id}
                 type="button"
                 onClick={() => startContinuation(option.id)}
-                className="min-h-10 shrink-0 rounded-full border border-primary/30 bg-background/60 px-3 text-[11px] font-semibold transition-colors hover:border-primary hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="min-h-10 shrink-0 rounded-full bg-secondary px-3 text-[11px] font-semibold text-foreground transition-colors hover:bg-primary/15 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {option.label}
               </button>
@@ -333,20 +335,28 @@ export function ExploreDeck({
             decision — not a casual browsing option to re-surface as a peer
             of "meet more people" every time a five finishes. Explore Tribes
             already has a permanent home in Discover's Browse menu; it
-            doesn't also need a seat here. */}
+            doesn't also need a seat here.
+
+            Styled as a peer of "Meet another five" rather than a smaller
+            afterthought below it - same icon-badge treatment, same card
+            weight, its own accent color (not the gradient, which stays
+            reserved for the one featured action above) so the two read as
+            genuinely parallel choices, not primary-plus-leftover. */}
         <div className="mt-3">
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-            className="flex min-h-[6.25rem] w-full flex-col justify-between rounded-3xl border border-border bg-background/45 p-4 text-left transition-colors hover:border-primary/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex w-full items-start gap-3 rounded-3xl border border-accent/35 bg-accent/8 p-4 text-left transition-colors hover:border-accent/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <CalendarPlusIcon className="h-5 w-5 text-primary" />
-            <span>
-              <span className="block text-sm font-semibold">Find a Venture</span>
-              <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
-                Start with a real plan
-              </span>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+              <CalendarPlusIcon className="h-5 w-5" />
             </span>
+            <div className="min-w-0">
+              <h4 className="font-display text-lg font-bold">Find a Venture</h4>
+              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                Start with a real plan instead of another lens.
+              </p>
+            </div>
           </button>
         </div>
 

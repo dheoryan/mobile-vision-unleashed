@@ -257,6 +257,7 @@ function SettingsHome({
           detail="Add MEUTUALS to this device"
           onClick={() => onOpen("installation")}
         />
+        <CheckForUpdatesRow />
       </SettingsGroup>
 
       <div className="mt-8 border-t border-border pt-4">
@@ -435,7 +436,7 @@ function NearbySettings() {
               type="button"
               onClick={refreshLocation}
               disabled={locating || saveLocation.isPending}
-              className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-50"
             >
               {locating ? (
                 <SpinnerGapIcon className="h-4 w-4 animate-spin" />
@@ -668,6 +669,72 @@ function SettingsRow({
         <span className="block truncate text-xs text-muted-foreground">{detail}</span>
       </span>
       <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  );
+}
+
+/**
+ * Manually pokes the same service-worker registration that PwaLifecycle
+ * already checks automatically (on an hourly timer and on visibility
+ * change) - deliberately doesn't handle applying the update itself. Calling
+ * `registration.update()` fires the exact same `updatefound` event PwaLifecycle
+ * is already listening for, so if a newer version exists its bottom banner
+ * (with the actual reload-safe apply flow: SKIP_WAITING then a
+ * controllerchange-driven reload) takes over from there. Reimplementing
+ * that here would mean two places able to apply an update independently -
+ * this just triggers the check and reports the result.
+ */
+function CheckForUpdatesRow() {
+  const [checking, setChecking] = useState(false);
+
+  const check = async () => {
+    if (checking) return;
+    setChecking(true);
+    try {
+      if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+        toast.error("Updates aren't available here", {
+          description: "This only works on the installed or deployed app.",
+        });
+        return;
+      }
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        toast.error("Updates aren't available here", {
+          description: "This only works on the installed or deployed app.",
+        });
+        return;
+      }
+      await registration.update();
+      if (registration.waiting || registration.installing) {
+        toast.success("Update found", {
+          description: "Look for the update banner at the bottom of the screen to apply it.",
+        });
+      } else {
+        toast.success("You're up to date.");
+      }
+    } catch (error) {
+      toast.error("Couldn't check for updates", { description: (error as Error).message });
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={check}
+      disabled={checking}
+      className="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 text-left transition-colors last:border-b-0 hover:bg-secondary/60 active:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-60"
+    >
+      <ArrowClockwiseIcon
+        className={cn("h-4 w-4 shrink-0 text-muted-foreground", checking && "animate-spin")}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">Check for updates</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {checking ? "Checking…" : "See if a newer version is available"}
+        </span>
+      </span>
     </button>
   );
 }

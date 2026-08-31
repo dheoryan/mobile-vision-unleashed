@@ -898,7 +898,7 @@ function NearbyPreferencesSheet({
     >
       <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-start gap-3 pr-10">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
             <ShieldCheckIcon className="h-5 w-5" />
           </span>
           <div>
@@ -954,7 +954,7 @@ function NearbyPreferencesSheet({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="mt-5 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+          className="mt-5 min-h-12 w-full rounded-2xl bg-meutuals-gradient text-sm font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
         >
           {pending ? "Saving…" : "Done"}
         </button>
@@ -1097,7 +1097,8 @@ function TribePreviewSheet({
             ) : (
               <button
                 onClick={() => onMove(displayTribe.id)}
-                className="mt-6 w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                style={{ backgroundColor: displayTribe.colorVar }}
+                className="mt-6 w-full rounded-2xl py-3.5 text-sm font-semibold text-primary-foreground transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Move to {displayTribe.name}
               </button>

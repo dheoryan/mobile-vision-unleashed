@@ -3,10 +3,16 @@ import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
 import { MagicWandIcon } from "@phosphor-icons/react/dist/csr/MagicWand";
+import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import { HandshakeIcon } from "@phosphor-icons/react/dist/csr/Handshake";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useSendHello } from "@/lib/social-store";
 import { suggestedOpener, type MatchSignals } from "@/lib/explore-reasons";
+import { cn } from "@/lib/utils";
 
 /**
  * Compose a Hello — the message request you send someone you have no
@@ -96,17 +102,37 @@ export function HelloModal({
         <XIcon className="h-5 w-5" />
       </button>
 
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-        <HandIcon className="h-6 w-6" />
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
+        <HandIcon className="h-6 w-6" weight="fill" />
       </span>
       <h2 className="mt-4 font-display text-xl font-bold leading-tight">
         Say hello to {recipientName}
       </h2>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {isFree
-          ? "You're already in the same Tribe, so this one's free — it still needs their okay before you can message each other, and if they don't answer, you can try again in 30 days."
-          : "You're not in the same Tribe, so this needs their okay first. If they accept, you can message each other normally — and if they don't answer, you can try again in 30 days."}
-      </p>
+
+      {/* Three short, scannable facts instead of one dense sentence - same
+          info (Tribe status, needs their okay, 30-day retry), just read at a
+          glance instead of parsed. */}
+      <div className="mt-3 space-y-2">
+        {(isFree
+          ? [
+              { Icon: SparkleIcon, text: "Free — you're already Tribemates" },
+              { Icon: HandshakeIcon, text: "Still needs their okay to message" },
+            ]
+          : [
+              { Icon: UsersIcon, text: "You're not in the same Tribe yet" },
+              { Icon: HandshakeIcon, text: "Needs their okay before you can message" },
+            ]
+        )
+          .concat([{ Icon: ArrowClockwiseIcon, text: "No reply? Try again in 30 days" }])
+          .map(({ Icon, text }) => (
+            <div key={text} className="flex items-center gap-2.5 text-xs text-muted-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              {text}
+            </div>
+          ))}
+      </div>
 
       <textarea
         autoFocus
@@ -125,35 +151,46 @@ export function HelloModal({
         <button
           type="button"
           onClick={() => setMessage(opener)}
-          className="mt-3 flex w-full items-start gap-2.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-left transition-colors hover:bg-primary/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="mt-3 flex w-full items-start gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <MagicWandIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <MagicWandIcon className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0 flex-1">
             <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">
-              Use this opener
+              Suggested opener
             </span>
             <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
               {opener}
             </span>
           </span>
+          <ArrowRightIcon className="mt-1 h-3.5 w-3.5 shrink-0 text-primary/60" />
         </button>
       )}
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>
-          {isFree
-            ? "Free — Tribemates and active Venture co-members don't count against your monthly Hellos."
-            : hellosLeft === undefined
-              ? "Tribemates and active Venture co-members don't count against your monthly Hellos."
-              : `${hellosLeft} ${hellosLeft === 1 ? "Hello" : "Hellos"} left this month`}
-        </span>
-        <span>{message.length}/280</span>
+      {/* isFree already says "Free — you're already Tribemates" up in the
+          fact rows - repeating it here would just be the same sentence
+          twice. This pill only earns its place when it's carrying
+          information those rows don't: the remaining monthly quota. */}
+      <div
+        className={cn("mt-3 flex items-center gap-2", isFree ? "justify-end" : "justify-between")}
+      >
+        {!isFree && (
+          <span className="inline-flex min-w-0 items-center rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <span className="truncate">
+              {hellosLeft === undefined
+                ? "Tribemates and active Venture co-members don't count against your monthly Hellos"
+                : `${hellosLeft} ${hellosLeft === 1 ? "Hello" : "Hellos"} left this month`}
+            </span>
+          </span>
+        )}
+        <span className="shrink-0 text-[11px] text-muted-foreground">{message.length}/280</span>
       </div>
 
       <button
         onClick={submit}
         disabled={!message.trim() || send.isPending || (hellosLeft === 0 && !isFree)}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
       >
         {send.isPending ? (
           <>
