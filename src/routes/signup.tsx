@@ -142,7 +142,7 @@ function SignupPage() {
           <button
             disabled={busy}
             type="submit"
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="w-full rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create account"}
           </button>
@@ -170,6 +170,11 @@ function SignupPage() {
           Already have an account?{" "}
           <Link to="/login" className="font-semibold text-foreground underline">
             Sign in
+          </Link>
+        </p>
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          <Link to="/verify-email" className="underline">
+            Need a new verification email?
           </Link>
         </p>
         <LegalFooter className="mt-6" />

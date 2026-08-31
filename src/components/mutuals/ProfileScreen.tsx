@@ -234,18 +234,27 @@ export function ProfileScreen({
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="mt-5 w-full rounded-md border border-primary/40 bg-primary/5 p-3 text-left transition-colors hover:bg-primary/10 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="mt-5 w-full rounded-md border p-3 text-left transition-colors active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              style={{
+                borderColor: `color-mix(in oklab, ${tribe.colorVar} 40%, transparent)`,
+                backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 5%, transparent)`,
+              }}
             >
               <div className="flex items-center justify-between text-xs">
                 {/* A percentage is a number with no verb — it nags without
                     telling you what to do. The bar still shows progress. */}
                 <span className="font-semibold">Finish your profile</span>
-                <span className="text-primary">{PROFILE_FIELD_COUNT - profileCompletion} left</span>
+                <span style={{ color: tribe.colorVar }}>
+                  {PROFILE_FIELD_COUNT - profileCompletion} left
+                </span>
               </div>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
                 <span
-                  className="block h-full rounded-full bg-primary"
-                  style={{ width: `${(profileCompletion / PROFILE_FIELD_COUNT) * 100}%` }}
+                  className="block h-full rounded-full"
+                  style={{
+                    width: `${(profileCompletion / PROFILE_FIELD_COUNT) * 100}%`,
+                    backgroundColor: tribe.colorVar,
+                  }}
                 />
               </div>
             </button>
@@ -705,7 +714,12 @@ export function EditProfileModal({
             multi-row pill groups read as cramped at the same tight rhythm
             that works fine for single-line inputs. */}
         <div className="space-y-4 pt-4">
-          <GenderSelect value={gender} onChange={setGender} locked={Boolean(profile.gender)} />
+          <GenderSelect
+            value={gender}
+            onChange={setGender}
+            locked={Boolean(profile.gender)}
+            accentColor={choiceTribe.colorVar}
+          />
           <ProfileChoiceGroup
             label="Interests"
             options={INTEREST_OPTIONS}

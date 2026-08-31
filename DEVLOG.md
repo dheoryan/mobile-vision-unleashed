@@ -205,6 +205,124 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-08-31 — Claude — Balanced the onboarding welcome headline's line wraps
+
+The Step 0 headline ("Start with your Tribe. / Venture when you're
+ready.") was wrapping into orphan lines - "Tribe." and "ready." each
+stranded alone - at its `text-[44px]` size in a narrow column. There was
+never any extra forced break causing it (only the one intentional `<br/>`
+between the two sentences); it was plain word-wrap doing this on its own.
+Added Tailwind's `text-balance` (`text-wrap: balance`) to the `<h1>`, which
+lets the browser choose wrap points that even out line lengths instead of
+leaving single words behind - kept the existing `<br/>` between the two
+sentences so their intentional two-beat rhythm survives, balance just
+applies within whichever of the two needs more than one line.
+
+Confirmed the utility actually compiles (`text-balance{text-wrap:balance}`
+present in the built CSS) rather than live-viewing the exact screen, since
+reaching Step 0 requires being mid-signup and creating a throwaway account
+wasn't asked for. `tsc` clean, `eslint` clean, 131/131 tests, `npm run
+build` succeeds. Not committed.
+
+### 2026-08-31 — Claude — Moved "Need a new verification email?" from Sign in to Create account
+
+User asked why this link sits on `/login`. Reasoned through it out loud
+first (see chat) rather than acting immediately, since it wasn't obviously
+wrong: `login.tsx`'s `submit()` already auto-detects a Supabase "email not
+confirmed" sign-in error and redirects straight to `/verify-email` with a
+toast, so the static link was only ever reachable by someone who hadn't
+attempted a login at all - which is really a "I already signed up" question,
+not a sign-in one. Moved it from `/login`'s footer to `/signup`'s, right
+under the existing "Already have an account? Sign in" line, matching that
+same secondary-link treatment. `/login` keeps only Sign up and Forgot
+password now.
+
+Verified live: `/login` no longer shows it, `/signup` does, positioned
+correctly. `tsc` clean, `eslint` clean, 131/131 tests, `npm run build`
+succeeds. Not committed.
+
+### 2026-08-31 — Claude — Brand gradient on every auth/onboarding primary CTA; Tribe color on the profile-completion nudge and gender picker
+
+User-requested visual pass across 12 specific elements in the sign-in/sign-
+up/onboarding flow and the profile-edit screen. Everything routes through
+the existing `.bg-meutuals-gradient` utility (`styles.css`) - it was already
+established there as "for Wild and brand-level primary surfaces only," which
+is exactly this ask, so no new styling concept was introduced:
+
+- `/login`'s Sign in, `/signup`'s Create account, `/verify-email`'s Resend
+  verification email and Continue to Meutuals (the latter wasn't explicitly
+  screenshotted but sits right next to Resend on the same page in the same
+  role - leaving it solid `bg-primary` would've read as an unfinished pass).
+- Onboarding's `PrimaryButton` (one shared component - covers Get started,
+  Choose a Tribe, Build my social signal, Set nearby preferences, and
+  Finish nearby setup/Finish my profile all at once), the location-confirmed
+  checkmark badge, the Interests/Here for/Usually free `ChoiceGroup` active
+  pill state, and `SetupStage`'s done-checkmark badge on the discovery-radius
+  step.
+- `OnboardingInstall.tsx`'s Install MEUTUALS button.
+
+Two items used the person's **own Tribe color** instead of the brand
+gradient, since they're that specific: the "Finish your profile" nudge card
+on the profile screen (border/tint/count-text/progress-bar fill now all
+`color-mix`/inline-styled off `tribe.colorVar` instead of `bg-primary`), and
+`GenderSelect`'s selected pill - which gained an `accentColor` prop (default
+`var(--primary)`, so its other call site in Onboarding - before a Tribe
+carries this meaning the same way - is unaffected) and is wired to
+`choiceTribe.colorVar` from the one call site in Edit profile.
+
+Verified live against the actual deploy (`moots.lovable.app`'s codebase
+served via local dev, which talks to the same production Supabase):
+confirmed the gradient rendering correctly on Sign in, Create account, and
+Resend verification email. Didn't have a logged-in session available to
+reach the onboarding/profile-edit screens live in this browser tab, so
+those rely on `tsc`/`eslint` passing plus matching dozens of already-proven
+`bg-meutuals-gradient` call sites elsewhere in the app pattern-for-pattern.
+
+`tsc` clean, `eslint` clean, 131/131 tests, `npm run build` succeeds. Not
+committed.
+
+### 2026-08-31 — Claude — Two user-reported bugs on the live deploy: broken image after posting, stale like count on Signal Thread
+
+The user reported two live bugs from their phone after the previous
+deployment (a lot of other agents' work has landed on `main` since that
+deploy too - Signal Thread, comment likes/reposts, repost audience choice,
+a Phosphor icon migration, and more - none of it authored in this entry).
+
+1. **A freshly-created post's photo sometimes rendered as a black box.**
+   Root cause in `ComposerModal.tsx`: `submit()` fires `createPost.mutate()`
+   (which seeds the optimistic feed entry with the images' `blob:` preview
+   URLs) and then immediately calls `reset()`, which unconditionally called
+   `URL.revokeObjectURL()` on those same URLs. The optimistic post keeps
+   rendering those exact blob URLs until the real server response replaces
+   it - revoking them right away killed the preview out from under the
+   still-showing optimistic post, for however long that round trip takes.
+   Fixed by only revoking on genuine draft-discard (closing without
+   posting), never on a successful submit - `reset()` now takes an explicit
+   `{ revokeImages: true }` opt-in used by the two discard paths only.
+2. **Liking/reposting/sharing from the Signal Thread page (the focused
+   `/p/$postId` view) never updated until a manual refresh.** That page
+   queries under its own `["shared-post", postId, ...]` key, holding a
+   single post object - but `patchFeedCount`/`reconcileFeedCount` in
+   `social-store.ts` only ever scanned `["posts"]`-prefixed queries (feed
+   arrays), so a like registered on the feed but never touched the
+   single-post query the Signal Thread page was actually reading from.
+   Rewrote both functions to use `queryClient.setQueriesData` with a
+   predicate matching *any* cached query holding that post - array or
+   single object, whatever key it lives under - so this can't recur for a
+   future single-post query either.
+
+Verified live against production (this project's local dev talks to the
+real Supabase, not a local DB): toggled like on a Signal Thread page twice
+and watched the count update instantly both directions with zero refreshes,
+network calls, or console errors. The image fix is a direct, unambiguous
+lifecycle-ordering read of the code (confirmed no other revoke call sites
+were missed) rather than independently reproduced live - the failure
+window is a race that isn't reliably forceable through UI automation.
+
+`tsc` clean, `eslint` clean, 131/131 tests pass (test count grew from other
+agents' work landing since the last check), `npm run build` succeeds. Not
+committed.
+
 ### 2026-08-30 — Codex — Tribe Plans badge aligned and color-scoped
 
 - Rebuilt the Plans count as a fixed inline-flex badge with an explicit

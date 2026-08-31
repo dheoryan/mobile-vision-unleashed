@@ -247,7 +247,7 @@ export function Onboarding({
           <div className="flex flex-1 flex-col">
             <div className="mt-16 animate-rise">
               <p className="label-mono text-muted-foreground">MEUTUALS</p>
-              <h1 className="mt-3 font-display text-[44px] font-bold leading-[1.05] tracking-tight">
+              <h1 className="mt-3 text-balance font-display text-[44px] font-bold leading-[1.05] tracking-tight">
                 Start with your <span className="text-primary">Tribe</span>.
                 <br />
                 Venture when you're ready.
@@ -551,7 +551,7 @@ export function Onboarding({
                 {location ? (
                   <div className="rounded-2xl border border-primary/35 bg-primary/10 p-4">
                     <div className="flex items-start gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-meutuals-gradient text-white">
                         <Check className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -770,7 +770,7 @@ function PrimaryButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-[opacity,transform] hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40"
+      className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-meutuals-gradient px-4 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-[opacity,transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40"
     >
       {children}
     </button>
@@ -834,7 +834,7 @@ function ChoiceGroup({
               className={cn(
                 "group relative flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
-                  ? "border-primary bg-primary/15 text-primary shadow-sm"
+                  ? "border-transparent bg-meutuals-gradient text-white shadow-sm"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
@@ -842,7 +842,7 @@ function ChoiceGroup({
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                   active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-white/20 text-white"
                     : "bg-secondary text-muted-foreground group-hover:text-foreground",
                 )}
               >
@@ -881,7 +881,7 @@ function SetupStage({
       <span
         className={cn(
           "mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
-          done ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+          done ? "bg-meutuals-gradient text-white" : "bg-secondary text-muted-foreground",
         )}
       >
         {done ? <Check className="h-3.5 w-3.5" /> : "·"}

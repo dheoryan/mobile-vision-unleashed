@@ -96,38 +96,65 @@ export function useSocial() {
   };
 }
 
+type CountField = "likes_count" | "shares_count" | "reposts_count";
+
+function isCountedPost(value: unknown, postId: string, field: CountField): value is FeedPost {
+  return (
+    !!value && typeof value === "object" && (value as FeedPost).id === postId && field in value
+  );
+}
+
+/**
+ * Walks every cached query - not just the `["posts"]`-prefixed feed lists -
+ * and patches any that hold this post, whether as an array (a feed) or a
+ * single object (the Signal Thread page's own `["shared-post", ...]`
+ * query). Scoping this to `["posts"]` only used to mean liking/reposting/
+ * sharing a post from its own focused page never updated until a manual
+ * refresh, since that page's query lives under a different top-level key
+ * entirely.
+ */
 function patchFeedCount(
   qc: ReturnType<typeof useQueryClient>,
   postId: string,
-  field: "likes_count" | "shares_count" | "reposts_count",
+  field: CountField,
   delta: number,
 ) {
-  qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
-    if (!data || !Array.isArray(data)) return;
-    if (!data.some((p) => p && typeof p === "object" && "id" in p && p.id === postId)) return;
-    qc.setQueryData(
-      key,
-      data.map((p) =>
-        p.id === postId ? { ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) } : p,
-      ),
-    );
-  });
+  qc.setQueriesData<FeedPost[] | FeedPost>(
+    {
+      predicate: (query) => {
+        const data = query.state.data;
+        if (Array.isArray(data)) return data.some((p) => isCountedPost(p, postId, field));
+        return isCountedPost(data, postId, field);
+      },
+    },
+    (data) => {
+      if (!data) return data;
+      const bump = (p: FeedPost) => ({ ...p, [field]: Math.max((p[field] ?? 0) + delta, 0) });
+      return Array.isArray(data) ? data.map((p) => (p.id === postId ? bump(p) : p)) : bump(data);
+    },
+  );
 }
 
 function reconcileFeedCount(
   qc: ReturnType<typeof useQueryClient>,
   postId: string,
-  field: "likes_count" | "shares_count" | "reposts_count",
+  field: CountField,
   value: number,
 ) {
-  qc.getQueriesData<FeedPost[]>({ queryKey: ["posts"] }).forEach(([key, data]) => {
-    if (!data || !Array.isArray(data)) return;
-    if (!data.some((p) => p.id === postId)) return;
-    qc.setQueryData(
-      key,
-      data.map((p) => (p.id === postId ? { ...p, [field]: Math.max(value, 0) } : p)),
-    );
-  });
+  qc.setQueriesData<FeedPost[] | FeedPost>(
+    {
+      predicate: (query) => {
+        const data = query.state.data;
+        if (Array.isArray(data)) return data.some((p) => isCountedPost(p, postId, field));
+        return isCountedPost(data, postId, field);
+      },
+    },
+    (data) => {
+      if (!data) return data;
+      const set = (p: FeedPost) => ({ ...p, [field]: Math.max(value, 0) });
+      return Array.isArray(data) ? data.map((p) => (p.id === postId ? set(p) : p)) : set(data);
+    },
+  );
 }
 
 export function useToggleLike() {

@@ -10,7 +10,7 @@ type Search = { email?: string };
 
 export const Route = createFileRoute("/verify-email")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    email: typeof search['email'] === "string" ? search['email'] : undefined,
+    email: typeof search["email"] === "string" ? search["email"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -109,7 +109,7 @@ function VerifyEmailPage() {
             </p>
             <button
               onClick={() => navigate({ to: "/" })}
-              className="mt-8 w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground"
+              className="mt-8 w-full rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               Continue to Meutuals
             </button>
@@ -153,7 +153,7 @@ function VerifyEmailPage() {
             <button
               onClick={resend}
               disabled={busy || cooldown > 0}
-              className="mt-3 w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="mt-3 w-full rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
             >
               {busy
                 ? "Sending…"

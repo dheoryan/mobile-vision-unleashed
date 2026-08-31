@@ -71,10 +71,19 @@ export function ComposerModal({
   const [audience, setAudience] = useState<Audience>(audienceLocked ? "tribe" : initialAudience);
   const effectiveAudience: Audience = audienceLocked ? "tribe" : audience;
 
-  const reset = () => {
+  // Revoking is only safe when the images are genuinely abandoned (the
+  // draft is being discarded). The optimistic post created on submit keeps
+  // rendering these exact blob: URLs until the real server response
+  // replaces it - revoking them at that point (as `reset` used to,
+  // unconditionally, right after every submit) killed the preview out from
+  // under the still-showing optimistic post, leaving a blank/black image
+  // area until the real signed URL eventually arrived.
+  const reset = (options: { revokeImages?: boolean } = {}) => {
     setText("");
     setCaret(0);
-    images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    if (options.revokeImages) {
+      images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    }
     setImages([]);
     setAudience(audienceLocked ? "tribe" : initialAudience);
     setConfirmDiscard(false);
@@ -181,7 +190,7 @@ export function ComposerModal({
       setConfirmDiscard(true);
       return;
     }
-    reset();
+    reset({ revokeImages: true });
     onClose();
   };
 
@@ -218,7 +227,7 @@ export function ComposerModal({
           <div className="mt-5 flex flex-col gap-2">
             <button
               onClick={() => {
-                reset();
+                reset({ revokeImages: true });
                 onClose();
               }}
               className="w-full rounded-2xl bg-destructive py-3.5 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
