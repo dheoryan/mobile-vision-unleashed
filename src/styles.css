@@ -116,6 +116,15 @@
     text-size-adjust: 100%;
   }
   html, body, #root { height: 100%; }
+  html, body {
+    /* This app is a PWA meant to feel native, not a document a visitor
+       pinches around like a webpage. `user-scalable=no` in the viewport meta
+       tag is the primary lever, but iOS ignores it once the app is installed
+       and launched standalone, so `touch-action` is the layer that actually
+       holds there: it blocks pinch-zoom and double-tap-zoom at the gesture
+       level while still allowing normal one-finger panning and taps. */
+    touch-action: manipulation;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

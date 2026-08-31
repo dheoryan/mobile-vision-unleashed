@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "viewport",
         content:
-          "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content",
       },
       { name: "theme-color", content: "#0F0F0F" },
       // iOS ignores the manifest for standalone launches; these three are what

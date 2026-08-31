@@ -44,6 +44,41 @@ export function PwaLifecycle() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Belt-and-suspenders for pinch-zoom: the viewport meta's
+    // `user-scalable=no` and the global `touch-action: manipulation` in
+    // styles.css cover Android Chrome and Safari in a regular browser tab,
+    // but iOS Safari has a long history of still allowing a pinch gesture to
+    // zoom the whole page once the app is installed and launched standalone
+    // - `gesturestart`/`gesturechange` are WebKit-proprietary events that
+    // fire for exactly that gesture, so suppressing them closes the gap
+    // those two CSS/meta levers don't reach.
+    const preventGesture = (event: Event) => event.preventDefault();
+    document.addEventListener("gesturestart", preventGesture);
+    document.addEventListener("gesturechange", preventGesture);
+
+    // Also blocks the two-finger pinch on platforms that route it through
+    // touchmove instead of the gesture events above.
+    let lastTouchCount = 0;
+    const trackTouchStart = (event: TouchEvent) => {
+      lastTouchCount = event.touches.length;
+    };
+    const preventMultiTouchZoom = (event: TouchEvent) => {
+      if (event.touches.length > 1 || lastTouchCount > 1) event.preventDefault();
+    };
+    document.addEventListener("touchstart", trackTouchStart, { passive: true });
+    document.addEventListener("touchmove", preventMultiTouchZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("touchstart", trackTouchStart);
+      document.removeEventListener("touchmove", preventMultiTouchZoom);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
     if (isPreviewContext()) {
