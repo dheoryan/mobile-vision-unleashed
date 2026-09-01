@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { signVentureImageUrl } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
+import { LazyImage } from "./LazyImage";
 
 /**
  * A Venture's photo.
@@ -73,6 +74,12 @@ export function VentureCardShell({
   }, [path]);
 
   const hasPhoto = Boolean(path && url);
+  // The signed URL is a round trip on its own, separate from the image
+  // bytes - without this branch the card rendered as if there were no
+  // photo at all until that resolved, then popped the whole media header in,
+  // shifting the header text with it. Keeping the same 44-height block in a
+  // shimmer state means only the photo itself fades in later.
+  const resolvingPhoto = Boolean(path) && !url;
 
   return (
     <article
@@ -83,11 +90,11 @@ export function VentureCardShell({
     >
       {hasPhoto ? (
         <div className="relative h-44 w-full">
-          <img
+          <LazyImage
             src={url!}
             alt=""
-            loading="lazy"
-            decoding="async"
+            eager
+            wrapperClassName="absolute inset-0 h-full w-full"
             className="absolute inset-0 h-full w-full object-cover"
           />
           {/* Anchored to the bottom, so it is fully opaque exactly where the
@@ -98,10 +105,16 @@ export function VentureCardShell({
           />
           {header && <div className="absolute inset-x-0 bottom-0 px-4 pb-3">{header}</div>}
         </div>
+      ) : resolvingPhoto ? (
+        <div className="shimmer relative h-44 w-full">
+          {header && <div className="absolute inset-x-0 bottom-0 px-4 pb-3">{header}</div>}
+        </div>
       ) : (
         header && <div className="px-4 pt-4">{header}</div>
       )}
-      <div className={cn("px-4 pb-4", hasPhoto ? "pt-3" : "pt-2")}>{children}</div>
+      <div className={cn("px-4 pb-4", hasPhoto || resolvingPhoto ? "pt-3" : "pt-2")}>
+        {children}
+      </div>
     </article>
   );
 }
@@ -131,11 +144,20 @@ export function VentureImage({
     };
   }, [path]);
 
-  if (!path || !url) return null;
+  if (!path) return null;
+
+  if (!url) {
+    return <div className={cn("shimmer bg-background/40", rounded, className)} />;
+  }
 
   return (
     <div className={cn("overflow-hidden bg-background/40", rounded, className)}>
-      <img src={url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+      <LazyImage
+        src={url}
+        alt=""
+        wrapperClassName="h-full w-full"
+        className="h-full w-full object-cover"
+      />
     </div>
   );
 }

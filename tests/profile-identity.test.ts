@@ -23,6 +23,6 @@ test("public profiles use the shared secondary-header back control", () => {
   assert.match(publicProfileSource, /grid-cols-\[1fr_auto_1fr\]/);
   assert.match(publicProfileSource, /aria-label="Back to MEUTUALS"/);
   assert.match(publicProfileSource, /className="flex h-11 w-11/);
-  assert.match(publicProfileSource, /<ChevronLeft className="h-5 w-5"/);
+  assert.match(publicProfileSource, /<CaretLeftIcon className="h-5 w-5"/);
   assert.doesNotMatch(publicProfileSource, /<ArrowLeft[^>]*\/> Back/);
 });

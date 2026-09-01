@@ -12,6 +12,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { RealtimeBridge } from "@/lib/realtime-bridge";
 import { PushPromptModal } from "@/components/mutuals/PushPromptModal";
 import { PwaLifecycle } from "@/components/mutuals/PwaLifecycle";
+import { ImageProtection } from "@/components/mutuals/ImageProtection";
 
 import appCss from "../styles.css?url";
 
@@ -160,6 +161,7 @@ function RootComponent() {
       <AuthProvider>
         <RealtimeBridge />
         <PwaLifecycle />
+        <ImageProtection />
         <Outlet />
         <PushPromptModal />
         <Toaster

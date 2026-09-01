@@ -211,7 +211,9 @@ export function AppBootstrapSkeleton() {
           <p className="label-mono text-primary">REINVENTING HOW WE SOCIALIZE</p>
           <p className="mt-1 font-display text-2xl font-bold tracking-tight">MEUTUALS</p>
         </div>
-        <Skeleton className="mt-6 h-1 w-20 rounded-full" />
+        <div className="splash-loading-track mt-6 h-1 w-20 rounded-full">
+          <span className="splash-loading-thumb" />
+        </div>
       </div>
     </LoadingRegion>
   );

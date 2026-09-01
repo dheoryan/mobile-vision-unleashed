@@ -5,6 +5,7 @@ import {
   createPost,
   deleteComment,
   deletePost,
+  editComment,
   editPost,
   hideComment,
   listComments,
@@ -454,6 +455,7 @@ export type AddCommentInput = {
   content: string;
   parent_id?: string | null;
   mentions?: string[];
+  image_path?: string | null;
 };
 
 export function useAddComment(postId: string) {
@@ -469,6 +471,7 @@ export function useAddComment(postId: string) {
           content: obj.content,
           parent_id: obj.parent_id ?? null,
           mentions: obj.mentions ?? [],
+          image_path: obj.image_path ?? null,
         },
       });
     },
@@ -486,6 +489,12 @@ export function useAddComment(postId: string) {
         mentions: obj.mentions ?? [],
         likes_count: 0,
         reposts_count: 0,
+        // The real signed URL only exists once the server resolves the
+        // path; onSettled's refetch fills it in the same way useEditPost
+        // leaves a new photo blank until the real edit lands.
+        image_url: null,
+        image_path: obj.image_path ?? null,
+        edited_at: null,
         author: null,
       };
       qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) => [...(cur ?? []), optimistic]);
@@ -510,6 +519,56 @@ export function useAddComment(postId: string) {
         rows.map((p) =>
           p.id === postId ? { ...p, replies_count: Math.max(p.replies_count - 1, 0) } : p,
         ),
+      );
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+    },
+  });
+}
+
+export type EditCommentInput = {
+  id: string;
+  content: string;
+  /** Omit to leave the photo untouched, null to remove it, a path to
+   *  replace it - same three-state shape as useEditPost's image_paths. */
+  image_path?: string | null;
+};
+
+export function useEditComment(postId: string) {
+  const fn = useServerFn(editComment);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EditCommentInput) => fn({ data: input }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: COMMENTS_KEY(postId) });
+      let snapshot: CommentRow | undefined;
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
+        (cur ?? []).map((c) => {
+          if (c.id !== input.id) return c;
+          snapshot = c;
+          return {
+            ...c,
+            content: input.content,
+            edited_at: new Date().toISOString(),
+            ...(input.image_path === undefined
+              ? {}
+              : { image_url: null, image_path: input.image_path }),
+          };
+        }),
+      );
+      return { snapshot };
+    },
+    onError: (_e, _i, ctx) => {
+      if (!ctx?.snapshot) return;
+      const s = ctx.snapshot;
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
+        (cur ?? []).map((c) => (c.id === s.id ? s : c)),
+      );
+    },
+    onSuccess: (saved) => {
+      qc.setQueryData<CommentRow[]>(COMMENTS_KEY(postId), (cur) =>
+        (cur ?? []).map((c) => (c.id === saved.id ? saved : c)),
       );
     },
     onSettled: () => {

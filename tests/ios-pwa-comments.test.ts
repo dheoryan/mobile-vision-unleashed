@@ -47,7 +47,7 @@ test("the thread uses signal-specific reply copy", () => {
 
 test("authors confirm before deleting their own reply", () => {
   assert.match(commentsModalSource, /const \[deleteTarget, setDeleteTarget\]/);
-  assert.match(commentsModalSource, /onClick=\{\(\) => onDelete\(c\)\}/);
+  assert.match(commentsModalSource, /onDelete=\{\(\) => onDelete\(c\)\}/);
   assert.match(commentsModalSource, /title="Delete this reply\?"/);
   assert.match(commentsModalSource, /preventClose=\{deleteComment\.isPending\}/);
   assert.match(commentsModalSource, /If it has replies, they’ll be removed/);

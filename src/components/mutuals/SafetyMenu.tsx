@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
@@ -32,6 +33,8 @@ export function SafetyMenu({
   className = "",
   buttonClassName = "",
   onHideComment,
+  saved,
+  onToggleSave,
 }: {
   targetName: string;
   /** Person id for "user" kind. Required to actually filter feeds when blocked. */
@@ -45,6 +48,12 @@ export function SafetyMenu({
   buttonClassName?: string;
   /** Post-owner-only moderation action. Omit outside comment rows the viewer owns. */
   onHideComment?: () => void;
+  /** Current save state for kind === "post". Omit both this and
+   *  onToggleSave outside a post's own menu - saving isn't a safety
+   *  action, but it lives in the same "…" sheet as one rather than its own
+   *  separate button in the action row. */
+  saved?: boolean;
+  onToggleSave?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -97,6 +106,34 @@ export function SafetyMenu({
           </div>
 
           <div className="border-y border-border">
+            {onToggleSave && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onToggleSave();
+                }}
+                className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              >
+                <span
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                    saved ? "bg-amber-400/12 text-amber-400" : "bg-primary/12 text-primary",
+                  )}
+                >
+                  <BookmarkSimpleIcon className="h-5 w-5" weight={saved ? "fill" : "regular"} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">
+                    {saved ? "Unsave post" : "Save post"}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {saved ? "Remove it from your saved posts" : "Keep it in your saved posts"}
+                  </span>
+                </span>
+                <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
             {onHideComment && (
               <button
                 type="button"
@@ -127,7 +164,7 @@ export function SafetyMenu({
               }}
               className={cn(
                 "group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-                onHideComment && "border-t border-border",
+                (onToggleSave || onHideComment) && "border-t border-border",
               )}
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">

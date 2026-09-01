@@ -37,7 +37,7 @@ export function AvatarLightbox({
         className="flex h-full w-full items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
       >
         <span className="aspect-square w-[min(82vw,420px)] overflow-hidden rounded-full ring-1 ring-white/10">
-          <img src={src} alt={alt} className="h-full w-full object-cover" />
+          <img src={src} alt={alt} draggable={false} className="h-full w-full object-cover" />
         </span>
       </button>
 

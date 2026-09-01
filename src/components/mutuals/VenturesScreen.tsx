@@ -919,6 +919,7 @@ function LookView({
           }
           actionLabel="Host a Venture"
           onAction={onStartHosting}
+          gradient
         />
       )}
     </>
@@ -1095,6 +1096,7 @@ function HostView({
             body="Create a new plan and review requests here as they arrive."
             actionLabel="Create Venture"
             onAction={openCreator}
+            gradient
           />
         ) : (
           <EmptyPanel
@@ -1432,7 +1434,12 @@ function HostForm({
         <button
           type="submit"
           disabled={!canSubmit || create.isPending || update.isPending}
-          className="inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          className={cn(
+            "inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold transition-[transform,filter] active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+            isEditing
+              ? "bg-meutuals-gradient text-white hover:brightness-110"
+              : "bg-primary text-primary-foreground transition-colors hover:bg-primary/90",
+          )}
         >
           {create.isPending || update.isPending ? (
             <SpinnerGapIcon className="h-4 w-4 animate-spin" />
@@ -2556,12 +2563,17 @@ function EmptyPanel({
   body,
   actionLabel,
   onAction,
+  gradient = false,
 }: {
   icon: React.ReactNode;
   title: string;
   body: string;
   actionLabel: string;
   onAction: () => void;
+  /** The brand gradient is a scope signal reserved for hosting a Venture -
+   *  the app's other CTAs (browse, close, back) stay on the plain primary
+   *  fill so the one action that actually starts something new stands out. */
+  gradient?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-border p-6 text-center">
@@ -2573,7 +2585,12 @@ function EmptyPanel({
       <button
         type="button"
         onClick={onAction}
-        className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className={cn(
+          "mt-4 inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-semibold transition-[transform,filter] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          gradient
+            ? "bg-meutuals-gradient text-white hover:brightness-110"
+            : "bg-primary text-primary-foreground transition-colors hover:bg-primary/90",
+        )}
       >
         {actionLabel}
       </button>

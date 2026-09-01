@@ -12,12 +12,17 @@ import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
 import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ReplyPreview } from "./ReplyPreview";
 import { SafetyMenu } from "./SafetyMenu";
+import { LazyImage } from "./LazyImage";
 import {
   useComments,
   useAddComment,
+  useEditComment,
   useDeleteComment,
   useHideComment,
   useHiddenComments,
@@ -37,8 +42,12 @@ import { useMentionPicker, useMentionRegistry, MentionSuggestions } from "./Ment
 import { applyMention, collectMentionIds } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
-import { type TribeId } from "@/lib/mutuals-data";
+import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { RepostAudienceChoices, type RepostAudience } from "./RepostAudienceChoices";
+import { uploadCommentImage } from "@/lib/uploads";
+import { compressImage } from "@/lib/image-compress";
+
+const MAX_COMMENT_IMG_BYTES = 15 * 1024 * 1024;
 
 const TRIBE_FALLBACK = "var(--color-primary)";
 
@@ -65,13 +74,21 @@ export function CommentsThread({
   const [text, setText] = useState("");
   const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<CommentRow | null>(null);
+  const [editTarget, setEditTarget] = useState<CommentRow | null>(null);
   const [repostTarget, setRepostTarget] = useState<CommentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CommentRow | null>(null);
+  // Shared between composing and editing - only one is ever active, so one
+  // pair of image slots is simpler than duplicating it per mode.
+  const [imagePath, setImagePath] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const visualViewport = useVisualViewport(true);
 
   const commentsQuery = useComments(postId);
   const addComment = useAddComment(postId);
+  const editComment = useEditComment(postId);
   const deleteComment = useDeleteComment(postId);
   const commentLikes = useMyCommentLikes(postId);
   const commentReposts = useMyCommentReposts(postId);
@@ -122,6 +139,13 @@ export function CommentsThread({
 
   const tribeColor = TRIBE_FALLBACK;
   const roots = tree.get(null) ?? [];
+  // The composer's send action carries the audience it's actually posting
+  // into: The Wild is cross-Tribe ground (the brand gradient, same as every
+  // other Wild-scoped primary action), a Tribe thread gets that Tribe's own
+  // color - not the generic primary fallback every other accent in this
+  // panel still uses.
+  const isWild = sourceAudience === "all";
+  const postTribeColor = tribeById(sourceTribeId).colorVar;
 
   const changeCommentRepost = (audience: RepostAudience) => {
     if (!repostTarget) return;
@@ -147,19 +171,64 @@ export function CommentsThread({
     );
   };
 
+  const clearImage = () => {
+    setImagePath(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const pickImage = async (file?: File) => {
+    if (!file || !user?.id) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are supported.");
+      return;
+    }
+    if (file.size > MAX_COMMENT_IMG_BYTES) {
+      toast.error("Image too large (max 15 MB).");
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const compressed = await compressImage(file);
+      const path = await uploadCommentImage(user.id, compressed);
+      setImagePath(path);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch (error) {
+      toast.error("Could not upload that photo", { description: (error as Error).message });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const send = () => {
     const t = text.trim();
-    if (!t) return;
+    if (!t && !imagePath) return;
     const mentions = collectMentionIds(t, registry);
     setText("");
     setCaret(0);
+    const path = imagePath;
+    clearImage();
+
+    if (editTarget) {
+      const id = editTarget.id;
+      setEditTarget(null);
+      editComment.mutate(
+        { id, content: t, image_path: path },
+        {
+          onError: (e) =>
+            toast.error("Comment wasn't updated", { description: (e as Error).message }),
+        },
+      );
+      return;
+    }
+
     const parent = replyTo;
     // Flatten nested replies: a reply to a reply attaches to the root comment
     // so the whole conversation stays in one thread (Instagram-style).
     const rootParentId = parent ? (parent.parent_id ?? parent.id) : null;
     setReplyTo(null);
     addComment.mutate(
-      { content: t, parent_id: rootParentId, mentions },
+      { content: t, parent_id: rootParentId, mentions, image_path: path },
       { onError: (e) => toast.error("Comment didn't send", { description: (e as Error).message }) },
     );
   };
@@ -191,7 +260,33 @@ export function CommentsThread({
     setCaret(e.target.selectionStart ?? e.target.value.length);
   };
 
+  const startEdit = (c: CommentRow) => {
+    setReplyTo(null);
+    setEditTarget(c);
+    setText(c.content);
+    setImagePath(c.image_path);
+    setImagePreview(c.image_url);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+        setCaret(len);
+      }
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditTarget(null);
+    setText("");
+    setCaret(0);
+    clearImage();
+  };
+
   const startReply = (c: CommentRow) => {
+    setEditTarget(null);
+    clearImage();
     setReplyTo(c);
     if (c.author?.handle) {
       const prefix = `@${c.author.handle} `;
@@ -335,6 +430,7 @@ export function CommentsThread({
                 meAvatar={me?.avatar ?? "🙂"}
                 meName={me?.name?.trim() || "You"}
                 onReply={startReply}
+                onEdit={startEdit}
                 onDelete={setDeleteTarget}
                 isPostOwner={isPostOwner}
                 onHide={(id) => hideComment.mutate(id)}
@@ -373,6 +469,47 @@ export function CommentsThread({
               onCancel={() => setReplyTo(null)}
             />
           )}
+          {editTarget && (
+            <div className="mb-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs">
+              <PencilSimpleIcon className="h-3.5 w-3.5 shrink-0" style={{ color: tribeColor }} />
+              <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                Editing your comment
+              </span>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Cancel editing"
+              >
+                <XIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {imagePreview && (
+            <div className="mb-1.5 flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2">
+              <img
+                src={imagePreview}
+                alt="Selected attachment"
+                className="h-14 w-14 rounded-lg object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium">
+                  {uploadingImage ? "Uploading…" : "Photo attached"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {uploadingImage ? "Hang on a second" : "Ready to send"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearImage}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Remove selected photo"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            </div>
+          )}
           <div className="relative">
             <MentionSuggestions suggestions={picker.suggestions} onPick={onPickMention} />
             <div className="flex min-h-12 items-center gap-2 rounded-full border border-border/90 bg-background/75 px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
@@ -403,15 +540,46 @@ export function CommentsThread({
                     send();
                   }
                 }}
-                placeholder={replyTo ? "Write a reply…" : "Add a comment — try @"}
+                placeholder={
+                  editTarget
+                    ? "Edit your comment…"
+                    : replyTo
+                      ? "Write a reply…"
+                      : "Add a comment — try @"
+                }
                 className="min-w-0 flex-1 appearance-none bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
               />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  void pickImage(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+                aria-label="Attach a photo"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+                aria-label="Attach a photo"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </button>
               <button
                 onClick={send}
-                disabled={!text.trim()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-primary-foreground transition-transform active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
-                style={{ backgroundColor: tribeColor }}
-                aria-label="Send comment"
+                disabled={(!text.trim() && !imagePath) || uploadingImage}
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,filter] active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40",
+                  isWild
+                    ? "bg-meutuals-gradient text-white hover:brightness-110"
+                    : "text-primary-foreground",
+                )}
+                style={isWild ? undefined : { backgroundColor: postTribeColor }}
+                aria-label={editTarget ? "Save comment" : "Send comment"}
               >
                 <PaperPlaneTiltIcon className="h-4 w-4" />
               </button>
@@ -535,6 +703,7 @@ function CommentNode({
   meAvatar,
   meName,
   onReply,
+  onEdit,
   onDelete,
   isPostOwner,
   onHide,
@@ -550,6 +719,7 @@ function CommentNode({
   meAvatar: string;
   meName: string;
   onReply: (c: CommentRow) => void;
+  onEdit: (c: CommentRow) => void;
   onDelete: (comment: CommentRow) => void;
   isPostOwner: boolean;
   onHide: (id: string) => void;
@@ -567,6 +737,7 @@ function CommentNode({
         meAvatar={meAvatar}
         meName={meName}
         onReply={onReply}
+        onEdit={onEdit}
         onDelete={onDelete}
         isPostOwner={isPostOwner}
         onHide={onHide}
@@ -586,6 +757,7 @@ function CommentNode({
               meAvatar={meAvatar}
               meName={meName}
               onReply={onReply}
+              onEdit={onEdit}
               onDelete={onDelete}
               isPostOwner={isPostOwner}
               onHide={onHide}
@@ -630,6 +802,7 @@ function CommentItem({
   meAvatar,
   meName,
   onReply,
+  onEdit,
   onDelete,
   isPostOwner,
   onHide,
@@ -644,6 +817,7 @@ function CommentItem({
   meAvatar: string;
   meName: string;
   onReply: (c: CommentRow) => void;
+  onEdit: (c: CommentRow) => void;
   onDelete: (comment: CommentRow) => void;
   isPostOwner: boolean;
   onHide: (id: string) => void;
@@ -788,10 +962,23 @@ function CommentItem({
             <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
               {isPending ? "sending…" : timeAgoLabel(c.created_at)}
             </span>
+            {!isPending && c.edited_at && (
+              <span className="shrink-0 text-[10px] text-muted-foreground/70">· edited</span>
+            )}
           </div>
-          <p className="mt-0.5 text-sm leading-relaxed text-foreground">
-            {renderContent(c.content)}
-          </p>
+          {c.content && (
+            <p className="mt-0.5 text-sm leading-relaxed text-foreground">
+              {renderContent(c.content)}
+            </p>
+          )}
+          {c.image_url && (
+            <LazyImage
+              src={c.image_url}
+              alt=""
+              wrapperClassName="mt-1.5 max-w-[13rem] rounded-xl border border-border"
+              className="max-h-52 w-full rounded-xl object-cover"
+            />
+          )}
           <div className="-mb-1 mt-0.5 flex min-h-11 items-center gap-1 text-[10px] text-muted-foreground">
             {!isPending && (
               <button
@@ -836,13 +1023,7 @@ function CommentItem({
           </div>
         </div>
         {mine && !isPending && (
-          <button
-            onClick={() => onDelete(c)}
-            aria-label="Delete comment"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-          >
-            <TrashIcon className="h-3.5 w-3.5" />
-          </button>
+          <CommentOwnMenu onEdit={() => onEdit(c)} onDelete={() => onDelete(c)} />
         )}
         {!mine && !isPending && (
           <SafetyMenu
@@ -856,6 +1037,102 @@ function CommentItem({
         )}
       </div>
     </div>
+  );
+}
+
+/** Same "…" -> sheet pattern as SafetyMenu, one tap target instead of two
+ *  bare icon buttons - but Edit/Delete aren't safety actions (there's
+ *  nothing to report or block on your own comment), so this is its own
+ *  small sheet rather than SafetyMenu with extra rows bolted on. */
+function CommentOwnMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <div
+        className="relative -mr-2 -mt-1"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Comment options"
+          aria-expanded={open}
+          className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <DotsThreeIcon className="h-4 w-4" />
+        </button>
+      </div>
+
+      <AnimatedModal
+        open={open}
+        onOpenChange={setOpen}
+        title="Comment options"
+        contentClassName="overflow-hidden"
+        zIndex={60}
+      >
+        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
+          <div className="flex items-center justify-between px-5 pb-3 pt-3">
+            <div>
+              <p className="label-mono text-primary">YOUR COMMENT</p>
+              <h2 className="mt-0.5 font-display text-xl font-bold">Comment options</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close comment options"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <XIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="border-y border-border">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onEdit();
+              }}
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                <PencilSimpleIcon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Edit comment</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Change the text or swap the photo
+                </span>
+              </span>
+              <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onDelete();
+              }}
+              className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left text-destructive transition-colors hover:bg-destructive/8 active:bg-destructive/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/12 text-destructive">
+                <TrashIcon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Delete comment</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Removes it from the signal thread
+                </span>
+              </span>
+              <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </button>
+          </div>
+        </div>
+      </AnimatedModal>
+    </>
   );
 }
 

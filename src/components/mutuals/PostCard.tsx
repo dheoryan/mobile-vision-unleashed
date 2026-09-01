@@ -40,6 +40,7 @@ import { showPlusBadge } from "@/lib/feature-flags";
 import { splitPostMentions } from "@/lib/post-mentions";
 import { PostMediaLightbox } from "./PostMediaLightbox";
 import { ImageStrip, type ComposedImage } from "./ImageStrip";
+import { LazyImage } from "./LazyImage";
 import { RepostAudienceChoices, type RepostAudience } from "./RepostAudienceChoices";
 import { useMyProfile } from "@/lib/profile-store";
 
@@ -103,7 +104,8 @@ function PostImageCarousel({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        onClick={() => {
+        onClick={(event) => {
+          event.stopPropagation();
           if (!moved.current) onOpen(index);
         }}
         className="flex touch-pan-y"
@@ -121,10 +123,11 @@ function PostImageCarousel({
       >
         {images.map((src, i) => (
           <div key={src} className="shrink-0" style={{ width: `${100 / images.length}%` }}>
-            <img
+            <LazyImage
               src={src}
               alt={i === 0 ? alt : ""}
               draggable={false}
+              wrapperClassName="min-h-48 max-h-96 w-full"
               className="block h-auto max-h-96 w-full select-none object-cover"
             />
           </div>
@@ -339,7 +342,16 @@ export function PostCard({
   return (
     <article
       data-post-id={post.id}
-      className="rounded-2xl border border-border bg-card p-4"
+      onClick={() => {
+        // Already on this post's own page, mid-edit, or an optimistic row
+        // that has no real id yet - nothing to navigate to in any of those.
+        if (commentsInline || editing || post.id.startsWith("tmp-")) return;
+        void navigate({ to: "/p/$postId", params: { postId: post.id }, search: { from: "feed" } });
+      }}
+      className={cn(
+        "rounded-2xl border border-border bg-card p-4",
+        !commentsInline && !editing && "cursor-pointer",
+      )}
       style={{ ["--tribe-active" as string]: tribe.colorVar }}
     >
       {post.reposted_by && (
@@ -348,7 +360,7 @@ export function PostCard({
           Reposted by {post.reposted_by.display_name?.trim() || "Someone"}
         </p>
       )}
-      <header className="flex items-center gap-3">
+      <header className="flex items-center gap-3" onClick={(event) => event.stopPropagation()}>
         {isMine ? (
           <span className="relative">
             <Avatar value={author.avatar} tribeColor={tribe.colorVar} />
@@ -414,12 +426,28 @@ export function PostCard({
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-9 z-40 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                <div className="absolute right-0 top-9 z-40 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
                   <button
                     onClick={startEdit}
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
                   >
                     <PencilIcon className="h-3.5 w-3.5" /> Edit post
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm hover:bg-secondary",
+                      saved && "text-amber-400",
+                    )}
+                  >
+                    <BookmarkSimpleIcon
+                      className="h-3.5 w-3.5"
+                      weight={saved ? "fill" : "regular"}
+                    />
+                    {saved ? "Unsave post" : "Save post"}
                   </button>
                   <button
                     onClick={() => {
@@ -440,6 +468,10 @@ export function PostCard({
             targetUserId={post.author_id}
             targetPostId={post.id}
             kind="post"
+            saved={saved}
+            onToggleSave={() => {
+              if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
+            }}
           />
         )}
       </header>
@@ -554,7 +586,10 @@ export function PostCard({
         </>
       )}
 
-      <footer className="mt-3 flex items-center gap-5 text-muted-foreground">
+      <footer
+        className="mt-3 flex items-center gap-5 text-muted-foreground"
+        onClick={(event) => event.stopPropagation()}
+      >
         <button
           onClick={() => {
             if (post.id.startsWith("tmp-")) return;
@@ -602,19 +637,6 @@ export function PostCard({
             {post.reposts_count}
           </button>
         </div>
-        <button
-          onClick={() => {
-            if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
-          }}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            saved ? "text-amber-400" : "hover:text-amber-400",
-          )}
-          aria-label={saved ? "Unsave post" : "Save post"}
-          aria-pressed={saved}
-        >
-          <BookmarkSimpleIcon className="h-4 w-4" weight={saved ? "fill" : "regular"} />
-        </button>
         <button
           onClick={share}
           className={cn(

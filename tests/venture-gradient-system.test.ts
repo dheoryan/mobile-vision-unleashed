@@ -36,7 +36,7 @@ test("only the Venture chat composer opts into the gradient send action", () => 
 });
 
 test("Venture completion and inbox category icons are gradient with white icons", () => {
-  assert.match(messages, /rounded-full bg-meutuals-gradient text-white[\s\S]{0,100}<UsersRound/);
+  assert.match(messages, /rounded-full bg-meutuals-gradient text-white[\s\S]{0,100}<UsersIcon/);
   assert.equal((chats.match(/rounded-2xl bg-meutuals-gradient text-white/g) ?? []).length, 2);
 });
 

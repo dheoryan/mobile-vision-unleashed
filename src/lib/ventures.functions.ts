@@ -1456,6 +1456,17 @@ export const updateHostedVenture = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message);
       row = updated as VentureDbRow;
+
+      // The database used to clean up the replaced/removed object itself, but
+      // a raw `delete from storage.objects` is no longer allowed at the SQL
+      // level (Supabase's storage extension now requires going through the
+      // real Storage API so the underlying file is removed, not just the
+      // catalog row) - see 20260901010000. Do it here instead, with the
+      // host's own authenticated client; best-effort, since a failed cleanup
+      // should never block the edit the host actually asked for.
+      if ("image_url" in patch && current.image_url && current.image_url !== row.image_url) {
+        await supabase.storage.from("venture-images").remove([current.image_url]);
+      }
     }
 
     if (rest.private_venue !== undefined) {

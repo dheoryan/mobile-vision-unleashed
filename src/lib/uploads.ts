@@ -17,7 +17,8 @@ async function uploadTo(
     | "post-images"
     | "tribe-chat-attachments"
     | "venture-images"
-    | "chat-attachments",
+    | "chat-attachments"
+    | "comment-images",
   userId: string,
   file: File,
   prefix = userId,
@@ -37,7 +38,8 @@ async function uploadTo(
     bucket === "tribe-chat-attachments" ||
     bucket === "post-images" ||
     bucket === "venture-images" ||
-    bucket === "chat-attachments"
+    bucket === "chat-attachments" ||
+    bucket === "comment-images"
   ) {
     return path;
   }
@@ -48,6 +50,8 @@ async function uploadTo(
 export const uploadAvatar = (userId: string, file: File) => uploadTo("avatars", userId, file);
 export const uploadPostImage = (userId: string, file: File) =>
   uploadTo("post-images", userId, file);
+export const uploadCommentImage = (userId: string, file: File) =>
+  uploadTo("comment-images", userId, file);
 export const uploadTribeChatImage = (tribeId: string, userId: string, file: File) =>
   uploadTo("tribe-chat-attachments", userId, file, tribeId);
 export const uploadVentureImage = (userId: string, file: File) =>

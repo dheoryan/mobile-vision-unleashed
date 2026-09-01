@@ -64,17 +64,74 @@ export type CommentRow = {
   mentions: string[];
   likes_count: number;
   reposts_count: number;
+  /** Signed URL, resolved at read time - never a public link (comment
+   *  photos follow their post's audience, same as post-images). */
+  image_url: string | null;
+  image_path: string | null;
+  /** Set the moment content or the photo actually changes; null means
+   *  never edited. */
+  edited_at: string | null;
   author: AuthorLite | null;
 };
 
 export type CommentMutationResult = CommentRow & { replies_count: number };
 
+// `comments.image_url` / `edited_at` (20260901020000) aren't in the
+// generated Database types yet - same "migration is live, types.ts hasn't
+// caught up" situation list_post_images_for_posts already documents below.
+// Routing every comments query through this cast is what keeps that one
+// unlanded pair of columns from breaking every comment read/write in the
+// file, without loosening anything else.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function commentsTable(supabase: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return supabase.from("comments") as any;
+}
+
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan";
 const POST_IMAGE_BUCKET = "post-images";
 const POST_IMAGE_PATH = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\/[A-Za-z0-9._-]+$/i;
+const COMMENT_IMAGE_BUCKET = "comment-images";
 
 function isPostImagePath(value: string | null): value is string {
   return !!value && POST_IMAGE_PATH.test(value);
+}
+
+// Same shape as a post image path (userId/filename) - the regex doesn't
+// need its own copy, only the bucket the path is signed against differs.
+function isCommentImagePath(value: string | null): value is string {
+  return !!value && POST_IMAGE_PATH.test(value);
+}
+
+async function attachCommentImageUrls<T extends { image_url: string | null }>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  rows: T[],
+): Promise<(Omit<T, "image_url"> & { image_path: string | null; image_url: string | null })[]> {
+  const paths = Array.from(new Set(rows.map((row) => row.image_url).filter(isCommentImagePath)));
+  if (!paths.length) {
+    return rows.map((row) => ({ ...row, image_path: null }));
+  }
+
+  const { data, error } = await supabase.storage
+    .from(COMMENT_IMAGE_BUCKET)
+    .createSignedUrls(paths, 3600);
+  if (error) throw new Error(error.message);
+  const urlsByPath = new Map(
+    (data ?? []).map((item: { path: string; signedUrl: string | null }) => [
+      item.path,
+      item.signedUrl,
+    ]),
+  );
+
+  return rows.map((row) => {
+    if (!isCommentImagePath(row.image_url)) return { ...row, image_path: null };
+    return {
+      ...row,
+      image_path: row.image_url,
+      image_url: urlsByPath.get(row.image_url) ?? null,
+    };
+  });
 }
 
 async function attachAuthors<T extends { author_id: string }>(
@@ -219,13 +276,17 @@ async function hydratePosts(
       ? supabase.from("posts").select(POST_COLS).in("id", quotedIds)
       : Promise.resolve({ data: [], error: null }),
     quotedCommentIds.length
-      ? supabase.from("comments").select(COMMENT_COLS).in("id", quotedCommentIds)
+      ? commentsTable(supabase).select(COMMENT_COLS).in("id", quotedCommentIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (quotedResult.error) throw new Error(quotedResult.error.message);
   if (commentResult.error) throw new Error(commentResult.error.message);
   const quotedHydrated = await hydratePosts(supabase, quotedResult.data ?? [], { shallow: true });
-  const quotedComments = (await attachAuthors(supabase, commentResult.data ?? [])) as CommentRow[];
+  const quotedComments = (await attachCommentImageUrls(
+    supabase,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (await attachAuthors(supabase, commentResult.data ?? [])) as any,
+  )) as CommentRow[];
   const quotedById = new Map(quotedHydrated.map((p) => [p.id, p]));
   const commentsById = new Map(quotedComments.map((comment) => [comment.id, comment]));
   return hydrated.map((p) => ({
@@ -252,7 +313,7 @@ const POST_COLS =
   "id, author_id, tribe_id, audience, content, image_url, tag, likes_count, replies_count, shares_count, reposts_count, quoted_post_id, quoted_comment_id, created_at";
 
 const COMMENT_COLS =
-  "id, post_id, author_id, content, created_at, parent_id, mentions, likes_count, reposts_count";
+  "id, post_id, author_id, content, created_at, parent_id, mentions, likes_count, reposts_count, image_url, edited_at";
 
 /**
  * Two feeds, two audiences, no overlap.
@@ -610,8 +671,7 @@ export const listComments = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ post_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: rows, error } = await supabase
-      .from("comments")
+    const { data: rows, error } = await commentsTable(supabase)
       .select(COMMENT_COLS)
       .eq("post_id", data.post_id)
       .order("created_at", { ascending: false })
@@ -619,8 +679,14 @@ export const listComments = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const newestWindow = [...(rows ?? [])].reverse();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (await attachAuthors(supabase, newestWindow as any)) as CommentRow[];
+    const withAuthors = (await attachAuthors(supabase, newestWindow as any)) as any;
+    return (await attachCommentImageUrls(supabase, withAuthors)) as CommentRow[];
   });
+
+const commentImagePathSchema = z
+  .string()
+  .regex(POST_IMAGE_PATH, "Invalid comment image path")
+  .max(200);
 
 export const addComment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -628,31 +694,97 @@ export const addComment = createServerFn({ method: "POST" })
     z
       .object({
         post_id: z.string().uuid(),
-        content: z.string().min(1).max(500),
+        content: z.string().max(500),
         parent_id: z.string().uuid().nullable().optional(),
         mentions: z.array(z.string().uuid()).max(20).optional(),
+        image_path: commentImagePathSchema.nullable().optional(),
+      })
+      .refine((v) => v.content.trim().length > 0 || !!v.image_path, {
+        message: "Comment can't be empty",
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: row, error } = await supabase
-      .from("comments")
+    if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
+      throw new Error("Comment images must belong to the author");
+    }
+    const { data: row, error } = await commentsTable(supabase)
       .insert({
         post_id: data.post_id,
         author_id: userId,
         content: data.content,
         parent_id: data.parent_id ?? null,
         mentions: data.mentions ?? [],
+        image_url: data.image_path ?? null,
       })
       .select(COMMENT_COLS)
       .single();
     if (error) throw new Error(error.message);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [withAuthor] = await attachAuthors(supabase, [row as any]);
+    const [withImage] = await attachCommentImageUrls(supabase, [withAuthor as CommentRow]);
     return {
-      ...(withAuthor as CommentRow),
+      ...(withImage as CommentRow),
       replies_count: await getRepliesCount(supabase, data.post_id),
+    };
+  });
+
+const editCommentSchema = z.object({
+  id: z.string().uuid(),
+  content: z.string().max(500),
+  image_path: commentImagePathSchema.nullable().optional(),
+});
+
+export const editComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => editCommentSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    if (data.image_path && !data.image_path.startsWith(`${userId}/`)) {
+      throw new Error("Comment images must belong to the author");
+    }
+    if (!data.content.trim() && !data.image_path) {
+      throw new Error("Comment can't be empty");
+    }
+
+    const { data: current, error: lookupError } = await commentsTable(supabase)
+      .select("post_id, author_id, image_url")
+      .eq("id", data.id)
+      .single();
+    if (lookupError) throw new Error(lookupError.message);
+    if (current.author_id !== userId) throw new Error("You can only edit your own comment");
+
+    const patch: Record<string, unknown> = { content: data.content };
+    if (data.image_path !== undefined) patch.image_url = data.image_path ?? null;
+
+    const { data: row, error } = await commentsTable(supabase)
+      .update(patch)
+      .eq("id", data.id)
+      .select(COMMENT_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+
+    // The old photo, if it was replaced or cleared, is now orphaned. Cleaned
+    // up here with the author's own authenticated client rather than a
+    // database trigger - see 20260901010000's writeup on why a raw SQL
+    // delete against storage.objects no longer works.
+    const oldImage = current.image_url as string | null;
+    if (
+      data.image_path !== undefined &&
+      oldImage &&
+      isCommentImagePath(oldImage) &&
+      oldImage !== row.image_url
+    ) {
+      await supabase.storage.from(COMMENT_IMAGE_BUCKET).remove([oldImage]);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [withAuthor] = await attachAuthors(supabase, [row as any]);
+    const [withImage] = await attachCommentImageUrls(supabase, [withAuthor as CommentRow]);
+    return {
+      ...(withImage as CommentRow),
+      replies_count: await getRepliesCount(supabase, current.post_id as string),
     };
   });
 
@@ -920,15 +1052,18 @@ export const deleteComment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: existing, error: lookupError } = await supabase
-      .from("comments")
-      .select("post_id")
+    const { data: existing, error: lookupError } = await commentsTable(supabase)
+      .select("post_id, image_url")
       .eq("id", data.id)
       .single();
     if (lookupError) throw new Error(lookupError.message);
     const postId = existing.post_id as string;
-    const { error } = await supabase.from("comments").delete().eq("id", data.id);
+    const { error } = await commentsTable(supabase).delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    const image = existing.image_url as string | null;
+    if (image && isCommentImagePath(image)) {
+      await supabase.storage.from(COMMENT_IMAGE_BUCKET).remove([image]);
+    }
     return { id: data.id, post_id: postId, replies_count: await getRepliesCount(supabase, postId) };
   });
 
@@ -965,8 +1100,10 @@ export const listHiddenComments = createServerFn({ method: "GET" })
       _post_id: data.post_id,
     });
     if (error) throw new Error(error.message);
-    const withAuthors = await attachAuthors(supabase, rows ?? []);
-    return withAuthors.map((comment) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withAuthors = (await attachAuthors(supabase, (rows ?? []) as any)) as any;
+    const withImages = await attachCommentImageUrls(supabase, withAuthors);
+    return withImages.map((comment) => ({
       ...comment,
       likes_count: "likes_count" in comment ? Number(comment.likes_count) : 0,
       reposts_count: "reposts_count" in comment ? Number(comment.reposts_count) : 0,

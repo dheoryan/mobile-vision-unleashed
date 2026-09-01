@@ -22,6 +22,7 @@ import { TribeMark } from "./TribeMark";
 import { PlusBadge } from "./PlusBadge";
 import { FeatureIllustration } from "./FeatureIllustration";
 import { HelloModal } from "./HelloModal";
+import { LazyImage } from "./LazyImage";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { useContactStatus } from "@/lib/social-store";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
@@ -479,11 +480,13 @@ export function ExploreDeck({
                 )}
               />
               {hasPhoto ? (
-                <img
+                <LazyImage
                   src={person.avatar}
                   alt={`${person.name}'s profile`}
                   onError={() => setPhotoFailed(true)}
                   draggable={false}
+                  eager
+                  wrapperClassName="absolute inset-0 h-full w-full"
                   className="absolute inset-0 h-full w-full select-none object-cover object-center"
                 />
               ) : (

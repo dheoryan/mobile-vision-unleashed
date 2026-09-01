@@ -131,6 +131,29 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+    /* Without this, a right-swipe anywhere near the left edge - including
+       inside the post-photo lightbox's own pager - is captured by the
+       browser's edge-swipe "go back" gesture (Chrome/Edge on Android)
+       before it ever reaches the app's touch handlers, so it exits the
+       photo viewer to the previous route instead of paging or closing it.
+       overscroll-behavior-x is what actually disables that browser-level
+       gesture; the lightbox's own touch-action: none only stops the
+       browser's default scrolling, not this. */
+    overscroll-behavior-x: none;
+  }
+  /* Post photos, comment photos, and profile pictures aren't meant to be
+     saved off the app - this is the deterrent layer for that: no iOS
+     long-press "Save/Copy Photo" callout, no drag-to-desktop, no text-style
+     selection outline. Paired with the contextmenu listener in
+     ImageProtection.tsx, which blocks the equivalent desktop right-click
+     "Save image as…". Neither is airtight (devtools, screenshots) - this is
+     about removing the casual one-tap/one-click affordance, not DRM. */
+  img {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
@@ -362,5 +385,31 @@ html body [data-sonner-toaster][data-sonner-theme='dark'] {
   @media (prefers-reduced-motion: reduce) {
     .sonar-ring { animation: none; opacity: 0.18; transform: scale(1.3); }
     .sonar-core { animation: none; }
+  }
+
+  /* Splash-screen indeterminate loader: a brand-gradient thumb sliding
+     inside a track, the same "this is doing something, not stuck" cue as
+     Material's linear progress - but in the app's own colors instead of a
+     generic spinner, matching the sonar sweep's reasoning above. */
+  @keyframes splash-loading-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+  .splash-loading-track {
+    position: relative;
+    overflow: hidden;
+    background-color: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+  .splash-loading-thumb {
+    position: absolute;
+    inset: 0;
+    width: 35%;
+    border-radius: inherit;
+    background-color: var(--brand-solid);
+    background-image: var(--brand-gradient);
+    animation: splash-loading-slide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .splash-loading-thumb { animation: none; width: 100%; opacity: 0.75; }
   }
 }

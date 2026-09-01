@@ -38,5 +38,10 @@ test("post footer actions advertise their meaning with color", () => {
   assert.match(postCard, /hover:text-rose-400/);
   assert.match(postCard, /hover:text-primary/);
   assert.match(postCard, /hover:text-emerald-400/);
-  assert.match(postCard, /hover:text-amber-400/);
+  // Save moved out of the footer into the "…" sheet (SafetyMenu's post
+  // options for someone else's post, the own-post dropdown here for yours)
+  // - still amber, just no longer a footer hover affordance since both are
+  // full menu rows rather than compact icon buttons.
+  assert.match(postCard, /text-amber-400/);
+  assert.match(safetyMenu, /text-amber-400/);
 });

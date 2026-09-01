@@ -175,7 +175,10 @@ export function PostMediaLightbox({
       contentClassName="h-[100dvh] max-w-none overflow-hidden rounded-none border-0 bg-black sm:rounded-none"
       zIndex={80}
     >
-      <div className="relative h-full w-full overflow-hidden bg-black">
+      <div
+        className="relative h-full w-full overflow-hidden bg-black"
+        style={{ overscrollBehavior: "none" }}
+      >
         <div
           data-lightbox-gesture-surface
           className="absolute inset-0 flex touch-none select-none overflow-hidden"

@@ -205,6 +205,169 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-02 — Claude — Own-comment menu, image download protection, audience-aware comment color, Venture save gradient, notification lazy-load, whole-card navigation, Save moved into Post options
+
+Confirmed live: the two 2026-09-01 migrations are now applied to
+production - comments load and edit/image round-trip correctly.
+
+1. **Own-comment actions consolidated into a "…" sheet.** The pencil +
+   trash icon pair from the previous entry is gone; `mine` comments now get
+   the same `DotsThree` -> `AnimatedModal` sheet pattern as `SafetyMenu`
+   ("Edit comment" / "Delete comment" rows), via a new `CommentOwnMenu` in
+   [CommentsModal.tsx](src/components/mutuals/CommentsModal.tsx). Not
+   folded into `SafetyMenu` itself - edit/delete aren't safety actions
+   (nothing to report/block on your own comment), so it's its own small
+   sheet rather than bolting rows onto a component whose other rows
+   (Report, Block) don't apply to yourself.
+
+2. **Post/comment/profile photos resist casual saving.** New
+   [ImageProtection.tsx](src/components/mutuals/ImageProtection.tsx),
+   mounted once in `__root.tsx`, blocks the desktop right-click "Save image
+   as…" on every `<img>` app-wide via one document-level `contextmenu`
+   listener. Paired with a global `img { -webkit-touch-callout: none;
+   -webkit-user-drag: none; user-select: none }` in
+   [styles.css](src/styles.css) for iOS's long-press "Save Photo" callout
+   and drag-to-desktop. `LazyImage` now defaults `draggable` to `false`.
+   Not airtight (devtools, screenshots) - removes the one-tap/one-click
+   affordance, which is what was asked for.
+
+3. **Comment send button now carries the thread's real audience color**
+   instead of a hardcoded `var(--color-primary)` fallback it silently used
+   regardless of context: `bg-meutuals-gradient` on a Wild
+   (`sourceAudience === "all"`) thread, the post's actual
+   `tribeById(sourceTribeId).colorVar` on a Tribe-only one. Scoped to just
+   the send button per the ask - the rest of the panel's accents (avatar
+   tint, reply-preview line, repost/delete sheet icons) still use the
+   fallback and were left alone.
+
+4. **Venture "Save changes" (edit mode only) is now `bg-meutuals-gradient`**
+   in [VenturesScreen.tsx](src/components/mutuals/VenturesScreen.tsx) -
+   "Go live" (create mode) stays on the plain primary fill, since only the
+   host-edit action was asked for.
+
+5. **Notification post thumbnails are lazy-loaded** the same way everything
+   else was in the previous entry - swapped the raw `<img>` in
+   [notifications.tsx](src/routes/notifications.tsx) for `LazyImage`.
+
+6. **Tapping anywhere on a post card now opens its dedicated page**, not
+   just the comment icon - `onClick` on the `<article>` in
+   [PostCard.tsx](src/components/mutuals/PostCard.tsx), guarded off for
+   `commentsInline` (already on that page), `editing`, and optimistic
+   `tmp-` rows. Every nested interactive region
+   (header/avatar/name/"…"-menu, the action-bar footer, the image
+   carousel's own tap-to-zoom) got `event.stopPropagation()` so the card
+   click doesn't fight them - mention links inside post content already
+   had it from an earlier pass, which is what made this safe to add now.
+
+7. **Save moved off the action bar into the "…" sheet.** The standalone
+   bookmark icon between Repost and Share is gone; "Save post"/"Unsave
+   post" is now the first row in `SafetyMenu`'s "Post options" sheet (new
+   optional `saved`/`onToggleSave` props - only wired for `kind="post"`,
+   ahead of Report/Block since it isn't a safety action) for someone else's
+   post, and a matching row in the existing own-post "…" dropdown
+   (Edit/Save/Delete) for your own.
+
+Updated two test assertions that were checking the exact old wiring this
+batch replaced (`onClick={() => onDelete(c)}` -> `onDelete={() =>
+onDelete(c)}` on the new menu component; the footer's `hover:text-amber-400`
+-> `text-amber-400` in postCard + safetyMenu, since Save is a menu row now,
+not a hover-driven footer icon) - not stale leftovers this time, direct
+consequences of this batch's own refactors. `npx tsc --noEmit`, `npx
+eslint`, `npm run build`, and the full suite (131/131) all pass. Live-
+verified in the browser: Wild vs Tribe send-button color, the own-comment
+sheet (edit + delete), whole-card tap-through to `/p/$postId`, Save
+toggling from inside Post options, and the notification thumbnail
+shimmer-to-photo fade.
+
+### 2026-09-01 — Claude — Nine-item polish batch: lightbox edge-swipe, comment editing + photos, lazy-loaded images, Venture photo-edit bug, gradient/splash polish
+
+**⚠️ Two new migrations MUST be applied before this app code is deployed** —
+`20260901010000_venture_image_cleanup_via_storage_api.sql` and
+`20260901020000_comment_edit_and_images.sql`. Confirmed live against
+production (this repo's local dev talks to prod - see above): with the app
+code but not the migration, `listComments` fails outright with `column
+comments.image_url does not exist`, breaking comments app-wide. Rehearsed
+both against the local Docker sandbox (trigger fires, immutability guard
+rejects `post_id`/`author_id` changes, image-owner guard rejects a path
+outside the author's own prefix - see transcript) before handing off.
+
+1. **Post-photo lightbox swiping right exited to the previous page instead
+   of paging/closing.** `touch-action: none` on the lightbox's own gesture
+   surface doesn't stop Chrome/Edge's edge-swipe-back *navigation* gesture -
+   only `overscroll-behavior-x` does. Added it globally on `body`
+   ([styles.css](src/styles.css)) plus `overscroll-behavior: none` directly on
+   [PostMediaLightbox.tsx](src/components/mutuals/PostMediaLightbox.tsx)'s
+   wrapper as a second layer. Verified live via computed style.
+
+2. **Comment editing.** No UPDATE policy ever existed on `comments`. Added
+   one plus an immutability trigger (only `content`/`image_url` may move,
+   everything else raises) and an `edited_at` column the same trigger stamps.
+   `editComment` server function in
+   [posts.functions.ts](src/lib/posts.functions.ts), `useEditComment` in
+   [posts-store.ts](src/lib/posts-store.ts). UI: pencil icon next to delete
+   on your own comments in
+   [CommentsModal.tsx](src/components/mutuals/CommentsModal.tsx) opens the
+   shared composer in edit mode (banner + Cancel, matching the existing
+   reply-preview affordance) instead of a second input.
+
+3. **One photo per comment.** New private `comment-images` bucket, RLS
+   modeled on `post-images`/`venture-images` (owner-only write, visibility
+   piggybacks on the comment's own existing "post visible" SELECT policy
+   rather than re-deriving audience rules a second time). `uploadCommentImage`
+   in [uploads.ts](src/lib/uploads.ts), attach button + preview card in the
+   composer, image rendered in the bubble and in `QuotedCommentPreview`.
+
+4. **Lazy-loaded images with a real loading state**, not just
+   `loading="lazy"`. New [LazyImage.tsx](src/components/mutuals/LazyImage.tsx)
+   (shimmer placeholder, fades in on `onLoad`, `onError` fallback slot) wired
+   into the feed's post-image carousel
+   ([PostCard.tsx](src/components/mutuals/PostCard.tsx)), Today's Five's hero
+   photo ([ExploreDeck.tsx](src/components/mutuals/ExploreDeck.tsx)), and
+   Venture photos ([VentureImage.tsx](src/components/mutuals/VentureImage.tsx))
+   - the last of which also had its own bug: while the *signed URL itself*
+   was resolving, the card rendered as if there were no photo at all, then
+   popped the whole media header in and shifted the header text. Now holds a
+   shimmer placeholder at the same height instead.
+
+5. **Venture photo edit/removal was failing outright** with "Direct deletion
+   from storage tables is not allowed. Use the Storage API instead." -
+   `cleanup_replaced_venture_image` (fires `after update of image_url on
+   ventures`) ran a raw `delete from storage.objects`, which Supabase's
+   storage extension now blocks from anywhere but the real Storage API,
+   rolling back the *entire* Edit Venture save any time the photo changed.
+   Dropped both broken cleanup triggers; the old object is now removed with
+   the host's own authenticated client in `updateHostedVenture`
+   ([ventures.functions.ts](src/lib/ventures.functions.ts)) right after a
+   successful save - which is also where the RLS to do it already lived.
+
+6. Gradient + motion polish: "Host a Venture" / "Create Venture" empty-state
+   CTAs now use `bg-meutuals-gradient` (opt-in prop on `EmptyPanel`, not
+   every `EmptyPanel` button) in
+   [VenturesScreen.tsx](src/components/mutuals/VenturesScreen.tsx); the
+   splash screen's loading bar
+   ([Skeleton.tsx](src/components/mutuals/Skeleton.tsx)) is now a sliding
+   brand-gradient thumb instead of a static shimmer bar (new
+   `.splash-loading-track`/`.splash-loading-thumb` in
+   [styles.css](src/styles.css), `prefers-reduced-motion` respected).
+
+Fixed two stale test assertions left over from the earlier lucide→phosphor
+icon migration while running the suite (`tests/profile-identity.test.ts`,
+`tests/focused-post-navigation.test.ts` still expected `<ChevronLeft`;
+`tests/venture-gradient-system.test.ts` still expected `<UsersRound`) -
+unrelated to this batch, caught because `node --test` now runs clean.
+`npx tsc --noEmit`, `npx eslint`, `npm run build`, and the full test suite
+(131/131) all pass. `comments.image_url`/`edited_at` aren't in the generated
+Supabase types yet (migration not applied); routed through a small
+`commentsTable()` cast in `posts.functions.ts` rather than regenerating
+`types.ts` from the local sandbox, which turned out to have a stale,
+incomplete schema (33 tables vs. production's 60) and would have deleted
+real type coverage.
+
+Not done in this pass: a full app-wide "smooth everything" interaction
+audit (asked for as item 9) - the concrete gesture bug (#1) and the
+loading-state gaps (#4) are fixed; a broader pass was out of scope for one
+turn.
+
 ### 2026-09-01 — Claude — Today's Five ranked distance as one signal among several; two profiles hundreds/thousands of km away were outranking genuinely nearby ones
 
 User spotted two Discover matches (Medan, Kudus) surfacing in a Jakarta-

@@ -2,6 +2,7 @@ import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
 import { ChatTextIcon } from "@phosphor-icons/react/dist/csr/ChatText";
 import type { CommentRow } from "@/lib/posts-store";
 import { timeAgoLabel } from "@/lib/time";
+import { LazyImage } from "./LazyImage";
 
 /** Read-only source card inside a comment repost. Keeping it separate from a
  * live CommentItem avoids nested actions and ambiguous tap targets. */
@@ -32,9 +33,19 @@ export function QuotedCommentPreview({ comment }: { comment: CommentRow }) {
           {timeAgoLabel(comment.created_at)}
         </span>
       </div>
-      <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-        {comment.content}
-      </p>
+      {comment.content && (
+        <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          {comment.content}
+        </p>
+      )}
+      {comment.image_url && (
+        <LazyImage
+          src={comment.image_url}
+          alt=""
+          wrapperClassName="mt-2 max-w-[10rem] rounded-lg border border-border"
+          className="max-h-40 w-full rounded-lg object-cover"
+        />
+      )}
     </div>
   );
 }

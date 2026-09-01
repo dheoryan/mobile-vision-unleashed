@@ -27,6 +27,7 @@ import {
 } from "@/lib/notifications-store";
 import { EmptyState } from "@/components/mutuals/EmptyState";
 import { EnablePushBanner } from "@/components/mutuals/EnablePushBanner";
+import { LazyImage } from "@/components/mutuals/LazyImage";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { timeAgoLabel } from "@/lib/time";
 import { showPlusBadge } from "@/lib/feature-flags";
@@ -416,9 +417,10 @@ function NotificationRowItem({
 
         <span className="flex min-h-11 shrink-0 items-center">
           {notification.post_image_url ? (
-            <img
+            <LazyImage
               src={notification.post_image_url}
               alt=""
+              wrapperClassName="h-11 w-11 rounded-md"
               className="h-11 w-11 rounded-md object-cover"
             />
           ) : (
