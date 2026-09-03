@@ -31,6 +31,7 @@ import { SunHorizonIcon } from "@phosphor-icons/react/dist/csr/SunHorizon";
 import { CalendarIcon } from "@phosphor-icons/react/dist/csr/Calendar";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
 import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
@@ -41,6 +42,56 @@ import { SuitcaseIcon } from "@phosphor-icons/react/dist/csr/Suitcase";
 import { TargetIcon } from "@phosphor-icons/react/dist/csr/Target";
 import { GraduationCapIcon } from "@phosphor-icons/react/dist/csr/GraduationCap";
 import { CloudSunIcon } from "@phosphor-icons/react/dist/csr/CloudSun";
+import { PersonSimpleRunIcon } from "@phosphor-icons/react/dist/csr/PersonSimpleRun";
+import { PersonSimpleBikeIcon } from "@phosphor-icons/react/dist/csr/PersonSimpleBike";
+import { BedIcon } from "@phosphor-icons/react/dist/csr/Bed";
+import { FilmSlateIcon } from "@phosphor-icons/react/dist/csr/FilmSlate";
+import { ChalkboardTeacherIcon } from "@phosphor-icons/react/dist/csr/ChalkboardTeacher";
+import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
+import { MicrophoneStageIcon } from "@phosphor-icons/react/dist/csr/MicrophoneStage";
+import { HammerIcon } from "@phosphor-icons/react/dist/csr/Hammer";
+import { CameraIcon } from "@phosphor-icons/react/dist/csr/Camera";
+import { MicrophoneIcon } from "@phosphor-icons/react/dist/csr/Microphone";
+import { MapTrifoldIcon } from "@phosphor-icons/react/dist/csr/MapTrifold";
+import { VinylRecordIcon } from "@phosphor-icons/react/dist/csr/VinylRecord";
+import { RocketIcon } from "@phosphor-icons/react/dist/csr/Rocket";
+import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
+import { ChartLineUpIcon } from "@phosphor-icons/react/dist/csr/ChartLineUp";
+import { CookingPotIcon } from "@phosphor-icons/react/dist/csr/CookingPot";
+import { TelevisionIcon } from "@phosphor-icons/react/dist/csr/Television";
+import { TShirtIcon } from "@phosphor-icons/react/dist/csr/TShirt";
+import { PawPrintIcon } from "@phosphor-icons/react/dist/csr/PawPrint";
+import { HandHeartIcon } from "@phosphor-icons/react/dist/csr/HandHeart";
+import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
+import { TranslateIcon } from "@phosphor-icons/react/dist/csr/Translate";
+import { HandsClappingIcon } from "@phosphor-icons/react/dist/csr/HandsClapping";
+import { LifebuoyIcon } from "@phosphor-icons/react/dist/csr/Lifebuoy";
+import { MoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
+import { HamburgerIcon } from "@phosphor-icons/react/dist/csr/Hamburger";
+import { MountainsIcon } from "@phosphor-icons/react/dist/csr/Mountains";
+import { UsersThreeIcon } from "@phosphor-icons/react/dist/csr/UsersThree";
+import { PersonSimpleSwimIcon } from "@phosphor-icons/react/dist/csr/PersonSimpleSwim";
+import { FlowerLotusIcon } from "@phosphor-icons/react/dist/csr/FlowerLotus";
+import { HandFistIcon } from "@phosphor-icons/react/dist/csr/HandFist";
+import { PenNibIcon } from "@phosphor-icons/react/dist/csr/PenNib";
+import { PuzzlePieceIcon } from "@phosphor-icons/react/dist/csr/PuzzlePiece";
+import { BuildingsIcon } from "@phosphor-icons/react/dist/csr/Buildings";
+import { BroadcastIcon } from "@phosphor-icons/react/dist/csr/Broadcast";
+import { WindIcon } from "@phosphor-icons/react/dist/csr/Wind";
+import { MaskHappyIcon } from "@phosphor-icons/react/dist/csr/MaskHappy";
+import { VideoCameraIcon } from "@phosphor-icons/react/dist/csr/VideoCamera";
+import { PersonSimpleIcon } from "@phosphor-icons/react/dist/csr/PersonSimple";
+import { PaintBrushIcon } from "@phosphor-icons/react/dist/csr/PaintBrush";
+import { WineIcon } from "@phosphor-icons/react/dist/csr/Wine";
+import { PopcornIcon } from "@phosphor-icons/react/dist/csr/Popcorn";
+import { CityIcon } from "@phosphor-icons/react/dist/csr/City";
+import { CarIcon } from "@phosphor-icons/react/dist/csr/Car";
+import { SpeakerHighIcon } from "@phosphor-icons/react/dist/csr/SpeakerHigh";
+import { PresentationIcon } from "@phosphor-icons/react/dist/csr/Presentation";
+import { LaptopIcon } from "@phosphor-icons/react/dist/csr/Laptop";
+import { MegaphoneIcon } from "@phosphor-icons/react/dist/csr/Megaphone";
+import { CubeIcon } from "@phosphor-icons/react/dist/csr/Cube";
+import { TrendUpIcon } from "@phosphor-icons/react/dist/csr/TrendUp";
 import type { Icon } from "@phosphor-icons/react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import { LegalFooter } from "./LegalFooter";
@@ -50,11 +101,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   AVAILABILITY_OPTIONS,
-  INTEREST_MAX_TOTAL,
-  INTEREST_MIN_PRIMARY,
+  INTEREST_PRIMARY_MAX,
+  INTEREST_PRIMARY_MIN,
+  INTEREST_SECONDARY_MAX,
   SOCIAL_INTENT_OPTIONS,
   primaryInterests,
   secondaryInterests,
+  toggleInterest,
   toggleSelection,
   type AvailabilityId,
   type GenderId,
@@ -138,9 +191,10 @@ export function Onboarding({
   const primaryInterestCount = interests.filter((id) =>
     tribePrimaryInterests.some((option) => option.id === id),
   ).length;
+  const secondaryInterestCount = interests.length - primaryInterestCount;
   const socialProfileReady = Boolean(
     city.trim() &&
-    primaryInterestCount >= INTEREST_MIN_PRIMARY &&
+    primaryInterestCount >= INTEREST_PRIMARY_MIN &&
     socialIntents.length >= 1 &&
     availability.length >= 1,
   );
@@ -659,31 +713,35 @@ export function Onboarding({
               {tribe && (
                 <ChoiceGroup
                   label={`Because you're in ${tribe.name}`}
-                  hint={`${primaryInterestCount}/${tribePrimaryInterests.length} · choose at least ${INTEREST_MIN_PRIMARY}`}
+                  hint={`${primaryInterestCount}/${INTEREST_PRIMARY_MAX} · choose ${INTEREST_PRIMARY_MIN}-${INTEREST_PRIMARY_MAX}`}
                   options={tribePrimaryInterests}
                   selected={interests}
                   accentColor={tribe.colorVar}
+                  maxVisible={8}
                   onToggle={(id) =>
-                    setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+                    setInterests(toggleInterest(interests, id as InterestId, tribe.id, true))
                   }
                 />
               )}
               <ChoiceGroup
                 label="More interests"
-                hint={`${interests.length}/${INTEREST_MAX_TOTAL} total`}
+                hint={`${secondaryInterestCount}/${INTEREST_SECONDARY_MAX}`}
                 options={tribeSecondaryInterests}
                 selected={interests}
+                maxVisible={8}
                 onToggle={(id) =>
-                  setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+                  tribeId &&
+                  setInterests(toggleInterest(interests, id as InterestId, tribeId, false))
                 }
               />
               <ChoiceGroup
                 label="Here for"
-                hint={`${socialIntents.length}/4 · choose at least 1`}
+                hint={`${socialIntents.length}/5 · choose at least 1`}
                 options={SOCIAL_INTENT_OPTIONS}
                 selected={socialIntents}
+                maxVisible={8}
                 onToggle={(id) =>
-                  setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 4))
+                  setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 5))
                 }
               />
               <ChoiceGroup
@@ -692,7 +750,7 @@ export function Onboarding({
                 options={AVAILABILITY_OPTIONS}
                 selected={availability}
                 onToggle={(id) =>
-                  setAvailability(toggleSelection(availability, id as AvailabilityId, 5))
+                  setAvailability(toggleSelection(availability, id as AvailabilityId, 7))
                 }
               />
             </div>
@@ -819,19 +877,89 @@ function PrimaryButton({
 const OPTION_ICONS: Record<string, Icon> = {
   outdoors: TreeIcon,
   fitness: BarbellIcon,
+  running_training: PersonSimpleRunIcon,
+  cycling: PersonSimpleBikeIcon,
+  recovery_habits: BedIcon,
+  hiking: MountainsIcon,
+  team_sports: UsersThreeIcon,
+  swimming: PersonSimpleSwimIcon,
+  yoga: FlowerLotusIcon,
+  martial_arts: HandFistIcon,
+  rock_climbing: MountainsIcon,
+  gym_workouts: BarbellIcon,
+  surfing: PersonSimpleSwimIcon,
+  badminton: UsersThreeIcon,
+  football: PulseIcon,
   books: BookOpenIcon,
   journaling: NotebookIcon,
+  film_book_clubs: FilmSlateIcon,
+  learning_workshops: ChalkboardTeacherIcon,
+  collecting: StackIcon,
+  poetry_writing: PenNibIcon,
+  tabletop_games: PuzzlePieceIcon,
+  museums_exhibits: BuildingsIcon,
+  podcasts: BroadcastIcon,
+  meditation: WindIcon,
+  language_learning: TranslateIcon,
+  calligraphy: PenNibIcon,
+  gardening: TreeIcon,
+  astronomy: SparkleIcon,
+  history: BuildingsIcon,
   music: MusicNoteIcon,
   art: PaletteIcon,
+  live_shows: MicrophoneStageIcon,
+  crafting_making: HammerIcon,
+  photography: CameraIcon,
+  theatre_performance: MaskHappyIcon,
+  film_video_making: VideoCameraIcon,
+  dance: PersonSimpleIcon,
+  singing: MicrophoneIcon,
+  tattoo_body_art: PaintBrushIcon,
+  fashion_design: PaletteIcon,
+  graphic_design: CubeIcon,
+  pottery: HammerIcon,
+  street_art: PaintBrushIcon,
+  animation: VideoCameraIcon,
   nightlife: MoonStarsIcon,
   late_night_eats: BowlFoodIcon,
+  karaoke: MicrophoneIcon,
+  city_walks: MapTrifoldIcon,
+  live_music_dj: VinylRecordIcon,
+  bar_hopping: WineIcon,
+  street_food: PopcornIcon,
+  rooftop_hangouts: CityIcon,
+  late_night_drives: CarIcon,
+  clubbing: SpeakerHighIcon,
+  live_comedy: MicrophoneStageIcon,
+  night_markets: PopcornIcon,
+  cocktail_making: WineIcon,
+  arcade_games: GameControllerIcon,
+  night_photography: CameraIcon,
   tech: CpuIcon,
   business: BriefcaseIcon,
+  startups_networking: RocketIcon,
+  side_projects: WrenchIcon,
+  investing_finance: ChartLineUpIcon,
+  public_speaking: PresentationIcon,
+  freelancing: LaptopIcon,
+  marketing_branding: MegaphoneIcon,
+  product_design: CubeIcon,
+  career_growth: TrendUpIcon,
+  ai_and_data: CpuIcon,
+  ecommerce: BriefcaseIcon,
+  consulting: PresentationIcon,
+  leadership: TrendUpIcon,
+  productivity: RocketIcon,
   food: ForkKnifeIcon,
   coffee: CoffeeIcon,
+  cooking: CookingPotIcon,
   wellness: HeartbeatIcon,
   games: GameControllerIcon,
   travel: AirplaneIcon,
+  movies_tv: TelevisionIcon,
+  fashion: TShirtIcon,
+  pets: PawPrintIcon,
+  volunteering: HandHeartIcon,
   make_friends: UsersIcon,
   activity_partner: PulseIcon,
   casual_hangouts: ChatCircleIcon,
@@ -841,11 +969,17 @@ const OPTION_ICONS: Record<string, Icon> = {
   accountability_partner: TargetIcon,
   travel_companion: SuitcaseIcon,
   mentorship: GraduationCapIcon,
+  event_companion: TicketIcon,
+  language_exchange: TranslateIcon,
+  volunteer_together: HandsClappingIcon,
+  support_advice: LifebuoyIcon,
   weekday_mornings: SunIcon,
   weekday_afternoons: CloudSunIcon,
   weekday_evenings: SunHorizonIcon,
   weekends: CalendarIcon,
   spontaneous: LightningIcon,
+  late_nights: MoonIcon,
+  lunch_breaks: HamburgerIcon,
 };
 
 function ChoiceGroup({
@@ -855,6 +989,7 @@ function ChoiceGroup({
   selected,
   onToggle,
   accentColor,
+  maxVisible,
 }: {
   label: string;
   hint: string;
@@ -866,7 +1001,16 @@ function ChoiceGroup({
    *  {Tribe}" primary interest group, so its picks visibly read as tied to
    *  that Tribe rather than looking identical to a general pick. */
   accentColor?: string;
+  /** Collapses the grid to this many options with a "Show more" toggle
+   *  below - option pools got wide enough (up to 75 for a single Tribe's
+   *  primary tier) that dumping all of them on screen at once isn't
+   *  browsable. Omit for a group short enough to just show in full. */
+  maxVisible?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const collapsible = maxVisible != null && options.length > maxVisible;
+  const visibleOptions = collapsible && !expanded ? options.slice(0, maxVisible) : options;
+
   return (
     <fieldset>
       <div className="flex items-center justify-between gap-3">
@@ -878,8 +1022,8 @@ function ChoiceGroup({
         </legend>
         <span className="text-[10px] text-muted-foreground">{hint}</span>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {options.map((option) => {
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        {visibleOptions.map((option) => {
           const active = selected.includes(option.id);
           const Icon = OPTION_ICONS[option.id] ?? CheckIcon;
           return (
@@ -889,7 +1033,7 @@ function ChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "group relative flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "group flex min-h-11 items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? accentColor
                     ? "border-transparent text-white shadow-sm"
@@ -900,20 +1044,29 @@ function ChoiceGroup({
             >
               <span
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
                   active
                     ? "bg-white/20 text-white"
                     : "bg-secondary text-muted-foreground group-hover:text-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3 w-3" />
               </span>
               <span className="leading-snug">{option.label}</span>
-              {active && <CheckIcon className="absolute right-2 top-2 h-3 w-3" />}
             </button>
           );
         })}
       </div>
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
+        >
+          {expanded ? "Show less" : `Show ${options.length - maxVisible} more`}
+          <CaretDownIcon className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+        </button>
+      )}
     </fieldset>
   );
 }

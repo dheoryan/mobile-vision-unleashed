@@ -3,7 +3,7 @@ import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
-import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { Link } from "@tanstack/react-router";
@@ -26,13 +26,15 @@ import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feat
 import {
   AVAILABILITY_OPTIONS,
   GENDER_OPTIONS,
-  INTEREST_MAX_TOTAL,
-  INTEREST_MIN_PRIMARY,
+  INTEREST_PRIMARY_MAX,
+  INTEREST_PRIMARY_MIN,
+  INTEREST_SECONDARY_MAX,
   INTEREST_OPTIONS,
   SOCIAL_INTENT_OPTIONS,
   optionLabel,
   primaryInterests,
   secondaryInterests,
+  toggleInterest,
   toggleSelection,
   type AvailabilityId,
   type GenderId,
@@ -622,6 +624,7 @@ export function EditProfileModal({
   const primaryInterestCount = interests.filter((id) =>
     tribePrimaryInterests.some((option) => option.id === id),
   ).length;
+  const secondaryInterestCount = interests.length - primaryInterestCount;
 
   const sanitizeHandle = (v: string) =>
     v
@@ -778,29 +781,32 @@ export function EditProfileModal({
           />
           <ProfileChoiceGroup
             label={`Because you're in ${choiceTribe.name}`}
-            hint={`${primaryInterestCount}/${tribePrimaryInterests.length} · choose at least ${INTEREST_MIN_PRIMARY}`}
+            hint={`${primaryInterestCount}/${INTEREST_PRIMARY_MAX} · choose ${INTEREST_PRIMARY_MIN}-${INTEREST_PRIMARY_MAX}`}
             options={tribePrimaryInterests}
             selected={interests}
+            maxVisible={8}
             onToggle={(id) =>
-              setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+              setInterests(toggleInterest(interests, id as InterestId, choiceTribe.id, true))
             }
             accentColor={choiceTribe.colorVar}
           />
           <ProfileChoiceGroup
             label="More interests"
-            hint={`${interests.length}/${INTEREST_MAX_TOTAL} total`}
+            hint={`${secondaryInterestCount}/${INTEREST_SECONDARY_MAX}`}
             options={tribeSecondaryInterests}
             selected={interests}
+            maxVisible={8}
             onToggle={(id) =>
-              setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+              setInterests(toggleInterest(interests, id as InterestId, choiceTribe.id, false))
             }
           />
           <ProfileChoiceGroup
             label="Here for"
             options={SOCIAL_INTENT_OPTIONS}
             selected={socialIntents}
+            maxVisible={8}
             onToggle={(id) =>
-              setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 4))
+              setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 5))
             }
             accentColor={choiceTribe.colorVar}
           />
@@ -809,7 +815,7 @@ export function EditProfileModal({
             options={AVAILABILITY_OPTIONS}
             selected={availability}
             onToggle={(id) =>
-              setAvailability(toggleSelection(availability, id as AvailabilityId, 5))
+              setAvailability(toggleSelection(availability, id as AvailabilityId, 7))
             }
             accentColor={choiceTribe.colorVar}
           />
@@ -823,7 +829,7 @@ export function EditProfileModal({
               !handleValid ||
               handleAvailability === "taken" ||
               handleAvailability === "checking" ||
-              primaryInterestCount < INTEREST_MIN_PRIMARY ||
+              primaryInterestCount < INTEREST_PRIMARY_MIN ||
               socialIntents.length < 1 ||
               availability.length < 1 ||
               uploading ||
@@ -1190,6 +1196,7 @@ function ProfileChoiceGroup({
   selected,
   onToggle,
   accentColor,
+  maxVisible,
 }: {
   label: string;
   hint?: string;
@@ -1200,8 +1207,15 @@ function ProfileChoiceGroup({
    *  general interest pool) - falls back to the plain primary color instead
    *  of implying a Tribe connection that isn't there. */
   accentColor?: string;
+  /** Collapses to this many options with a "Show more" toggle - see
+   *  ChoiceGroup's identical prop in Onboarding.tsx. Omit for a group
+   *  short enough to just show in full. */
+  maxVisible?: number;
 }) {
   const color = accentColor ?? "var(--color-primary)";
+  const [expanded, setExpanded] = useState(false);
+  const collapsible = maxVisible != null && options.length > maxVisible;
+  const visibleOptions = collapsible && !expanded ? options.slice(0, maxVisible) : options;
   return (
     <fieldset>
       <div className="flex items-center justify-between gap-3">
@@ -1209,7 +1223,7 @@ function ProfileChoiceGroup({
         {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        {options.map((option) => {
+        {visibleOptions.map((option) => {
           const active = selected.includes(option.id);
           return (
             <button
@@ -1218,7 +1232,7 @@ function ProfileChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "min-h-10 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? "text-foreground"
                   : "border-transparent bg-secondary text-foreground hover:bg-secondary/70",
@@ -1232,12 +1246,21 @@ function ProfileChoiceGroup({
                   : undefined
               }
             >
-              {active && <CheckIcon className="mr-1 inline h-3 w-3" style={{ color }} />}
               {option.label}
             </button>
           );
         })}
       </div>
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
+        >
+          {expanded ? "Show less" : `Show ${options.length - maxVisible} more`}
+          <CaretDownIcon className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+        </button>
+      )}
     </fieldset>
   );
 }

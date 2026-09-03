@@ -41,7 +41,11 @@ test("edit-profile choices keep readable foregrounds over Tribe-tinted selected 
   assert.match(ownProfile, /accentColor=\{choiceTribe\.colorVar\}/);
   assert.match(ownProfile, /color-mix\(in oklab, \$\{color\} 26%, var\(--card\)\)/);
   assert.match(ownProfile, /active[\s\S]{0,80}\? "text-foreground"/);
-  assert.match(ownProfile, /style=\{\{ color \}\}/);
+  // The active state's color-tinted background/border is itself the
+  // selected indicator now - a separate check icon read as redundant once
+  // pools grew large enough that every row is either clearly filled in or
+  // clearly not.
+  assert.doesNotMatch(ownProfile, /CheckIcon/);
   assert.match(ownProfile, /bg-meutuals-gradient py-3\.5 text-sm font-semibold text-white/);
   assert.match(ownProfile, /Save changes/);
 });

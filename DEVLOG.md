@@ -205,6 +205,63 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-03 — Claude — Interest pool grown to 15/Tribe with an independent secondary cap, checkmark removed, cards shrunk, "show more" collapse
+
+**⚠️ Three new migrations must be applied before this app code is
+deployed, in order** - `20260903000000_expand_profile_taxonomies_v2.sql`,
+`20260903010000_expand_primary_interest_pool.sql`, and
+`20260903020000_expand_primary_interest_pool_v2.sql`. All purely additive
+to the same three check constraints (nothing renamed or dropped, so no
+existing profile's saved values can go stale), rehearsed individually
+against the local Docker sandbox - new ids accepted, cap violations still
+rejected. Without them, saving any of the newest interest ids fails
+outright.
+
+Iterated live off screenshots the user sent of the actual rendered
+picker - a 5-per-Tribe primary pool with a 5-item cap meant "choose 3 to
+5" had no real room in it, and a shared 15-total cap let the secondary
+tier quietly borrow whatever the primary tier didn't use.
+
+1. **Primary interest pool: 5 → 15 per Tribe** (75 tribe-specific total)
+   in two more passes on top of 2026-09-02's original 5, so "choose 3 to
+   5" is an actual choice out of real breadth again.
+2. **Secondary now caps independently at `INTEREST_SECONDARY_MAX = 10`**,
+   not "whatever's left of the 15 total" - `toggleInterest` in
+   [profile-options.ts](src/lib/profile-options.ts) checks the primary
+   and secondary sub-caps separately before falling back to the shared
+   total. Verified directly by running the real function against the
+   exact scenario that was broken before (primary at only 3, 11 secondary
+   attempts -> secondary correctly stops at 10, not 12), since the browser
+   session died mid-task (a Chrome extension grabbed input focus, `"Cannot
+   access a chrome-extension:// URL of different extension"` on every
+   click/key/screenshot) - see the transcript for the direct
+   `toggleInterest` execution that stood in for it.
+3. **Checkmark removed from selected cards/pills** in both
+   [Onboarding.tsx](src/components/mutuals/Onboarding.tsx)'s `ChoiceGroup`
+   and [ProfileScreen.tsx](src/components/mutuals/ProfileScreen.tsx)'s
+   `ProfileChoiceGroup` - the color-filled active state was already doing
+   that job on its own.
+4. **Cards and icons shrunk** in `ChoiceGroup`: `min-h-16` -> `min-h-11`,
+   icon circle `h-9 w-9` -> `h-6 w-6`, icon itself `h-4 w-4` -> `h-3 w-3`,
+   tighter padding and grid gap - needed once pools this size have to fit
+   on screen at all.
+5. **"Show N more" / "Show less" toggle** (new `maxVisible` prop on both
+   `ChoiceGroup` and `ProfileChoiceGroup`) - the primary interest group,
+   secondary interest group, and Here For all collapse to 8 visible
+   options with a dashed-border expand button below, since dumping 15-75
+   options on screen at once isn't browsable no matter how small the
+   cards get.
+6. 25 new tribe-flavored interest ids all reuse icons already imported
+   for earlier ones (Rock climbing -> the same Mountains icon as Hiking,
+   Ecommerce -> the same Briefcase as Business, etc.) rather than
+   guessing 25 more Phosphor names - deliberate, not a shortcut that
+   skipped verification.
+
+Updated one test assertion (`tests/contextual-color-system.test.ts`) that
+was still checking for the now-removed checkmark's inline style - a
+direct consequence of item 3, not a stale leftover. `npx tsc --noEmit`,
+`npx eslint`, `npm run build`, and the full suite (131/131) all pass.
+
 ### 2026-09-02 — Claude — Tribe-curated onboarding interests (primary/secondary), expanded interest/intent/availability taxonomies
 
 **⚠️ New migration `20260902000000_expand_profile_taxonomies.sql` must be
