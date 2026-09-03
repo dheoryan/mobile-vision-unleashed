@@ -21,8 +21,8 @@ const updateSchema = z.object({
   avatar_url: z.string().nullable().optional(),
   tribe_ids: z.array(z.string().min(1).max(40)).max(3).optional(),
   interests: z.array(z.enum(INTEREST_IDS)).max(8).optional(),
-  social_intents: z.array(z.enum(SOCIAL_INTENT_IDS)).max(3).optional(),
-  availability: z.array(z.enum(AVAILABILITY_IDS)).max(4).optional(),
+  social_intents: z.array(z.enum(SOCIAL_INTENT_IDS)).max(4).optional(),
+  availability: z.array(z.enum(AVAILABILITY_IDS)).max(5).optional(),
   gender: z.enum(GENDER_IDS).nullable().optional(),
   // plan is intentionally NOT user-editable. Plan upgrades must go through a
   // trusted server flow (payment verification) — not the profile update endpoint.

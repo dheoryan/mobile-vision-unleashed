@@ -39,9 +39,9 @@ test("Here for pills follow the profile's primary Tribe", () => {
 
 test("edit-profile choices keep readable foregrounds over Tribe-tinted selected pills", () => {
   assert.match(ownProfile, /accentColor=\{choiceTribe\.colorVar\}/);
-  assert.match(ownProfile, /color-mix\(in oklab, \$\{accentColor\} 26%, var\(--card\)\)/);
+  assert.match(ownProfile, /color-mix\(in oklab, \$\{color\} 26%, var\(--card\)\)/);
   assert.match(ownProfile, /active[\s\S]{0,80}\? "text-foreground"/);
-  assert.match(ownProfile, /style=\{\{ color: accentColor \}\}/);
+  assert.match(ownProfile, /style=\{\{ color \}\}/);
   assert.match(ownProfile, /bg-meutuals-gradient py-3\.5 text-sm font-semibold text-white/);
   assert.match(ownProfile, /Save changes/);
 });

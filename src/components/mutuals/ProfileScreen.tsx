@@ -26,9 +26,13 @@ import { isPlusEffective, MONETIZATION_ENABLED, showPlusBadge } from "@/lib/feat
 import {
   AVAILABILITY_OPTIONS,
   GENDER_OPTIONS,
+  INTEREST_MAX_TOTAL,
+  INTEREST_MIN_PRIMARY,
   INTEREST_OPTIONS,
   SOCIAL_INTENT_OPTIONS,
   optionLabel,
+  primaryInterests,
+  secondaryInterests,
   toggleSelection,
   type AvailabilityId,
   type GenderId,
@@ -235,9 +239,23 @@ export function ProfileScreen({
                 <div>
                   <p className="label-mono text-muted-foreground">Interests</p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {profile.interests.slice(0, 5).map((interest) => (
-                      <ProfileTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />
-                    ))}
+                    {profile.interests.slice(0, 5).map((interest) => {
+                      // The ones that reinforce this person's Tribe get that
+                      // Tribe's color, same as the "Here for" tags above -
+                      // everything else stays neutral, so the profile itself
+                      // shows which interests are Tribe-tied at a glance
+                      // rather than presenting all five identically.
+                      const isPrimary = primaryInterests(primaryId).some(
+                        (option) => option.id === interest,
+                      );
+                      return (
+                        <ProfileTag
+                          key={interest}
+                          label={optionLabel(INTEREST_OPTIONS, interest)}
+                          accentColor={isPrimary ? tribe.colorVar : undefined}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -599,6 +617,11 @@ export function EditProfileModal({
   const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const choiceTribe = tribeById(profile.tribeIds[0] ?? "wolf");
+  const tribePrimaryInterests = primaryInterests(choiceTribe.id);
+  const tribeSecondaryInterests = secondaryInterests(choiceTribe.id);
+  const primaryInterestCount = interests.filter((id) =>
+    tribePrimaryInterests.some((option) => option.id === id),
+  ).length;
 
   const sanitizeHandle = (v: string) =>
     v
@@ -754,18 +777,30 @@ export function EditProfileModal({
             accentColor={choiceTribe.colorVar}
           />
           <ProfileChoiceGroup
-            label="Interests"
-            options={INTEREST_OPTIONS}
+            label={`Because you're in ${choiceTribe.name}`}
+            hint={`${primaryInterestCount}/${tribePrimaryInterests.length} · choose at least ${INTEREST_MIN_PRIMARY}`}
+            options={tribePrimaryInterests}
             selected={interests}
-            onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))}
+            onToggle={(id) =>
+              setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+            }
             accentColor={choiceTribe.colorVar}
+          />
+          <ProfileChoiceGroup
+            label="More interests"
+            hint={`${interests.length}/${INTEREST_MAX_TOTAL} total`}
+            options={tribeSecondaryInterests}
+            selected={interests}
+            onToggle={(id) =>
+              setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+            }
           />
           <ProfileChoiceGroup
             label="Here for"
             options={SOCIAL_INTENT_OPTIONS}
             selected={socialIntents}
             onToggle={(id) =>
-              setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))
+              setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 4))
             }
             accentColor={choiceTribe.colorVar}
           />
@@ -774,7 +809,7 @@ export function EditProfileModal({
             options={AVAILABILITY_OPTIONS}
             selected={availability}
             onToggle={(id) =>
-              setAvailability(toggleSelection(availability, id as AvailabilityId, 4))
+              setAvailability(toggleSelection(availability, id as AvailabilityId, 5))
             }
             accentColor={choiceTribe.colorVar}
           />
@@ -788,7 +823,7 @@ export function EditProfileModal({
               !handleValid ||
               handleAvailability === "taken" ||
               handleAvailability === "checking" ||
-              interests.length < 2 ||
+              primaryInterestCount < INTEREST_MIN_PRIMARY ||
               socialIntents.length < 1 ||
               availability.length < 1 ||
               uploading ||
@@ -1150,20 +1185,29 @@ function Input({
 
 function ProfileChoiceGroup({
   label,
+  hint,
   options,
   selected,
   onToggle,
   accentColor,
 }: {
   label: string;
+  hint?: string;
   options: ReadonlyArray<{ id: string; label: string }>;
   selected: string[];
   onToggle: (id: string) => void;
-  accentColor: string;
+  /** Omit for a group that isn't tied to the viewer's Tribe (e.g. the
+   *  general interest pool) - falls back to the plain primary color instead
+   *  of implying a Tribe connection that isn't there. */
+  accentColor?: string;
 }) {
+  const color = accentColor ?? "var(--color-primary)";
   return (
     <fieldset>
-      <legend className="font-display text-sm font-bold text-foreground">{label}</legend>
+      <div className="flex items-center justify-between gap-3">
+        <legend className="font-display text-sm font-bold text-foreground">{label}</legend>
+        {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+      </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((option) => {
           const active = selected.includes(option.id);
@@ -1182,15 +1226,13 @@ function ProfileChoiceGroup({
               style={
                 active
                   ? {
-                      borderColor: accentColor,
-                      backgroundColor: `color-mix(in oklab, ${accentColor} 26%, var(--card))`,
+                      borderColor: color,
+                      backgroundColor: `color-mix(in oklab, ${color} 26%, var(--card))`,
                     }
                   : undefined
               }
             >
-              {active && (
-                <CheckIcon className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />
-              )}
+              {active && <CheckIcon className="mr-1 inline h-3 w-3" style={{ color }} />}
               {option.label}
             </button>
           );

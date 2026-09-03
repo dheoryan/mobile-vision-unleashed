@@ -34,6 +34,13 @@ import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
 import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
+import { NotebookIcon } from "@phosphor-icons/react/dist/csr/Notebook";
+import { BowlFoodIcon } from "@phosphor-icons/react/dist/csr/BowlFood";
+import { AirplaneIcon } from "@phosphor-icons/react/dist/csr/Airplane";
+import { SuitcaseIcon } from "@phosphor-icons/react/dist/csr/Suitcase";
+import { TargetIcon } from "@phosphor-icons/react/dist/csr/Target";
+import { GraduationCapIcon } from "@phosphor-icons/react/dist/csr/GraduationCap";
+import { CloudSunIcon } from "@phosphor-icons/react/dist/csr/CloudSun";
 import type { Icon } from "@phosphor-icons/react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import { LegalFooter } from "./LegalFooter";
@@ -43,8 +50,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   AVAILABILITY_OPTIONS,
-  INTEREST_OPTIONS,
+  INTEREST_MAX_TOTAL,
+  INTEREST_MIN_PRIMARY,
   SOCIAL_INTENT_OPTIONS,
+  primaryInterests,
+  secondaryInterests,
   toggleSelection,
   type AvailabilityId,
   type GenderId,
@@ -123,8 +133,16 @@ export function Onboarding({
   const viewedTribe = TRIBES[tribeIndex];
   const handleValid = handle.length >= 3 && handle.length <= 30;
   const handleAvailability = useHandleAvailability(handle, handleValid);
+  const tribePrimaryInterests = tribeId ? primaryInterests(tribeId) : [];
+  const tribeSecondaryInterests = tribeId ? secondaryInterests(tribeId) : [];
+  const primaryInterestCount = interests.filter((id) =>
+    tribePrimaryInterests.some((option) => option.id === id),
+  ).length;
   const socialProfileReady = Boolean(
-    city.trim() && interests.length >= 2 && socialIntents.length >= 1 && availability.length >= 1,
+    city.trim() &&
+    primaryInterestCount >= INTEREST_MIN_PRIMARY &&
+    socialIntents.length >= 1 &&
+    availability.length >= 1,
   );
   const steps = [1, 2, 3, 4];
 
@@ -638,20 +656,34 @@ export function Onboarding({
                 multiline
                 hint={`${bio.length}/140`}
               />
+              {tribe && (
+                <ChoiceGroup
+                  label={`Because you're in ${tribe.name}`}
+                  hint={`${primaryInterestCount}/${tribePrimaryInterests.length} · choose at least ${INTEREST_MIN_PRIMARY}`}
+                  options={tribePrimaryInterests}
+                  selected={interests}
+                  accentColor={tribe.colorVar}
+                  onToggle={(id) =>
+                    setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+                  }
+                />
+              )}
               <ChoiceGroup
-                label="Your interests"
-                hint={`${interests.length}/8 · choose at least 2`}
-                options={INTEREST_OPTIONS}
+                label="More interests"
+                hint={`${interests.length}/${INTEREST_MAX_TOTAL} total`}
+                options={tribeSecondaryInterests}
                 selected={interests}
-                onToggle={(id) => setInterests(toggleSelection(interests, id as InterestId, 8))}
+                onToggle={(id) =>
+                  setInterests(toggleSelection(interests, id as InterestId, INTEREST_MAX_TOTAL))
+                }
               />
               <ChoiceGroup
                 label="Here for"
-                hint={`${socialIntents.length}/3 · choose at least 1`}
+                hint={`${socialIntents.length}/4 · choose at least 1`}
                 options={SOCIAL_INTENT_OPTIONS}
                 selected={socialIntents}
                 onToggle={(id) =>
-                  setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 3))
+                  setSocialIntents(toggleSelection(socialIntents, id as SocialIntentId, 4))
                 }
               />
               <ChoiceGroup
@@ -660,7 +692,7 @@ export function Onboarding({
                 options={AVAILABILITY_OPTIONS}
                 selected={availability}
                 onToggle={(id) =>
-                  setAvailability(toggleSelection(availability, id as AvailabilityId, 4))
+                  setAvailability(toggleSelection(availability, id as AvailabilityId, 5))
                 }
               />
             </div>
@@ -788,22 +820,29 @@ const OPTION_ICONS: Record<string, Icon> = {
   outdoors: TreeIcon,
   fitness: BarbellIcon,
   books: BookOpenIcon,
+  journaling: NotebookIcon,
   music: MusicNoteIcon,
   art: PaletteIcon,
-  food: ForkKnifeIcon,
-  coffee: CoffeeIcon,
   nightlife: MoonStarsIcon,
+  late_night_eats: BowlFoodIcon,
   tech: CpuIcon,
   business: BriefcaseIcon,
+  food: ForkKnifeIcon,
+  coffee: CoffeeIcon,
   wellness: HeartbeatIcon,
   games: GameControllerIcon,
+  travel: AirplaneIcon,
   make_friends: UsersIcon,
   activity_partner: PulseIcon,
   casual_hangouts: ChatCircleIcon,
   local_exploration: CompassIcon,
   networking: NetworkIcon,
   creative_collab: LightbulbIcon,
+  accountability_partner: TargetIcon,
+  travel_companion: SuitcaseIcon,
+  mentorship: GraduationCapIcon,
   weekday_mornings: SunIcon,
+  weekday_afternoons: CloudSunIcon,
   weekday_evenings: SunHorizonIcon,
   weekends: CalendarIcon,
   spontaneous: LightningIcon,
@@ -815,17 +854,28 @@ function ChoiceGroup({
   options,
   selected,
   onToggle,
+  accentColor,
 }: {
   label: string;
   hint: string;
   options: ReadonlyArray<{ id: string; label: string }>;
   selected: string[];
   onToggle: (id: string) => void;
+  /** Tints the active state with a specific Tribe's own color instead of
+   *  the generic brand gradient - reserved for the "Because you're in
+   *  {Tribe}" primary interest group, so its picks visibly read as tied to
+   *  that Tribe rather than looking identical to a general pick. */
+  accentColor?: string;
 }) {
   return (
     <fieldset>
       <div className="flex items-center justify-between gap-3">
-        <legend className="label-mono text-muted-foreground">{label}</legend>
+        <legend
+          className={cn("label-mono", !accentColor && "text-muted-foreground")}
+          style={accentColor ? { color: accentColor } : undefined}
+        >
+          {label}
+        </legend>
         <span className="text-[10px] text-muted-foreground">{hint}</span>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
@@ -841,9 +891,12 @@ function ChoiceGroup({
               className={cn(
                 "group relative flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
-                  ? "border-transparent bg-meutuals-gradient text-white shadow-sm"
+                  ? accentColor
+                    ? "border-transparent text-white shadow-sm"
+                    : "border-transparent bg-meutuals-gradient text-white shadow-sm"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
+              style={active && accentColor ? { backgroundColor: accentColor } : undefined}
             >
               <span
                 className={cn(

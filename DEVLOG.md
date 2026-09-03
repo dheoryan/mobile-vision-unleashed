@@ -205,6 +205,78 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-02 — Claude — Tribe-curated onboarding interests (primary/secondary), expanded interest/intent/availability taxonomies
+
+**⚠️ New migration `20260902000000_expand_profile_taxonomies.sql` must be
+applied before this app code is deployed** - it widens the three DB check
+constraints (`profiles_interests_allowed`, `_social_intents_allowed`,
+`_availability_allowed`) that hard-code the allowed id lists. Without it,
+any save that includes one of the new ids (journaling, late_night_eats,
+travel, accountability_partner, travel_companion, mentorship,
+weekday_afternoons) fails outright. Rehearsed against the local Docker
+sandbox: new ids accepted, an out-of-list id still rejected, confirmed via
+direct `UPDATE`.
+
+Grew out of a long back-and-forth on curating Onboarding's interest step by
+Tribe. Landed on: only **Interests** gets a Tribe connection - "Here for"
+and "Usually free" describe what someone wants and when they're free, not a
+taste that clusters by Tribe identity, so tying those to Tribe would
+misrepresent people. Every Tribe-mapped interest traces to that Tribe's own
+"inside" copy in `mutuals-data.ts` (Koi -> Books because their about text
+says "Book and film circles," not because someone guessed).
+
+1. **`INTEREST_OPTIONS` grew from 12 to 15** in
+   [profile-options.ts](src/lib/profile-options.ts), each optionally
+   carrying a `tribeId`. 10 are Tribe-flavored (exactly 2 per Tribe, so
+   every Tribe can satisfy a "pick at least 2" primary requirement -
+   Koi and Owl previously had only 1 tribe-mappable interest each, which
+   would have broken that rule). 5 stay general (Food, Coffee, Wellness,
+   Games, Travel) - deliberately kept unlocked rather than force-fit into a
+   Tribe, since research (Meetup's own 16 top-level categories, Meta's ad
+   taxonomy) confirmed these read as universal, not niche.
+2. New `primaryInterests(tribeId)` / `secondaryInterests(tribeId)` helpers
+   replace one flat list. The interest step (both
+   [Onboarding.tsx](src/components/mutuals/Onboarding.tsx) and
+   [ProfileScreen.tsx](src/components/mutuals/ProfileScreen.tsx)'s edit
+   form) now renders two groups: "Because you're in {Tribe}" (required,
+   `INTEREST_MIN_PRIMARY = 2`, Tribe-colored active state) then "More
+   interests" (optional, the rest of the pool including every other
+   Tribe's flavor, neutral styling) - so someone can still be a Wolf member
+   who's genuinely into Music, they just can't skip Wolf's own interests
+   entirely. Total cap stays `INTEREST_MAX_TOTAL = 8`.
+3. Profile view: interests that match the profile owner's Tribe render
+   with that Tribe's accent color (`ProfileTag`'s existing `accentColor`
+   prop, previously only used for "Here for"); general ones stay neutral -
+   so the distinction is visible without adding any new UI chrome.
+4. `SOCIAL_INTENT_OPTIONS` 6 -> 9 (added Accountability partner, Travel
+   companion, Mentorship & guidance; cap 3 -> 4) and `AVAILABILITY_OPTIONS`
+   4 -> 5 (added Weekday afternoons, the one daypart gap; cap 4 -> 5, since
+   that field is "select all that apply"). Both stay flat/general per the
+   "only Interests is Tribe-connected" decision above.
+5. Onboarding's `ChoiceGroup` gained an optional `accentColor` prop (tints
+   the active-state background with a specific color instead of the
+   generic brand gradient) and `ProfileScreen`'s `ProfileChoiceGroup` had
+   its `accentColor` prop made optional (falls back to
+   `var(--color-primary)` rather than requiring every group to look
+   Tribe-branded, including the ones that no longer should).
+6. `profile.functions.ts`'s Zod schema caps updated to match
+   (`social_intents` max 3->4, `availability` max 4->5; `interests` stays
+   at 8).
+
+Updated one test assertion (`tests/contextual-color-system.test.ts`) that
+checked `ProfileChoiceGroup`'s now-renamed internal variable
+(`accentColor` -> `color`, since it's optional now) - a direct consequence
+of this refactor, not a stale leftover. `npx tsc --noEmit`, `npx eslint`,
+`npm run build`, and the full suite (131/131) all pass.
+
+**Not live-verified in the browser this round** - lost the authenticated
+session mid-task (a fresh tab group came up logged out, no credentials on
+hand to sign back in). Everything above is confirmed via type-checking,
+the full test suite (which asserts the actual rendered markup/logic, not
+just imports), and the migration's direct SQL rehearsal - but the actual
+onboarding flow and Edit Profile modal have not been clicked through.
+Worth a manual pass before relying on this being pixel-correct.
+
 ### 2026-09-02 — Claude — Own-comment menu, image download protection, audience-aware comment color, Venture save gradient, notification lazy-load, whole-card navigation, Save moved into Post options
 
 Confirmed live: the two 2026-09-01 migrations are now applied to
