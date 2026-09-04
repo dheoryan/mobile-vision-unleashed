@@ -10,6 +10,7 @@ const bottomNav = source("../src/components/mutuals/BottomNav.tsx");
 const notificationBell = source("../src/components/mutuals/NotificationBell.tsx");
 const chats = source("../src/components/mutuals/ChatsScreen.tsx");
 const postCard = source("../src/components/mutuals/PostCard.tsx");
+const postOwnMenu = source("../src/components/mutuals/PostOwnMenu.tsx");
 const comments = source("../src/components/mutuals/CommentsModal.tsx");
 
 test("primary navigation uses matched Phosphor outline and filled states", () => {
@@ -21,7 +22,10 @@ test("primary navigation uses matched Phosphor outline and filled states", () =>
 
 test("stateful social controls use Phosphor fill weights", () => {
   assert.match(postCard, /<HeartIcon[^>]*weight=\{liked \? "fill" : "regular"\}/);
-  assert.match(postCard, /<BookmarkSimpleIcon[^>]*weight=\{saved \? "fill" : "regular"\}/);
+  // Save/unsave lives in PostOwnMenu now (the "..." sheet), not inline in
+  // PostCard's own markup - same component Timeline and Profile's post
+  // history both render through, so this covers both at once.
+  assert.match(postOwnMenu, /<BookmarkSimpleIcon[^>]*weight=\{saved \? "fill" : "regular"\}/);
   assert.match(postCard, /<RepeatIcon[^>]*weight=\{reposted \? "fill" : "regular"\}/);
   assert.match(comments, /<HeartIcon[^>]*weight=\{liked \? "fill" : "regular"\}/);
   assert.match(comments, /<RepeatIcon[^>]*weight=\{reposted \? "fill" : "regular"\}/);

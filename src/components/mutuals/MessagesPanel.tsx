@@ -51,6 +51,7 @@ import { SafetyMenu } from "./SafetyMenu";
 import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
 import { ChatComposer, type ChatReplyTarget } from "./ChatComposer";
 import { ChatMessageActions } from "./ChatMessageActions";
+import { ChatMessageOwnMenu } from "./ChatMessageOwnMenu";
 import { UnsendConfirm } from "./UnsendConfirm";
 import { ChatAttachment } from "./ChatAttachment";
 import { useOptimisticChatReactions } from "@/lib/chat-store";
@@ -80,6 +81,7 @@ function MessageSwipeRow({
   accentColor,
   disabled,
   onReply,
+  onLongPress,
   className,
 }: {
   children: React.ReactNode;
@@ -87,9 +89,10 @@ function MessageSwipeRow({
   accentColor: string;
   disabled?: boolean;
   onReply: () => void;
+  onLongPress?: () => void;
   className?: string;
 }) {
-  const { dragX, peekOpacity, ready, handlers } = useSwipeReply(onReply, disabled);
+  const { dragX, peekOpacity, ready, handlers } = useSwipeReply(onReply, disabled, onLongPress);
   return (
     <div className={cn("relative select-none", className)}>
       {dragX > 4 && (
@@ -628,6 +631,7 @@ function VenturePartyThread({
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
+  const [moreOptionsFor, setMoreOptionsFor] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -868,6 +872,9 @@ function VenturePartyThread({
                   accentColor="var(--color-primary)"
                   disabled={pending || isComplete}
                   onReply={() => startReply(m)}
+                  onLongPress={
+                    pending || isComplete || m.deleted_at ? undefined : () => setActionOpenFor(m.id)
+                  }
                   className={chatGroupSpacing(groupPosition)}
                 >
                   <div
@@ -943,7 +950,7 @@ function VenturePartyThread({
                             onClick={(event) => {
                               if (pending || (event.target as HTMLElement).closest("a, button"))
                                 return;
-                              setActionOpenFor((current) => (current === m.id ? null : m.id));
+                              if (actionOpenFor === m.id) setActionOpenFor(null);
                             }}
                           >
                             {quote && (
@@ -994,14 +1001,16 @@ function VenturePartyThread({
                               startReply(m);
                               setActionOpenFor(null);
                             }}
-                            onEdit={
-                              mine && !isComplete && !m.attachment_url
-                                ? () => startEdit(m.id, m.content)
-                                : undefined
+                            onMoreOptions={
+                              mine && !isComplete ? () => setMoreOptionsFor(m.id) : undefined
                             }
-                            onUnsend={
-                              mine && !isComplete ? () => setConfirmUnsendId(m.id) : undefined
-                            }
+                          />
+                          <ChatMessageOwnMenu
+                            open={moreOptionsFor === m.id}
+                            onOpenChange={(next) => setMoreOptionsFor(next ? m.id : null)}
+                            canEdit={!m.attachment_url}
+                            onEdit={() => startEdit(m.id, m.content)}
+                            onUnsend={() => setConfirmUnsendId(m.id)}
                           />
                           {groupEnd && (
                             <p
@@ -1122,6 +1131,7 @@ function Thread({
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
+  const [moreOptionsFor, setMoreOptionsFor] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -1277,6 +1287,7 @@ function Thread({
                   });
                   requestAnimationFrame(() => inputRef.current?.focus());
                 }}
+                onLongPress={pending || m.deleted_at ? undefined : () => setActionOpenFor(m.id)}
               >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
                   {(() => {
@@ -1323,7 +1334,10 @@ function Thread({
                         }
                         onClick={(event) => {
                           if (pending || (event.target as HTMLElement).closest("a, button")) return;
-                          setActionOpenFor((current) => (current === m.id ? null : m.id));
+                          // Long-press opens the tray now (WhatsApp-style);
+                          // a plain tap only ever closes it if already open
+                          // for this message, never opens it.
+                          if (actionOpenFor === m.id) setActionOpenFor(null);
                         }}
                       >
                         {quote && (
@@ -1377,10 +1391,14 @@ function Thread({
                       setActionOpenFor(null);
                       requestAnimationFrame(() => inputRef.current?.focus());
                     }}
-                    onEdit={
-                      mine && !m.attachment_url ? () => startEdit(m.id, m.content) : undefined
-                    }
-                    onUnsend={mine ? () => setConfirmUnsendId(m.id) : undefined}
+                    onMoreOptions={mine ? () => setMoreOptionsFor(m.id) : undefined}
+                  />
+                  <ChatMessageOwnMenu
+                    open={moreOptionsFor === m.id}
+                    onOpenChange={(next) => setMoreOptionsFor(next ? m.id : null)}
+                    canEdit={!m.attachment_url}
+                    onEdit={() => startEdit(m.id, m.content)}
+                    onUnsend={() => setConfirmUnsendId(m.id)}
                   />
                   {groupEnd && (
                     <p

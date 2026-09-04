@@ -205,6 +205,91 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-04 — Claude — Chat message actions open on long-press, not a plain tap
+
+No schema change, pure client-side app code — safe to deploy on its own.
+Follow-up to the same day's chat-actions-sheet entry below.
+
+Reported with a screenshot: tapping a bubble to open the reaction/options
+tray was firing at the wrong moments and stacking with the reply/edit
+composer state, producing a confusing overlapped screen. Root cause was
+the interaction model itself, not a specific bug - a plain tap opening a
+tray is not what any chat app actually does; WhatsApp/Telegram/iMessage
+all gate it behind a hold.
+
+Moved the tray's open gesture to long-press (450ms - same duration
+`CommentsModal`'s own long-press-to-reply already uses), across all three
+chat surfaces. A plain tap on a bubble is now inert, same as everywhere
+else in a chat app, except it still closes the tray if already open for
+that message.
+
+Implementation lives in one place: `useSwipeReply`
+(`src/hooks/use-swipe-reply.ts`), which already owned the pointerdown/
+move/up lifecycle for swipe-to-reply, gained an optional third
+`onLongPress` argument. Bundled into the same hook rather than a second
+one because both gestures need to agree on when a touch has stopped being
+a tap - the swipe axis lock this hook already computes on move is exactly
+what should also cancel the long-press timer (so starting a swipe or a
+scroll never also fires long-press). `MessageSwipeRow`
+(`MessagesPanel.tsx`, shared by DM and Venture chat) and `SwipeReplyRow`
+(`TribeScreen.tsx`) both thread through a new `onLongPress` prop; each of
+the three message-list `.map()`s now passes `onLongPress={() =>
+setActionOpenFor(m.id)}` (or the Tribe/Venture equivalents) instead of
+opening the tray from the bubble's `onClick`.
+
+`tsc`, `eslint` (all touched files clean), the full `node --test` suite
+(133/133), and `npm run build` all pass. The gesture itself needs a real
+touch device to feel out fully - not verifiable from this session, but the
+underlying timer/cancel logic is the same pattern already proven correct
+by `CommentsModal`'s existing long-press-to-reply.
+
+---
+
+### 2026-09-04 — Claude — Own-content options unified to one bottom-sheet pattern (chat messages, posts)
+
+No schema change, pure client-side app code — safe to deploy on its own.
+Follow-up to the same day's chat edit/unsend entry below.
+
+Two asks, same root cause: **own-content menus had drifted into two
+different UI patterns across the app.** `SafetyMenu` (someone else's post/
+comment) and `CommentOwnMenu` (your own comment) both already used a full
+bottom sheet - label-mono context line, title, X close, full-width rows
+with icon/title/description/chevron. Two things hadn't caught up:
+
+1. **Chat message Edit/Unsend** (just shipped) started as two bare icon
+   buttons living inline in the reaction tray. Replaced with the same
+   sheet: `ChatMessageActions` now exposes one `onMoreOptions` trigger
+   (a single "..." icon after reply, not two), and a new
+   `ChatMessageOwnMenu.tsx` renders the sheet itself ("Edit message"/
+   "Unsend message" rows). Unlike `CommentOwnMenu` it's a controlled
+   component (`open`/`onOpenChange` props) rather than self-triggering,
+   since the natural trigger point for a chat bubble is the existing
+   tap-to-reveal toolbar, not a persistent per-message icon. Wired into
+   all three surfaces (`MessagesPanel.tsx`'s `Thread` and
+   `VenturePartyThread`, `TribeScreen.tsx`).
+2. **Post's own "..." menu** (`PostCard.tsx`) had never been migrated off
+   its original small absolute-positioned dropdown - the exact thing
+   `CommentOwnMenu` replaced for comments a while back. Reported as
+   Timeline and Profile's post history "behaving differently"; they don't
+   - both already render through the same `PostCard` - the real
+   inconsistency was Posts vs. Comments/chat. New `PostOwnMenu.tsx` mirrors
+   `CommentOwnMenu` line for line (Edit post / Save-Unsave post / Delete
+   post), used identically wherever `PostCard` renders. Removed the now-
+   unused `menuOpen` state and four icon imports (`DotsThreeIcon`,
+   `PencilIcon`, `TrashIcon`, `BookmarkSimpleIcon`) from `PostCard.tsx`.
+
+Two tests (`phosphor-icon-system.test.ts`, `compact-action-hover.test.ts`)
+had assertions written against the old inline markup in `PostCard.tsx` -
+updated to check `PostOwnMenu.tsx` instead, since that's where the markup
+actually lives now.
+
+`tsc`, `eslint` (all touched files clean), the full `node --test` suite
+(133/133), and `npm run build` all pass. Not live-verified in browser -
+same standing limitation, every surface here needs a signed-in session
+against production.
+
+---
+
 ### 2026-09-04 — Claude — Edit + unsend for every chat surface (DM, Tribe, Venture)
 
 **⚠️ One migration must be applied before this app code is deployed** -

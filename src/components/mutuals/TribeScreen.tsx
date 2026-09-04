@@ -25,6 +25,7 @@ import {
 } from "@/lib/tribe-room";
 import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
 import { ChatMessageActions } from "./ChatMessageActions";
+import { ChatMessageOwnMenu } from "./ChatMessageOwnMenu";
 import { UnsendConfirm } from "./UnsendConfirm";
 import { CHAT_REACTIONS, isChatReaction } from "@/lib/chat";
 import { ChatComposer } from "./ChatComposer";
@@ -49,6 +50,7 @@ function SwipeReplyRow({
   tribeColor,
   disabled,
   onReply,
+  onLongPress,
   className,
 }: {
   children: React.ReactNode;
@@ -56,9 +58,10 @@ function SwipeReplyRow({
   tribeColor: string;
   disabled?: boolean;
   onReply: () => void;
+  onLongPress?: () => void;
   className?: string;
 }) {
-  const { dragX, peekOpacity, ready, handlers } = useSwipeReply(onReply, disabled);
+  const { dragX, peekOpacity, ready, handlers } = useSwipeReply(onReply, disabled, onLongPress);
   return (
     <div className={cn("relative select-none", className)}>
       {dragX > 4 && (
@@ -431,6 +434,7 @@ function GroupChat({
   const [replyTo, setReplyTo] = useState<TribeMessage | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
+  const [moreOptionsFor, setMoreOptionsFor] = useState<string | null>(null);
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -934,6 +938,7 @@ function GroupChat({
                 mine={mine}
                 disabled={!canChat}
                 onReply={() => setReplyTo(m)}
+                onLongPress={!canChat || m.deleted_at ? undefined : () => setReactionOpenFor(m.id)}
                 className={chatGroupSpacing(groupPosition)}
               >
                 {!mine && groupStart && (
@@ -986,7 +991,7 @@ function GroupChat({
                       }
                       onClick={(event) => {
                         if (!canChat || (event.target as HTMLElement).closest("a, button")) return;
-                        setReactionOpenFor((current) => (current === m.id ? null : m.id));
+                        if (reactionOpenFor === m.id) setReactionOpenFor(null);
                       }}
                     >
                       {/* Tribe chat had its OWN quote renderer — a filled,
@@ -1047,8 +1052,14 @@ function GroupChat({
                       setReplyTo(m);
                       setReactionOpenFor(null);
                     }}
-                    onEdit={mine && !m.attachment_url ? () => startEdit(m) : undefined}
-                    onUnsend={mine ? () => setConfirmUnsendId(m.id) : undefined}
+                    onMoreOptions={mine ? () => setMoreOptionsFor(m.id) : undefined}
+                  />
+                  <ChatMessageOwnMenu
+                    open={moreOptionsFor === m.id}
+                    onOpenChange={(next) => setMoreOptionsFor(next ? m.id : null)}
+                    canEdit={!m.attachment_url}
+                    onEdit={() => startEdit(m)}
+                    onUnsend={() => setConfirmUnsendId(m.id)}
                   />
                   {groupEnd && (
                     <p

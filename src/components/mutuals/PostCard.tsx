@@ -1,7 +1,4 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
-import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
-import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
 import { QuotesIcon } from "@phosphor-icons/react/dist/csr/Quotes";
@@ -10,7 +7,6 @@ import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { HeartIcon } from "@phosphor-icons/react/dist/csr/Heart";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
 import { PaperPlaneTiltIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneTilt";
-import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
 import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
@@ -18,6 +14,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
+import { PostOwnMenu } from "./PostOwnMenu";
 import { ComposerModal } from "./ComposerModal";
 import { QuotedPostPreview, QuotedPostUnavailable } from "./QuotedPostPreview";
 import { QuotedCommentPreview, QuotedCommentUnavailable } from "./QuotedCommentPreview";
@@ -204,7 +201,6 @@ export function PostCard({
   const editPost = useEditPost();
   const deletePost = useDeletePost();
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [repostMenuOpen, setRepostMenuOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -267,7 +263,6 @@ export function PostCard({
   };
 
   const startEdit = () => {
-    setMenuOpen(false);
     setEditText(post.content);
     setEditImages(post.image_paths.map((path, i) => ({ path, previewUrl: post.images[i] ?? "" })));
     setEditing(true);
@@ -415,53 +410,14 @@ export function PostCard({
           </span>
         )}
         {isMine ? (
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Post actions"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <DotsThreeIcon className="h-4 w-4" />
-            </button>
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-9 z-40 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                  <button
-                    onClick={startEdit}
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
-                  >
-                    <PencilIcon className="h-3.5 w-3.5" /> Edit post
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm hover:bg-secondary",
-                      saved && "text-amber-400",
-                    )}
-                  >
-                    <BookmarkSimpleIcon
-                      className="h-3.5 w-3.5"
-                      weight={saved ? "fill" : "regular"}
-                    />
-                    {saved ? "Unsave post" : "Save post"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setConfirmDel(true);
-                    }}
-                    className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
-                  >
-                    <TrashIcon className="h-3.5 w-3.5" /> Delete post
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <PostOwnMenu
+            onEdit={startEdit}
+            saved={saved}
+            onToggleSave={() => {
+              if (!post.id.startsWith("tmp-")) toggleSave.mutate(post.id);
+            }}
+            onDelete={() => setConfirmDel(true)}
+          />
         ) : (
           <SafetyMenu
             targetName={author.name}

@@ -8,6 +8,7 @@ function source(path: string) {
 
 const comments = source("../src/components/mutuals/CommentsModal.tsx");
 const postCard = source("../src/components/mutuals/PostCard.tsx");
+const postOwnMenu = source("../src/components/mutuals/PostOwnMenu.tsx");
 const safetyMenu = source("../src/components/mutuals/SafetyMenu.tsx");
 
 test("compact comment actions use semantic color hover without gray pills", () => {
@@ -24,9 +25,11 @@ test("ellipsis triggers keep their touch target and hover through color only", (
     safetyMenu,
     /h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary/,
   );
+  // Own-post "..." trigger lives in PostOwnMenu now (same sheet pattern as
+  // SafetyMenu/CommentOwnMenu), not inline in PostCard's own markup.
   assert.match(
-    postCard,
-    /aria-label="Post actions"[\s\S]*?h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary/,
+    postOwnMenu,
+    /aria-label="Post options"[\s\S]*?h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary/,
   );
   assert.doesNotMatch(
     postCard,
@@ -39,9 +42,9 @@ test("post footer actions advertise their meaning with color", () => {
   assert.match(postCard, /hover:text-primary/);
   assert.match(postCard, /hover:text-emerald-400/);
   // Save moved out of the footer into the "…" sheet (SafetyMenu's post
-  // options for someone else's post, the own-post dropdown here for yours)
-  // - still amber, just no longer a footer hover affordance since both are
-  // full menu rows rather than compact icon buttons.
-  assert.match(postCard, /text-amber-400/);
+  // options for someone else's post, PostOwnMenu for yours) - still amber,
+  // just no longer a footer hover affordance since both are full menu rows
+  // rather than compact icon buttons.
+  assert.match(postOwnMenu, /text-amber-400/);
   assert.match(safetyMenu, /text-amber-400/);
 });
