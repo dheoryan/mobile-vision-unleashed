@@ -94,12 +94,14 @@ export type VentureMessage = {
   mentions: string[];
   message_kind: "user" | "system";
   system_event: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
   reactions: ChatReactionCounts;
   my_reactions: ChatReaction[];
   sender: VentureProfileLite | null;
   reply_to?: Pick<
     VentureMessage,
-    "id" | "sender_id" | "content" | "attachment_type" | "sender"
+    "id" | "sender_id" | "content" | "attachment_type" | "sender" | "deleted_at"
   > | null;
 };
 
@@ -196,6 +198,8 @@ type VentureMessageDbRow = {
   mentions?: string[];
   message_kind?: "user" | "system";
   system_event?: string | null;
+  edited_at?: string | null;
+  deleted_at?: string | null;
 };
 
 const PROFILE_COLS =
@@ -206,7 +210,7 @@ const LEGACY_VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const APP_COLS = "id, venture_id, applicant_id, status, message, created_at, decided_at";
 const MESSAGE_COLS =
-  "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id, mentions, message_kind, system_event";
+  "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id, mentions, message_kind, system_event, edited_at, deleted_at";
 const LEGACY_MESSAGE_COLS =
   "id, venture_id, sender_id, content, created_at, attachment_url, attachment_type, reply_to_id";
 
@@ -1741,6 +1745,8 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       mentions: m.mentions ?? [],
       message_kind: m.message_kind ?? "user",
       system_event: m.system_event ?? null,
+      edited_at: m.edited_at ?? null,
+      deleted_at: m.deleted_at ?? null,
       reactions: emptyChatReactions(),
       my_reactions: [],
       sender: senders.get(m.sender_id) ?? null,
@@ -1860,8 +1866,86 @@ export const sendVentureMessage = createServerFn({ method: "POST" })
       mentions: message.mentions ?? [],
       message_kind: "user",
       system_event: null,
+      edited_at: null,
+      deleted_at: null,
       reactions: emptyChatReactions(),
       my_reactions: [],
       sender: senders.get(userId) ?? null,
+    };
+  });
+
+export const editVentureMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), content: z.string().trim().min(1).max(2000) }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<VentureMessage> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    // enforce_venture_message_edit_fields (20260904010000) is the real gate
+    // - sender-only, blocks system messages and already-unsent ones, stamps
+    // edited_at. Ownership isn't re-checked here; the trigger raises on
+    // anyone else's attempt regardless of how the request got this far.
+    const { data: row, error } = await db
+      .from("venture_messages")
+      .update({ content: data.content })
+      .eq("id", data.id)
+      .select(MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    const message = row as VentureMessageDbRow;
+    const senders = await fetchProfiles(db, [message.sender_id]);
+    return {
+      id: message.id,
+      venture_id: message.venture_id,
+      sender_id: message.sender_id,
+      content: message.content,
+      created_at: message.created_at,
+      attachment_url: message.attachment_url,
+      attachment_type: message.attachment_type,
+      reply_to_id: message.reply_to_id,
+      mentions: message.mentions ?? [],
+      message_kind: message.message_kind ?? "user",
+      system_event: message.system_event ?? null,
+      edited_at: message.edited_at ?? null,
+      deleted_at: message.deleted_at ?? null,
+      reactions: emptyChatReactions(),
+      my_reactions: [],
+      sender: senders.get(message.sender_id) ?? null,
+    };
+  });
+
+export const unsendVentureMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<VentureMessage> => {
+    const { supabase } = context;
+    const db = supabase as unknown as any;
+    const { data: row, error } = await db
+      .from("venture_messages")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .select(MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    const message = row as VentureMessageDbRow;
+    const senders = await fetchProfiles(db, [message.sender_id]);
+    return {
+      id: message.id,
+      venture_id: message.venture_id,
+      sender_id: message.sender_id,
+      content: message.content,
+      created_at: message.created_at,
+      attachment_url: message.attachment_url,
+      attachment_type: message.attachment_type,
+      reply_to_id: message.reply_to_id,
+      mentions: message.mentions ?? [],
+      message_kind: message.message_kind ?? "user",
+      system_event: message.system_event ?? null,
+      edited_at: message.edited_at ?? null,
+      deleted_at: message.deleted_at ?? null,
+      reactions: emptyChatReactions(),
+      my_reactions: [],
+      sender: senders.get(message.sender_id) ?? null,
     };
   });

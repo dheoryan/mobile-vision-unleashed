@@ -15,6 +15,8 @@ import {
   listOpenVentures,
   listVentureMessages,
   sendVentureMessage,
+  editVentureMessage,
+  unsendVentureMessage,
   getVentureCoordination,
   setVentureArrivalStatus,
   updateVentureAnnouncement,
@@ -336,6 +338,66 @@ export function useSendVentureMessage(ventureId: string) {
       ]);
       qc.invalidateQueries({ queryKey: MESSAGES_KEY(ventureId) });
       qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+function patchVentureMessage(
+  qc: ReturnType<typeof useQueryClient>,
+  ventureId: string,
+  id: string,
+  patch: Partial<VentureMessage>,
+) {
+  const key = MESSAGES_KEY(ventureId);
+  const previous = qc.getQueryData<VentureMessage[]>(key);
+  qc.setQueryData<VentureMessage[]>(key, (cur) =>
+    cur?.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+  );
+  return previous;
+}
+
+export function useEditVentureMessage(ventureId: string) {
+  const fn = useServerFn(editVentureMessage);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; content: string }) => fn({ data: input }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: MESSAGES_KEY(ventureId) });
+      const previous = patchVentureMessage(qc, ventureId, input.id, {
+        content: input.content,
+        edited_at: new Date().toISOString(),
+      });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) qc.setQueryData(MESSAGES_KEY(ventureId), context.previous);
+    },
+    onSuccess: (saved) => {
+      patchVentureMessage(qc, ventureId, saved.id, saved);
+    },
+  });
+}
+
+export function useUnsendVentureMessage(ventureId: string) {
+  const fn = useServerFn(unsendVentureMessage);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => fn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: MESSAGES_KEY(ventureId) });
+      const previous = patchVentureMessage(qc, ventureId, id, {
+        content: null,
+        attachment_url: null,
+        attachment_type: null,
+        deleted_at: new Date().toISOString(),
+      });
+      return { previous };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) qc.setQueryData(MESSAGES_KEY(ventureId), context.previous);
+    },
+    onSuccess: (saved) => {
+      patchVentureMessage(qc, ventureId, saved.id, saved);
     },
   });
 }

@@ -25,6 +25,7 @@ import {
 } from "@/lib/tribe-room";
 import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
 import { ChatMessageActions } from "./ChatMessageActions";
+import { UnsendConfirm } from "./UnsendConfirm";
 import { CHAT_REACTIONS, isChatReaction } from "@/lib/chat";
 import { ChatComposer } from "./ChatComposer";
 import { useTribeMembers } from "@/lib/tribe-members-store";
@@ -383,12 +384,14 @@ type TribeMessage = {
   reply_to_id?: string | null;
   mentions?: string[] | null;
   room_kind?: string | null;
+  edited_at?: string | null;
+  deleted_at?: string | null;
   reactions: Record<TribeRoomReaction, number>;
   my_reactions: TribeRoomReaction[];
   sender?: TribeMember;
   reply_to?: Pick<
     TribeMessage,
-    "id" | "content" | "sender_id" | "attachment_type" | "sender"
+    "id" | "content" | "sender_id" | "attachment_type" | "sender" | "deleted_at"
   > | null;
 };
 
@@ -426,6 +429,8 @@ function GroupChat({
   const [caret, setCaret] = useState(0);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [replyTo, setReplyTo] = useState<TribeMessage | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -490,7 +495,7 @@ function GroupChat({
     const enhanced = await supabase
       .from("tribe_messages")
       .select(
-        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind",
+        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at",
       )
       .eq("tribe_id", dbTribeId)
       .is("room_kind", null)
@@ -570,6 +575,8 @@ function GroupChat({
       reply_to_id: row.reply_to_id,
       mentions: row.mentions ?? [],
       room_kind: row.room_kind,
+      edited_at: row.edited_at ?? null,
+      deleted_at: row.deleted_at ?? null,
       reactions: reactionCounts.get(row.id) ?? emptyTribeRoomReactions(),
       my_reactions: myReactions.get(row.id) ?? [],
       sender: profileMap[row.sender_id],
@@ -632,6 +639,36 @@ function GroupChat({
               },
             ];
           });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "tribe_messages",
+          filter: `tribe_id=eq.${dbTribeId}`,
+        },
+        (payload) => {
+          // Edit/unsend - the only two things that ever UPDATE a chat row
+          // here. Structured Room items live in this same table but this
+          // screen only ever holds room_kind-null rows in state to begin
+          // with, so there's nothing to match for those.
+          const row = payload.new as TribeMessage;
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === row.id
+                ? {
+                    ...message,
+                    content: row.content,
+                    attachment_url: row.attachment_url,
+                    attachment_type: row.attachment_type,
+                    edited_at: row.edited_at ?? null,
+                    deleted_at: row.deleted_at ?? null,
+                  }
+                : message,
+            ),
+          );
         },
       )
       .subscribe();
@@ -713,7 +750,72 @@ function GroupChat({
     });
   };
 
+  const startEdit = (message: TribeMessage) => {
+    setReplyTo(null);
+    setEditingId(message.id);
+    setText(message.content ?? "");
+    setCaret(0);
+    setReactionOpenFor(null);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  // Direct-client updates, same as `send`'s direct-client insert above -
+  // enforce_tribe_message_edit_fields (20260904010000) is the real gate,
+  // this just patches local state and rolls back on error.
+  const saveEdit = async (id: string, content: string) => {
+    const previous = messages;
+    const editedAt = new Date().toISOString();
+    setMessages((current) =>
+      current.map((item) => (item.id === id ? { ...item, content, edited_at: editedAt } : item)),
+    );
+    const { error } = await supabase.from("tribe_messages").update({ content }).eq("id", id);
+    if (error) {
+      setMessages(previous);
+      toast.error(error.message);
+    }
+  };
+
+  const unsendMessage = async (id: string) => {
+    const previous = messages;
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              content: "",
+              attachment_url: null,
+              attachment_type: null,
+              deleted_at: new Date().toISOString(),
+            }
+          : item,
+      ),
+    );
+    // tribe_messages.deleted_at (20260904010000) isn't in the generated
+    // Database types yet - same "migration is live, types.ts hasn't caught
+    // up" situation as commentsTable in posts.functions.ts. `as any` here
+    // rather than a table-wide helper since this is the only tribe_messages
+    // write in this file that touches the unlanded column.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("tribe_messages") as any)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      setMessages(previous);
+      toast.error(error.message);
+    }
+  };
+
   const send = async () => {
+    if (editingId) {
+      const cleanContent = text.trim();
+      if (!cleanContent) return;
+      const id = editingId;
+      setText("");
+      setCaret(0);
+      setEditingId(null);
+      await saveEdit(id, cleanContent);
+      return;
+    }
     if (!canChat || !user || sending) return;
     if (!dbTribeId) {
       toast.error("Tribe is not ready yet. Please try again.");
@@ -855,55 +957,74 @@ function GroupChat({
                       {displayName}
                     </p>
                   )}
-                  <div
-                    className={cn(
-                      "space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
-                      chatBubbleShape(groupPosition, mine),
-                      canChat && "cursor-pointer",
-                      mine
-                        ? "border-transparent text-primary-foreground"
-                        : "border-border/80 bg-card/95 text-foreground",
-                    )}
-                    style={
-                      mine
-                        ? {
-                            backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 76%, var(--color-card))`,
+                  {m.deleted_at ? (
+                    <div
+                      className={cn(
+                        "border px-3.5 py-2.5 text-sm italic text-muted-foreground",
+                        chatBubbleShape(groupPosition, mine),
+                        "border-border/80 bg-card/60",
+                      )}
+                    >
+                      Message removed
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                        chatBubbleShape(groupPosition, mine),
+                        canChat && "cursor-pointer",
+                        mine
+                          ? "border-transparent text-primary-foreground"
+                          : "border-border/80 bg-card/95 text-foreground",
+                      )}
+                      style={
+                        mine
+                          ? {
+                              backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 76%, var(--color-card))`,
+                            }
+                          : undefined
+                      }
+                      onClick={(event) => {
+                        if (!canChat || (event.target as HTMLElement).closest("a, button")) return;
+                        setReactionOpenFor((current) => (current === m.id ? null : m.id));
+                      }}
+                    >
+                      {/* Tribe chat had its OWN quote renderer — a filled,
+                          rounded box nested inside an already-rounded bubble,
+                          painting bg-background/25 over the Tribe colour. Two
+                          implementations of the same thing is why fixing the DM
+                          one left this one untouched. Both now use QuotedBlock. */}
+                      {m.reply_to && (
+                        <QuotedBlock
+                          mine={mine}
+                          accentColor={tribe.colorVar}
+                          name={
+                            m.reply_to.sender_id === user?.id
+                              ? "You"
+                              : (m.reply_to.sender?.display_name ?? "Member")
                           }
-                        : undefined
-                    }
-                    onClick={(event) => {
-                      if (!canChat || (event.target as HTMLElement).closest("a, button")) return;
-                      setReactionOpenFor((current) => (current === m.id ? null : m.id));
-                    }}
-                  >
-                    {/* Tribe chat had its OWN quote renderer — a filled,
-                        rounded box nested inside an already-rounded bubble,
-                        painting bg-background/25 over the Tribe colour. Two
-                        implementations of the same thing is why fixing the DM
-                        one left this one untouched. Both now use QuotedBlock. */}
-                    {m.reply_to && (
-                      <QuotedBlock
-                        mine={mine}
-                        accentColor={tribe.colorVar}
-                        name={
-                          m.reply_to.sender_id === user?.id
-                            ? "You"
-                            : (m.reply_to.sender?.display_name ?? "Member")
-                        }
-                        snippet={
-                          m.reply_to.content ||
-                          (m.reply_to.attachment_type === "image" ? "Photo" : "Message")
-                        }
-                      />
-                    )}
-                    {m.attachment_url && m.attachment_type === "image" && (
-                      <ChatAttachmentImage value={m.attachment_url} />
-                    )}
+                          snippet={
+                            m.reply_to.deleted_at
+                              ? "Message removed"
+                              : m.reply_to.content ||
+                                (m.reply_to.attachment_type === "image" ? "Photo" : "Message")
+                          }
+                        />
+                      )}
+                      {m.attachment_url && m.attachment_type === "image" && (
+                        <ChatAttachmentImage value={m.attachment_url} />
+                      )}
 
-                    {m.content?.trim() && (
-                      <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                    )}
-                  </div>
+                      {m.content?.trim() && (
+                        <p className="whitespace-pre-wrap break-words">
+                          {m.content}
+                          {m.edited_at && (
+                            <span className="ml-1.5 text-[10px] italic opacity-70">(edited)</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <ChatMessageActions
                     open={reactionOpenFor === m.id}
                     mine={mine}
@@ -917,7 +1038,7 @@ function GroupChat({
                       support: m.reactions.support,
                     }}
                     myReactions={m.my_reactions.filter(isChatReaction)}
-                    disabled={!canChat}
+                    disabled={!canChat || Boolean(m.deleted_at)}
                     onToggleOpen={() =>
                       setReactionOpenFor((current) => (current === m.id ? null : m.id))
                     }
@@ -926,6 +1047,8 @@ function GroupChat({
                       setReplyTo(m);
                       setReactionOpenFor(null);
                     }}
+                    onEdit={mine && !m.attachment_url ? () => startEdit(m) : undefined}
+                    onUnsend={mine ? () => setConfirmUnsendId(m.id) : undefined}
                   />
                   {groupEnd && (
                     <p
@@ -957,7 +1080,7 @@ function GroupChat({
           onChange={setText}
           onCaretChange={setCaret}
           onSend={() => void send()}
-          placeholder={composerPlaceholder}
+          placeholder={editingId ? "Edit message…" : composerPlaceholder}
           accentColor={tribe.colorVar}
           replyTo={
             replyTo
@@ -973,6 +1096,12 @@ function GroupChat({
               : null
           }
           onCancelReply={() => setReplyTo(null)}
+          editingSnippet={editingId ? "Update the text below, then send to save" : null}
+          onCancelEdit={() => {
+            setEditingId(null);
+            setText("");
+            setCaret(0);
+          }}
           selectedImage={selectedImage}
           onSelectImage={(file) => selectImage(file)}
           onClearImage={clearAttachment}
@@ -1019,6 +1148,16 @@ function GroupChat({
           }
         />
       </div>
+      <UnsendConfirm
+        open={confirmUnsendId != null}
+        onCancel={() => setConfirmUnsendId(null)}
+        onConfirm={() => {
+          if (!confirmUnsendId) return;
+          const id = confirmUnsendId;
+          setConfirmUnsendId(null);
+          void unsendMessage(id);
+        }}
+      />
     </div>
   );
 }

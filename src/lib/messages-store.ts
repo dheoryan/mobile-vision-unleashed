@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  editMessage,
   getProfileById,
   listMessages,
   listThreads,
   markThreadRead,
   sendMessage,
+  unsendMessage,
   type DMMessage,
   type DMThreadSummary,
 } from "@/lib/messages.functions";
@@ -76,6 +78,8 @@ export function useSendMessage(otherId: string) {
         reply_to: input.reply_to_id
           ? (current.find((message) => message.id === input.reply_to_id) ?? null)
           : null,
+        edited_at: null,
+        deleted_at: null,
         reactions: emptyChatReactions(),
         my_reactions: [],
       };
@@ -94,6 +98,72 @@ export function useSendMessage(otherId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: THREADS_KEY });
+    },
+  });
+}
+
+/** Patches one message's fields across whatever thread cache currently
+ *  holds it, with a snapshot for rollback - shared by edit and unsend since
+ *  both are "change this one message in place, everywhere it might be
+ *  cached" operations. */
+function patchMessageEverywhere(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: Partial<DMMessage>,
+) {
+  const snapshots = qc.getQueriesData<DMMessage[]>({ queryKey: ["messages", "thread"] });
+  for (const [key, data] of snapshots) {
+    if (!data) continue;
+    qc.setQueryData<DMMessage[]>(
+      key,
+      data.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    );
+  }
+  return snapshots;
+}
+
+export function useEditMessage() {
+  const fn = useServerFn(editMessage);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; content: string }) => fn({ data: input }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["messages", "thread"] });
+      const snapshots = patchMessageEverywhere(qc, input.id, {
+        content: input.content,
+        edited_at: new Date().toISOString(),
+      });
+      return { snapshots };
+    },
+    onError: (_error, _input, context) => {
+      for (const [key, value] of context?.snapshots ?? []) qc.setQueryData(key, value);
+    },
+    onSuccess: (saved) => {
+      patchMessageEverywhere(qc, saved.id, saved);
+    },
+  });
+}
+
+export function useUnsendMessage() {
+  const fn = useServerFn(unsendMessage);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => fn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["messages", "thread"] });
+      const snapshots = patchMessageEverywhere(qc, id, {
+        content: null,
+        attachment_url: null,
+        attachment_type: null,
+        deleted_at: new Date().toISOString(),
+      });
+      return { snapshots };
+    },
+    onError: (_error, _id, context) => {
+      for (const [key, value] of context?.snapshots ?? []) qc.setQueryData(key, value);
+    },
+    onSuccess: (saved) => {
+      patchMessageEverywhere(qc, saved.id, saved);
     },
   });
 }

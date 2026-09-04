@@ -1,4 +1,6 @@
 import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { cn } from "@/lib/utils";
 import {
   CHAT_REACTIONS,
@@ -17,6 +19,10 @@ interface ChatMessageActionsProps {
   onToggleOpen: () => void;
   onReact: (reaction: ChatReaction) => void;
   onReply: () => void;
+  /** Own-message-only actions. Omit either to leave that action out (e.g. a
+   *  message that can no longer be edited some other way). */
+  onEdit?: () => void;
+  onUnsend?: () => void;
 }
 
 /** Shared reaction tray and durable count chips for all chat message bubbles. */
@@ -30,6 +36,8 @@ export function ChatMessageActions({
   onToggleOpen,
   onReact,
   onReply,
+  onEdit,
+  onUnsend,
 }: ChatMessageActionsProps) {
   return (
     <>
@@ -71,6 +79,29 @@ export function ChatMessageActions({
           >
             <ArrowBendUpLeftIcon className="h-4 w-4" />
           </button>
+          {mine && (onEdit || onUnsend) && (
+            <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
+          )}
+          {mine && onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label="Edit message"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <PencilIcon className="h-4 w-4" />
+            </button>
+          )}
+          {mine && onUnsend && (
+            <button
+              type="button"
+              onClick={onUnsend}
+              aria-label="Unsend message"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
       )}
 

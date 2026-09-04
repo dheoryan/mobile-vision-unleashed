@@ -10,18 +10,22 @@ import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import {
+  useEditMessage,
   useMarkThreadRead,
   useProfileById,
   useSendMessage,
   useThreadMessages,
   useThreads,
+  useUnsendMessage,
   type DMThreadSummary,
 } from "@/lib/messages-store";
 import {
+  useEditVentureMessage,
   useMyHostedVentures,
   useMyJoinedVentures,
   useSendVentureMessage,
   useSetVentureArrivalStatus,
+  useUnsendVentureMessage,
   useUpdateVentureAnnouncement,
   useVentureCoordination,
   useVentureMessages,
@@ -47,6 +51,7 @@ import { SafetyMenu } from "./SafetyMenu";
 import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
 import { ChatComposer, type ChatReplyTarget } from "./ChatComposer";
 import { ChatMessageActions } from "./ChatMessageActions";
+import { UnsendConfirm } from "./UnsendConfirm";
 import { ChatAttachment } from "./ChatAttachment";
 import { useOptimisticChatReactions } from "@/lib/chat-store";
 import { removeChatAttachment, uploadChatImage } from "@/lib/uploads";
@@ -613,12 +618,16 @@ function VenturePartyThread({
   const { user } = useAuth();
   const { data: msgs, isLoading } = useVentureMessages(venture.id, true);
   const send = useSendVentureMessage(venture.id);
+  const editMessage = useEditVentureMessage(venture.id);
+  const unsendMessage = useUnsendVentureMessage(venture.id);
   const coordinationQuery = useVentureCoordination(venture.id, true);
   const setArrivalStatus = useSetVentureArrivalStatus(venture.id);
   const updateAnnouncement = useUpdateVentureAnnouncement(venture.id);
   const [text, setText] = useState("");
   const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -676,8 +685,28 @@ function VenturePartyThread({
   }, [msgs, isComplete]);
   useStickToBottomOnKeyboard(scrollRef, bottomRef, keyboardOpen);
 
+  const startEdit = (id: string, content: string | null) => {
+    setReplyTo(null);
+    setEditingId(id);
+    setText(content ?? "");
+    setCaret(0);
+    setActionOpenFor(null);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   const submit = async () => {
     const body = text.trim();
+    if (editingId) {
+      if (!body) return;
+      editMessage.mutate(
+        { id: editingId, content: body },
+        { onError: (error) => toast.error((error as Error).message) },
+      );
+      setText("");
+      setCaret(0);
+      setEditingId(null);
+      return;
+    }
     if ((!body && !selectedImage) || !user?.id || uploading) return;
     setUploading(true);
     let uploadedPath: string | null = null;
@@ -861,6 +890,26 @@ function VenturePartyThread({
                       <span aria-hidden="true" className="h-7 w-7 shrink-0" />
                     )}
                     {(() => {
+                      if (m.deleted_at) {
+                        return (
+                          <div className="min-w-0">
+                            {!mine && groupStart && (
+                              <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
+                                {senderName}
+                              </p>
+                            )}
+                            <div
+                              className={cn(
+                                "border px-3.5 py-2.5 text-sm italic text-muted-foreground",
+                                chatBubbleShape(groupPosition, mine),
+                                "border-border/80 bg-card/60",
+                              )}
+                            >
+                              Message removed
+                            </div>
+                          </div>
+                        );
+                      }
                       const legacy = parseQuotedMessage(m.content ?? "");
                       const quote = m.reply_to
                         ? {
@@ -868,9 +917,10 @@ function VenturePartyThread({
                               m.reply_to.sender_id === user?.id
                                 ? "You"
                                 : displayVentureName(m.reply_to.sender),
-                            snippet:
-                              m.reply_to.content ||
-                              (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
+                            snippet: m.reply_to.deleted_at
+                              ? "Message removed"
+                              : m.reply_to.content ||
+                                (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
                           }
                         : legacy.quote;
                       const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
@@ -908,7 +958,14 @@ function VenturePartyThread({
                               <ChatAttachment value={m.attachment_url} />
                             )}
                             {messageBody && (
-                              <p className="whitespace-pre-wrap leading-relaxed">{messageBody}</p>
+                              <p className="whitespace-pre-wrap leading-relaxed">
+                                {messageBody}
+                                {m.edited_at && (
+                                  <span className="ml-1.5 text-[10px] italic opacity-70">
+                                    (edited)
+                                  </span>
+                                )}
+                              </p>
                             )}
                           </div>
                           <ChatMessageActions
@@ -937,6 +994,14 @@ function VenturePartyThread({
                               startReply(m);
                               setActionOpenFor(null);
                             }}
+                            onEdit={
+                              mine && !isComplete && !m.attachment_url
+                                ? () => startEdit(m.id, m.content)
+                                : undefined
+                            }
+                            onUnsend={
+                              mine && !isComplete ? () => setConfirmUnsendId(m.id) : undefined
+                            }
                           />
                           {groupEnd && (
                             <p
@@ -983,11 +1048,19 @@ function VenturePartyThread({
             onChange={setText}
             onCaretChange={setCaret}
             onSend={() => void submit()}
-            placeholder={replyTo ? "Write a reply…" : "Message the party"}
+            placeholder={
+              editingId ? "Edit message…" : replyTo ? "Write a reply…" : "Message the party"
+            }
             accentColor="var(--color-primary)"
             gradientAction
             replyTo={replyTo}
             onCancelReply={() => setReplyTo(null)}
+            editingSnippet={editingId ? "Update the text below, then send to save" : null}
+            onCancelEdit={() => {
+              setEditingId(null);
+              setText("");
+              setCaret(0);
+            }}
             selectedImage={selectedImage}
             onSelectImage={setSelectedImage}
             onClearImage={() => setSelectedImage(null)}
@@ -998,6 +1071,19 @@ function VenturePartyThread({
           />
         )}
       </div>
+
+      <UnsendConfirm
+        open={confirmUnsendId != null}
+        onCancel={() => setConfirmUnsendId(null)}
+        onConfirm={() => {
+          if (!confirmUnsendId) return;
+          const id = confirmUnsendId;
+          setConfirmUnsendId(null);
+          unsendMessage.mutate(id, {
+            onError: (error) => toast.error((error as Error).message),
+          });
+        }}
+      />
 
       <VentureParticipantsSheet
         open={participantsOpen}
@@ -1029,9 +1115,13 @@ function Thread({
   const { data: other } = useProfileById(otherId);
   const { data: msgs, isLoading } = useThreadMessages(otherId);
   const send = useSendMessage(otherId);
+  const editMessage = useEditMessage();
+  const unsendMessage = useUnsendMessage();
   const markRead = useMarkThreadRead(otherId);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -1075,8 +1165,26 @@ function Thread({
   }, [lastMessageId, otherId]);
   useStickToBottomOnKeyboard(scrollRef, bottomRef, keyboardOpen);
 
+  const startEdit = (id: string, content: string | null) => {
+    setReplyTo(null);
+    setEditingId(id);
+    setText(content ?? "");
+    setActionOpenFor(null);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   const submit = async () => {
     const body = text.trim();
+    if (editingId) {
+      if (!body) return;
+      editMessage.mutate(
+        { id: editingId, content: body },
+        { onError: (error) => toast.error((error as Error).message) },
+      );
+      setText("");
+      setEditingId(null);
+      return;
+    }
     if ((!body && !selectedImage) || !user?.id || uploading) return;
     setUploading(true);
     let uploadedPath: string | null = null;
@@ -1172,13 +1280,27 @@ function Thread({
               >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
                   {(() => {
+                    if (m.deleted_at) {
+                      return (
+                        <div
+                          className={cn(
+                            "border px-3.5 py-2.5 text-sm italic text-muted-foreground",
+                            chatBubbleShape(groupPosition, mine),
+                            "border-border/80 bg-card/60",
+                          )}
+                        >
+                          Message removed
+                        </div>
+                      );
+                    }
                     const legacy = parseQuotedMessage(m.content ?? "");
                     const quote = m.reply_to
                       ? {
                           name: m.reply_to.sender_id === user?.id ? "You" : actionName,
-                          snippet:
-                            m.reply_to.content ||
-                            (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
+                          snippet: m.reply_to.deleted_at
+                            ? "Message removed"
+                            : m.reply_to.content ||
+                              (m.reply_to.attachment_type === "image" ? "Photo" : "Message"),
                         }
                       : legacy.quote;
                     const messageBody = m.reply_to ? (m.content ?? "") : legacy.body;
@@ -1216,7 +1338,12 @@ function Thread({
                           <ChatAttachment value={m.attachment_url} />
                         )}
                         {messageBody && (
-                          <p className="whitespace-pre-wrap break-words">{messageBody}</p>
+                          <p className="whitespace-pre-wrap break-words">
+                            {messageBody}
+                            {m.edited_at && (
+                              <span className="ml-1.5 text-[10px] italic opacity-70">(edited)</span>
+                            )}
+                          </p>
                         )}
                       </div>
                     );
@@ -1227,7 +1354,7 @@ function Thread({
                     senderName={actionName}
                     reactions={reactionState.reactions}
                     myReactions={reactionState.my_reactions}
-                    disabled={pending}
+                    disabled={pending || Boolean(m.deleted_at)}
                     onToggleOpen={() =>
                       setActionOpenFor((current) => (current === m.id ? null : m.id))
                     }
@@ -1250,6 +1377,10 @@ function Thread({
                       setActionOpenFor(null);
                       requestAnimationFrame(() => inputRef.current?.focus());
                     }}
+                    onEdit={
+                      mine && !m.attachment_url ? () => startEdit(m.id, m.content) : undefined
+                    }
+                    onUnsend={mine ? () => setConfirmUnsendId(m.id) : undefined}
                   />
                   {groupEnd && (
                     <p
@@ -1274,15 +1405,32 @@ function Thread({
         value={text}
         onChange={setText}
         onSend={() => void submit()}
-        placeholder={replyTo ? "Write a reply…" : "Message"}
+        placeholder={editingId ? "Edit message…" : replyTo ? "Write a reply…" : "Message"}
         accentColor={tribe.colorVar}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
+        editingSnippet={editingId ? "Update the text below, then send to save" : null}
+        onCancelEdit={() => {
+          setEditingId(null);
+          setText("");
+        }}
         selectedImage={selectedImage}
         onSelectImage={setSelectedImage}
         onClearImage={() => setSelectedImage(null)}
         sending={uploading || send.isPending}
         keyboardOpen={keyboardOpen}
+      />
+      <UnsendConfirm
+        open={confirmUnsendId != null}
+        onCancel={() => setConfirmUnsendId(null)}
+        onConfirm={() => {
+          if (!confirmUnsendId) return;
+          const id = confirmUnsendId;
+          setConfirmUnsendId(null);
+          unsendMessage.mutate(id, {
+            onError: (error) => toast.error((error as Error).message),
+          });
+        }}
       />
     </div>
   );

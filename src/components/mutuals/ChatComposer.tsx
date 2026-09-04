@@ -20,6 +20,11 @@ interface ChatComposerProps {
   accentColor: string;
   replyTo?: ChatReplyTarget | null;
   onCancelReply?: () => void;
+  /** Editing an existing message instead of composing a new one - mutually
+   *  exclusive with replyTo in practice (a caller entering edit mode clears
+   *  any pending reply first). */
+  editingSnippet?: string | null;
+  onCancelEdit?: () => void;
   selectedImage?: File | null;
   onSelectImage?: (file: File) => void;
   onClearImage?: () => void;
@@ -46,6 +51,8 @@ export function ChatComposer({
   accentColor,
   replyTo,
   onCancelReply,
+  editingSnippet,
+  onCancelEdit,
   selectedImage,
   onSelectImage,
   onClearImage,
@@ -102,13 +109,24 @@ export function ChatComposer({
       } ${outerClassName ?? ""}`}
     >
       {accessory}
-      {replyTo && onCancelReply && (
+      {editingSnippet != null && onCancelEdit ? (
         <ReplyPreview
-          name={replyTo.name}
-          snippet={replyTo.snippet}
+          name=""
+          snippet={editingSnippet}
           accentColor={accentColor}
-          onCancel={onCancelReply}
+          onCancel={onCancelEdit}
+          mode="edit"
         />
+      ) : (
+        replyTo &&
+        onCancelReply && (
+          <ReplyPreview
+            name={replyTo.name}
+            snippet={replyTo.snippet}
+            accentColor={accentColor}
+            onCancel={onCancelReply}
+          />
+        )
       )}
       {selectedImage && previewUrl && (
         <div className="mb-2 flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2">

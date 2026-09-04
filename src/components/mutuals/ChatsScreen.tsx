@@ -142,17 +142,29 @@ function useVentureChatPreviews(ventureIds: string[]) {
     staleTime: 10_000,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("venture_messages")
-        .select("venture_id, content, attachment_type, created_at, sender_id")
+      // venture_messages.deleted_at (20260904010000) isn't in the generated
+      // Database types yet, same lag as elsewhere - `as any` on this one
+      // query keeps that from breaking every other typed venture_messages
+      // read in the file.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from("venture_messages") as any)
+        .select("venture_id, content, attachment_type, created_at, sender_id, deleted_at")
         .in("venture_id", ventureIds)
         .order("created_at", { ascending: false })
         .limit(200);
       const newest = new Map<string, { content: string; created_at: string }>();
-      for (const row of data ?? []) {
+      for (const row of (data ?? []) as Array<{
+        venture_id: string;
+        content: string | null;
+        attachment_type: string | null;
+        created_at: string;
+        deleted_at: string | null;
+      }>) {
         if (!newest.has(row.venture_id)) {
           newest.set(row.venture_id, {
-            content: row.content || (row.attachment_type === "image" ? "Photo" : "Message"),
+            content: row.deleted_at
+              ? "Message removed"
+              : row.content || (row.attachment_type === "image" ? "Photo" : "Message"),
             created_at: row.created_at,
           });
         }
@@ -476,8 +488,10 @@ export function ChatsScreen({
                   }
                   title={thread.other?.display_name?.trim() || "Someone"}
                   subtitle={
-                    thread.last_message.content ||
-                    (thread.last_message.attachment_type === "image" ? "Photo" : "Message")
+                    thread.last_message.deleted_at
+                      ? "Message removed"
+                      : thread.last_message.content ||
+                        (thread.last_message.attachment_type === "image" ? "Photo" : "Message")
                   }
                   meta={timeAgoLabel(thread.last_message.created_at)}
                   unread={thread.unread_count || null}

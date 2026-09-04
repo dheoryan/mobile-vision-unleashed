@@ -29,9 +29,14 @@ export type DMMessage = {
   attachment_url: string | null;
   attachment_type: "image" | null;
   reply_to_id: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
   reactions: ChatReactionCounts;
   my_reactions: ChatReaction[];
-  reply_to?: Pick<DMMessage, "id" | "sender_id" | "content" | "attachment_type"> | null;
+  reply_to?: Pick<
+    DMMessage,
+    "id" | "sender_id" | "content" | "attachment_type" | "deleted_at"
+  > | null;
 };
 
 export type DMThreadSummary = {
@@ -43,7 +48,19 @@ export type DMThreadSummary = {
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan, city, tribe_ids";
 const MESSAGE_COLS =
-  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id";
+  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id, edited_at, deleted_at";
+
+// `messages.edited_at` / `deleted_at` (20260904010000) aren't in the
+// generated Database types yet - same "migration is live, types.ts hasn't
+// caught up" situation as `comments.edited_at` (see commentsTable in
+// posts.functions.ts). Routing every messages query through this cast is
+// what keeps that one unlanded pair of columns from breaking every DM
+// read/write in this file, without loosening anything else.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function messagesTable(supabase: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return supabase.from("messages") as any;
+}
 
 async function addReactionState(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,14 +118,13 @@ export const listThreads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data, error } = await supabase
-      .from("messages")
+    const { data, error } = await messagesTable(supabase)
       .select(MESSAGE_COLS)
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    const rows = (data ?? []).map((row) => ({
+    const rows = (data ?? []).map((row: Omit<DMMessage, "reactions" | "my_reactions">) => ({
       ...row,
       reactions: emptyChatReactions(),
       my_reactions: [],
@@ -142,8 +158,7 @@ export const listMessages = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ other_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: rows, error } = await supabase
-      .from("messages")
+    const { data: rows, error } = await messagesTable(supabase)
       .select(MESSAGE_COLS)
       .or(
         `and(sender_id.eq.${userId},recipient_id.eq.${data.other_id}),and(sender_id.eq.${data.other_id},recipient_id.eq.${userId})`,
@@ -151,11 +166,13 @@ export const listMessages = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    const messages = (rows ?? []).reverse().map((row) => ({
-      ...row,
-      reactions: emptyChatReactions(),
-      my_reactions: [],
-    })) as DMMessage[];
+    const messages = (rows ?? [])
+      .reverse()
+      .map((row: Omit<DMMessage, "reactions" | "my_reactions">) => ({
+        ...row,
+        reactions: emptyChatReactions(),
+        my_reactions: [],
+      })) as DMMessage[];
     return addReactionState(supabase, messages, userId);
   });
 
@@ -181,8 +198,7 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (data.attachment_url && !data.attachment_url.startsWith(`${userId}/dm/`)) {
       throw new Error("Invalid attachment path");
     }
-    const { data: row, error } = await supabase
-      .from("messages")
+    const { data: row, error } = await messagesTable(supabase)
       .insert({
         sender_id: userId,
         recipient_id: data.recipient_id,
@@ -199,6 +215,41 @@ export const sendMessage = createServerFn({ method: "POST" })
       reactions: emptyChatReactions(),
       my_reactions: [],
     };
+  });
+
+export const editMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), content: z.string().trim().min(1).max(2000) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    // enforce_dm_message_edit_fields (20260904010000) is the real gate -
+    // sender-only, blocks an already-unsent message, stamps edited_at. This
+    // is just the app-layer call; ownership isn't re-checked here because
+    // the trigger raises on anyone else's attempt regardless of how the
+    // request got this far.
+    const { data: row, error } = await messagesTable(supabase)
+      .update({ content: data.content })
+      .eq("id", data.id)
+      .select(MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    return row as Omit<DMMessage, "reactions" | "my_reactions">;
+  });
+
+export const unsendMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await messagesTable(supabase)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .select(MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    return row as Omit<DMMessage, "reactions" | "my_reactions">;
   });
 
 export const markThreadRead = createServerFn({ method: "POST" })

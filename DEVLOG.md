@@ -205,6 +205,89 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-04 — Claude — Edit + unsend for every chat surface (DM, Tribe, Venture)
+
+**⚠️ One migration must be applied before this app code is deployed** -
+`20260904010000_chat_message_edit_and_unsend.sql`. Docker-rehearsed against
+the full historical chain (this sandbox was missing several prior
+migrations - `tribe_room`, `venture_chat_coordination`,
+`mentions_across_social_surfaces` - backfilled first so the rehearsal
+reflects the real production schema), plus transaction-rolled-back
+functional tests on all three tables covering: sender-only edit/unsend,
+blocked edit after unsend, blocked edit of a structured Tribe Room item
+(`room_kind` set) or a system Venture message (`message_kind <> 'user'`),
+immutable columns (sender/recipient/created_at/reply_to_id/etc. cannot
+change even for the sender), and - the one that would have been a real
+hole - a DM recipient's own legitimately-granted UPDATE access (for
+marking `read_at`) cannot be used to sneak an edit/unsend through on a
+message they didn't send.
+
+**Unsend is UPDATE, not DELETE.** `deleted_at` is stamped and
+`content`/`attachment_url`/`attachment_type` are wiped server-side (not
+just hidden client-side), but the row stays so `reply_to_id` references
+keep resolving instead of dangling. Every surface renders a "Message
+removed" tombstone wherever `deleted_at` is set, and "(edited)" next to
+the text wherever `edited_at` is set - user's choice, from two questions
+asked before starting: tombstone over vanish-with-no-trace, and yes to the
+edited indicator.
+
+**Per surface:**
+- **DM** (`messages` table) - had a preexisting `guard_message_read_update`
+  trigger that unconditionally required the caller to be the recipient and
+  unconditionally rejected any content change - both would have rejected
+  the new sender-edit path outright. Retired it and folded its read-receipt
+  rules (recipient-only, forward-only, never re-timestamped once read) into
+  one consolidated trigger alongside the new edit/unsend logic, rather than
+  layering two triggers that would fight over the same row. New
+  `editMessage`/`unsendMessage` server functions
+  (`messages.functions.ts`) + `useEditMessage`/`useUnsendMessage`
+  (`messages-store.ts`). Realtime already covered UPDATE events generically
+  (`event: "*"` in `realtime-bridge.tsx`) - no new plumbing needed there.
+- **Venture** (`venture_messages`) - new `editVentureMessage`/
+  `unsendVentureMessage` (`ventures.functions.ts`) +
+  `useEditVentureMessage`/`useUnsendVentureMessage` (`ventures-store.ts`).
+  No realtime binding existed for this table before (relies on the
+  existing 8s poll, same latency sends already have) - left as-is rather
+  than adding new plumbing beyond this feature's scope.
+- **Tribe** (`tribe_messages`) - this surface sends via direct Supabase
+  calls, not server functions (existing pattern), so edit/unsend follow
+  suit as direct `.update()` calls in `TribeScreen.tsx` with local
+  optimistic-patch-and-rollback, matching how `reactToMessage` already
+  works there. The realtime channel only ever listened for `INSERT` and
+  managed messages in local `useState` (not React Query) - added a second
+  `event: "UPDATE"` handler merging edit/unsend into that same array, since
+  without it another member's edit/unsend would never appear live.
+
+**Shared UI, reused across all three:** `ChatMessageActions` gained
+`onEdit`/`onUnsend` (mine-only, next to the existing reaction tray and
+reply button). `ChatComposer` gained an `editingSnippet`/`onCancelEdit`
+pair, rendering the same `ReplyPreview` shell now generalized with a
+`mode="edit"` variant (pencil icon, no name to attribute since you can
+only edit your own message). New shared `UnsendConfirm.tsx` (same shape as
+PostCard's delete-post confirm) instead of tripling that dialog.
+
+**Two follow-on fixes to preview text**, caused directly by the new
+`deleted_at` column: the Chats list's DM row and Active-Ventures row both
+picked the literal newest message as their preview/subtitle with no
+`deleted_at` check, so an unsent message would have shown blank or a bare
+"Message" instead of "Message removed" - same class of bug fixed for the
+Tribe row earlier today. Fixed both in `ChatsScreen.tsx`.
+
+**Known type-generation lag** (same situation `comments.edited_at`
+already lives with): `messages.edited_at`/`deleted_at` aren't in the
+generated `types.ts` yet, so `messages.functions.ts` gained a
+`messagesTable()` `any`-cast helper mirroring `commentsTable` in
+`posts.functions.ts`, and the two other new call sites that touch these
+unlanded columns (`TribeScreen.tsx`'s unsend, `ChatsScreen.tsx`'s Venture
+preview query) got a narrow inline `as any` instead.
+
+`tsc`, `eslint` (all touched files clean), the full `node --test` suite
+(133/133), and `npm run build` all pass. Not live-verified in browser -
+every surface here needs a signed-in session against production, which
+this agent won't create.
+
+---
+
 ### 2026-09-04 — Claude — Login headline no longer says "Welcome back" to first-time visitors
 
 No schema change, pure copy fix. `index.tsx` redirects every unauthenticated

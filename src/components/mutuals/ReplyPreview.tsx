@@ -1,22 +1,30 @@
 import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 
 /**
  * Compact reply preview that appears above the composer input
  * when the user is replying to a message. Left accent bar uses the
  * provided color (tribe color / primary).
+ *
+ * Doubles as the "editing a message" banner (`mode="edit"`) - same shell,
+ * same cancel affordance, just a pencil instead of the reply arrow and no
+ * name to attribute since you can only ever edit your own message.
  */
 export function ReplyPreview({
   name,
   snippet,
   accentColor,
   onCancel,
+  mode = "reply",
 }: {
   name: string;
   snippet: string;
   accentColor: string;
   onCancel: () => void;
+  mode?: "reply" | "edit";
 }) {
+  const Icon = mode === "edit" ? PencilIcon : ArrowBendUpLeftIcon;
   return (
     <div
       className="mb-2 flex items-stretch gap-2 overflow-hidden rounded-xl border border-border/60 bg-card/80 pr-2 backdrop-blur-sm animate-rise"
@@ -33,11 +41,11 @@ export function ReplyPreview({
             color: accentColor,
           }}
         >
-          <ArrowBendUpLeftIcon className="h-3 w-3" />
+          <Icon className="h-3 w-3" />
         </span>
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-[11px] font-semibold" style={{ color: accentColor }}>
-            Replying to {name}
+            {mode === "edit" ? "Editing your message" : `Replying to ${name}`}
           </p>
           <p className="truncate text-[11px] text-muted-foreground">{snippet}</p>
         </div>
@@ -46,7 +54,7 @@ export function ReplyPreview({
         type="button"
         onClick={onCancel}
         className="my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        aria-label="Cancel reply"
+        aria-label={mode === "edit" ? "Cancel edit" : "Cancel reply"}
       >
         <XIcon className="h-3.5 w-3.5" />
       </button>
