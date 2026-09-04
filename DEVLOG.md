@@ -205,6 +205,17 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-04 — Claude — Login headline no longer says "Welcome back" to first-time visitors
+
+No schema change, pure copy fix. `index.tsx` redirects every unauthenticated
+visitor straight to `/login` regardless of whether they've ever used
+Meutuals - "Welcome back." presumed prior familiarity a brand-new visitor
+doesn't have. Changed to "Log in to Meutuals", which reads correctly for
+either audience (the "Sign up" link right below already covers the
+no-account case). Live-verified at `localhost:8082/login`.
+
+---
+
 ### 2026-09-04 — Claude — Investigated the Tribe unread-badge sharing, and found + fixed Tribevia notifications were never wired into the in-app notification list
 
 **⚠️ One migration must be applied before this app code is deployed** -
