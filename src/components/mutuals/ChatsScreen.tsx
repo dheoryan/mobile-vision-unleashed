@@ -68,10 +68,17 @@ function useTribeChatSummary(tribeName: string | null) {
         .maybeSingle();
       if (!tribeRow?.id) return null;
 
+      // Match the actual Tribe Chat screen, which only ever shows plain
+      // messages (room_kind is null) - a structured Room item (a Tribevia
+      // answer, a shared plan, ...) can be the newest tribe_messages row
+      // overall without ever appearing there, which previously surfaced it
+      // as this preview's "last message" even though tapping in couldn't
+      // find it.
       const { data: rows } = await supabase
         .from("tribe_messages")
         .select("content, created_at, sender_id")
         .eq("tribe_id", tribeRow.id)
+        .is("room_kind", null)
         .order("created_at", { ascending: false })
         .limit(1);
 
@@ -99,10 +106,15 @@ function useTribeChatSummary(tribeName: string | null) {
         .maybeSingle();
       let unreadCount = 0;
       if (readPointer?.last_read_at) {
+        // Same room_kind gap as the preview above: without it, a new Room
+        // item (a Tribevia answer, a shared plan) inflates the badge on
+        // this row even though opening it (the flat chat) won't show that
+        // item at all.
         const { count: unread } = await supabase
           .from("tribe_messages")
           .select("id", { count: "exact", head: true })
           .eq("tribe_id", tribeRow.id)
+          .is("room_kind", null)
           .neq("sender_id", user!.id)
           .gt("created_at", readPointer.last_read_at);
         unreadCount = unread ?? 0;

@@ -25,12 +25,13 @@ import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
-import { INTENT_GROUPS, TRIBES, type Person, type TribeId } from "@/lib/mutuals-data";
+import { INTENT_GROUPS, TRIBES, tribeById, type Person, type TribeId } from "@/lib/mutuals-data";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { UpsellModal } from "./UpsellModal";
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 import { FeatureIllustration } from "./FeatureIllustration";
 import venturesArt from "@/assets/app-illustrations/ventures.webp";
 import { VentureCardShell } from "./VentureImage";
@@ -552,11 +553,18 @@ function RoleButton({
   icon,
   onClick,
   children,
+  accentColor,
 }: {
   active: boolean;
   icon: React.ReactNode;
   onClick: () => void;
   children: React.ReactNode;
+  /** Selected state fills with this Tribe color instead of the brand
+   *  gradient - same "gradient = everyone, Tribe color = Tribe-only" rule
+   *  used everywhere audience shows up in the Venture system (Vibe chips,
+   *  the Audience toggle, the submit button). Omit for the "all" side of a
+   *  toggle, which keeps the gradient. */
+  accentColor?: string;
 }) {
   return (
     <button
@@ -565,9 +573,12 @@ function RoleButton({
       className={cn(
         "flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
-          ? "bg-background text-foreground shadow-sm"
+          ? accentColor
+            ? "text-white shadow-sm"
+            : "bg-meutuals-gradient text-white shadow-sm"
           : "text-muted-foreground hover:text-foreground",
       )}
+      style={active && accentColor ? { backgroundColor: accentColor } : undefined}
     >
       {icon}
       {children}
@@ -789,6 +800,7 @@ function LookView({
     });
   const [notes, setNotes] = useState<Record<string, string>>({});
   const mineLabel = profile.tribeIds.length > 1 ? "My Tribes" : "My Tribe";
+  const primaryTribe = tribeById(profile.tribeIds[0]);
 
   const activeParties = useMemo(
     () =>
@@ -828,7 +840,33 @@ function LookView({
 
   return (
     <>
-      <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1">
+      {/* Invitations, requests, and accepted plans live in My Ventures so the
+          discovery list stays focused on plans the member can still join. */}
+
+      <SectionTitle
+        title="Open Ventures"
+        hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
+        action={
+          <button
+            type="button"
+            onClick={onOpenMine}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <TicketIcon className="h-3.5 w-3.5 text-primary" />
+            My Ventures
+            {joinedVentures.length > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
+                {joinedVentures.length}
+              </span>
+            )}
+          </button>
+        }
+      />
+
+      {/* Filter comes right after the title it filters, not before - a
+          control reading before the thing it controls made the section feel
+          headerless. */}
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1">
         <RoleButton
           active={scope === "all"}
           icon={<SlidersHorizontalIcon className="h-4 w-4" />}
@@ -840,6 +878,7 @@ function LookView({
           active={scope === "mine"}
           icon={<UsersIcon className="h-4 w-4" />}
           onClick={() => setScope("mine")}
+          accentColor={primaryTribe.colorVar}
         >
           {mineLabel}
         </RoleButton>
@@ -868,60 +907,39 @@ function LookView({
         </button>
       )}
 
-      {/* Invitations, requests, and accepted plans live in My Ventures so the
-          discovery list stays focused on plans the member can still join. */}
-
-      <SectionTitle
-        title="Open Ventures"
-        hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
-        action={
-          <button
-            type="button"
-            onClick={onOpenMine}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <TicketIcon className="h-3.5 w-3.5 text-primary" />
-            My Ventures
-            {joinedVentures.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
-                {joinedVentures.length}
-              </span>
-            )}
-          </button>
-        }
-      />
-
-      {isLoading ? (
-        <VentureListSkeleton />
-      ) : isError ? (
-        <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
-      ) : joinableVentures.length ? (
-        <VentureBoard
-          ventures={joinableVentures}
-          notes={notes}
-          onNoteChange={(id, value) => setNotes((cur) => ({ ...cur, [id]: value }))}
-          onApply={submitApply}
-          onOpenChat={onOpenChat}
-          applyingId={apply.isPending ? (apply.variables?.venture_id ?? null) : null}
-          onWithdraw={withdrawRequest}
-          withdrawingId={withdraw.isPending ? (withdraw.variables ?? null) : null}
-        />
-      ) : (
-        <EmptyPanel
-          icon={<MagnifyingGlassIcon className="h-6 w-6" />}
-          title={
-            activeParties.length ? "No more open Ventures here." : "No open Ventures here yet."
-          }
-          body={
-            activeParties.length
-              ? "You already joined or requested the available Ventures. Check Yours, switch filters, or host a new one."
-              : "Host one now or switch the tribe filter."
-          }
-          actionLabel="Host a Venture"
-          onAction={onStartHosting}
-          gradient
-        />
-      )}
+      <div className="mt-4">
+        {isLoading ? (
+          <VentureListSkeleton />
+        ) : isError ? (
+          <RetryBlock label="Could not load open Ventures." onRetry={onRetry} />
+        ) : joinableVentures.length ? (
+          <VentureBoard
+            ventures={joinableVentures}
+            notes={notes}
+            onNoteChange={(id, value) => setNotes((cur) => ({ ...cur, [id]: value }))}
+            onApply={submitApply}
+            onOpenChat={onOpenChat}
+            applyingId={apply.isPending ? (apply.variables?.venture_id ?? null) : null}
+            onWithdraw={withdrawRequest}
+            withdrawingId={withdraw.isPending ? (withdraw.variables ?? null) : null}
+          />
+        ) : (
+          <EmptyPanel
+            icon={<MagnifyingGlassIcon className="h-6 w-6" />}
+            title={
+              activeParties.length ? "No more open Ventures here." : "No open Ventures here yet."
+            }
+            body={
+              activeParties.length
+                ? "You already joined or requested the available Ventures. Check Yours, switch filters, or host a new one."
+                : "Host one now or switch the tribe filter."
+            }
+            actionLabel="Host a Venture"
+            onAction={onStartHosting}
+            gradient
+          />
+        )}
+      </div>
     </>
   );
 }
@@ -1048,14 +1066,17 @@ function HostView({
               )}
             >
               {tab === "active" ? "Active" : "History"}
-              <span
-                className={cn(
-                  "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold",
-                  "bg-meutuals-gradient text-white",
-                )}
-              >
-                {count}
-              </span>
+              {/* Active's count says how many need attention right now - a
+                  live number worth carrying. History is a closed log with
+                  nothing left to act on, so the same badge there was just
+                  noise next to the tab it sits on. Zero active is itself
+                  nothing to flag, so the badge only appears once there's an
+                  actual count to carry. */}
+              {tab === "active" && count > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
@@ -1225,6 +1246,19 @@ function HostForm({
   const occupancy = editing ? editing.filled_slots : 1;
 
   const myTribes = TRIBES.filter((tribe) => profile.tribeIds.includes(tribe.id));
+  // The host's primary Tribe stands in for "Tribe color" wherever a Venture
+  // is Tribe-only but the host belongs to more than one - same convention
+  // Profile/public-profile use for their own primary-Tribe accents.
+  const primaryTribe = myTribes[0] ?? tribeById(profile.tribeIds[0]);
+  // A Tribe-only Venture already limits who can even see it, so its Vibe
+  // picker narrows to match - general tags (no tribeId, e.g. Food & drink)
+  // plus whichever group(s) line up with the host's own Tribe(s). An
+  // all-Tribes Venture keeps every group, same as today - narrowing that one
+  // would discourage exactly the cross-Tribe mixing Ventures exist for.
+  const visibleIntentGroups =
+    scope === "mine"
+      ? INTENT_GROUPS.filter((group) => !group.tribeId || profile.tribeIds.includes(group.tribeId))
+      : INTENT_GROUPS;
   const canSubmit =
     title.trim().length >= 3 &&
     intents.length > 0 &&
@@ -1435,11 +1469,10 @@ function HostForm({
           type="submit"
           disabled={!canSubmit || create.isPending || update.isPending}
           className={cn(
-            "inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold transition-[transform,filter] active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-            isEditing
-              ? "bg-meutuals-gradient text-white hover:brightness-110"
-              : "bg-primary text-primary-foreground transition-colors hover:bg-primary/90",
+            "inline-flex flex-[1.4] items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-white transition-[transform,filter] active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+            scope === "all" && "bg-meutuals-gradient hover:brightness-110",
           )}
+          style={scope === "mine" ? { backgroundColor: primaryTribe.colorVar } : undefined}
         >
           {create.isPending || update.isPending ? (
             <SpinnerGapIcon className="h-4 w-4 animate-spin" />
@@ -1452,9 +1485,20 @@ function HostForm({
 
       {/* Portaled by AnimatedModal, so none of this sits inside the form in the
           DOM — no stray submits from a chip. */}
-      <VentureSheet open={sheet === "where"} onClose={closeSheet} title="Where are we meeting?">
+      <VentureSheet
+        open={sheet === "where"}
+        onClose={closeSheet}
+        title="Where are we meeting?"
+        gradient={scope === "all"}
+        accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
+      >
         <div className="space-y-5">
-          <VenuePicker value={venue} onChange={setVenue} />
+          <VenuePicker
+            value={venue}
+            onChange={setVenue}
+            gradient={scope === "all"}
+            accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
+          />
           <section className="space-y-2 border-t border-border pt-4">
             <div className="flex items-start gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
@@ -1486,7 +1530,13 @@ function HostForm({
         </div>
       </VentureSheet>
 
-      <VentureSheet open={sheet === "when"} onClose={closeSheet} title="When">
+      <VentureSheet
+        open={sheet === "when"}
+        onClose={closeSheet}
+        title="When"
+        gradient={scope === "all"}
+        accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
+      >
         <div className="grid gap-3">
           {draft && (draft.timeOptions?.length ?? 0) > 0 && (
             <FieldLabel label="From the Tribe plan">
@@ -1622,7 +1672,13 @@ function HostForm({
         </div>
       </VentureSheet>
 
-      <VentureSheet open={sheet === "room"} onClose={closeSheet} title="Room">
+      <VentureSheet
+        open={sheet === "room"}
+        onClose={closeSheet}
+        title="Room"
+        gradient={scope === "all"}
+        accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
+      >
         <div className="grid gap-3">
           <FieldLabel label="Slots">
             <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2">
@@ -1645,12 +1701,26 @@ function HostForm({
                 onClick={() => !audienceLocked && setScope("all")}
                 title="All Tribes"
                 body="Anyone nearby can apply."
+                gradient
               />
               <ChoiceButton
                 active={scope === "mine"}
-                onClick={() => !audienceLocked && setScope("mine")}
+                onClick={() => {
+                  if (audienceLocked) return;
+                  setScope("mine");
+                  // Drop any picked Vibe tag that belongs to a group the
+                  // narrower picker is about to hide, so a stale selection
+                  // never rides along invisibly.
+                  const stillVisible = new Set(
+                    INTENT_GROUPS.filter(
+                      (group) => !group.tribeId || profile.tribeIds.includes(group.tribeId),
+                    ).flatMap((group) => group.items),
+                  );
+                  setIntents((cur) => cur.filter((intent) => stillVisible.has(intent)));
+                }}
                 title={myTribes.length > 1 ? "My Tribes" : "My Tribe"}
                 body={myTribes.map((tribe) => tribe.name).join(", ") || "Your home base."}
+                accentColor={primaryTribe.colorVar}
               />
             </div>
             {audienceLocked && (
@@ -1663,9 +1733,22 @@ function HostForm({
         </div>
       </VentureSheet>
 
-      <VentureSheet open={sheet === "vibe"} onClose={closeSheet} title="Vibe">
+      <VentureSheet
+        open={sheet === "vibe"}
+        onClose={closeSheet}
+        title="Vibe"
+        gradient={scope === "all"}
+        accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
+      >
         <div className="grid gap-3">
-          <FieldLabel label={`Intents · ${intents.length}/5`}>
+          <FieldLabel
+            label={`Intents · ${intents.length}/5`}
+            hint={
+              scope === "mine"
+                ? `Curated for ${myTribes.map((tribe) => tribe.name).join(", ") || "your Tribe"}`
+                : undefined
+            }
+          >
             {/* Scrolls rather than pushing the rest of the form off-screen. The
                 chosen chips are pinned above the scroller so the host can always
                 see what they've picked and why further taps stop working, which
@@ -1677,7 +1760,13 @@ function HostForm({
                     key={intent}
                     type="button"
                     onClick={() => toggleIntent(intent)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white",
+                      scope === "all" && "bg-meutuals-gradient",
+                    )}
+                    style={
+                      scope === "mine" ? { backgroundColor: primaryTribe.colorVar } : undefined
+                    }
                   >
                     {intent}
                     <XIcon className="h-3 w-3" />
@@ -1689,7 +1778,7 @@ function HostForm({
                   meant the last row of chips sat under the Done button with no way
                   to reach it — the sheet body scrolls, this just lists. */}
             <div className="space-y-3 rounded-xl border border-border bg-background/40 p-3">
-              {INTENT_GROUPS.map((group) => (
+              {visibleIntentGroups.map((group) => (
                 <div key={group.label}>
                   <p className="label-mono mb-1.5 text-muted-foreground">{group.label}</p>
                   <div className="flex flex-wrap gap-2">
@@ -1705,10 +1794,20 @@ function HostForm({
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                             active
-                              ? "border-primary bg-primary text-primary-foreground"
+                              ? cn(
+                                  "text-white",
+                                  scope === "all"
+                                    ? "border-transparent bg-meutuals-gradient"
+                                    : "border-transparent",
+                                )
                               : "border-border bg-background text-foreground",
                             atLimit && "opacity-35",
                           )}
+                          style={
+                            active && scope === "mine"
+                              ? { backgroundColor: primaryTribe.colorVar }
+                              : undefined
+                          }
                         >
                           {intent}
                         </button>
@@ -1722,7 +1821,13 @@ function HostForm({
         </div>
       </VentureSheet>
 
-      <VentureSheet open={sheet === "details"} onClose={closeSheet} title="Details">
+      <VentureSheet
+        open={sheet === "details"}
+        onClose={closeSheet}
+        title="Details"
+        gradient={scope === "all"}
+        accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
+      >
         <div className="grid gap-3">
           <FieldLabel label="Host note">
             <textarea
@@ -1806,6 +1911,10 @@ function HostedVentureCard({
   const pending = venture.applications.filter((app) => app.status === "pending");
   const accepted = venture.applications.filter((app) => app.status === "accepted");
   const isClosed = venture.status === "closed";
+  // The Edit Venture dialog holds a raw text input (Venture title) directly,
+  // not just sheet triggers - same iOS keyboard-vs-viewport issue as
+  // VentureSheet, needs the same fix.
+  const editVisualViewport = useVisualViewport(editOpen && !isClosed);
 
   const decideApp = (application: VentureApplication, status: "accepted" | "declined") => {
     decide.mutate(
@@ -1972,6 +2081,7 @@ function HostedVentureCard({
         onOpenChange={setEditOpen}
         title={`Edit ${venture.title}`}
         contentClassName="scroll-panel max-h-[90dvh] overflow-y-auto"
+        viewportStyle={visualViewportStyle(editVisualViewport)}
       >
         <div className="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="mb-4 flex items-start justify-between gap-3">
@@ -2402,10 +2512,21 @@ function StatusPill({ status }: { status: string }) {
   return <span className={cn("label-mono rounded-full border px-2 py-1", color)}>{label}</span>;
 }
 
-function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldLabel({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="block">
-      <span className="label-mono mb-1.5 block text-muted-foreground">{label}</span>
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="label-mono text-muted-foreground">{label}</span>
+        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+      </div>
       {children}
     </div>
   );
@@ -2480,18 +2601,33 @@ function VentureSheet({
   onClose,
   title,
   children,
+  gradient,
+  accentColor,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  /** Same gradient (all Tribes) vs. Tribe-color (Tribe-only) rule as the
+   *  rest of the Venture create/edit form - every sheet's Done button
+   *  otherwise stayed the one plain-primary holdout. */
+  gradient?: boolean;
+  accentColor?: string;
 }) {
+  // iOS Safari/WebView resizes the layout viewport under a bottom sheet
+  // inconsistently once the software keyboard opens - without tracking the
+  // actual visual viewport, the sheet (and its pinned Done button) can end
+  // up positioned behind the keyboard instead of above it. Same fix already
+  // used by ComposerModal/CommentsModal, just not yet wired into this sheet.
+  const visualViewport = useVisualViewport(open);
+
   return (
     <AnimatedModal
       open={open}
       onOpenChange={(next) => !next && onClose()}
       title={title}
       contentClassName="flex max-h-[86dvh] flex-col"
+      viewportStyle={visualViewportStyle(visualViewport)}
     >
       <div className="flex shrink-0 flex-col gap-3 px-5 pt-3">
         <span className="mx-auto h-1 w-9 rounded-full bg-secondary" aria-hidden />
@@ -2504,7 +2640,14 @@ function VentureSheet({
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-2xl bg-primary py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className={cn(
+            "w-full rounded-2xl py-3 text-xs font-semibold transition-[transform,filter] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            gradient || accentColor
+              ? "text-white"
+              : "bg-primary text-primary-foreground transition-colors hover:bg-primary/90",
+            gradient && "bg-meutuals-gradient hover:brightness-110",
+          )}
+          style={!gradient && accentColor ? { backgroundColor: accentColor } : undefined}
         >
           Done
         </button>
@@ -2519,12 +2662,23 @@ function ChoiceButton({
   title,
   body,
   compact,
+  gradient,
+  accentColor,
 }: {
   active: boolean;
   onClick: () => void;
   title: string;
   body?: string;
   compact?: boolean;
+  /** Selected state fills solid with the brand gradient instead of the
+   *  default tinted-outline look - reserved for the "All Tribes" side of the
+   *  Audience choice, mirroring the same rule used on the Vibe chips and the
+   *  browse-scope toggle. Everything else (day/time/duration chips) stays
+   *  the plain default so this doesn't read as audience-related everywhere. */
+  gradient?: boolean;
+  /** Selected state fills solid with this Tribe's color instead - the
+   *  "My Tribe(s)" side of the same Audience choice. */
+  accentColor?: string;
 }) {
   return (
     <button
@@ -2533,11 +2687,31 @@ function ChoiceButton({
       className={cn(
         "min-h-11 rounded-xl border text-left transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         compact ? "px-3 py-2.5" : "p-3",
-        active ? "border-primary bg-primary/10" : "border-border bg-background",
+        active
+          ? accentColor
+            ? "border-transparent text-white"
+            : gradient
+              ? "border-transparent bg-meutuals-gradient text-white"
+              : "border-primary bg-primary/10"
+          : "border-border bg-background",
       )}
+      style={active && accentColor ? { backgroundColor: accentColor } : undefined}
     >
-      <p className="text-xs font-semibold">{title}</p>
-      {body && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{body}</p>}
+      <p
+        className={cn("text-xs font-semibold", active && (accentColor || gradient) && "text-white")}
+      >
+        {title}
+      </p>
+      {body && (
+        <p
+          className={cn(
+            "mt-0.5 line-clamp-2 text-[11px]",
+            active && (accentColor || gradient) ? "text-white/80" : "text-muted-foreground",
+          )}
+        >
+          {body}
+        </p>
+      )}
     </button>
   );
 }

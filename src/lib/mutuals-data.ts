@@ -160,47 +160,72 @@ export const DMS: DMThread[] = [
  * describes their plan. The headings let someone jump to the right
  * neighbourhood and read six options instead of forty.
  *
- * Grouped by KIND OF ACTIVITY, deliberately not by Tribe. Tribe-grouping would
- * imply a Night Owl shouldn't host a hike, and cross-Tribe Ventures are the
- * main way people meet outside their own room — the last thing to discourage.
+ * Grouped by KIND OF ACTIVITY, which happens to line up with one Tribe's
+ * scene each (Move↔Wolf, Make↔Cat, Learn & play↔Koi, Go out↔Owl, Work↔Bee).
+ * `tribeId` records that affinity so a Tribe-only Venture's picker can narrow
+ * to it (see HostForm in VenturesScreen.tsx) - the same primary/general split
+ * used for onboarding Interests. Groups without a `tribeId` (Food & drink)
+ * are general and always shown, same as Interests' general pool.
+ *
+ * The affinity is only ever ENFORCED when the Venture itself is already
+ * Tribe-scoped. An "all Tribes" Venture still shows every group - a Night
+ * Owl hosting a hike open to everyone is exactly the cross-Tribe mixing this
+ * app wants, so nothing here should discourage it.
  *
  * These are free text in the database (no enum, no check constraint), so this
  * list can grow without a migration. Keep labels short: they render as chips
  * on cards where horizontal space is scarce.
  */
-export const INTENT_GROUPS: { label: string; items: string[] }[] = [
+export const INTENT_GROUPS: { label: string; items: string[]; tribeId?: TribeId }[] = [
   {
     label: "Food & drink",
-    items: ["Coffee", "Brunch", "Dinner", "Street Food", "Drinks", "Wine", "Dessert"],
+    items: [
+      "Coffee", "Brunch", "Dinner", "Street Food", "Drinks", "Wine", "Dessert",
+      "Brewery", "Food Truck", "Potluck", "Tea Time", "Cocktails", "BBQ",
+    ],
   },
   {
     label: "Move",
+    tribeId: "wolf",
     items: [
       "Run Club", "Hiking", "Bouldering", "Gym Session", "Yoga", "Pilates",
       "Cycling", "Swim", "Pickup Game", "Tennis", "Padel", "Martial Arts",
+      "Basketball", "Soccer", "Badminton", "Surfing", "Dance Class", "Rock Climbing",
     ],
   },
   {
     label: "Make",
+    tribeId: "cat",
     items: [
       "Live Music", "Open Mic", "Jam Session", "Photo Walk", "Sketch Session",
-      "Craft Workshop", "Gallery Walk",
+      "Craft Workshop", "Gallery Walk", "Pottery", "Film Screening", "Design Jam",
+      "Writing Circle", "Mural Painting",
     ],
   },
   {
     label: "Learn & play",
+    tribeId: "koi",
     items: [
       "Book Club", "Film Club", "Board Games", "Study Session", "Museum",
-      "Language Exchange", "Trivia",
+      "Language Exchange", "Trivia", "Puzzle Night", "Debate Club", "Workshop",
+      "Documentary Night",
     ],
   },
   {
     label: "Go out",
-    items: ["Night Out", "Karaoke", "Rooftop", "Club Night", "Late-night Walk", "Market"],
+    tribeId: "owl",
+    items: [
+      "Night Out", "Karaoke", "Rooftop", "Club Night", "Late-night Walk", "Market",
+      "Live DJ", "Speakeasy", "Food Crawl", "Arcade",
+    ],
   },
   {
     label: "Work",
-    items: ["Co-working", "Networking", "Skill Swap", "Portfolio Review", "Startup Talk"],
+    tribeId: "bee",
+    items: [
+      "Co-working", "Networking", "Skill Swap", "Portfolio Review", "Startup Talk",
+      "Pitch Practice", "Resume Swap", "Mentorship", "Demo Day",
+    ],
   },
 ];
 

@@ -35,6 +35,21 @@ function notification(overrides: Partial<NotificationRow>): NotificationRow {
 test("high-intent activity resolves to stable categories", () => {
   assert.equal(notificationCategory("venture_accept"), "venture");
   assert.equal(notificationCategory("message"), "conversation");
+  assert.equal(notificationCategory("tribe_pulse"), "tribe");
+});
+
+test("a Tribevia notification routes to its Tribe, not the Feed fallback", () => {
+  assert.deepEqual(
+    notificationDestination(notification({ kind: "tribe_pulse", tribe_id: "wolf" })),
+    { kind: "tribe", tribeId: "wolf" },
+  );
+  // Without a tribe_id (e.g. an older row from before the fan-out function
+  // started setting it) there's nothing to route on, so it falls back same
+  // as any other under-specified notification rather than throwing.
+  assert.deepEqual(notificationDestination(notification({ kind: "tribe_pulse" })), {
+    kind: "tab",
+    tab: "feed",
+  });
 });
 
 test("every high-intent kind resolves to its actionable context", () => {

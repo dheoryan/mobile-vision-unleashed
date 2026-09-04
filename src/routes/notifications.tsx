@@ -82,6 +82,8 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   quote: <QuotesIcon className="h-3.5 w-3.5" weight="fill" />,
   comment_like: <HeartIcon className="h-3.5 w-3.5" weight="fill" />,
   comment_repost: <RepeatIcon className="h-3.5 w-3.5" weight="fill" />,
+  // Same Sparkle used everywhere else Tribevia shows up (TribeRoomLayer).
+  tribe_pulse: <SparkleIcon className="h-3.5 w-3.5" weight="fill" />,
 };
 
 const CATEGORY_STYLES: Record<NotificationCategory, string> = {
@@ -110,6 +112,10 @@ const TEXTS: Record<NotificationKind, string> = {
   quote: "quoted your post",
   comment_like: "liked your comment",
   comment_repost: "reposted your comment",
+  // Paired with the "New Tribevia" headline below (no actor name), not
+  // "{actor} posted today's Tribevia" - same reasoning as buildPushCopy in
+  // push-payload.ts, which has no single actor to name for this kind either.
+  tribe_pulse: "is up",
 };
 
 function NotificationsPage() {
@@ -367,8 +373,28 @@ function NotificationRowItem({
         <span className="min-w-0 flex-1">
           <span className="block text-sm leading-snug">
             {isUnread && <span className="sr-only">Unread. </span>}
-            <span className="font-semibold text-foreground">{actorName}</span>{" "}
-            {isGroupedVentureMessage ? (
+            {notification.kind === "tribe_pulse" ? (
+              // No actor span at all - a leading "Someone" reads like a
+              // stranger did something, when actually nobody in particular
+              // did. Same reasoning buildPushCopy already uses for this kind.
+              <span className="font-semibold text-foreground">New Tribevia</span>
+            ) : (
+              <span className="font-semibold text-foreground">{actorName}</span>
+            )}{" "}
+            {notification.kind === "tribe_pulse" ? (
+              <span className="text-muted-foreground">
+                {TEXTS.tribe_pulse}
+                {notification.conversation_name && (
+                  <>
+                    {" "}
+                    in{" "}
+                    <span className="font-medium text-foreground/90">
+                      {notification.conversation_name}
+                    </span>
+                  </>
+                )}
+              </span>
+            ) : isGroupedVentureMessage ? (
               <span className="text-muted-foreground">
                 {additionalActors > 0 &&
                   `and ${additionalActors} other${additionalActors === 1 ? "" : "s"} `}

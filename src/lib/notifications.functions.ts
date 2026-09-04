@@ -24,7 +24,8 @@ export type NotificationKind =
   | "repost"
   | "quote"
   | "comment_like"
-  | "comment_repost";
+  | "comment_repost"
+  | "tribe_pulse";
 
 export type NotificationRow = {
   id: string;

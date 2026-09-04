@@ -54,11 +54,18 @@ export function VenuePicker({
   onChange,
   viewerLat,
   viewerLng,
+  gradient,
+  accentColor,
 }: {
   value: PickedVenue | null;
   onChange: (venue: PickedVenue | null) => void;
   viewerLat?: number;
   viewerLng?: number;
+  /** Same gradient (all Tribes) vs. Tribe-color (Tribe-only) rule as the
+   *  rest of the Venture create/edit form - passed down so this picker's
+   *  own confirm buttons don't stay the odd plain-primary one out. */
+  gradient?: boolean;
+  accentColor?: string;
 }) {
   const search = useServerFn(searchPlaces);
   const resolve = useServerFn(resolvePlace);
@@ -269,7 +276,14 @@ export function VenuePicker({
           type="button"
           onClick={confirmManual}
           disabled={!ready}
-          className="rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          className={cn(
+            "rounded-xl py-2.5 text-xs font-semibold transition-[transform,filter] active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+            gradient || accentColor
+              ? "text-white"
+              : "bg-primary text-primary-foreground transition-colors hover:bg-primary/90",
+            gradient && "bg-meutuals-gradient hover:brightness-110",
+          )}
+          style={!gradient && accentColor ? { backgroundColor: accentColor } : undefined}
         >
           Use this place
         </button>
@@ -377,7 +391,14 @@ export function VenuePicker({
             type="button"
             onClick={confirmGoogle}
             disabled={!ready}
-            className="flex-[1.4] rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+            className={cn(
+              "flex-[1.4] rounded-xl py-2.5 text-xs font-semibold transition-[transform,filter] active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+              gradient || accentColor
+                ? "text-white"
+                : "bg-primary text-primary-foreground transition-colors hover:bg-primary/90",
+              gradient && "bg-meutuals-gradient hover:brightness-110",
+            )}
+            style={!gradient && accentColor ? { backgroundColor: accentColor } : undefined}
           >
             Use this place
           </button>

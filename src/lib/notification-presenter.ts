@@ -40,7 +40,7 @@ const VENTURE_KINDS = new Set<NotificationKind>([
 export function notificationCategory(kind: NotificationKind): NotificationCategory {
   if (CONVERSATION_KINDS.has(kind)) return "conversation";
   if (VENTURE_KINDS.has(kind)) return "venture";
-  if (kind === "tribe_join") return "tribe";
+  if (kind === "tribe_join" || kind === "tribe_pulse") return "tribe";
   return "social";
 }
 
@@ -147,7 +147,7 @@ export function notificationDestination(item: NotificationRow): NotificationDest
       ? { kind: "venture", ventureId: item.venture_id, mode }
       : { kind: "tab", tab: "ventures" };
   }
-  if (item.kind === "tribe_join" && item.tribe_id) {
+  if ((item.kind === "tribe_join" || item.kind === "tribe_pulse") && item.tribe_id) {
     return { kind: "tribe", tribeId: item.tribe_id };
   }
   return { kind: "tab", tab: "feed" };

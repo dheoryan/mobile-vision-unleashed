@@ -205,6 +205,219 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-04 — Claude — Investigated the Tribe unread-badge sharing, and found + fixed Tribevia notifications were never wired into the in-app notification list
+
+**⚠️ One migration must be applied before this app code is deployed** -
+`20260904000000_fix_tribe_pulse_notification_tribe_id.sql`. Function
+replacement only (no table/constraint change), Docker-rehearsed against the
+full migration chain including the original `tribe_pulse` migration, plus a
+transaction-rolled-back functional test (impersonated two Owl-tribe members,
+confirmed `tribe_id` lands as `'owl'` on the inserted row, confirmed the
+de-dupe-on-prompt-id path still returns 0 on a repeat call).
+
+**1. Looked into the shared `tribe_room_reads` unread pointer** (asked
+after the chat-preview fix above): turns out this is *not* the bug it
+looked like. `TribeRoomLayer` - which owns the `markRead` effect - is
+always mounted under `TribeScreen.tsx` regardless of which of its three
+tabs (chat/room/plans) is active, so opening the Tribe screen at all marks
+the shared pointer read after a 600ms debounce, not only a visit to the
+structured Room tab. The one real gap was the same `room_kind` filter
+already fixed on the preview's content query: the *count* query had it
+too, so a new Room-only item (a Tribevia answer, a shared plan) could
+inflate the Chat row's badge with something that tab will never show.
+Fixed with the same `.is("room_kind", null)` filter.
+
+**2. Asked whether Tribevia notifications are shipped and working - they
+were not, fully.** The DB/RPC/push layers were all correct
+(`fan_out_tribe_pulse_notification`, `buildPushCopy`'s actor-less "New
+Tribevia" copy in `push-payload.ts`, the `tribe_activity` push-preference
+bucket) - but `'tribe_pulse'` was never added to `NotificationKind`
+(`notifications.functions.ts`), so it was also missing from every `Record<
+NotificationKind, ...>` that depends on that union: `ICONS`/`TEXTS` in
+`notifications.tsx` (a real row would have rendered with no icon and an
+"Someone undefined" headline) and `notificationCategory`/
+`notificationDestination` in `notification-presenter.ts` (fell through to
+`category: "social"` and `{ kind: "tab", tab: "feed" }` - tapping the
+notification sent you to the Feed instead of the Tribe). On top of that,
+`fan_out_tribe_pulse_notification` never set `notifications.tribe_id` on
+the row it inserts, so even a fixed `notificationDestination` had nothing
+to route on - fixed via the migration above (`p_tribe_key` is already the
+same stable Tribe key string `notifications.tribe_id` stores for
+`tribe_join`/mention-in-tribe rows, just wasn't in the insert's column
+list).
+
+Client fixes: `NotificationKind` gained `'tribe_pulse'`; `ICONS`/`TEXTS`
+gained entries (Sparkle, matching the icon already used for Tribevia in
+`TribeRoomLayer`); the notification row's headline skips the actor-name
+prefix entirely for this kind ("New Tribevia is up in {Tribe}", no
+"Someone") - same reasoning `buildPushCopy` already documented for push;
+`notificationCategory`/`notificationDestination` both handle it, routing
+to `{ kind: "tribe", tribeId }` via the now-populated `tribe_id`.
+`notificationHomeSearch`/`parseNotificationHomeSearch` needed no changes -
+already generic over any `"tribe"` destination since `tribe_join` uses the
+same shape.
+
+New test in `notification-presenter.test.ts` covering both the
+`tribe_id`-present and `tribe_id`-absent (safe fallback to Feed, not a
+throw) cases.
+
+`tsc`, `eslint` (all touched files clean), the full `node --test` suite
+(133/133), and `npm run build` all pass.
+
+---
+
+### 2026-09-04 — Claude — Fixed Tribe chat preview showing a message that isn't actually in the chat
+
+No schema change, pure client-side app code — safe to deploy on its own.
+
+Reported directly: a "Your Tribe" row on Chats previewed `PEAR: Pinterest
+hahaha` as the last message, but opening the chat couldn't find it.
+`tribe_messages` holds two different things in one table - plain chat
+(`room_kind` is `null`, what `TribeScreen.tsx` actually renders, confirmed
+at its own `.is("room_kind", null)` filter) and structured Room items
+(Tribevia/Daily Pulse answers, shared plans, proposals - anything with
+`room_kind` set, rendered only by the separate Tribe Room screen via
+`listTribeRoom`'s `.not("room_kind", "is", null)`). `useTribeChatSummary`
+in `ChatsScreen.tsx` (the preview's data source) fetched literally the
+newest `tribe_messages` row with no `room_kind` filter at all, so a
+Tribevia answer could out-date the newest real chat message and surface as
+the preview while being invisible in the chat it links to. Added the same
+`.is("room_kind", null)` filter the chat screen itself already uses.
+
+Noted but not changed: the same query's unread-count also has no
+`room_kind` filter, so it can overcount against messages the chat will
+never show either - left alone since it reuses `tribe_room_reads`, the
+Tribe *Room* screen's own read-pointer, which may be intentionally shared
+rather than a second instance of this bug. Flagging for the user rather
+than guessing at intent.
+
+`tsc`, `eslint` (clean), the full `node --test` suite (132/132), and
+`npm run build` all pass.
+
+---
+
+### 2026-09-04 — Claude — Venture create/edit sheets wired into the existing iOS-keyboard viewport fix, Open Ventures list spacing
+
+No schema change, pure client-side app code — safe to deploy on its own.
+
+- **Every sheet in the Venture create/edit flow now tracks the real iOS
+  visual viewport while its keyboard is open.** Reported via a video/
+  screenshots showing the `Details` sheet's textarea and pinned `Done`
+  button sitting behind the keyboard instead of above it. This app already
+  has a fix for exactly this - `useVisualViewport` /
+  `visualViewportStyle` (`src/hooks/use-visual-viewport.ts`), already wired
+  into `ComposerModal` and `CommentsModal` - `VentureSheet` (used by all
+  five sub-sheets: Where, When, Room, Vibe, Details) and the separate "Edit
+  Venture" `AnimatedModal` (which holds the Venture-title text input
+  directly, not just sheet triggers) just never had it wired in. Both now
+  pass `viewportStyle={visualViewportStyle(...)}` through to
+  `AnimatedModal`, same as the two modals that already worked correctly.
+  The plain `variant="inline"` create form (page content, not a modal) was
+  never affected and needed no change.
+- **Added breathing room between the Open Ventures filter and the first
+  card below it** - the All Tribes/My Tribe toggle and the Venture list had
+  no gap between them, flagged from a screenshot. One `mt-4` wrapper around
+  the loading/error/list/empty branches in `LookView`.
+
+`tsc`, `eslint` (clean), the full `node --test` suite (132/132), and
+`npm run build` all pass. The keyboard fix specifically needs a real iOS
+device/simulator to see the difference (a desktop browser's viewport
+doesn't resize for a software keyboard at all) - not verifiable from this
+session, but it's the exact same fix already proven correct on two other
+modals in this codebase, just applied here for the first time.
+
+---
+
+### 2026-09-04 — Claude — Vibe pool expanded, Venture system-wide gradient/Tribe-color rule, Open Ventures title/filter reorder, History badge dropped
+
+No schema change, pure client-side app code — safe to deploy on its own.
+Follow-up to the same day's Vibe-curation entry below.
+
+- **`INTENT_GROUPS` pool nearly doubled** (44 → 73 items) - each existing
+  category grew by roughly a third (e.g. Move gained Basketball, Soccer,
+  Badminton, Surfing, Dance Class, Rock Climbing) rather than adding new
+  categories, so the Tribe-affinity mapping from the entry below still
+  holds without changes.
+- **One color rule, applied everywhere audience shows up in the Venture
+  system**: selected state uses the MEUTUALS gradient when the audience is
+  "All Tribes" and the host's own Tribe color when it's Tribe-only. Applied
+  to: the Vibe/Intents chips (already shipped below), the Audience choice
+  buttons in the create/edit form (`ChoiceButton` gained `gradient` and
+  `accentColor` props), the top-level Open Ventures browse-scope toggle
+  (`RoleButton` gained `accentColor`), and the form's main "Go live"/"Save
+  changes" submit button (previously colored by `isEditing`, now by
+  `scope` instead - the same rule the rest of the form now follows).
+  `venture-gradient-system.test.ts` updated/extended to cover the new
+  branches.
+- **"Open Ventures" title now sits above its own filter, not below it.**
+  The All Tribes/My Tribe(s) toggle in `LookView` used to render before the
+  section title it filters, reading as headerless. Swapped so the title
+  (with its `joinable` count and the "My Ventures" entry point) comes
+  first, filter right under it, then the venue-distance nudge unchanged.
+- **History tab dropped its count badge; Active's now hides at zero too.**
+  `Your Ventures`'s Active/History tab pair both carried a gradient count
+  pill; History's was flagged as noise since a closed log has nothing left
+  to act on, so it's gone rather than recolored. Active keeps its badge (a
+  live "needs attention" count is worth carrying) but only renders it once
+  `count > 0` - a "0" badge isn't itself something to flag either.
+- **The color rule above extended to every remaining primary button in the
+  create/edit form**, not just the audience-tied ones - flagged after a
+  screenshot still showed a plain white "Use this place" / "Done" pair.
+  `VentureSheet`'s shared bottom "Done" button (all five sheets: Where,
+  When, Room, Vibe, Details) and `VenuePicker.tsx`'s two "Use this place"
+  confirms (manual entry and Google-search label step) all gained the same
+  `gradient`/`accentColor` props, threaded down from `HostForm`'s `scope`.
+
+`tsc`, `eslint` (all touched files clean), the full `node --test` suite
+(132/132), and `npm run build` all pass. Same live-verification caveat as
+the rest of today's Venture work - the host/browse flow needs a signed-in
+session against production, which this agent won't create.
+
+---
+
+### 2026-09-04 — Claude — Profile Interests grouped by Tribe match, Venture Vibe picker curated by Tribe when audience is Tribe-only
+
+No schema change (Vibe/intent tags are still free text), pure client-side
+app code — safe to deploy on its own.
+
+**Profile view (own + public) — Interests regrouped.** `ProfileScreen.tsx`
+and `u.$handle.tsx` both replace the old flat "show 5, color = Tribe-match"
+row with two labeled groups, mirroring how Edit profile already presents
+the same data: `Because you're in {Tribe}` (Tribe-tinted) and `More
+interests` (neutral). New shared `TagGroup` component in each file, capped
+at 8 per group with a `+N more` expand instead of the old hard 5-item
+cutoff, which was quietly hiding picks once the pool grew to a 15-item cap.
+
+**Venture "Vibe" picker — curated by Tribe when the Venture is Tribe-only.**
+`INTENT_GROUPS` in `mutuals-data.ts` gained an optional `tribeId` per group
+- `Move`→wolf, `Make`→cat, `Learn & play`→koi, `Go out`→owl, `Work`→bee,
+`Food & drink` stays general/untagged, same shape as Interests' primary/
+general split. `HostForm` in `VenturesScreen.tsx` derives
+`visibleIntentGroups`: when `scope === "mine"` (Tribe-only audience) it
+shows only the general group plus whichever group(s) match the host's own
+Tribe(s); `scope === "all"` still shows every group, unchanged. Switching
+the Audience toggle to "My Tribe(s)" also prunes any already-picked Vibe
+tag that the narrower picker is about to hide, so nothing stays selected
+invisibly. `FieldLabel` gained an optional `hint` prop, used here to show
+"Curated for {Tribe}" under the Intents heading when narrowed.
+
+This intentionally reverses part of `INTENT_GROUPS`' original doc comment
+("deliberately not grouped by Tribe" - see the updated comment in
+`mutuals-data.ts`), but only for Ventures that are *already* Tribe-scoped;
+an all-Tribes Venture keeps the original reasoning fully intact (a Night
+Owl hosting an all-Tribes hike is still exactly the cross-Tribe mixing the
+app wants, so nothing narrows there).
+
+`tsc`, `eslint` (both touched files clean; `mutuals-data.ts` carries 41
+pre-existing prettier errors on lines this change didn't touch - confirmed
+via `git stash` that they predate this commit), the full `node --test`
+suite (131/131), and `npm run build` all pass. Not yet live-verified in
+browser - reaching the Venture host form needs a signed-in session and
+`localhost:8082` talks to production, so this agent won't create one; ask
+the user to eyeball both changes once deployed.
+
+---
+
 ### 2026-09-04 — Claude — Onboarding steps 0-2 locked to viewport (no scroll), live default-avatar preview on step 2, back icon consistency
 
 No schema change, pure client-side app code — safe to deploy on its own.

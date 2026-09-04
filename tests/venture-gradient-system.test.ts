@@ -40,7 +40,19 @@ test("Venture completion and inbox category icons are gradient with white icons"
   assert.equal((chats.match(/rounded-2xl bg-meutuals-gradient text-white/g) ?? []).length, 2);
 });
 
-test("Venture creation and count indicators use the gradient with white foregrounds", () => {
+test("Venture creation and the Active count indicator use the gradient with white foregrounds", () => {
   assert.match(ventures, /formOpen[\s\S]{0,500}bg-meutuals-gradient text-white/);
-  assert.match(ventures, /"bg-meutuals-gradient text-white"[\s\S]{0,140}\{count\}/);
+  assert.match(
+    ventures,
+    /bg-meutuals-gradient px-1\.5 font-mono text-\[9px\] font-bold text-white"[\s\S]{0,60}\{count\}/,
+  );
+  // History is a closed log with nothing left to act on - the same count
+  // badge there was noise, so only the Active tab carries it.
+  assert.match(ventures, /tab === "active" && count > 0 && \([\s\S]{0,400}bg-meutuals-gradient/);
+});
+
+test("Venture Audience choice and Vibe tags follow the same gradient (all Tribes) vs. Tribe-color (Tribe-only) rule", () => {
+  assert.match(ventures, /title="All Tribes"[\s\S]{0,80}gradient/);
+  assert.match(ventures, /accentColor=\{primaryTribe\.colorVar\}/);
+  assert.match(ventures, /scope === "all" && "bg-meutuals-gradient"/);
 });
