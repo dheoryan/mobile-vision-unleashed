@@ -86,6 +86,7 @@ function SwipeReplyRow({
         style={{
           transform: `translateX(${dragX}px)`,
           transition: dragX === 0 ? "transform 180ms ease-out" : "none",
+          WebkitTouchCallout: "none",
         }}
       >
         {children}

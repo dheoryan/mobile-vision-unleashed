@@ -117,6 +117,10 @@ function MessageSwipeRow({
         style={{
           transform: `translateX(${dragX}px)`,
           transition: dragX === 0 ? "transform 180ms ease-out" : "none",
+          // iOS's own long-press-on-text callout (Copy/Look Up/Share) can
+          // otherwise race the long-press timer below and win, cancelling
+          // this pointer sequence via pointercancel before it ever fires.
+          WebkitTouchCallout: "none",
         }}
       >
         {children}
