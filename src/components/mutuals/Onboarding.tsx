@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { FeatureIllustration } from "./FeatureIllustration";
 import welcomeArt from "@/assets/app-illustrations/onboarding-01.webp";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
@@ -94,7 +93,6 @@ import { CubeIcon } from "@phosphor-icons/react/dist/csr/Cube";
 import { TrendUpIcon } from "@phosphor-icons/react/dist/csr/TrendUp";
 import type { Icon } from "@phosphor-icons/react";
 import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
-import { LegalFooter } from "./LegalFooter";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -183,6 +181,10 @@ export function Onboarding({
   const resolveLocation = useServerFn(resolveMyLocationLabel);
 
   const tribe = tribeId ? tribeById(tribeId) : null;
+  // null until both Tribe and gender are known - same rule the final submit
+  // (see resolvedAvatar below) already used, just surfaced live on step 2
+  // instead of only appearing once onboarding is already done.
+  const previewAvatarUrl = defaultAvatarUrl(tribeId, gender);
   const viewedTribe = TRIBES[tribeIndex];
   const handleValid = handle.length >= 3 && handle.length <= 30;
   const handleAvailability = useHandleAvailability(handle, handleValid);
@@ -280,7 +282,16 @@ export function Onboarding({
   };
 
   return (
-    <div className="bg-habitat relative min-h-dvh overflow-x-hidden">
+    <div
+      className={cn(
+        "bg-habitat relative overflow-x-hidden",
+        // Steps 3+'s content is naturally scrollable (the interest pickers
+        // need it) - steps 0-2 each have a fixed budget of things to show,
+        // so those are the ones that should never grow past the viewport
+        // instead of just relying on it usually fitting.
+        step <= 2 ? "h-dvh overflow-hidden" : "min-h-dvh",
+      )}
+    >
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
         <span className="ambient-orb ambient-orb-1" style={{ background: "#C84B31" }} />
         <span className="ambient-orb ambient-orb-2" style={{ background: "#3A7CA5" }} />
@@ -289,7 +300,12 @@ export function Onboarding({
         <span className="ambient-orb ambient-orb-5" style={{ background: "#4A7C59" }} />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(3rem,env(safe-area-inset-top))]">
+      <div
+        className={cn(
+          "relative z-10 mx-auto flex max-w-md flex-col px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(3rem,env(safe-area-inset-top))]",
+          step <= 2 ? "h-full min-h-0" : "min-h-dvh",
+        )}
+      >
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -300,7 +316,7 @@ export function Onboarding({
               step === 0 && "invisible",
             )}
           >
-            <ArrowLeftIcon className="h-5 w-5" />
+            <CaretLeftIcon className="h-5 w-5" />
           </button>
           <div
             className={cn("flex gap-1.5", step === 0 && "invisible")}
@@ -320,41 +336,60 @@ export function Onboarding({
         </div>
 
         {step === 0 && (
-          <div className="flex flex-1 flex-col">
-            <div className="mt-16 animate-rise">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="mt-8 shrink-0 animate-rise">
               <p className="label-mono text-muted-foreground">MEUTUALS</p>
-              <h1 className="mt-3 text-balance font-display text-[44px] font-bold leading-[1.05] tracking-tight">
+              <h1 className="mt-2 text-balance font-display text-[34px] font-bold leading-[1.08] tracking-tight sm:text-[38px]">
                 Start with your <span className="text-primary">Tribe</span>.
                 <br />
                 Venture when you're ready.
               </h1>
-              <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 Find people who share your scene, your rhythm, and—only if you choose—your part of
                 town.
               </p>
-              <FeatureIllustration src={welcomeArt} size="lg" eager className="mt-8" />
             </div>
-            <div className="mt-auto pt-10">
+            {/* flex-1 + min-h-0 is what lets the artwork actually shrink to
+                whatever's left of the viewport instead of the fixed-aspect
+                box it normally is - the one thing on this screen with room
+                to give, since the headline/button/copy above and below are
+                already as tight as they read well. */}
+            <div className="flex min-h-0 flex-1 items-center justify-center py-3">
+              <FeatureIllustration
+                src={welcomeArt}
+                size="lg"
+                eager
+                className="aspect-auto h-full max-h-[280px] w-auto max-w-[260px]"
+              />
+            </div>
+            <div className="shrink-0 pt-2">
               <PrimaryButton onClick={() => setStep(1)}>
                 Get started <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
               <p className="mt-3 text-center text-[11px] text-muted-foreground">
                 For socially curious adults, 18+
               </p>
-              <LegalFooter className="mt-4" />
+              {/* No LegalFooter here - Terms/Privacy/Guidelines already show
+                  up on the signup screen right before an account is
+                  actually created, which is where agreeing to them means
+                  something. Repeating it on the welcome screen, before any
+                  data is collected, was pure duplication and the single
+                  biggest thing pushing this screen past the viewport. */}
             </div>
           </div>
         )}
 
         {step === 1 && (
-          <div className="flex flex-1 flex-col">
-            <StepHeading
-              step={1}
-              title="Choose your first Tribe."
-              body="Turn each card to understand the people, rhythm, and conversations inside."
-            />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="shrink-0">
+              <StepHeading
+                step={1}
+                title="Choose your first Tribe."
+                body="Turn each card to understand the people, rhythm, and conversations inside."
+              />
+            </div>
 
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex shrink-0 items-center justify-between">
               <button
                 type="button"
                 aria-label="Previous Tribe"
@@ -387,13 +422,19 @@ export function Onboarding({
               </button>
             </div>
 
-            <div className="mx-auto mt-3 w-full max-w-[20rem] [perspective:1200px]">
+            {/* flex-1 + min-h-0, same fix as the welcome screen's artwork:
+                this card is what has to give on a short viewport instead of
+                pushing the page into a scroll, so it's sized from the
+                available height (h-full) rather than the available width
+                (w-full) - aspect-[3/4] then derives width from whatever
+                height it actually got. */}
+            <div className="mt-3 flex min-h-0 flex-1 items-center justify-center [perspective:1200px]">
               <button
                 type="button"
                 aria-label={`${tribeFlipped ? "Show artwork for" : "Learn about"} ${viewedTribe.name}`}
                 aria-pressed={tribeFlipped}
                 onClick={() => setTribeFlipped((current) => !current)}
-                className="relative block aspect-[3/4] w-full rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+                className="relative block aspect-[3/4] h-full max-h-[420px] w-auto max-w-[20rem] rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
               >
                 <span
                   className={cn(
@@ -477,7 +518,7 @@ export function Onboarding({
             </div>
 
             <div
-              className="mt-4 flex items-center justify-center gap-1.5"
+              className="mt-4 flex shrink-0 items-center justify-center gap-1.5"
               aria-label={`Viewing Tribe ${tribeIndex + 1} of ${TRIBES.length}`}
             >
               {TRIBES.map((item, index) => (
@@ -499,7 +540,7 @@ export function Onboarding({
               ))}
             </div>
 
-            <div className="mt-auto pt-5">
+            <div className="mt-auto shrink-0 pt-5">
               <PrimaryButton
                 onClick={() => {
                   if (tribeId === viewedTribe.id) setStep(2);
@@ -521,13 +562,15 @@ export function Onboarding({
         )}
 
         {step === 2 && (
-          <div className="flex flex-1 flex-col">
-            <StepHeading
-              step={2}
-              title="Make it recognizably you."
-              body="A name people can remember and a handle they can find."
-            />
-            <div className="mt-6 flex flex-col items-center">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="shrink-0">
+              <StepHeading
+                step={2}
+                title="Make it recognizably you."
+                body="A name people can remember and a handle they can find."
+              />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-2">
               <button
                 type="button"
                 onClick={openAvatarPicker}
@@ -537,9 +580,20 @@ export function Onboarding({
               >
                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-card text-4xl">
                   {avatar.startsWith("data:") || avatar.startsWith("http") ? (
+                    // A real uploaded photo always wins.
                     <img
                       src={avatar}
                       alt="Profile preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : previewAvatarUrl ? (
+                    // Nothing uploaded, but the Tribe (always known by this
+                    // step) and gender (just picked) are both in - show what
+                    // will actually land on the profile instead of the leaf
+                    // sitting there as if nothing had been chosen yet.
+                    <img
+                      src={previewAvatarUrl}
+                      alt="Default profile preview"
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -577,7 +631,7 @@ export function Onboarding({
                 A photo helps with trust. The leaf works too.
               </p>
             </div>
-            <div className="mt-7 space-y-4">
+            <div className="mt-7 shrink-0 space-y-4">
               <Field
                 label="Display name"
                 value={name}
@@ -596,7 +650,7 @@ export function Onboarding({
               />
               <GenderSelect value={gender} onChange={setGender} hint="Shown on your profile" />
             </div>
-            <div className="mt-auto pt-8">
+            <div className="mt-auto shrink-0 pt-8">
               <PrimaryButton
                 disabled={
                   !name.trim() ||

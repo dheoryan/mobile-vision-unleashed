@@ -205,6 +205,44 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-04 — Claude — Onboarding steps 0-2 locked to viewport (no scroll), live default-avatar preview on step 2, back icon consistency
+
+No schema change, pure client-side app code — safe to deploy on its own.
+
+Three bundled fixes to `Onboarding.tsx`, all raised from screenshots showing a
+scrollbar on the welcome, Tribe-pick, and profile-setup steps:
+
+- **Steps 1 and 2 now use the same `h-dvh overflow-hidden` / `flex-1 min-h-0`
+  shrink-to-fit pattern already shipped and live-verified for step 0.** The
+  outer wrapper's step check widened from `step === 0 || step === 1` to
+  `step <= 2`. Step 1's Tribe flip-card was already switched to height-driven
+  sizing in the prior pass; step 2 needed its own flex target since it has no
+  single big illustration - the avatar-picker block (`flex-1 min-h-0 flex
+  items-center justify-center`) absorbs any shortfall while the heading,
+  name/handle/gender fields, and bottom CTA stay `shrink-0`. `tsc`, `eslint`,
+  the full `node --test` suite (131/131), and `npm run build` all pass. Live
+  browser confirmation of steps 1-2 specifically (beyond step 0, already
+  verified) is still pending a signed-in check - `localhost:8082` talks to
+  production and creating a session there isn't something this agent will do
+  itself; ask the user to eyeball it once deployed.
+- **Step 2's avatar circle now shows the real default (Tribe + gender)
+  photo while picking, not the leaf placeholder.** Added
+  `const previewAvatarUrl = defaultAvatarUrl(tribeId, gender);` and a new
+  conditional branch in the avatar `<span>` - falls back to the leaf only
+  when nothing has been picked (gender not yet chosen). `defaultAvatarUrl`
+  was already used at final submit time; this just surfaces the same
+  resolution live instead of only appearing once onboarding is done.
+- **Back button icon changed from `ArrowLeftIcon` to `CaretLeftIcon`**,
+  matching the app-wide chevron convention used everywhere else (already
+  fixed in `SettingsScreen.tsx` earlier this session). `ArrowLeftIcon`'s
+  import was removed as it's now unused in this file.
+
+Also removed step 0's `LegalFooter` (Terms/Privacy/Guidelines) in the prior
+pass since `signup.tsx` already shows it - noted here since it's part of the
+same "does this belong on this screen" thread.
+
+---
+
 ### 2026-09-03 — Claude — Interest pool grown to 15/Tribe with an independent secondary cap, checkmark removed, cards shrunk, "show more" collapse
 
 **⚠️ Three new migrations must be applied before this app code is

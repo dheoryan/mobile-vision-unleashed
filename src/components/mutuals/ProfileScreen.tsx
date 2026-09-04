@@ -77,6 +77,13 @@ export function ProfileScreen({
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
   const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
+  const primaryInterestIds = new Set(primaryInterests(primaryId).map((option) => option.id));
+  const primaryInterestLabels = profile.interests
+    .filter((id) => primaryInterestIds.has(id))
+    .map((id) => optionLabel(INTEREST_OPTIONS, id));
+  const secondaryInterestLabels = profile.interests
+    .filter((id) => !primaryInterestIds.has(id))
+    .map((id) => optionLabel(INTEREST_OPTIONS, id));
   const isPlus = isPlusEffective(profile.plan);
   const showPlanCard = MONETIZATION_ENABLED;
   const profileStats = useProfileStats();
@@ -238,28 +245,18 @@ export function ProfileScreen({
                 </div>
               )}
               {profile.interests.length > 0 && (
-                <div>
-                  <p className="label-mono text-muted-foreground">Interests</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {profile.interests.slice(0, 5).map((interest) => {
-                      // The ones that reinforce this person's Tribe get that
-                      // Tribe's color, same as the "Here for" tags above -
-                      // everything else stays neutral, so the profile itself
-                      // shows which interests are Tribe-tied at a glance
-                      // rather than presenting all five identically.
-                      const isPrimary = primaryInterests(primaryId).some(
-                        (option) => option.id === interest,
-                      );
-                      return (
-                        <ProfileTag
-                          key={interest}
-                          label={optionLabel(INTEREST_OPTIONS, interest)}
-                          accentColor={isPrimary ? tribe.colorVar : undefined}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
+                <>
+                  {/* Grouped the same way Edit profile already groups them,
+                      instead of leaning on color alone to say "this one
+                      matches your Tribe" - a label reads as intended, a tint
+                      has to be decoded. */}
+                  <TagGroup
+                    label={`Because you're in ${tribe.name}`}
+                    items={primaryInterestLabels}
+                    accentColor={tribe.colorVar}
+                  />
+                  <TagGroup label="More interests" items={secondaryInterestLabels} />
+                </>
               )}
             </div>
           )}
@@ -563,6 +560,42 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
         Tap Update to refresh it now - it also refreshes automatically each time you open MEUTUALS.
         Other members only ever see a distance band, never your exact coordinates.
       </p>
+    </div>
+  );
+}
+
+function TagGroup({
+  label,
+  items,
+  accentColor,
+  maxVisible = 8,
+}: {
+  label: string;
+  items: string[];
+  accentColor?: string;
+  maxVisible?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (items.length === 0) return null;
+  const visible = expanded ? items : items.slice(0, maxVisible);
+  const hiddenCount = items.length - visible.length;
+  return (
+    <div>
+      <p className="label-mono text-muted-foreground">{label}</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {visible.map((item) => (
+          <ProfileTag key={item} label={item} accentColor={accentColor} />
+        ))}
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
+          >
+            +{hiddenCount} more
+          </button>
+        )}
+      </div>
     </div>
   );
 }

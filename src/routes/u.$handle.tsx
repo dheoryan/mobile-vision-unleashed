@@ -25,6 +25,7 @@ import {
   INTEREST_OPTIONS,
   SOCIAL_INTENT_OPTIONS,
   optionLabel,
+  primaryInterests,
 } from "@/lib/profile-options";
 import { TribeMark } from "@/components/mutuals/TribeMark";
 import {
@@ -94,6 +95,15 @@ function PublicProfilePage() {
   const otherTribes = (profile.tribe_ids ?? []).slice(1).map((id) => tribeById(id as TribeId));
   const avatar = profile.avatar_url || profile.avatar_emoji || "🌿";
   const isImg = avatar.startsWith("data:") || avatar.startsWith("http");
+  const primaryInterestIds = new Set<string>(
+    primaryInterests(primaryId).map((option) => option.id),
+  );
+  const primaryInterestLabels = profile.interests
+    .filter((id) => primaryInterestIds.has(id))
+    .map((id) => optionLabel(INTEREST_OPTIONS, id));
+  const secondaryInterestLabels = profile.interests
+    .filter((id) => !primaryInterestIds.has(id))
+    .map((id) => optionLabel(INTEREST_OPTIONS, id));
 
   return (
     <div className="bg-habitat min-h-screen pb-24">
@@ -271,14 +281,18 @@ function PublicProfilePage() {
                 </div>
               )}
               {profile.interests.length > 0 && (
-                <div>
-                  <p className="label-mono text-muted-foreground">Interests</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {profile.interests.slice(0, 5).map((interest) => (
-                      <SignalTag key={interest} label={optionLabel(INTEREST_OPTIONS, interest)} />
-                    ))}
-                  </div>
-                </div>
+                <>
+                  {/* Grouped the same way Edit profile already groups them,
+                      instead of leaning on color alone to say "this one
+                      matches your Tribe" - a label reads as intended, a tint
+                      has to be decoded. */}
+                  <TagGroup
+                    label={`Because they're in ${tribe.name}`}
+                    items={primaryInterestLabels}
+                    accentColor={tribe.colorVar}
+                  />
+                  <TagGroup label="More interests" items={secondaryInterestLabels} />
+                </>
               )}
             </div>
           )}
@@ -390,6 +404,42 @@ function ProfileActivityError({ copy, onRetry }: { copy: string; onRetry: () => 
       >
         Retry
       </button>
+    </div>
+  );
+}
+
+function TagGroup({
+  label,
+  items,
+  accentColor,
+  maxVisible = 8,
+}: {
+  label: string;
+  items: string[];
+  accentColor?: string;
+  maxVisible?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (items.length === 0) return null;
+  const visible = expanded ? items : items.slice(0, maxVisible);
+  const hiddenCount = items.length - visible.length;
+  return (
+    <div>
+      <p className="label-mono text-muted-foreground">{label}</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {visible.map((item) => (
+          <SignalTag key={item} label={item} accentColor={accentColor} />
+        ))}
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
+          >
+            +{hiddenCount} more
+          </button>
+        )}
+      </div>
     </div>
   );
 }
