@@ -54,7 +54,7 @@ async function resolveMemberTribe(
 }
 
 const TRIBE_MESSAGE_COLS =
-  "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at, shared_post_id";
+  "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at, shared_post_id, shared_post_deleted";
 
 // shared_post_id/edited_at/deleted_at aren't in the generated Database
 // types yet - same "migration is live, types.ts hasn't caught up"

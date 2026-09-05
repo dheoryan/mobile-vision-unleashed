@@ -14,13 +14,19 @@ import { LazyImage } from "./LazyImage";
  *  flat `bg-background` card inside the bubble, same idea as how
  *  WhatsApp/Telegram render a forwarded post: one clean surface that reads
  *  the same whether the bubble behind it is coloured or plain. */
-export function SharedPostCard({ post }: { post: FeedPost | null }) {
+export function SharedPostCard({
+  post,
+  deleted = false,
+}: {
+  post: FeedPost | null;
+  deleted?: boolean;
+}) {
   const navigate = useNavigate();
-  if (!post) {
+  if (deleted || !post) {
     return (
       <div className="flex items-center gap-2 rounded-xl bg-background/90 px-3 py-2.5 text-xs text-muted-foreground">
         <ProhibitIcon className="h-3.5 w-3.5 shrink-0" />
-        This post is no longer available.
+        {deleted ? "This post has been deleted." : "This post is no longer available."}
       </div>
     );
   }

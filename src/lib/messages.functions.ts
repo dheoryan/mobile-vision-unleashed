@@ -33,6 +33,7 @@ export type DMMessage = {
   edited_at: string | null;
   deleted_at: string | null;
   shared_post_id: string | null;
+  shared_post_deleted?: boolean;
   reactions: ChatReactionCounts;
   my_reactions: ChatReaction[];
   reply_to?: Pick<
@@ -50,7 +51,7 @@ export type DMThreadSummary = {
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan, city, tribe_ids";
 const MESSAGE_COLS =
-  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id, edited_at, deleted_at, shared_post_id";
+  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id, edited_at, deleted_at, shared_post_id, shared_post_deleted";
 
 // `messages.edited_at` / `deleted_at` (20260904010000) aren't in the
 // generated Database types yet - same "migration is live, types.ts hasn't

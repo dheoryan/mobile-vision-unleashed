@@ -1503,7 +1503,10 @@ function Thread({
                           <ChatAttachment value={m.attachment_url} />
                         )}
                         {messageBody &&
-                          !(m.shared_post_id && messageBody === SHARED_POST_DEFAULT_CAPTION) && (
+                          !(
+                            (m.shared_post_id || m.shared_post_deleted) &&
+                            messageBody === SHARED_POST_DEFAULT_CAPTION
+                          ) && (
                             <p className="whitespace-pre-wrap break-words">
                               {messageBody}
                               {m.edited_at && (
@@ -1513,8 +1516,13 @@ function Thread({
                               )}
                             </p>
                           )}
-                        {m.shared_post_id && (
-                          <SharedPostCard post={sharedPosts?.get(m.shared_post_id) ?? null} />
+                        {(m.shared_post_id || m.shared_post_deleted) && (
+                          <SharedPostCard
+                            post={
+                              m.shared_post_id ? (sharedPosts?.get(m.shared_post_id) ?? null) : null
+                            }
+                            deleted={m.shared_post_deleted}
+                          />
                         )}
                       </div>
                     );

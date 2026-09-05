@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Deleted shared-post placeholders | chat guard migration, DM/Tribe rendering and data fields, tests | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,30 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-05 — Codex (Astra) — Durable deleted-post notices in shared chat messages
+
+- User requested a clear notice replacing a deleted post's chat preview while
+  preserving any caption. DM and Tribe chat now render "This post has been
+  deleted." when `shared_post_deleted` is true, even after the FK clears
+  `shared_post_id`. Generic unavailable previews retain their existing copy;
+  unsent messages still use the message-removal tombstone. Default "Shared a
+  post" captions remain hidden; custom captions remain visible.
+- Prepared `20260905030000_deleted_shared_post_placeholder.sql`. It adds a
+  durable boolean to both chat tables and extends the existing guard functions
+  to stamp it during FK deletion cleanup. INSERT initializes it to false and
+  ordinary UPDATE cannot change it. No caption or existing message is rewritten.
+- Already-deleted shares whose references were cleared before this migration
+  cannot be reliably identified and are not guessed from their caption text.
+- Verification: rollback-only SQL regression covers eight shared messages,
+  including other senders, removed messages, caption preservation, durable
+  markers, forged INSERT markers, prohibited UPDATEs and allowed sender edits.
+  Both release-verification queries return all true locally. TypeScript,
+  targeted ESLint, production build and diff whitespace checks pass.
+- **Production pending:** apply the new migration first, then run
+  `LOVABLE_DELETED_SHARED_POST_VERIFY.sql` (all true), then publish the client.
+  No production SQL, Git push, or publish was performed by Codex. The earlier
+  deletion repair remains production-verified as recorded below.
 
 ### 2026-09-05 — User + Codex — Shared-post deletion production checks verified
 

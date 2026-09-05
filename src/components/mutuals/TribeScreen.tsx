@@ -396,6 +396,7 @@ type TribeMessage = {
   edited_at?: string | null;
   deleted_at?: string | null;
   shared_post_id?: string | null;
+  shared_post_deleted?: boolean;
   reactions: Record<TribeRoomReaction, number>;
   my_reactions: TribeRoomReaction[];
   sender?: TribeMember;
@@ -515,7 +516,7 @@ function GroupChat({
     const enhanced = await supabase
       .from("tribe_messages")
       .select(
-        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at, shared_post_id",
+        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at, shared_post_id, shared_post_deleted",
       )
       .eq("tribe_id", dbTribeId)
       .is("room_kind", null)
@@ -598,6 +599,7 @@ function GroupChat({
       edited_at: row.edited_at ?? null,
       deleted_at: row.deleted_at ?? null,
       shared_post_id: row.shared_post_id ?? null,
+      shared_post_deleted: row.shared_post_deleted ?? false,
       reactions: reactionCounts.get(row.id) ?? emptyTribeRoomReactions(),
       my_reactions: myReactions.get(row.id) ?? [],
       sender: profileMap[row.sender_id],
@@ -1143,7 +1145,10 @@ function GroupChat({
                       )}
 
                       {m.content?.trim() &&
-                        !(m.shared_post_id && m.content === SHARED_POST_DEFAULT_CAPTION) && (
+                        !(
+                          (m.shared_post_id || m.shared_post_deleted) &&
+                          m.content === SHARED_POST_DEFAULT_CAPTION
+                        ) && (
                           <p className="whitespace-pre-wrap break-words">
                             {m.content}
                             {m.edited_at && (
@@ -1151,8 +1156,13 @@ function GroupChat({
                             )}
                           </p>
                         )}
-                      {m.shared_post_id && (
-                        <SharedPostCard post={sharedPosts?.get(m.shared_post_id) ?? null} />
+                      {(m.shared_post_id || m.shared_post_deleted) && (
+                        <SharedPostCard
+                          post={
+                            m.shared_post_id ? (sharedPosts?.get(m.shared_post_id) ?? null) : null
+                          }
+                          deleted={m.shared_post_deleted}
+                        />
                       )}
                     </div>
                   )}
