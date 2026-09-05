@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Profile signal switch visual refinement | `ProfileActivityTabs.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,16 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Profile signal switch simplified
+
+- Removed the nested outlined capsule and high-contrast white selection from
+  the Original/Reposts control. The two equal-width actions now sit directly
+  on the page with a quiet secondary surface marking the active view.
+- Kept the compact footprint, clear Phosphor icons, readable 12 px labels, and
+  pressed-state semantics. Verified the result in the live mobile profile.
+- Focused ESLint, `npx tsc --noEmit`, `npm run check:readability`,
+  `git diff --check`, and `npm run build` pass.
 
 ### 2026-09-06 — Codex (Astra) — Unified profile hero and richer Vibes
 

@@ -64,11 +64,7 @@ export function ProfileSignalFilter({
   onChange: (view: ProfileSignalView) => void;
 }) {
   return (
-    <div
-      className="mb-4 inline-grid w-[184px] grid-cols-2 rounded-full border border-border bg-card/70 p-0.5"
-      role="group"
-      aria-label="Signal type"
-    >
+    <div className="mb-4 flex w-fit items-center gap-1" role="group" aria-label="Signal type">
       {SIGNAL_VIEWS.map(({ id, label, icon: Icon }) => {
         const active = value === id;
         return (
@@ -78,13 +74,13 @@ export function ProfileSignalFilter({
             aria-pressed={active}
             onClick={() => onChange(id)}
             className={cn(
-              "flex min-h-9 items-center justify-center gap-1 rounded-full px-2.5 text-xs font-semibold transition-[background-color,color,box-shadow,transform] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "flex min-h-9 min-w-[84px] items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-[background-color,color,transform] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               active
-                ? "bg-foreground text-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground",
             )}
           >
-            <Icon className="h-3 w-3" />
+            <Icon className="h-3 w-3" weight={active ? "fill" : "regular"} />
             {label}
           </button>
         );
