@@ -205,6 +205,24 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Codex (Astra) — Mobile Tribe-card carousel repaired and simplified
+
+- Fixed all five flipped onboarding cards clipping their `Best for` section.
+  The card is wider and 416–440 px tall, uses slightly tighter interior
+  spacing without dropping below the 12 px readability floor, and lets short
+  phones scroll rather than hide content.
+- Removed the detached previous/next circles from mobile and added horizontal
+  swipe navigation. Desktop still shows the arrows. The five progress dots
+  remain direct navigation buttons with 44 px-tall touch targets, while the
+  status copy now teaches “Swipe to explore” and the card tap behavior.
+- Rebalanced step-one top/bottom spacing so the full 390×844 mobile composition
+  fits exactly in one viewport. Programmatic geometry checks confirmed all
+  five back faces have `scrollHeight <= clientHeight`; front and longest
+  Honeybee back were also visually checked at 390×844.
+- Verification: TypeScript clean, readability checks 2/2, `git diff --check`
+  clean, and the full Cloudflare production build passes. No schema change.
+  This repair is committed locally only and has not been pushed or published.
+
 ### 2026-09-05 — Codex (Astra) — Deleted-share repair and readability release deployed
 
 - User confirmed both production migration queries succeeded and every deleted

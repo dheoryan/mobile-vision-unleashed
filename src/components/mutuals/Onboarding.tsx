@@ -188,6 +188,8 @@ export function Onboarding({
   const [locating, setLocating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const tribeSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const tribeSwipeHandledRef = useRef(false);
   const resolveLocation = useServerFn(resolveMyLocationLabel);
 
   const tribe = tribeId ? tribeById(tribeId) : null;
@@ -230,6 +232,11 @@ export function Onboarding({
       .replace(/^@/, "")
       .replace(/[^a-z0-9_]/g, "")
       .slice(0, 30);
+
+  const moveTribe = (direction: -1 | 1) => {
+    setTribeIndex((current) => (current + direction + TRIBES.length) % TRIBES.length);
+    setTribeFlipped(false);
+  };
 
   const openAvatarPicker = () => {
     if (uploading) return;
@@ -308,10 +315,9 @@ export function Onboarding({
       className={cn(
         "bg-habitat relative overflow-x-hidden",
         // Steps 3+'s content is naturally scrollable (the interest pickers
-        // need it) - steps 0-2 each have a fixed budget of things to show,
-        // so those are the ones that should never grow past the viewport
-        // instead of just relying on it usually fitting.
-        step <= 2 ? "h-dvh overflow-hidden" : "min-h-dvh",
+        // need it). Steps 0 and 2 have a fixed budget and stay viewport-bound.
+        // Step 1 may scroll on a short phone so its card never clips content.
+        step === 0 || step === 2 ? "h-dvh overflow-hidden" : "min-h-dvh",
       )}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
@@ -324,8 +330,11 @@ export function Onboarding({
 
       <div
         className={cn(
-          "relative z-10 mx-auto flex max-w-md flex-col px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(3rem,env(safe-area-inset-top))]",
-          step <= 2 ? "h-full min-h-0" : "min-h-dvh",
+          "relative z-10 mx-auto flex max-w-md flex-col px-6",
+          step === 1
+            ? "pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]"
+            : "pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(3rem,env(safe-area-inset-top))]",
+          step === 0 || step === 2 ? "h-full min-h-0" : "min-h-dvh",
         )}
       >
         <div className="flex items-center justify-between">
@@ -411,52 +420,58 @@ export function Onboarding({
               />
             </div>
 
-            <div className="mt-4 flex shrink-0 items-center justify-between">
-              <button
-                type="button"
-                aria-label="Previous Tribe"
-                onClick={() => {
-                  setTribeIndex((tribeIndex - 1 + TRIBES.length) % TRIBES.length);
-                  setTribeFlipped(false);
-                }}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <CaretLeftIcon className="h-5 w-5" />
-              </button>
+            <div className="mt-3 shrink-0 text-center">
               <div className="text-center">
                 <p className="label-mono text-muted-foreground">
                   Card {tribeIndex + 1} / {TRIBES.length}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {tribeId === viewedTribe.id ? "Your current choice" : "Explore before choosing"}
+                  {tribeFlipped
+                    ? "Swipe to explore · Tap to see artwork"
+                    : "Swipe to explore · Tap for details"}
                 </p>
               </div>
-              <button
-                type="button"
-                aria-label="Next Tribe"
-                onClick={() => {
-                  setTribeIndex((tribeIndex + 1) % TRIBES.length);
-                  setTribeFlipped(false);
-                }}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <CaretRightIcon className="h-5 w-5" />
-              </button>
             </div>
 
-            {/* flex-1 + min-h-0, same fix as the welcome screen's artwork:
-                this card is what has to give on a short viewport instead of
-                pushing the page into a scroll, so it's sized from the
-                available height (h-full) rather than the available width
-                (w-full) - aspect-[3/4] then derives width from whatever
-                height it actually got. */}
-            <div className="mt-3 flex min-h-0 flex-1 items-center justify-center [perspective:1200px]">
+            <div className="relative mt-2 flex shrink-0 items-center justify-center [perspective:1200px]">
+              <button
+                type="button"
+                aria-label="Previous Tribe"
+                onClick={() => moveTribe(-1)}
+                className="absolute left-0 z-10 hidden h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:flex"
+              >
+                <CaretLeftIcon className="h-5 w-5" />
+              </button>
               <button
                 type="button"
                 aria-label={`${tribeFlipped ? "Show artwork for" : "Learn about"} ${viewedTribe.name}`}
                 aria-pressed={tribeFlipped}
-                onClick={() => setTribeFlipped((current) => !current)}
-                className="relative block aspect-[3/4] h-full max-h-[420px] w-auto max-w-[20rem] rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+                onClick={() => {
+                  if (tribeSwipeHandledRef.current) {
+                    tribeSwipeHandledRef.current = false;
+                    return;
+                  }
+                  setTribeFlipped((current) => !current);
+                }}
+                onPointerDown={(event) => {
+                  tribeSwipeStartRef.current = { x: event.clientX, y: event.clientY };
+                  tribeSwipeHandledRef.current = false;
+                }}
+                onPointerUp={(event) => {
+                  const start = tribeSwipeStartRef.current;
+                  tribeSwipeStartRef.current = null;
+                  if (!start) return;
+                  const deltaX = event.clientX - start.x;
+                  const deltaY = event.clientY - start.y;
+                  if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+                  tribeSwipeHandledRef.current = true;
+                  moveTribe(deltaX < 0 ? 1 : -1);
+                }}
+                onPointerCancel={() => {
+                  tribeSwipeStartRef.current = null;
+                  tribeSwipeHandledRef.current = false;
+                }}
+                className="relative block h-[clamp(26rem,52dvh,27.5rem)] w-full max-w-[23rem] touch-pan-y rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
               >
                 <span
                   className={cn(
@@ -495,7 +510,7 @@ export function Onboarding({
 
                   <span
                     aria-hidden={!tribeFlipped}
-                    className="absolute inset-0 flex flex-col overflow-hidden rounded-[1.75rem] border border-primary/40 bg-card p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+                    className="absolute inset-0 flex flex-col overflow-hidden rounded-[1.75rem] border border-primary/40 bg-card p-[1.125rem] [backface-visibility:hidden] [transform:rotateY(180deg)]"
                   >
                     <span
                       aria-hidden
@@ -514,7 +529,7 @@ export function Onboarding({
                     <span className="relative mt-2 text-xs leading-relaxed text-muted-foreground">
                       {viewedTribe.about}
                     </span>
-                    <span className="relative mt-4 label-mono text-muted-foreground">
+                    <span className="relative mt-3 label-mono text-muted-foreground">
                       What happens here
                     </span>
                     <span className="relative mt-1.5 grid gap-1.5">
@@ -537,10 +552,18 @@ export function Onboarding({
                   </span>
                 </span>
               </button>
+              <button
+                type="button"
+                aria-label="Next Tribe"
+                onClick={() => moveTribe(1)}
+                className="absolute right-0 z-10 hidden h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:flex"
+              >
+                <CaretRightIcon className="h-5 w-5" />
+              </button>
             </div>
 
             <div
-              className="mt-4 flex shrink-0 items-center justify-center gap-1.5"
+              className="mt-1 flex h-11 shrink-0 items-center justify-center"
               aria-label={`Viewing Tribe ${tribeIndex + 1} of ${TRIBES.length}`}
             >
               {TRIBES.map((item, index) => (
@@ -552,17 +575,22 @@ export function Onboarding({
                     setTribeIndex(index);
                     setTribeFlipped(false);
                   }}
-                  className={cn(
-                    "h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    tribeIndex === index
-                      ? "w-7 bg-primary"
-                      : "w-2 bg-border hover:bg-muted-foreground/50",
-                  )}
-                />
+                  className="group flex h-11 w-9 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      tribeIndex === index
+                        ? "w-7 bg-primary"
+                        : "w-2 bg-border group-hover:bg-muted-foreground/50",
+                    )}
+                  />
+                </button>
               ))}
             </div>
 
-            <div className="mt-auto shrink-0 pt-5">
+            <div className="mt-auto shrink-0 pt-1">
               <PrimaryButton
                 onClick={() => {
                   if (tribeId === viewedTribe.id) setStep(2);
