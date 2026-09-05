@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex (Astra) | Profile Signals, Ventures, and Vibes navigation | `ProfileActivityTabs.tsx`, `ProfileScreen.tsx`, `u.$handle.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
