@@ -205,6 +205,21 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Codex (Astra) — Mobile Tribe carousel deployed
+
+- Pushed the reviewed UI repair as commit `79cdf6a` on `main`, updated Lovable
+  Preview to that GitHub revision, and published the pending changes to
+  `https://moots.lovable.app`. Lovable returned “Your website was updated.”
+- Verified a cache-busted public load and opened onboarding Step 1. The live
+  screen serves the new “Swipe to explore · Tap for details” instruction, the
+  five direct-navigation Tribe dots, and the updated card content.
+- Lovable's publish scan also surfaced a separate pre-existing critical finding:
+  self-service `plan` changes are already guarded by
+  `prevent_plan_self_change`, but no equivalent database trigger was found for
+  `profiles.suspended_at` / `profiles.suspended_by`. The carousel release did
+  not touch those fields, and Lovable's broad auto-fix was not used; this needs
+  a focused Red migration before launch.
+
 ### 2026-09-05 — Codex (Astra) — Mobile Tribe-card carousel repaired and simplified
 
 - Fixed all five flipped onboarding cards clipping their `Best for` section.
