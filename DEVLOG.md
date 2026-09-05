@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Approved photo-backed profile redesign and onboarding polish | `ProfileScreen.tsx`, `Onboarding.tsx`, `GenderSelect.tsx`, `DEVLOG.md` | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,25 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Photo-backed profile identity and option icons
+
+- Rebuilt the signed-in profile identity section around the member's existing
+  profile photo, with a stronger lower shade into the page, a flat bottom edge,
+  the Tribe badge at the photo's top-left, Edit profile at top-right, and the
+  existing shared Profile header fully preserved.
+- Kept the member bio as plain copy, then placed location, gender, and the
+  Moots/Hosted/Joined stats in the shaded lower photo area.
+- Reorganized selected signals into Here for, Tribe energy, and Also into,
+  with distinct Tribe-outline, Tribe-tinted, and neutral pill treatments.
+  Relevant Phosphor icons now appear in both the profile pills and their Edit
+  profile selectors; gender choices also carry their matching gender icons.
+- Enlarged the welcome illustration and removed the nested horizontal-overflow
+  behavior that could create a second document scrollbar during onboarding.
+- Verification: live signed-in browser review of the profile and Edit profile,
+  `npx tsc --noEmit`, focused ESLint (only the existing Onboarding Fast Refresh
+  export warning remains), `npm run check:readability`, `git diff --check`, and
+  `npm run build` all pass.
 
 ### 2026-09-05 — Codex (Astra) — Tribe carousel viewport and CTA spacing corrected
 

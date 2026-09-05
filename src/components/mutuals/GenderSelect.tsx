@@ -1,7 +1,7 @@
-import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
 import { cn } from "@/lib/utils";
 import { GENDER_OPTIONS, type GenderId } from "@/lib/profile-options";
+import { GENDER_ICONS } from "@/lib/profile-option-icons";
 
 /**
  * A dedicated single-select control for gender, not a reuse of the
@@ -11,11 +11,10 @@ import { GENDER_OPTIONS, type GenderId } from "@/lib/profile-options";
  * which gender doesn't have) regardless of selection state, so every
  * option read as "checked". This is a plain radio-style row instead
  * (exactly one always selected, never zero), but shares the same pill
- * shape/sizing/checkmark language as `ProfileChoiceGroup` (the Interests/
- * Here for/Usually free groups right below it in Edit profile) - its
- * checkmark is genuinely conditional on `active`, so it doesn't have the
- * Onboarding component's bug, and matching it keeps every option group in
- * that form looking like one consistent design instead of two.
+ * shape/sizing language as `ProfileChoiceGroup` (the Interests/
+ * Here for/Usually free groups right below it in Edit profile). Each choice
+ * has its own gender symbol; only the selected choice gets the accent border,
+ * tint and bold icon, so the state never reads as three checked options.
  */
 export function GenderSelect({
   value,
@@ -48,6 +47,7 @@ export function GenderSelect({
       <div className="mt-2 flex gap-2">
         {GENDER_OPTIONS.map((option) => {
           const active = value === option.id;
+          const GenderIcon = GENDER_ICONS[option.id];
           return (
             <button
               type="button"
@@ -57,7 +57,7 @@ export function GenderSelect({
               disabled={locked}
               onClick={() => onChange(option.id)}
               className={cn(
-                "min-h-10 flex-1 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? "text-foreground"
                   : "border-transparent bg-secondary text-foreground hover:bg-secondary/70",
@@ -72,9 +72,12 @@ export function GenderSelect({
                   : undefined
               }
             >
-              {active && (
-                <CheckIcon className="mr-1 inline h-3 w-3" style={{ color: accentColor }} />
-              )}
+              <GenderIcon
+                aria-hidden
+                className="h-4 w-4 shrink-0"
+                weight={active ? "bold" : "regular"}
+                style={active ? { color: accentColor } : undefined}
+              />
               {option.label}
             </button>
           );

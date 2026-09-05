@@ -6,11 +6,11 @@ import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { Link } from "@tanstack/react-router";
 import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, TribeBadge } from "./Shared";
-import { PlusBadge } from "./PlusBadge";
 import { useMyPosts, useMyRepostedPosts } from "@/lib/posts-store";
 import { useProfileVentureHistory } from "@/lib/ventures-store";
 import { useProfileStats } from "@/lib/social-store";
@@ -42,11 +42,11 @@ import {
   type SocialIntentId,
 } from "@/lib/profile-options";
 import { GenderSelect } from "./GenderSelect";
+import { GENDER_ICONS, PROFILE_OPTION_ICONS } from "@/lib/profile-option-icons";
 import { defaultAvatarUrl } from "@/lib/default-avatar";
 import { requestBrowserLocation, type LocationRadiusKm } from "@/lib/location";
 import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
-import { TribeMark } from "./TribeMark";
 import { avatarFileIssue } from "@/lib/avatar-file";
 import { AvatarLightbox } from "./AvatarLightbox";
 import { ProfileActivityTabs, type ProfileActivityTab } from "./ProfileActivityTabs";
@@ -76,14 +76,14 @@ export function ProfileScreen({
   );
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
-  const otherTribes = profile.tribeIds.slice(1).map((id) => tribeById(id));
   const primaryInterestIds = new Set(primaryInterests(primaryId).map((option) => option.id));
-  const primaryInterestLabels = profile.interests
+  const primaryInterestItems = profile.interests
     .filter((id) => primaryInterestIds.has(id))
-    .map((id) => optionLabel(INTEREST_OPTIONS, id));
-  const secondaryInterestLabels = profile.interests
+    .map((id) => ({ id, label: optionLabel(INTEREST_OPTIONS, id) }));
+  const secondaryInterestItems = profile.interests
     .filter((id) => !primaryInterestIds.has(id))
-    .map((id) => optionLabel(INTEREST_OPTIONS, id));
+    .map((id) => ({ id, label: optionLabel(INTEREST_OPTIONS, id) }));
+  const ProfileGenderIcon = profile.gender ? GENDER_ICONS[profile.gender] : null;
   const isPlus = isPlusEffective(profile.plan);
   const showPlanCard = MONETIZATION_ENABLED;
   const profileStats = useProfileStats();
@@ -124,173 +124,153 @@ export function ProfileScreen({
         }
       />
       <main className="mx-auto max-w-md px-5">
-        {/* No card. Identity sits directly on the ground — the gradient panel
-            was the softest, most generic element on the screen, and a card
-            around the thing that IS the page adds a frame around a frame. */}
-        <section className="relative mt-6">
-          <div className="flex items-start gap-5">
-            <span className="relative shrink-0">
-              {hasPhotoAvatar ? (
-                <button
-                  type="button"
-                  onClick={() => setAvatarLightboxOpen(true)}
-                  aria-label="View profile photo"
-                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card shadow-lg ring-2 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
-                >
-                  <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
-                </button>
-              ) : (
-                <span
-                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card text-5xl shadow-lg ring-2"
-                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
-                >
-                  {profile.avatar}
-                </span>
-              )}
-              {showPlusBadge(profile.plan) && <PlusBadge size="md" />}
-            </span>
-            <div className="min-w-0 flex-1 pt-2">
-              <div className="flex items-center gap-2">
-                <h2 className="font-display text-[26px] font-bold leading-tight">
-                  {profile.name || "You"}
-                </h2>
-                {showPlusBadge(profile.plan) && (
-                  <span className="label-mono inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-primary">
-                    <LightningIcon className="h-3 w-3" weight="fill" /> PLUS
-                  </span>
-                )}
-              </div>
-              {/* Handle stays directly under the name, no interruption - the
-                  pairing every social app trains people to expect. Tribe
-                  gets its own line right after instead of wedging between
-                  them. */}
-              {profile.handle && (
-                <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
-                  @{profile.handle.replace(/^@/, "")}
-                </p>
-              )}
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span
-                  className="label-mono inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
-                  style={{
-                    backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
-                    color: readableAccentColor(tribe.colorVar),
-                  }}
-                >
-                  <TribeMark tribe={tribe} size="xs" decorative={false} />
-                  {tribe.name}
-                </span>
-                {otherTribes.map((t) => (
-                  <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
-                ))}
-              </div>
+        <section className="relative -mx-5 min-h-[510px] overflow-hidden bg-background">
+          {hasPhotoAvatar ? (
+            <button
+              type="button"
+              onClick={() => setAvatarLightboxOpen(true)}
+              aria-label="View profile photo"
+              className="absolute inset-0 h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+            >
+              <img
+                src={profile.avatar}
+                alt=""
+                className="h-full w-full object-cover object-center"
+              />
+            </button>
+          ) : (
+            <div
+              className="absolute inset-0 flex items-center justify-center text-[11rem]"
+              style={{
+                background: `radial-gradient(circle at 50% 34%, color-mix(in oklab, ${tribe.colorVar} 35%, #111) 0%, #090909 68%)`,
+              }}
+              aria-hidden
+            >
+              {profile.avatar}
             </div>
-            {/* Edit profile lives beside the identity it edits, not buried
-                below bio/tags/stats - the one action on your own profile
-                should be the first thing your thumb finds, not the last. */}
+          )}
+
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,.08) 34%, rgba(8,8,8,.56) 58%, var(--color-background) 100%)",
+            }}
+          />
+
+          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 px-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
+            <TribeBadge
+              tribe={tribe}
+              className="border border-white/20 shadow-lg backdrop-blur-xl"
+            />
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="shrink-0 rounded-full border border-border px-4 py-2 text-xs font-bold transition-colors hover:bg-card active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-white/25 bg-black/35 px-3.5 text-xs font-bold text-white shadow-lg backdrop-blur-xl transition-colors hover:bg-black/55 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
+              <PencilSimpleIcon className="h-3.5 w-3.5" />
               Edit profile
             </button>
           </div>
-          {profile.bio && (
-            <p className="mt-5 text-sm font-semibold text-foreground">{profile.bio}</p>
-          )}
 
-          {/* Quick facts, Twitter/LinkedIn-style: small muted icon+text right
-              under the bio, not bold colorful badges - these are things
-              people expect to see immediately, not decoration competing
-              with the tags below. Tribe lives up by the name instead (see
-              above) - it's MEUTUALS' identity concept, not a plain fact
-              like these, so a colored outlier here read as a mistake. */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <MapPinIcon className="h-3.5 w-3.5" />
-              {profile.city || "Somewhere"}
-            </span>
-            {profile.gender && <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>}
-          </div>
-
-          {/* Bio and facts flow straight into stats, same as the reference -
-              nothing else competes for attention between them. Tags (their
-              own labeled sections, not more of the same) come after. */}
-          <div className="mt-6 flex items-stretch">
-            <Stat label="Moots" value={String(profileStats.data?.moots ?? 0)} />
-            <Stat label="Hosted" value={String(profileStats.data?.hosted ?? 0)} />
-            <Stat label="Joined" value={String(profileStats.data?.joined ?? 0)} />
-          </div>
-
-          {(profile.socialIntents.length > 0 || profile.interests.length > 0) && (
-            <div className="mt-6 space-y-4">
-              {profile.socialIntents.length > 0 && (
-                <div>
-                  {/* label-mono + muted, same treatment as the Stat labels
-                      above - so the heading recedes and the bold, colorful
-                      pills below it read as the actual content instead of
-                      competing with it in near-equal weight. */}
-                  <p className="label-mono text-muted-foreground">Here for</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {profile.socialIntents.map((intent) => (
-                      <ProfileTag
-                        key={intent}
-                        label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
-                        accentColor={tribe.colorVar}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {profile.interests.length > 0 && (
-                <>
-                  {/* Grouped the same way Edit profile already groups them,
-                      instead of leaning on color alone to say "this one
-                      matches your Tribe" - a label reads as intended, a tint
-                      has to be decoded. */}
-                  <TagGroup
-                    label={`Because you're in ${tribe.name}`}
-                    items={primaryInterestLabels}
-                    accentColor={tribe.colorVar}
-                  />
-                  <TagGroup label="More interests" items={secondaryInterestLabels} />
-                </>
+          <div className="relative z-[1] flex min-h-[510px] flex-col justify-end px-5 pb-5 pt-28 text-white">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1 className="min-w-0 truncate font-display text-[30px] font-bold leading-tight tracking-[-0.025em]">
+                {profile.name || "You"}
+              </h1>
+              {showPlusBadge(profile.plan) && (
+                <span className="label-mono inline-flex shrink-0 items-center gap-0.5 rounded-full border border-white/20 bg-black/30 px-2 py-1 text-white backdrop-blur-md">
+                  <LightningIcon className="h-3 w-3" weight="fill" /> PLUS
+                </span>
               )}
             </div>
-          )}
-
-          {profileCompletion < PROFILE_FIELD_COUNT && (
-            <button
-              type="button"
-              onClick={() => setEditOpen(true)}
-              className="mt-5 w-full rounded-md border p-3 text-left transition-colors active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              style={{
-                borderColor: `color-mix(in oklab, ${tribe.colorVar} 40%, transparent)`,
-                backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 5%, transparent)`,
-              }}
-            >
-              <div className="flex items-center justify-between text-xs">
-                {/* A percentage is a number with no verb — it nags without
-                    telling you what to do. The bar still shows progress. */}
-                <span className="font-semibold">Finish your profile</span>
-                <span style={{ color: readableAccentColor(tribe.colorVar) }}>
-                  {PROFILE_FIELD_COUNT - profileCompletion} left
+            {profile.handle && (
+              <p className="mt-0.5 truncate text-sm font-medium text-white/72">
+                @{profile.handle.replace(/^@/, "")}
+              </p>
+            )}
+            {profile.bio && (
+              <p className="mt-3 max-w-[36ch] text-sm font-medium leading-relaxed text-white/92">
+                {profile.bio}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-white/72">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPinIcon className="h-3.5 w-3.5" />
+                {profile.city || "Somewhere"}
+              </span>
+              {profile.gender && ProfileGenderIcon && (
+                <span className="inline-flex items-center gap-1.5">
+                  <ProfileGenderIcon className="h-3.5 w-3.5" />
+                  {optionLabel(GENDER_OPTIONS, profile.gender)}
                 </span>
-              </div>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
-                <span
-                  className="block h-full rounded-full"
-                  style={{
-                    width: `${(profileCompletion / PROFILE_FIELD_COUNT) * 100}%`,
-                    backgroundColor: tribe.colorVar,
-                  }}
-                />
-              </div>
-            </button>
-          )}
+              )}
+            </div>
+            <div className="mt-5 grid grid-cols-3 divide-x divide-white/18 border-t border-white/18 pt-4">
+              <Stat label="Moots" value={String(profileStats.data?.moots ?? 0)} />
+              <Stat label="Hosted" value={String(profileStats.data?.hosted ?? 0)} />
+              <Stat label="Joined" value={String(profileStats.data?.joined ?? 0)} />
+            </div>
+          </div>
         </section>
+
+        {(profile.socialIntents.length > 0 || profile.interests.length > 0) && (
+          <section className="pt-6">
+            <p className="label-mono text-muted-foreground">Social signal</p>
+            <div className="mt-4 space-y-5">
+              {profile.socialIntents.length > 0 && (
+                <TagGroup
+                  label="Here for"
+                  items={profile.socialIntents.map((id) => ({
+                    id,
+                    label: optionLabel(SOCIAL_INTENT_OPTIONS, id),
+                  }))}
+                  accentColor={tribe.colorVar}
+                  variant="outline"
+                />
+              )}
+              {primaryInterestItems.length > 0 && (
+                <TagGroup
+                  label="Tribe energy"
+                  items={primaryInterestItems}
+                  accentColor={tribe.colorVar}
+                  variant="tinted"
+                />
+              )}
+              {secondaryInterestItems.length > 0 && (
+                <TagGroup label="Also into" items={secondaryInterestItems} variant="neutral" />
+              )}
+            </div>
+          </section>
+        )}
+
+        {profileCompletion < PROFILE_FIELD_COUNT && (
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="mt-5 w-full rounded-2xl border p-3 text-left transition-colors active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            style={{
+              borderColor: `color-mix(in oklab, ${tribe.colorVar} 40%, transparent)`,
+              backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 5%, transparent)`,
+            }}
+          >
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold">Finish your profile</span>
+              <span style={{ color: readableAccentColor(tribe.colorVar) }}>
+                {PROFILE_FIELD_COUNT - profileCompletion} left
+              </span>
+            </div>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
+              <span
+                className="block h-full rounded-full"
+                style={{
+                  width: `${(profileCompletion / PROFILE_FIELD_COUNT) * 100}%`,
+                  backgroundColor: tribe.colorVar,
+                }}
+              />
+            </div>
+          </button>
+        )}
 
         {showPlanCard && (
           <section className="mt-4 rounded-2xl border border-border bg-card p-4">
@@ -488,11 +468,11 @@ export function ProfileScreen({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex-1 text-center">
+    <div className="min-w-0 px-2 text-center text-white">
       <p className="font-display text-2xl font-bold leading-none tracking-tight tabular-nums">
         {value}
       </p>
-      <p className="label-mono mt-2 text-muted-foreground">{label}</p>
+      <p className="label-mono mt-2 text-white/72">{label}</p>
     </div>
   );
 }
@@ -568,11 +548,13 @@ function TagGroup({
   label,
   items,
   accentColor,
+  variant = "neutral",
   maxVisible = 8,
 }: {
   label: string;
-  items: string[];
+  items: Array<{ id: string; label: string }>;
   accentColor?: string;
+  variant?: "outline" | "tinted" | "neutral";
   maxVisible?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -582,9 +564,15 @@ function TagGroup({
   return (
     <div>
       <p className="label-mono text-muted-foreground">{label}</p>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-2">
         {visible.map((item) => (
-          <ProfileTag key={item} label={item} accentColor={accentColor} />
+          <ProfileTag
+            key={item.id}
+            id={item.id}
+            label={item.label}
+            accentColor={accentColor}
+            variant={variant}
+          />
         ))}
         {hiddenCount > 0 && (
           <button
@@ -600,23 +588,39 @@ function TagGroup({
   );
 }
 
-function ProfileTag({ label, accentColor }: { label: string; accentColor?: string }) {
+function ProfileTag({
+  id,
+  label,
+  accentColor,
+  variant,
+}: {
+  id: string;
+  label: string;
+  accentColor?: string;
+  variant: "outline" | "tinted" | "neutral";
+}) {
+  const Icon = PROFILE_OPTION_ICONS[id];
+  const isNeutral = variant === "neutral" || !accentColor;
   return (
     <span
       className={cn(
-        "rounded-full border px-2.5 py-1 text-xs font-semibold",
-        !accentColor && "border-transparent bg-secondary text-foreground",
+        "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
+        isNeutral && "border-white/10 bg-secondary text-foreground",
       )}
       style={
-        accentColor
+        !isNeutral
           ? {
-              borderColor: `color-mix(in oklab, ${accentColor} 45%, transparent)`,
-              backgroundColor: `color-mix(in oklab, ${accentColor} 18%, transparent)`,
+              borderColor: `color-mix(in oklab, ${accentColor} ${variant === "outline" ? 65 : 48}%, transparent)`,
+              backgroundColor:
+                variant === "outline"
+                  ? `color-mix(in oklab, ${accentColor} 8%, transparent)`
+                  : `color-mix(in oklab, ${accentColor} 22%, var(--card))`,
               color: readableAccentColor(accentColor),
             }
           : undefined
       }
     >
+      {Icon && <Icon aria-hidden className="h-3.5 w-3.5 shrink-0" weight="bold" />}
       {label}
     </span>
   );
@@ -1258,6 +1262,7 @@ function ProfileChoiceGroup({
       <div className="mt-2 flex flex-wrap gap-2">
         {visibleOptions.map((option) => {
           const active = selected.includes(option.id);
+          const Icon = PROFILE_OPTION_ICONS[option.id];
           return (
             <button
               type="button"
@@ -1265,7 +1270,7 @@ function ProfileChoiceGroup({
               aria-pressed={active}
               onClick={() => onToggle(option.id)}
               className={cn(
-                "min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
                   ? "text-foreground"
                   : "border-transparent bg-secondary text-foreground hover:bg-secondary/70",
@@ -1279,6 +1284,14 @@ function ProfileChoiceGroup({
                   : undefined
               }
             >
+              {Icon && (
+                <Icon
+                  aria-hidden
+                  className="h-3.5 w-3.5 shrink-0"
+                  weight={active ? "bold" : "regular"}
+                  style={active ? { color } : undefined}
+                />
+              )}
               {option.label}
             </button>
           );
