@@ -1,4 +1,6 @@
--- Run after the migration in the isolated share-event fixture database.
+-- Run after tests/share-events-bootstrap.sql and the migration in the
+-- isolated share-event fixture database. The bootstrap includes one valid
+-- legacy share and one orphan whose post has already been deleted.
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', true);

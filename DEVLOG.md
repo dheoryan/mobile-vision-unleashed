@@ -205,6 +205,21 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Codex (Astra) — Share-event migration orphan repair
+
+- Production exposed a legacy `shares` row for deleted post
+  `ec09624c-9535-4804-9334-d3e9325d5144`. The original backfill tried to copy
+  it into `share_events`, correctly hitting the new post foreign key and
+  aborting the migration.
+- Changed the legacy backfill to join `posts`, preserving every valid legacy
+  share while ignoring stale rows whose original post is already gone. Updated
+  the production verifier to check the same valid baseline definition.
+- Added `tests/share-events-bootstrap.sql` with the exact orphan edge case.
+  The full migration, 16-check verifier, and rollback behavior suite pass in a
+  fresh isolated Postgres database. Replaying the complete migration over the
+  migrated schema also passes all 16 checks, confirming the failed production
+  query can be retried safely.
+
 ### 2026-09-05 — Codex (Astra) — Share-action counters and full text-readability repair
 
 - Changed `shares_count` from a unique-sharer toggle into a completed-action

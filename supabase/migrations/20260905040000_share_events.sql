@@ -21,9 +21,14 @@ create policy share_events_external_insert on public.share_events for insert to 
 with check (user_id = auth.uid() and channel in ('native', 'clipboard')
   and exists (select 1 from public.posts p where p.id = post_id));
 
--- Deterministic baseline identity makes replay safe. No guess at lost history.
+-- Deterministic baseline identity makes replay safe. Legacy shares whose posts
+-- were already deleted are stale counter rows and cannot become share events:
+-- share_events deliberately enforces post ownership with an ON DELETE CASCADE
+-- foreign key.
 insert into public.share_events(user_id, request_id, post_id, channel, created_at)
-select user_id, post_id, post_id, 'legacy', created_at from public.shares
+select s.user_id, s.post_id, s.post_id, 'legacy', s.created_at
+from public.shares s
+join public.posts p on p.id = s.post_id
 on conflict do nothing;
 
 -- Old toggle writes must never reduce or double-increment the event total.

@@ -60,6 +60,7 @@ select
   ) as legacy_counter_triggers_disabled,
   not exists (
     select 1 from public.shares s
+    join public.posts p on p.id = s.post_id
     where not exists (
       select 1 from public.share_events e
       where e.user_id = s.user_id and e.request_id = s.post_id
