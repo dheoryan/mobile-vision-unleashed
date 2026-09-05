@@ -205,6 +205,18 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Codex (Astra) — Tribe carousel viewport and CTA spacing corrected
+
+- Made onboarding Step 1 use the same fixed `100dvh` viewport contract as the
+  welcome and identity steps, removing the document-level vertical scrollbar.
+- Removed the flexible auto-margin above the primary action. The CTA now follows
+  the 44 px navigation-dot touch row directly instead of dropping toward the
+  bottom of taller screens.
+- Shipped commit `22fcc68` through Lovable. On the user's live 1920×855 browser
+  viewport, the cache-busted production page measured `scrollHeight ===
+  innerHeight === 855`; the card-to-CTA distance is now the 48 px occupied by
+  the dot row and its 4 px card offset. TypeScript and the production build pass.
+
 ### 2026-09-05 — Codex (Astra) — Mobile Tribe carousel deployed
 
 - Pushed the reviewed UI repair as commit `79cdf6a` on `main`, updated Lovable
