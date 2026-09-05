@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex (Astra) | Deleted shared-post placeholders | chat guard migration, DM/Tribe rendering and data fields, tests | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -204,6 +205,24 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-05 — User + Codex — Shared-post deletion production checks verified
+
+- User confirmed every result in `LOVABLE_SHARED_POST_DELETE_VERIFY.sql` is
+  true after applying the repair migration. The production guard/FK checks
+  are now verified; an actual shared-post deletion retry remains pending.
+- Client feedback changes in `b9dcacc` still require publishing. No push or
+  publish was performed by Codex.
+
+### 2026-09-05 — User + Codex — Shared-post deletion migration applied
+
+- User reported "query succeded" after receiving the shared-post deletion
+  repair migration. Recorded as user-confirmed SQL execution; production
+  verification results and an actual deletion retry are still pending.
+- Opened `LOVABLE_SHARED_POST_DELETE_VERIFY.sql` for the next read-only check.
+  Expect messages and tribe_messages rows with all boolean values true.
+  The client feedback fix remains committed locally in `b9dcacc`; no push
+  or publish was performed by Codex.
 
 ### 2026-09-05 — Codex (Astra) — Shared posts could not be deleted; failures were silent
 
