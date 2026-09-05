@@ -20,13 +20,7 @@ import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { intentStore } from "@/lib/intent-store";
-import {
-  GENDER_OPTIONS,
-  INTEREST_OPTIONS,
-  SOCIAL_INTENT_OPTIONS,
-  optionLabel,
-  primaryInterests,
-} from "@/lib/profile-options";
+import { GENDER_OPTIONS, optionLabel } from "@/lib/profile-options";
 import { TribeMark } from "@/components/mutuals/TribeMark";
 import {
   AppBootstrapSkeleton,
@@ -35,10 +29,13 @@ import {
 } from "@/components/mutuals/Skeleton";
 import {
   ProfileActivityTabs,
+  ProfileSignalFilter,
   type ProfileActivityTab,
+  type ProfileSignalView,
 } from "@/components/mutuals/ProfileActivityTabs";
 import { ProfilePostHistory } from "@/components/mutuals/ProfilePostHistory";
 import { ProfileVentureHistory } from "@/components/mutuals/ProfileVentureHistory";
+import { ProfileVibesPanel } from "@/components/mutuals/ProfileVibesPanel";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
@@ -75,6 +72,7 @@ function PublicProfilePage() {
   const [helloOpen, setHelloOpen] = useState(false);
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
   const [activityTab, setActivityTab] = useState<ProfileActivityTab>("signals");
+  const [signalView, setSignalView] = useState<ProfileSignalView>("original");
   const myProfile = useMyProfile();
   const sameTribe = !!profile?.tribe_ids?.some((id) => myProfile?.tribeIds.includes(id as TribeId));
 
@@ -135,15 +133,6 @@ function PublicProfilePage() {
   const otherTribes = (profile.tribe_ids ?? []).slice(1).map((id) => tribeById(id as TribeId));
   const avatar = profile.avatar_url || profile.avatar_emoji || "🌿";
   const isImg = avatar.startsWith("data:") || avatar.startsWith("http");
-  const primaryInterestIds = new Set<string>(
-    primaryInterests(primaryId).map((option) => option.id),
-  );
-  const primaryInterestLabels = profile.interests
-    .filter((id) => primaryInterestIds.has(id))
-    .map((id) => optionLabel(INTEREST_OPTIONS, id));
-  const secondaryInterestLabels = profile.interests
-    .filter((id) => !primaryInterestIds.has(id))
-    .map((id) => optionLabel(INTEREST_OPTIONS, id));
 
   return (
     <div className="bg-habitat min-h-screen pb-24">
@@ -297,78 +286,48 @@ function PublicProfilePage() {
               )}
             </div>
           )}
-
-          {/* Tags get their own labeled sections after the contact action,
-              same as your own Profile - distinct from the facts row above,
-              not more of the same. */}
-          {(profile.social_intents.length > 0 || profile.interests.length > 0) && (
-            <div className="mt-6 space-y-4">
-              {profile.social_intents.length > 0 && (
-                <div>
-                  {/* label-mono + muted, same treatment as the Stat labels
-                      above - heading recedes, the bold colorful pills below
-                      it read as the content. */}
-                  <p className="label-mono text-muted-foreground">Here for</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {profile.social_intents.map((intent) => (
-                      <SignalTag
-                        key={intent}
-                        label={optionLabel(SOCIAL_INTENT_OPTIONS, intent)}
-                        accentColor={tribe.colorVar}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {profile.interests.length > 0 && (
-                <>
-                  {/* Grouped the same way Edit profile already groups them,
-                      instead of leaning on color alone to say "this one
-                      matches your Tribe" - a label reads as intended, a tint
-                      has to be decoded. */}
-                  <TagGroup
-                    label={`Because they're in ${tribe.name}`}
-                    items={primaryInterestLabels}
-                    accentColor={tribe.colorVar}
-                  />
-                  <TagGroup label="More interests" items={secondaryInterestLabels} />
-                </>
-              )}
-            </div>
-          )}
         </section>
 
         <ProfileActivityTabs value={activityTab} onChange={setActivityTab} />
 
-        {activityTab === "signals" &&
-          (postsQ.isLoading ? (
-            <FeedSkeleton count={2} />
-          ) : postsQ.isError ? (
-            <ProfileActivityError copy="Couldn't load these signals." onRetry={postsQ.refetch} />
-          ) : (postsQ.data?.length ?? 0) === 0 ? (
-            <ProfileActivityEmpty copy="No signals yet." />
-          ) : (
-            <ProfilePostHistory
-              posts={postsQ.data!}
-              searchPlaceholder="Search signals"
-              noMatchesCopy="No signals match those filters."
-            />
-          ))}
-
-        {activityTab === "reposts" &&
-          (repostsQ.isLoading ? (
-            <FeedSkeleton count={2} />
-          ) : repostsQ.isError ? (
-            <ProfileActivityError copy="Couldn't load these reposts." onRetry={repostsQ.refetch} />
-          ) : (repostsQ.data?.length ?? 0) === 0 ? (
-            <ProfileActivityEmpty copy="Nothing reposted yet." />
-          ) : (
-            <ProfilePostHistory
-              posts={repostsQ.data!}
-              searchPlaceholder="Search reposts"
-              noMatchesCopy="No reposts match those filters."
-            />
-          ))}
+        {activityTab === "signals" && (
+          <>
+            <ProfileSignalFilter value={signalView} onChange={setSignalView} />
+            {signalView === "original" ? (
+              postsQ.isLoading ? (
+                <FeedSkeleton count={2} />
+              ) : postsQ.isError ? (
+                <ProfileActivityError
+                  copy="Couldn't load these signals."
+                  onRetry={postsQ.refetch}
+                />
+              ) : (postsQ.data?.length ?? 0) === 0 ? (
+                <ProfileActivityEmpty copy="No signals yet." />
+              ) : (
+                <ProfilePostHistory
+                  posts={postsQ.data!}
+                  searchPlaceholder="Search signals"
+                  noMatchesCopy="No signals match those filters."
+                />
+              )
+            ) : repostsQ.isLoading ? (
+              <FeedSkeleton count={2} />
+            ) : repostsQ.isError ? (
+              <ProfileActivityError
+                copy="Couldn't load these reposts."
+                onRetry={repostsQ.refetch}
+              />
+            ) : (repostsQ.data?.length ?? 0) === 0 ? (
+              <ProfileActivityEmpty copy="Nothing reposted yet." />
+            ) : (
+              <ProfilePostHistory
+                posts={repostsQ.data!}
+                searchPlaceholder="Search reposts"
+                noMatchesCopy="No reposts match those filters."
+              />
+            )}
+          </>
+        )}
 
         {activityTab === "ventures" &&
           (venturesQ.isLoading ? (
@@ -389,6 +348,14 @@ function PublicProfilePage() {
               }}
             />
           ))}
+
+        {activityTab === "vibes" && (
+          <ProfileVibesPanel
+            tribeId={primaryId}
+            socialIntents={profile.social_intents}
+            interests={profile.interests}
+          />
+        )}
       </main>
 
       {profile && (
@@ -445,60 +412,5 @@ function ProfileActivityError({ copy, onRetry }: { copy: string; onRetry: () => 
         Retry
       </button>
     </div>
-  );
-}
-
-function TagGroup({
-  label,
-  items,
-  accentColor,
-  maxVisible = 8,
-}: {
-  label: string;
-  items: string[];
-  accentColor?: string;
-  maxVisible?: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  if (items.length === 0) return null;
-  const visible = expanded ? items : items.slice(0, maxVisible);
-  const hiddenCount = items.length - visible.length;
-  return (
-    <div>
-      <p className="label-mono text-muted-foreground">{label}</p>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {visible.map((item) => (
-          <SignalTag key={item} label={item} accentColor={accentColor} />
-        ))}
-        {hiddenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
-          >
-            +{hiddenCount} more
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SignalTag({ label, accentColor }: { label: string; accentColor?: string }) {
-  return (
-    <span
-      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${accentColor ? "" : "border-transparent bg-secondary text-foreground"}`}
-      style={
-        accentColor
-          ? {
-              borderColor: `color-mix(in oklab, ${accentColor} 45%, transparent)`,
-              backgroundColor: `color-mix(in oklab, ${accentColor} 18%, transparent)`,
-              color: readableAccentColor(accentColor),
-            }
-          : undefined
-      }
-    >
-      {label}
-    </span>
   );
 }

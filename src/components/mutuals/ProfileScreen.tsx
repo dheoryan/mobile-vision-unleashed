@@ -49,8 +49,14 @@ import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { CitySelect } from "./CitySelect";
 import { avatarFileIssue } from "@/lib/avatar-file";
 import { AvatarLightbox } from "./AvatarLightbox";
-import { ProfileActivityTabs, type ProfileActivityTab } from "./ProfileActivityTabs";
+import {
+  ProfileActivityTabs,
+  ProfileSignalFilter,
+  type ProfileActivityTab,
+  type ProfileSignalView,
+} from "./ProfileActivityTabs";
 import { ProfileVentureHistory } from "./ProfileVentureHistory";
+import { ProfileVibesPanel } from "./ProfileVibesPanel";
 import {
   useHandleAvailability,
   handleFieldHint,
@@ -71,18 +77,12 @@ export function ProfileScreen({
   const [editOpen, setEditOpen] = useState(false);
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
   const [gridTab, setGridTab] = useState<ProfileActivityTab>("signals");
+  const [signalView, setSignalView] = useState<ProfileSignalView>("original");
   const hasPhotoAvatar = Boolean(
     profile.avatar?.startsWith("data:") || profile.avatar?.startsWith("http"),
   );
   const primaryId = profile.tribeIds[0];
   const tribe = tribeById(primaryId);
-  const primaryInterestIds = new Set(primaryInterests(primaryId).map((option) => option.id));
-  const primaryInterestItems = profile.interests
-    .filter((id) => primaryInterestIds.has(id))
-    .map((id) => ({ id, label: optionLabel(INTEREST_OPTIONS, id) }));
-  const secondaryInterestItems = profile.interests
-    .filter((id) => !primaryInterestIds.has(id))
-    .map((id) => ({ id, label: optionLabel(INTEREST_OPTIONS, id) }));
   const ProfileGenderIcon = profile.gender ? GENDER_ICONS[profile.gender] : null;
   const isPlus = isPlusEffective(profile.plan);
   const showPlanCard = MONETIZATION_ENABLED;
@@ -214,43 +214,6 @@ export function ProfileScreen({
           </div>
         </section>
 
-        {(profile.socialIntents.length > 0 || profile.interests.length > 0) && (
-          <section className="pt-6">
-            <p className="label-mono text-muted-foreground">Social signal</p>
-            <div className="mt-4 space-y-5">
-              {profile.socialIntents.length > 0 && (
-                <TagGroup
-                  label="Here for"
-                  items={profile.socialIntents.map((id) => ({
-                    id,
-                    label: optionLabel(SOCIAL_INTENT_OPTIONS, id),
-                  }))}
-                  accentColor={tribe.colorVar}
-                  variant="outline"
-                  maxVisible={2}
-                />
-              )}
-              {primaryInterestItems.length > 0 && (
-                <TagGroup
-                  label="Tribe energy"
-                  items={primaryInterestItems}
-                  accentColor={tribe.colorVar}
-                  variant="tinted"
-                  maxVisible={2}
-                />
-              )}
-              {secondaryInterestItems.length > 0 && (
-                <TagGroup
-                  label="Also into"
-                  items={secondaryInterestItems}
-                  variant="neutral"
-                  maxVisible={2}
-                />
-              )}
-            </div>
-          </section>
-        )}
-
         {profileCompletion < PROFILE_FIELD_COUNT && (
           <button
             type="button"
@@ -374,48 +337,40 @@ export function ProfileScreen({
             deliberate target instead of a left-packed cluster. */}
         <ProfileActivityTabs value={gridTab} onChange={setGridTab} />
 
-        {gridTab === "signals" &&
-          (myPostsQuery.isLoading ? (
-            // Real content here is full PostCards (via ProfilePostHistory),
-            // not the plain text cards CompactListSkeleton mocks up - that
-            // mismatch was the ventures-tab skeleton's shape borrowed for a
-            // completely different layout.
-            <FeedSkeleton />
-          ) : myPostsQuery.isError ? (
-            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-              <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
-              <button
-                onClick={() => myPostsQuery.refetch()}
-                className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                Retry
-              </button>
-            </div>
-          ) : myPosts.length === 0 ? (
-            /* This used to render up to 6 posts from the hardcoded POSTS demo
-               array, so a brand-new user opened their own profile and saw a grid
-               of posts they had never written, attributed to themselves. */
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              You haven't posted yet. Share a signal from the Timeline tab.
-            </p>
-          ) : (
-            <ProfilePostHistory posts={myPosts} searchPlaceholder="Search your signals" />
-          ))}
-
-        {gridTab === "reposts" &&
-          (repostedQuery.isLoading ? (
-            <FeedSkeleton />
-          ) : repostedPosts.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              Nothing reposted yet. Tap the repost icon on any post to add it here.
-            </p>
-          ) : (
-            // Full PostCards, same as the Posts tab - each one already knows
-            // how to draw its own "Reposted by X" line, so a repost here
-            // looks exactly like it does in the feed, not a stripped-down
-            // summary.
-            <ProfilePostHistory posts={repostedPosts} searchPlaceholder="Search your reposts" />
-          ))}
+        {gridTab === "signals" && (
+          <>
+            <ProfileSignalFilter value={signalView} onChange={setSignalView} />
+            {signalView === "original" ? (
+              myPostsQuery.isLoading ? (
+                <FeedSkeleton />
+              ) : myPostsQuery.isError ? (
+                <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+                  <p className="text-xs text-muted-foreground">Couldn't load your posts.</p>
+                  <button
+                    onClick={() => myPostsQuery.refetch()}
+                    className="mt-3 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : myPosts.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                  You haven't posted yet. Share a signal from the Timeline tab.
+                </p>
+              ) : (
+                <ProfilePostHistory posts={myPosts} searchPlaceholder="Search your signals" />
+              )
+            ) : repostedQuery.isLoading ? (
+              <FeedSkeleton />
+            ) : repostedPosts.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Nothing reposted yet. Tap the repost icon on any post to add it here.
+              </p>
+            ) : (
+              <ProfilePostHistory posts={repostedPosts} searchPlaceholder="Search your reposts" />
+            )}
+          </>
+        )}
 
         {gridTab === "ventures" && (
           <div className="space-y-2">
@@ -439,6 +394,14 @@ export function ProfileScreen({
               />
             )}
           </div>
+        )}
+
+        {gridTab === "vibes" && (
+          <ProfileVibesPanel
+            tribeId={primaryId}
+            socialIntents={profile.socialIntents}
+            interests={profile.interests}
+          />
         )}
       </main>
 
@@ -548,103 +511,6 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
         Other members only ever see a distance band, never your exact coordinates.
       </p>
     </div>
-  );
-}
-
-function TagGroup({
-  label,
-  items,
-  accentColor,
-  variant = "neutral",
-  maxVisible = 8,
-}: {
-  label: string;
-  items: Array<{ id: string; label: string }>;
-  accentColor?: string;
-  variant?: "outline" | "tinted" | "neutral";
-  maxVisible?: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  if (items.length === 0) return null;
-  const collapsible = items.length > maxVisible;
-  const visible = expanded ? items : items.slice(0, maxVisible);
-  const hiddenCount = items.length - visible.length;
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="label-mono text-muted-foreground">{label}</p>
-        {collapsible ? (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((value) => !value)}
-            className="inline-flex min-h-11 items-center gap-1 px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            {expanded ? "Show less" : `+${hiddenCount} more`}
-            <CaretDownIcon
-              aria-hidden
-              className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")}
-            />
-          </button>
-        ) : (
-          <span
-            className="label-mono text-muted-foreground"
-            aria-label={`${items.length} selected`}
-          >
-            {items.length} picks
-          </span>
-        )}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {visible.map((item) => (
-          <ProfileTag
-            key={item.id}
-            id={item.id}
-            label={item.label}
-            accentColor={accentColor}
-            variant={variant}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ProfileTag({
-  id,
-  label,
-  accentColor,
-  variant,
-}: {
-  id: string;
-  label: string;
-  accentColor?: string;
-  variant: "outline" | "tinted" | "neutral";
-}) {
-  const Icon = PROFILE_OPTION_ICONS[id];
-  const isNeutral = variant === "neutral" || !accentColor;
-  return (
-    <span
-      className={cn(
-        "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
-        isNeutral && "border-white/10 bg-secondary text-foreground",
-      )}
-      style={
-        !isNeutral
-          ? {
-              borderColor: `color-mix(in oklab, ${accentColor} ${variant === "outline" ? 65 : 48}%, transparent)`,
-              backgroundColor:
-                variant === "outline"
-                  ? `color-mix(in oklab, ${accentColor} 8%, transparent)`
-                  : `color-mix(in oklab, ${accentColor} 22%, var(--card))`,
-              color: readableAccentColor(accentColor),
-            }
-          : undefined
-      }
-    >
-      {Icon && <Icon aria-hidden className="h-3.5 w-3.5 shrink-0" weight="bold" />}
-      {label}
-    </span>
   );
 }
 

@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Profile Signals, Ventures, and Vibes navigation | `ProfileActivityTabs.tsx`, `ProfileScreen.tsx`, `u.$handle.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Profile Signals, Ventures, and Vibes navigation
+
+- Reorganized the profile into three clear top-level sections: Signals,
+  Ventures, and Vibes. Signals remains the default and now contains an
+  Original/Reposts segmented filter, keeping reposts close to the post feed
+  without spending a main-tab slot.
+- Moved Here for, Tribe energy, and Also into into a dedicated Vibes panel.
+  Each group preserves its icon-pill treatment and expands independently from
+  a compact two-item preview.
+- Shared the same navigation and Vibes component between the signed-in profile
+  and handle-based public profiles so the information architecture stays
+  consistent. Preserved the existing profile headers and hero treatment.
+- Verified the mobile signed-in and public-profile layouts in the live browser.
+  Focused ESLint, `npx tsc --noEmit`, `npm run check:readability`,
+  `git diff --check`, and `npm run build` pass.
 
 ### 2026-09-06 — Codex (Astra) — Compact profile signal previews
 
