@@ -205,6 +205,75 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Claude — Share system, phase 1: share a post into a DM or Tribe chat as a rich preview card
+
+**⚠️ One migration must be applied before this works in production** -
+`20260905010000_shared_post_messages.sql`. Purely additive: adds a nullable
+`shared_post_id uuid references posts(id) on delete set null` to `messages`
+and `tribe_messages` (Venture chat is out of scope - not a confirmed share
+target), plus `create or replace function` on the two edit triggers to add
+it to their immutable-column list. No CHECK constraint or RLS changes at
+all - the app always writes real, non-empty `content` for a shared-post
+message (the sender's caption, or the fallback `"Shared a post"`), so every
+existing "has content or attachment" constraint is already satisfied
+without touching it. Given this table's two-strikes history this week
+(`tribe_messages_content_check`, then discovering `content` is actually
+`NOT NULL` in production - neither in this repo's tracked migrations), not
+reopening those constraints at all was the deliberate, safe choice rather
+than a third guess. Rehearsed + functional-tested against the local Docker
+sandbox for both tables: insert, edit (content changes, `shared_post_id`
+stays put), an attempt to change `shared_post_id` directly (rejected by the
+trigger), and unsend (content wiped to the tombstone value, `shared_post_id`
+untouched but irrelevant - the client renders the "Message removed"
+tombstone from `deleted_at` alone, same as it already does for every other
+column an unsend leaves behind).
+
+User confirmed via two design questions: shared posts render as a rich
+preview card (not a plain link) - reuses `QuotedPostPreview`/
+`QuotedPostUnavailable` from the already-shipped repost/quote system
+directly (a shared post and a quoted post are the same idea - a read-only
+embed of another post - pointed at a different owner column), wrapped in a
+tappable `SharedPostCard` that navigates to `/p/$postId`. Share targets are
+DMs and Tribes in one picker (`SharePostSheet`), listing existing DM
+threads (`useThreads`) and joined Tribes (`useMyProfile().tribeIds`) with a
+search box and an optional caption field. Tapping a row sends immediately,
+WhatsApp-forward-style, rather than a multi-select-then-confirm step - the
+target list here is always short. A bottom "More options" row hands off to
+the existing native-share/copy-link flow already in `PostCard.tsx`, so
+nothing about the external-share path changed.
+
+Same audience guardrail as quoting a post into another post (`createPost`'s
+existing `quoted_post_id` check): a Tribe-only post can only be shared with
+a DM recipient who's a member of that Tribe, or into that same Tribe's own
+chat - never forwarded somewhere its author didn't choose to broadcast it.
+Enforced server-side in the two new functions (`sharePostToDM` in
+`messages.functions.ts`, `sharePostToTribe` in `tribe-room.functions.ts`);
+`posts` itself has no audience-based RLS (only a not-blocked check), so this
+guardrail is the only thing actually stopping the leak.
+
+New batched `getPostsByIds` in `posts.functions.ts` (reuses the same
+`hydratePosts(..., { shallow: true })` path the quoted-post resolver already
+uses) backs a `useSharedPostPreviews(postIds)` hook in `posts-store.ts` -
+one round trip per page of chat messages instead of one per message. Wired
+into both `TribeScreen.tsx` and `MessagesPanel.tsx`'s DM `Thread` (Venture's
+`VenturePartyThread` untouched, out of scope). `SHARED_POST_DEFAULT_CAPTION`
+lives once in `chat.ts` so both server functions and both chat screens
+agree on the exact fallback string, letting the UI recognize and hide it
+(the preview card already says everything it would) instead of showing a
+redundant "Shared a post" line above the card.
+
+**Not done, flagged for later:** sharing via the in-app picker doesn't
+toggle the `shares`/`shares_count` row the way the external OS-share button
+still does - that toggle is specific to the "More options" fallback path,
+so an in-app share doesn't move a post's share count yet.
+
+Verification: `npx tsc --noEmit`, `npx eslint` on every touched/new file,
+133/133 Node tests, `npm run build` all pass. Migration rehearsed and
+functional-tested against the local Docker sandbox as described above.
+Live browser verification wasn't possible - local dev talks to the
+production Supabase project (see Current state above) and no test
+credentials are available in this environment.
+
 ### 2026-09-04 — Claude — Tribe unsend fix, take 2 - production's schema disagreed with this repo's migrations twice in a row
 
 **⚠️ One migration must be applied before this is fixed in production** -

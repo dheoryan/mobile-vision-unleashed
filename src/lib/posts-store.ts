@@ -19,6 +19,7 @@ import {
   listRepostedPostsByAuthor,
   listMySavedIds,
   listMySavedPosts,
+  getPostsByIds,
   getTribeMemberCounts,
   toggleSavePost,
   toggleCommentLike,
@@ -34,6 +35,22 @@ export type { FeedPost, CommentRow } from "@/lib/posts.functions";
 const SAVED_IDS_KEY = ["posts", "saved-ids"] as const;
 const SAVED_POSTS_KEY = ["posts", "saved"] as const;
 const REPOSTED_POSTS_KEY = ["posts", "reposted"] as const;
+
+/** Batch-resolves shared-post preview cards for a page of chat messages.
+ *  Sorted+joined ids as the query key so an unstable array reference (a new
+ *  `[]` every render) doesn't cause a refetch loop - React Query only cares
+ *  that the *key* is referentially stable across renders with the same ids. */
+export function useSharedPostPreviews(postIds: string[]) {
+  const fn = useServerFn(getPostsByIds);
+  const ids = Array.from(new Set(postIds)).sort();
+  return useQuery({
+    queryKey: ["posts", "shared-previews", ids.join(",")],
+    queryFn: () => fn({ data: { post_ids: ids } }),
+    enabled: ids.length > 0,
+    staleTime: 60_000,
+    select: (rows) => new Map(rows.map((post) => [post.id, post])),
+  });
+}
 
 export function useMySavedIds() {
   const fn = useServerFn(listMySavedIds);

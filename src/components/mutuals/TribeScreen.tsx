@@ -26,8 +26,11 @@ import {
 import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
 import { ChatMessageActions } from "./ChatMessageActions";
 import { ChatMessageOwnMenu } from "./ChatMessageOwnMenu";
+import { ChatSelectionBar } from "./ChatSelectionBar";
 import { UnsendConfirm } from "./UnsendConfirm";
-import { CHAT_REACTIONS, isChatReaction } from "@/lib/chat";
+import { SharedPostCard } from "./SharedPostCard";
+import { useSharedPostPreviews } from "@/lib/posts-store";
+import { CHAT_REACTIONS, isChatReaction, SHARED_POST_DEFAULT_CAPTION } from "@/lib/chat";
 import { ChatComposer } from "./ChatComposer";
 import { useTribeMembers } from "@/lib/tribe-members-store";
 import type { TribeMemberSummary } from "@/lib/tribe-members";
@@ -390,6 +393,7 @@ type TribeMessage = {
   room_kind?: string | null;
   edited_at?: string | null;
   deleted_at?: string | null;
+  shared_post_id?: string | null;
   reactions: Record<TribeRoomReaction, number>;
   my_reactions: TribeRoomReaction[];
   sender?: TribeMember;
@@ -436,9 +440,15 @@ function GroupChat({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
   const [moreOptionsFor, setMoreOptionsFor] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const sharedPostIds = messages
+    .map((m) => m.shared_post_id)
+    .filter((id): id is string => Boolean(id));
+  const { data: sharedPosts } = useSharedPostPreviews(sharedPostIds);
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -500,7 +510,7 @@ function GroupChat({
     const enhanced = await supabase
       .from("tribe_messages")
       .select(
-        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at",
+        "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at, shared_post_id",
       )
       .eq("tribe_id", dbTribeId)
       .is("room_kind", null)
@@ -582,6 +592,7 @@ function GroupChat({
       room_kind: row.room_kind,
       edited_at: row.edited_at ?? null,
       deleted_at: row.deleted_at ?? null,
+      shared_post_id: row.shared_post_id ?? null,
       reactions: reactionCounts.get(row.id) ?? emptyTribeRoomReactions(),
       my_reactions: myReactions.get(row.id) ?? [],
       sender: profileMap[row.sender_id],
@@ -767,23 +778,37 @@ function GroupChat({
   // Direct-client updates, same as `send`'s direct-client insert above -
   // enforce_tribe_message_edit_fields (20260904010000) is the real gate,
   // this just patches local state and rolls back on error.
+  // Both roll back by restoring only the one item they touched, via
+  // setMessages' functional form, rather than snapshotting the whole
+  // `messages` array up front - a plain `const previous = messages` closes
+  // over a stale full-array reference, and restoring *that* on failure
+  // would also stomp any other message unsendSelected already applied
+  // earlier in the same batch (or any realtime message that arrived meanwhile),
+  // undoing already-succeeded work just because one later item in the batch
+  // failed.
   const saveEdit = async (id: string, content: string) => {
-    const previous = messages;
+    let previousItem: TribeMessage | undefined;
     const editedAt = new Date().toISOString();
-    setMessages((current) =>
-      current.map((item) => (item.id === id ? { ...item, content, edited_at: editedAt } : item)),
-    );
+    setMessages((current) => {
+      previousItem = current.find((item) => item.id === id);
+      return current.map((item) =>
+        item.id === id ? { ...item, content, edited_at: editedAt } : item,
+      );
+    });
     const { error } = await supabase.from("tribe_messages").update({ content }).eq("id", id);
     if (error) {
-      setMessages(previous);
+      const restore = previousItem;
+      if (restore)
+        setMessages((current) => current.map((item) => (item.id === id ? restore : item)));
       toast.error(error.message);
     }
   };
 
   const unsendMessage = async (id: string) => {
-    const previous = messages;
-    setMessages((current) =>
-      current.map((item) =>
+    let previousItem: TribeMessage | undefined;
+    setMessages((current) => {
+      previousItem = current.find((item) => item.id === id);
+      return current.map((item) =>
         item.id === id
           ? {
               ...item,
@@ -793,8 +818,8 @@ function GroupChat({
               deleted_at: new Date().toISOString(),
             }
           : item,
-      ),
-    );
+      );
+    });
     // tribe_messages.deleted_at (20260904010000) isn't in the generated
     // Database types yet - same "migration is live, types.ts hasn't caught
     // up" situation as commentsTable in posts.functions.ts. `as any` here
@@ -805,9 +830,33 @@ function GroupChat({
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id);
     if (error) {
-      setMessages(previous);
+      const restore = previousItem;
+      if (restore)
+        setMessages((current) => current.map((item) => (item.id === id ? restore : item)));
       toast.error(error.message);
     }
+  };
+
+  const selectMode = selectedIds !== null;
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const unsendSelected = async () => {
+    if (!selectedIds?.size) return;
+    const ids = [...selectedIds];
+    setBulkConfirmOpen(false);
+    setSelectedIds(null);
+    // Safe to fire concurrently: unsendMessage now applies and rolls back
+    // through setMessages' functional form, touching only the one id it was
+    // called for, so one item's failure can't stomp another's already-applied
+    // (or already server-confirmed) update.
+    await Promise.allSettled(ids.map((id) => unsendMessage(id)));
   };
 
   const send = async () => {
@@ -897,6 +946,13 @@ function GroupChat({
       />
       <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+        {selectMode && (
+          <ChatSelectionBar
+            count={selectedIds?.size ?? 0}
+            onCancel={() => setSelectedIds(null)}
+            onUnsend={() => setBulkConfirmOpen(true)}
+          />
+        )}
         <div
           ref={listRef}
           className="scroll-panel flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-2 py-4"
@@ -937,9 +993,13 @@ function GroupChat({
                 key={m.id}
                 tribeColor={tribe.colorVar}
                 mine={mine}
-                disabled={!canChat}
+                disabled={!canChat || selectMode}
                 onReply={() => setReplyTo(m)}
-                onLongPress={!canChat || m.deleted_at ? undefined : () => setReactionOpenFor(m.id)}
+                onLongPress={
+                  !canChat || m.deleted_at || selectMode
+                    ? undefined
+                    : () => setReactionOpenFor(m.id)
+                }
                 className={chatGroupSpacing(groupPosition)}
               >
                 {!mine && groupStart && (
@@ -981,7 +1041,7 @@ function GroupChat({
                         // instead of stretching to match the reaction tray
                         // rendered as a sibling below it once that tray
                         // opens.
-                        "w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                        "relative w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
                         chatBubbleShape(groupPosition, mine),
                         canChat && "cursor-pointer",
                         mine
@@ -997,9 +1057,26 @@ function GroupChat({
                       }
                       onClick={(event) => {
                         if (!canChat || (event.target as HTMLElement).closest("a, button")) return;
+                        if (selectMode) {
+                          if (mine) toggleSelected(m.id);
+                          return;
+                        }
                         if (reactionOpenFor === m.id) setReactionOpenFor(null);
                       }}
                     >
+                      {selectMode && mine && (
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background text-[13px] font-bold transition-colors",
+                            selectedIds?.has(m.id)
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card text-transparent",
+                          )}
+                        >
+                          ✓
+                        </span>
+                      )}
                       {/* Tribe chat had its OWN quote renderer — a filled,
                           rounded box nested inside an already-rounded bubble,
                           painting bg-background/25 over the Tribe colour. Two
@@ -1026,13 +1103,17 @@ function GroupChat({
                         <ChatAttachmentImage value={m.attachment_url} />
                       )}
 
-                      {m.content?.trim() && (
-                        <p className="whitespace-pre-wrap break-words">
-                          {m.content}
-                          {m.edited_at && (
-                            <span className="ml-1.5 text-[10px] italic opacity-70">(edited)</span>
-                          )}
-                        </p>
+                      {m.content?.trim() &&
+                        !(m.shared_post_id && m.content === SHARED_POST_DEFAULT_CAPTION) && (
+                          <p className="whitespace-pre-wrap break-words">
+                            {m.content}
+                            {m.edited_at && (
+                              <span className="ml-1.5 text-[10px] italic opacity-70">(edited)</span>
+                            )}
+                          </p>
+                        )}
+                      {m.shared_post_id && (
+                        <SharedPostCard post={sharedPosts?.get(m.shared_post_id) ?? null} />
                       )}
                     </div>
                   )}
@@ -1066,6 +1147,7 @@ function GroupChat({
                     canEdit={!m.attachment_url}
                     onEdit={() => startEdit(m)}
                     onUnsend={() => setConfirmUnsendId(m.id)}
+                    onSelect={() => setSelectedIds(new Set([m.id]))}
                   />
                   {groupEnd && (
                     <p
@@ -1174,6 +1256,12 @@ function GroupChat({
           setConfirmUnsendId(null);
           void unsendMessage(id);
         }}
+      />
+      <UnsendConfirm
+        open={bulkConfirmOpen}
+        count={selectedIds?.size ?? 0}
+        onCancel={() => setBulkConfirmOpen(false)}
+        onConfirm={() => void unsendSelected()}
       />
     </div>
   );

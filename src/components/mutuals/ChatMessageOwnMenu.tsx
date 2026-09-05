@@ -1,4 +1,5 @@
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { CheckSquareIcon } from "@phosphor-icons/react/dist/csr/CheckSquare";
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
@@ -23,12 +24,16 @@ export function ChatMessageOwnMenu({
   canEdit,
   onEdit,
   onUnsend,
+  onSelect,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canEdit: boolean;
   onEdit: () => void;
   onUnsend: () => void;
+  /** Enters multi-select mode with this message pre-checked, so several own
+   *  messages can be unsent in one pass instead of one confirm dialog each. */
+  onSelect: () => void;
 }) {
   return (
     <AnimatedModal
@@ -80,12 +85,32 @@ export function ChatMessageOwnMenu({
             type="button"
             onClick={() => {
               onOpenChange(false);
-              onUnsend();
+              onSelect();
             }}
             className={cn(
-              "group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left text-destructive transition-colors hover:bg-destructive/8 active:bg-destructive/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive",
+              "group flex min-h-[4.75rem] w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/55 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
               canEdit && "border-t border-border",
             )}
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+              <CheckSquareIcon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">Select messages</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Unsend more than one at once
+              </span>
+            </span>
+            <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              onUnsend();
+            }}
+            className="group flex min-h-[4.75rem] w-full items-center gap-3 border-t border-border px-5 py-3 text-left text-destructive transition-colors hover:bg-destructive/8 active:bg-destructive/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-destructive"
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/12 text-destructive">
               <TrashIcon className="h-5 w-5" />

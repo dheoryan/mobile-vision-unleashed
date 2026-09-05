@@ -52,11 +52,14 @@ import { ConversationListSkeleton, MessageThreadSkeleton } from "./Skeleton";
 import { ChatComposer, type ChatReplyTarget } from "./ChatComposer";
 import { ChatMessageActions } from "./ChatMessageActions";
 import { ChatMessageOwnMenu } from "./ChatMessageOwnMenu";
+import { ChatSelectionBar } from "./ChatSelectionBar";
 import { UnsendConfirm } from "./UnsendConfirm";
 import { ChatAttachment } from "./ChatAttachment";
 import { useOptimisticChatReactions } from "@/lib/chat-store";
 import { removeChatAttachment, uploadChatImage } from "@/lib/uploads";
-import type { ChatReaction } from "@/lib/chat";
+import { SHARED_POST_DEFAULT_CAPTION, type ChatReaction } from "@/lib/chat";
+import { SharedPostCard } from "./SharedPostCard";
+import { useSharedPostPreviews } from "@/lib/posts-store";
 import { listVentureParticipants } from "@/lib/venture-participants";
 import { VentureParticipantsSheet } from "./VentureParticipantsSheet";
 import { VentureCoordinationPanel } from "./VentureCoordination";
@@ -636,6 +639,8 @@ function VenturePartyThread({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
   const [moreOptionsFor, setMoreOptionsFor] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -763,39 +768,73 @@ function VenturePartyThread({
     });
   };
 
+  const selectMode = selectedIds !== null;
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const unsendSelected = async () => {
+    if (!selectedIds?.size) return;
+    const ids = [...selectedIds];
+    setBulkConfirmOpen(false);
+    setSelectedIds(null);
+    const results = await Promise.allSettled(ids.map((id) => unsendMessage.mutateAsync(id)));
+    const failed = results.filter((r) => r.status === "rejected").length;
+    if (failed) {
+      toast.error(
+        failed === ids.length
+          ? "Couldn't unsend those messages"
+          : `Unsent ${ids.length - failed} of ${ids.length} - the rest failed`,
+      );
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
-        <div className="flex items-center gap-3 px-4 py-2">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Back to messages"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <CaretLeftIcon className="h-5 w-5" />
-          </button>
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <ChatCircleIcon className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{venture.title}</p>
+        {selectMode ? (
+          <ChatSelectionBar
+            count={selectedIds?.size ?? 0}
+            onCancel={() => setSelectedIds(null)}
+            onUnsend={() => setBulkConfirmOpen(true)}
+          />
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-2">
             <button
               type="button"
-              onClick={() => setParticipantsOpen(true)}
-              aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
-              className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={onBack}
+              aria-label="Back to messages"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <span>{isComplete ? "Venture memory" : "Party chat"}</span>
-              <span aria-hidden="true">·</span>
-              <UsersIcon className="h-3 w-3 shrink-0" />
-              <span className="truncate">
-                {participants.length} {participants.length === 1 ? "participant" : "participants"}
-              </span>
-              <CaretRightIcon className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+              <CaretLeftIcon className="h-5 w-5" />
             </button>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <ChatCircleIcon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{venture.title}</p>
+              <button
+                type="button"
+                onClick={() => setParticipantsOpen(true)}
+                aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
+                className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <span>{isComplete ? "Venture memory" : "Party chat"}</span>
+                <span aria-hidden="true">·</span>
+                <UsersIcon className="h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {participants.length} {participants.length === 1 ? "participant" : "participants"}
+                </span>
+                <CaretRightIcon className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       <div ref={scrollRef} className="scroll-panel min-h-0 flex-1 overflow-y-auto">
@@ -874,10 +913,12 @@ function VenturePartyThread({
                   key={m.id}
                   mine={mine}
                   accentColor="var(--color-primary)"
-                  disabled={pending || isComplete}
+                  disabled={pending || isComplete || selectMode}
                   onReply={() => startReply(m)}
                   onLongPress={
-                    pending || isComplete || m.deleted_at ? undefined : () => setActionOpenFor(m.id)
+                    pending || isComplete || m.deleted_at || selectMode
+                      ? undefined
+                      : () => setActionOpenFor(m.id)
                   }
                   className={chatGroupSpacing(groupPosition)}
                 >
@@ -951,7 +992,7 @@ function VenturePartyThread({
                               // that tray opens (a plain block div otherwise
                               // fills whatever width its widest sibling
                               // pushes the shared flex-item wrapper to).
-                              "w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                              "relative w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
                               chatBubbleShape(groupPosition, mine),
                               !pending && "cursor-pointer",
                               mine
@@ -961,9 +1002,26 @@ function VenturePartyThread({
                             onClick={(event) => {
                               if (pending || (event.target as HTMLElement).closest("a, button"))
                                 return;
+                              if (selectMode) {
+                                if (mine) toggleSelected(m.id);
+                                return;
+                              }
                               if (actionOpenFor === m.id) setActionOpenFor(null);
                             }}
                           >
+                            {selectMode && mine && (
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background text-[13px] font-bold transition-colors",
+                                  selectedIds?.has(m.id)
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-card text-transparent",
+                                )}
+                              >
+                                ✓
+                              </span>
+                            )}
                             {quote && (
                               <QuotedBlock
                                 name={quote.name}
@@ -1022,6 +1080,7 @@ function VenturePartyThread({
                             canEdit={!m.attachment_url}
                             onEdit={() => startEdit(m.id, m.content)}
                             onUnsend={() => setConfirmUnsendId(m.id)}
+                            onSelect={() => setSelectedIds(new Set([m.id]))}
                           />
                           {groupEnd && (
                             <p
@@ -1105,6 +1164,13 @@ function VenturePartyThread({
         }}
       />
 
+      <UnsendConfirm
+        open={bulkConfirmOpen}
+        count={selectedIds?.size ?? 0}
+        onCancel={() => setBulkConfirmOpen(false)}
+        onConfirm={() => void unsendSelected()}
+      />
+
       <VentureParticipantsSheet
         open={participantsOpen}
         onClose={() => setParticipantsOpen(false)}
@@ -1143,6 +1209,8 @@ function Thread({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmUnsendId, setConfirmUnsendId] = useState<string | null>(null);
   const [moreOptionsFor, setMoreOptionsFor] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [actionOpenFor, setActionOpenFor] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -1156,6 +1224,10 @@ function Thread({
     .map((message) => message.id)
     .join("|");
   const lastMessageId = msgs?.[msgs.length - 1]?.id;
+  const sharedPostIds = (msgs ?? [])
+    .map((m) => m.shared_post_id)
+    .filter((id): id is string => Boolean(id));
+  const { data: sharedPosts } = useSharedPostPreviews(sharedPostIds);
 
   useEffect(() => {
     if (unreadIncomingIds) markRead.mutate();
@@ -1231,41 +1303,75 @@ function Thread({
     }
   };
 
+  const selectMode = selectedIds !== null;
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const unsendSelected = async () => {
+    if (!selectedIds?.size) return;
+    const ids = [...selectedIds];
+    setBulkConfirmOpen(false);
+    setSelectedIds(null);
+    const results = await Promise.allSettled(ids.map((id) => unsendMessage.mutateAsync(id)));
+    const failed = results.filter((r) => r.status === "rejected").length;
+    if (failed) {
+      toast.error(
+        failed === ids.length
+          ? "Couldn't unsend those messages"
+          : `Unsent ${ids.length - failed} of ${ids.length} - the rest failed`,
+      );
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="shrink-0 border-b border-border pt-[env(safe-area-inset-top)]">
-        <div className="flex items-center gap-3 px-4 py-2">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Back to messages"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <CaretLeftIcon className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpenProfile?.(other?.handle || otherId)}
-            disabled={!onOpenProfile}
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-opacity enabled:active:opacity-70 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">
-                {other?.display_name?.trim() || "Someone"}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {tribe.name}
-                {other?.city ? ` · ${other.city}` : ""}
-              </p>
-            </div>
-          </button>
-          <SafetyMenu
-            targetName={other?.display_name?.trim() || other?.handle || "this user"}
-            targetUserId={otherId}
-            className="shrink-0"
+        {selectMode ? (
+          <ChatSelectionBar
+            count={selectedIds?.size ?? 0}
+            onCancel={() => setSelectedIds(null)}
+            onUnsend={() => setBulkConfirmOpen(true)}
           />
-        </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-2">
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to messages"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <CaretLeftIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenProfile?.(other?.handle || otherId)}
+              disabled={!onOpenProfile}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-opacity enabled:active:opacity-70 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Avatar value={avatarOf(other)} size={9} tribeColor={tribe.colorVar} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">
+                  {other?.display_name?.trim() || "Someone"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {tribe.name}
+                  {other?.city ? ` · ${other.city}` : ""}
+                </p>
+              </div>
+            </button>
+            <SafetyMenu
+              targetName={other?.display_name?.trim() || other?.handle || "this user"}
+              targetUserId={otherId}
+              className="shrink-0"
+            />
+          </div>
+        )}
       </header>
 
       <div ref={scrollRef} className="scroll-panel min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -1288,7 +1394,7 @@ function Thread({
                 key={m.id}
                 mine={mine}
                 accentColor={tribe.colorVar}
-                disabled={pending}
+                disabled={pending || selectMode}
                 className={chatGroupSpacing(groupPosition)}
                 onReply={() => {
                   setReplyTo({
@@ -1298,7 +1404,9 @@ function Thread({
                   });
                   requestAnimationFrame(() => inputRef.current?.focus());
                 }}
-                onLongPress={pending || m.deleted_at ? undefined : () => setActionOpenFor(m.id)}
+                onLongPress={
+                  pending || m.deleted_at || selectMode ? undefined : () => setActionOpenFor(m.id)
+                }
               >
                 <div className={cn("max-w-[80%]", pending && "opacity-60")}>
                   {(() => {
@@ -1334,7 +1442,7 @@ function Thread({
                           // instead of stretching to match the reaction
                           // tray rendered as a sibling below it once that
                           // tray opens.
-                          "w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                          "relative w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
                           chatBubbleShape(groupPosition, mine),
                           !pending && "cursor-pointer",
                           mine
@@ -1350,12 +1458,29 @@ function Thread({
                         }
                         onClick={(event) => {
                           if (pending || (event.target as HTMLElement).closest("a, button")) return;
+                          if (selectMode) {
+                            if (mine) toggleSelected(m.id);
+                            return;
+                          }
                           // Long-press opens the tray now (WhatsApp-style);
                           // a plain tap only ever closes it if already open
                           // for this message, never opens it.
                           if (actionOpenFor === m.id) setActionOpenFor(null);
                         }}
                       >
+                        {selectMode && mine && (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background text-[13px] font-bold transition-colors",
+                              selectedIds?.has(m.id)
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-card text-transparent",
+                            )}
+                          >
+                            ✓
+                          </span>
+                        )}
                         {quote && (
                           <QuotedBlock
                             name={quote.name}
@@ -1367,13 +1492,19 @@ function Thread({
                         {m.attachment_url && m.attachment_type === "image" && (
                           <ChatAttachment value={m.attachment_url} />
                         )}
-                        {messageBody && (
-                          <p className="whitespace-pre-wrap break-words">
-                            {messageBody}
-                            {m.edited_at && (
-                              <span className="ml-1.5 text-[10px] italic opacity-70">(edited)</span>
-                            )}
-                          </p>
+                        {messageBody &&
+                          !(m.shared_post_id && messageBody === SHARED_POST_DEFAULT_CAPTION) && (
+                            <p className="whitespace-pre-wrap break-words">
+                              {messageBody}
+                              {m.edited_at && (
+                                <span className="ml-1.5 text-[10px] italic opacity-70">
+                                  (edited)
+                                </span>
+                              )}
+                            </p>
+                          )}
+                        {m.shared_post_id && (
+                          <SharedPostCard post={sharedPosts?.get(m.shared_post_id) ?? null} />
                         )}
                       </div>
                     );
@@ -1415,6 +1546,7 @@ function Thread({
                     canEdit={!m.attachment_url}
                     onEdit={() => startEdit(m.id, m.content)}
                     onUnsend={() => setConfirmUnsendId(m.id)}
+                    onSelect={() => setSelectedIds(new Set([m.id]))}
                   />
                   {groupEnd && (
                     <p
@@ -1465,6 +1597,13 @@ function Thread({
             onError: (error) => toast.error((error as Error).message),
           });
         }}
+      />
+
+      <UnsendConfirm
+        open={bulkConfirmOpen}
+        count={selectedIds?.size ?? 0}
+        onCancel={() => setBulkConfirmOpen(false)}
+        onConfirm={() => void unsendSelected()}
       />
     </div>
   );

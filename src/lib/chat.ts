@@ -26,6 +26,14 @@ export function emptyChatReactions(): ChatReactionCounts {
   return { heart: 0, laugh: 0, wow: 0, sad: 0, like: 0, support: 0 };
 }
 
+/** Content written for a shared-post message when the sender adds no
+ *  caption of their own - every "has content or attachment" constraint on
+ *  messages/tribe_messages still requires non-empty content, and this is
+ *  the one literal both server functions and both chat screens agree on so
+ *  the UI can recognize and hide it (it renders as the preview card
+ *  instead), rather than showing a redundant caption line under the card. */
+export const SHARED_POST_DEFAULT_CAPTION = "Shared a post";
+
 export interface RichMessageInput {
   content?: string | null;
   attachment_url?: string | null;

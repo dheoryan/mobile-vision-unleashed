@@ -7,6 +7,7 @@ import {
   listThreads,
   markThreadRead,
   sendMessage,
+  sharePostToDM,
   unsendMessage,
   type DMMessage,
   type DMThreadSummary,
@@ -80,6 +81,7 @@ export function useSendMessage(otherId: string) {
           : null,
         edited_at: null,
         deleted_at: null,
+        shared_post_id: null,
         reactions: emptyChatReactions(),
         my_reactions: [],
       };
@@ -98,6 +100,29 @@ export function useSendMessage(otherId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: THREADS_KEY });
+    },
+  });
+}
+
+/** Fire-and-forget from wherever the share sheet is opened (a post's own
+ *  screen, not necessarily the target thread) - just invalidates so the
+ *  target thread and chat list pick the new message up next time they're
+ *  viewed, rather than trying to optimistically patch a cache the sharer
+ *  probably isn't looking at. */
+export function useSharePostToDM() {
+  const fn = useServerFn(sharePostToDM);
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: (input: { recipient_id: string; post_id: string; caption?: string | null }) =>
+      fn({ data: input }),
+    onSuccess: (_saved, input) => {
+      qc.invalidateQueries({ queryKey: THREADS_KEY });
+      qc.invalidateQueries({ queryKey: THREAD_KEY(user?.id ?? "anonymous", input.recipient_id) });
+      // sharePostToDM also records a `shares` row server-side - refetch
+      // wherever this post is currently shown so its shares_count catches
+      // up, same as the native-share button's toggleShare already does.
+      qc.invalidateQueries({ queryKey: ["posts"] });
     },
   });
 }

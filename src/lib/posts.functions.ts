@@ -455,6 +455,27 @@ export const getPostById = createServerFn({ method: "GET" })
     return (await hydratePosts(supabase, [row]))[0];
   });
 
+// Batched lookup for rendering shared-post preview cards in a page of chat
+// messages - one round trip for every shared_post_id on the page instead of
+// one getPostById per message. A missing id (post deleted, or simply not
+// found) is just absent from the result map; callers render an "unavailable"
+// placeholder the same way a dangling quoted_post_id already does.
+export const getPostsByIds = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ post_ids: z.array(z.string().uuid()).max(100) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    if (!data.post_ids.length) return [];
+    const { data: rows, error } = await supabase
+      .from("posts")
+      .select(POST_COLS)
+      .in("id", Array.from(new Set(data.post_ids)));
+    if (error) throw new Error(error.message);
+    return hydratePosts(supabase, rows ?? [], { shallow: true });
+  });
+
 export const listMyPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

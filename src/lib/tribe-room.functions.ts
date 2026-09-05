@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { emptyTribeRoomReactions, interestedInviteIds } from "@/lib/tribe-room";
+import { SHARED_POST_DEFAULT_CAPTION } from "@/lib/chat";
 import { planTimeLabel } from "@/lib/venture-time";
 import type {
   TribeRoomAuthor,
@@ -387,6 +388,65 @@ export const shareTribePlanToChat = createServerFn({ method: "POST" })
       room_kind: null,
     });
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const sharePostToTribe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        tribe_key: z.string().trim().min(1).max(40),
+        post_id: z.string().uuid(),
+        caption: z.string().trim().max(600).nullish(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const tribe = await resolveMemberTribe(supabase, userId, data.tribe_key);
+    const { data: post, error: postError } = await supabase
+      .from("posts")
+      .select("id, audience, tribe_id")
+      .eq("id", data.post_id)
+      .maybeSingle();
+    if (postError) throw new Error(postError.message);
+    if (!post) throw new Error("This post is no longer available");
+
+    // Same guardrail as sharePostToDM / quoting a post into another post -
+    // a Tribe-only post can only be shared within that same Tribe's own
+    // chat, never forwarded into a different one.
+    if (post.audience === "tribe" && post.tribe_id !== tribe.key) {
+      throw new Error("This Tribe-only post can only be shared within its own Tribe");
+    }
+
+    // shared_post_id (20260905010000) isn't in the generated Database types
+    // yet - same "migration is live, types.ts hasn't caught up" situation as
+    // messagesTable() in messages.functions.ts.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("tribe_messages") as any).insert({
+      tribe_id: tribe.id,
+      sender_id: userId,
+      content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
+      shared_post_id: data.post_id,
+      room_kind: null,
+    });
+    if (error) throw new Error(error.message);
+
+    // Same shares_count bookkeeping as sharePostToDM (messages.functions.ts)
+    // - a `shares` row per person who has ever shared the post, upserted
+    // rather than toggled so a second share never undoes the count, and
+    // best-effort since this shouldn't roll back a message that already sent.
+    await supabase
+      .from("shares")
+      .upsert(
+        { post_id: data.post_id, user_id: userId },
+        { onConflict: "user_id,post_id", ignoreDuplicates: true },
+      )
+      .then(({ error: shareError }) => {
+        if (shareError) console.warn("[sharePostToTribe] shares upsert failed", shareError.message);
+      });
+
     return { ok: true };
   });
 

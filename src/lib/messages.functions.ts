@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   CHAT_REACTIONS,
   emptyChatReactions,
+  SHARED_POST_DEFAULT_CAPTION,
   type ChatReaction,
   type ChatReactionCounts,
 } from "@/lib/chat";
@@ -31,6 +32,7 @@ export type DMMessage = {
   reply_to_id: string | null;
   edited_at: string | null;
   deleted_at: string | null;
+  shared_post_id: string | null;
   reactions: ChatReactionCounts;
   my_reactions: ChatReaction[];
   reply_to?: Pick<
@@ -48,7 +50,7 @@ export type DMThreadSummary = {
 
 const AUTHOR_COLS = "id, display_name, handle, avatar_emoji, avatar_url, plan, city, tribe_ids";
 const MESSAGE_COLS =
-  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id, edited_at, deleted_at";
+  "id, sender_id, recipient_id, content, created_at, read_at, attachment_url, attachment_type, reply_to_id, edited_at, deleted_at, shared_post_id";
 
 // `messages.edited_at` / `deleted_at` (20260904010000) aren't in the
 // generated Database types yet - same "migration is live, types.ts hasn't
@@ -210,6 +212,78 @@ export const sendMessage = createServerFn({ method: "POST" })
       .select(MESSAGE_COLS)
       .single();
     if (error) throw new Error(error.message);
+    return {
+      ...(row as Omit<DMMessage, "reactions" | "my_reactions">),
+      reactions: emptyChatReactions(),
+      my_reactions: [],
+    };
+  });
+
+export const sharePostToDM = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        recipient_id: z.string().uuid(),
+        post_id: z.string().uuid(),
+        caption: z.string().trim().max(2000).nullish(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    if (data.recipient_id === userId) throw new Error("Can't message yourself");
+    const { data: post, error: postError } = await supabase
+      .from("posts")
+      .select("id, audience, tribe_id")
+      .eq("id", data.post_id)
+      .maybeSingle();
+    if (postError) throw new Error(postError.message);
+    if (!post) throw new Error("This post is no longer available");
+
+    // Same guardrail as quoting a post into another post (createPost in
+    // posts.functions.ts): a Tribe-only post can only reach someone who
+    // could already see it in their own feed.
+    if (post.audience === "tribe") {
+      const { data: recipient, error: recipientError } = await supabase
+        .from("profiles")
+        .select("tribe_ids")
+        .eq("id", data.recipient_id)
+        .maybeSingle();
+      if (recipientError) throw new Error(recipientError.message);
+      if (!recipient || !((recipient.tribe_ids as string[] | null) ?? []).includes(post.tribe_id)) {
+        throw new Error("This Tribe-only post can only be shared with a fellow Tribe member");
+      }
+    }
+
+    const { data: row, error } = await messagesTable(supabase)
+      .insert({
+        sender_id: userId,
+        recipient_id: data.recipient_id,
+        content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
+        shared_post_id: data.post_id,
+      })
+      .select(MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Counts this the same as the "Share" button's own native-share/copy-link
+    // path (toggleShare in social.functions.ts): a `shares` row per person
+    // who has ever shared the post, trigger-maintained into shares_count.
+    // Upsert with ignoreDuplicates rather than toggleShare's delete-if-exists
+    // dance - sharing to a second person shouldn't undo the first share, and
+    // this never needs to turn the count back off. Best-effort: a failure
+    // here shouldn't roll back a message that already sent.
+    await supabase
+      .from("shares")
+      .upsert(
+        { post_id: data.post_id, user_id: userId },
+        { onConflict: "user_id,post_id", ignoreDuplicates: true },
+      )
+      .then(({ error: shareError }) => {
+        if (shareError) console.warn("[sharePostToDM] shares upsert failed", shareError.message);
+      });
+
     return {
       ...(row as Omit<DMMessage, "reactions" | "my_reactions">),
       reactions: emptyChatReactions(),

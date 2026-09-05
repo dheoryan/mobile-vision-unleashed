@@ -39,6 +39,7 @@ import { PostMediaLightbox } from "./PostMediaLightbox";
 import { ImageStrip, type ComposedImage } from "./ImageStrip";
 import { LazyImage } from "./LazyImage";
 import { RepostAudienceChoices, type RepostAudience } from "./RepostAudienceChoices";
+import { SharePostSheet } from "./SharePostSheet";
 import { useMyProfile } from "@/lib/profile-store";
 
 const MAX_IMG_BYTES = 15 * 1024 * 1024;
@@ -203,6 +204,7 @@ export function PostCard({
 
   const [repostMenuOpen, setRepostMenuOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
   const [editImages, setEditImages] = useState<ComposedImage[]>(() =>
@@ -594,7 +596,10 @@ export function PostCard({
           </button>
         </div>
         <button
-          onClick={share}
+          onClick={() => {
+            if (post.id.startsWith("tmp-")) return;
+            setShareSheetOpen(true);
+          }}
           className={cn(
             "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             shared ? "text-primary" : "hover:text-primary",
@@ -606,6 +611,13 @@ export function PostCard({
           {post.shares_count}
         </button>
       </footer>
+
+      <SharePostSheet
+        open={shareSheetOpen}
+        onOpenChange={setShareSheetOpen}
+        postId={post.id}
+        onExternalShare={share}
+      />
 
       <AnimatedModal
         open={repostMenuOpen}

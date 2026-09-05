@@ -9,6 +9,7 @@ import {
   listTribeRoom,
   markTribeRoomRead,
   notifyTribePulse,
+  sharePostToTribe,
   shareTribePlanToChat,
   toggleTribeRoomReaction,
 } from "@/lib/tribe-room.functions";
@@ -60,6 +61,26 @@ export function useCreateTribePlan(tribeKey: string) {
       max_slots: number;
     }) => fn({ data: { tribe_key: tribeKey, ...input } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: roomKey(tribeKey) }),
+  });
+}
+
+/** Not scoped to one Tribe at construction time like the other hooks here -
+ *  the share picker calls this once and passes tribe_key per tap, since it
+ *  lists every Tribe the sharer has joined, not just the one they're
+ *  currently viewing. No chat cache to patch: TribeScreen keeps its own
+ *  messages in local state fed by a realtime subscription (see
+ *  TribeScreen.tsx), the same path a plain message send already takes -
+ *  the one cache this does invalidate is the shared post's own
+ *  shares_count, since sharePostToTribe records a `shares` row too. */
+export function useSharePostToTribe() {
+  const fn = useServerFn(sharePostToTribe);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tribe_key: string; post_id: string; caption?: string | null }) =>
+      fn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["posts"] });
+    },
   });
 }
 
