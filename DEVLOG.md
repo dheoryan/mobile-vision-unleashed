@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex (Astra) | Share counter consistency and app text readability audit | social/share flow, styles.css, text-bearing components/routes, audit report and tests | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
