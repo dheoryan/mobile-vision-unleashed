@@ -227,6 +227,7 @@ export function ProfileScreen({
                   }))}
                   accentColor={tribe.colorVar}
                   variant="outline"
+                  maxVisible={2}
                 />
               )}
               {primaryInterestItems.length > 0 && (
@@ -235,10 +236,16 @@ export function ProfileScreen({
                   items={primaryInterestItems}
                   accentColor={tribe.colorVar}
                   variant="tinted"
+                  maxVisible={2}
                 />
               )}
               {secondaryInterestItems.length > 0 && (
-                <TagGroup label="Also into" items={secondaryInterestItems} variant="neutral" />
+                <TagGroup
+                  label="Also into"
+                  items={secondaryInterestItems}
+                  variant="neutral"
+                  maxVisible={2}
+                />
               )}
             </div>
           </section>
@@ -559,11 +566,35 @@ function TagGroup({
 }) {
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
+  const collapsible = items.length > maxVisible;
   const visible = expanded ? items : items.slice(0, maxVisible);
   const hiddenCount = items.length - visible.length;
   return (
     <div>
-      <p className="label-mono text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="label-mono text-muted-foreground">{label}</p>
+        {collapsible ? (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+            className="inline-flex min-h-11 items-center gap-1 px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {expanded ? "Show less" : `+${hiddenCount} more`}
+            <CaretDownIcon
+              aria-hidden
+              className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")}
+            />
+          </button>
+        ) : (
+          <span
+            className="label-mono text-muted-foreground"
+            aria-label={`${items.length} selected`}
+          >
+            {items.length} picks
+          </span>
+        )}
+      </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {visible.map((item) => (
           <ProfileTag
@@ -574,15 +605,6 @@ function TagGroup({
             variant={variant}
           />
         ))}
-        {hiddenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
-          >
-            +{hiddenCount} more
-          </button>
-        )}
       </div>
     </div>
   );

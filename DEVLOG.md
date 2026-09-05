@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Compact profile signal disclosure | `ProfileScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Compact profile signal previews
+
+- Reduced the default Social signal footprint so activity and posts appear
+  sooner: Here for, Tribe energy, and Also into each show two selected icon
+  pills and place a `+N more` disclosure in the category heading.
+- Each category expands and collapses independently, preserves all selected
+  values, exposes its state to assistive technology, and keeps a 44 px action
+  target without adding an orphan control row.
+- Verified the collapsed and expanded states in the live signed-in mobile
+  browser. `npx tsc --noEmit`, `npm run check:readability`,
+  `git diff --check`, and `npm run build` pass.
 
 ### 2026-09-06 — Codex (Astra) — Photo-backed profile identity and option icons
 
