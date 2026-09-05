@@ -81,15 +81,39 @@ export function useModalBackGesture(
   useEffect(() => {
     if (open || typeof window === "undefined") return;
     if (!idRef.current) return;
+    const id = idRef.current;
     const wasGesture = poppedByGestureRef.current;
     idRef.current = null;
     poppedByGestureRef.current = false;
-    // A gesture (or the browser's own back button) already removed the
-    // entry this modal pushed - nothing left to consume. A "normal" close
-    // (X button, backdrop click, confirm action, or the caller resetting
-    // `open` some other way) still has that entry sitting on top and needs
-    // an explicit back() so it doesn't linger as a phantom stop a later,
-    // real back-press would otherwise have to burn through first.
-    if (!wasGesture) window.history.back();
+    if (wasGesture) return; // a gesture already updated history - nothing to clean up.
+
+    // A "normal" close (X button, backdrop click, confirm/submit action)
+    // still has the entry this modal pushed sitting on top. This used to
+    // call history.back() to consume it - which is a real navigation, and
+    // real navigations go wherever the browser's actual history says to,
+    // not necessarily back to "the same screen, just without my modal
+    // marker." Any app action that doesn't push its own history entry for
+    // every state change (e.g. switching bottom-nav tabs here is a plain
+    // setState, not a push) leaves stale-but-still-current history data
+    // sitting underneath - back() had no way to know that, and could
+    // silently snap the app to whatever screen that stale entry actually
+    // described. That's exactly what made confirming a post delete or a
+    // quote-post submit look like it "errored": the action itself
+    // succeeded, but the confirm click also triggered a real back
+    // navigation to an unrelated older screen.
+    //
+    // Editing the *current* entry's own state to drop just this modal's id
+    // achieves the same "don't leave a phantom stop behind" goal without
+    // navigating anywhere - no popstate fires, nothing else on screen
+    // reacts, and a later real back-press just finds one entry that now
+    // looks identical to the current screen instead of a phantom stop.
+    const state = (window.history.state ?? {}) as Record<string, unknown>;
+    const stack = (state[MODAL_STACK_KEY] as string[] | undefined) ?? [];
+    if (!stack.includes(id)) return;
+    window.history.replaceState(
+      { ...state, [MODAL_STACK_KEY]: stack.filter((stackId) => stackId !== id) },
+      "",
+      window.location.href,
+    );
   }, [open]);
 }

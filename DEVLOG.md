@@ -205,6 +205,40 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Claude — Fixed a regression the swipe-back fix itself introduced: confirming delete/quote could snap you to a stale screen
+
+User reported "delete post is error" and "quoted signal also error" right
+after the audit-fix deploy. Root cause was in the swipe-back fix from
+earlier this session, not in either feature itself: `useModalBackGesture`
+(`src/hooks/use-modal-back-gesture.ts`) called `window.history.back()`
+whenever *any* AnimatedModal-based sheet closed normally (X, backdrop
+click, or - critically - a confirm/submit action), to consume the history
+entry it had pushed on open. `back()` is a real navigation that goes
+wherever the browser's actual history says to, not necessarily "the same
+screen, minus my modal." Not every app action pushes its own history
+entry for every state change (switching bottom-nav tabs is a plain
+`setState`, no push) - closing a delete-confirm or the quote composer
+after the underlying action already succeeded could still trigger a
+`back()` that snapped the app to a stale, unrelated earlier screen,
+exactly what read as "erroring" even though the delete/quote itself went
+through fine.
+
+Fixed by no longer calling `history.back()` for a normal close at all.
+Instead, the current history entry's own `__modalStack` is edited in
+place via `replaceState` to drop just this modal's id - same "don't leave
+a phantom stop behind" goal, but it never navigates anywhere, so nothing
+else on screen can react to it. The only real cost: a session with many
+sheets opened and normally-closed (never via gesture) leaves a few extra
+now-inert history entries behind, so an eventual real back-press might
+need one extra press that visually does nothing - a far smaller problem
+than randomly jumping screens. The gesture-driven close path (an actual
+swipe-back/system-back) is untouched and still works via the browser's
+own real navigation, which is correct there.
+
+Verification: `npx tsc --noEmit`, `npx eslint`, 137/137 Node tests (the
+existing `wasPoppedPast` unit tests didn't need changes - that decision
+logic was never the bug), `npm run build` all pass.
+
 ### 2026-09-05 — Claude — Full app audit, then fixed every finding
 
 Ran a systematic audit across the whole app (6 parallel passes: chat,
