@@ -65,7 +65,7 @@ export function ProfileSignalFilter({
 }) {
   return (
     <div
-      className="-mt-2 mb-5 grid grid-cols-2 rounded-2xl bg-secondary/70 p-1"
+      className="mb-4 inline-grid w-[184px] grid-cols-2 rounded-full border border-border bg-card/70 p-0.5"
       role="group"
       aria-label="Signal type"
     >
@@ -78,13 +78,13 @@ export function ProfileSignalFilter({
             aria-pressed={active}
             onClick={() => onChange(id)}
             className={cn(
-              "flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-[background-color,color,box-shadow,transform] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "flex min-h-9 items-center justify-center gap-1 rounded-full px-2.5 text-xs font-semibold transition-[background-color,color,box-shadow,transform] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               active
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-foreground text-background shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className="h-3 w-3" />
             {label}
           </button>
         );

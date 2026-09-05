@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Profile signal controls, hero fade, and Vibes presentation | `ProfileActivityTabs.tsx`, `ProfileVibesPanel.tsx`, `ProfileScreen.tsx`, `ProfilePostHistory.tsx`, `u.$handle.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Unified profile hero and richer Vibes
+
+- Removed profile-feed search and sorting from both member-facing profile
+  routes and replaced that row with a compact Original/Reposts segmented
+  control. The reusable post-history controls remain available in Settings.
+- Strengthened the lower photo overlay so it reaches the exact page background
+  well before the image boundary, removing visible rectangular corners.
+- Rebuilt Vibes as a Vibe Map with a Tribe-led summary, three distinct layers,
+  meaningful Phosphor icons, counts, four-item previews, and accessible
+  independent expansion.
+- Applied the signed-in profile's full-photo hero to handle-based public
+  profiles while preserving the public sticky header, safety menu, contact
+  actions, and profile visibility rules.
+- Verified signed-in Signals, Vibes expansion, and the public profile in the
+  live mobile browser. Focused ESLint, `npx tsc --noEmit`,
+  `npm run check:readability`, `git diff --check`, and `npm run build` pass.
 
 ### 2026-09-06 — Codex (Astra) — Profile Signals, Ventures, and Vibes navigation
 

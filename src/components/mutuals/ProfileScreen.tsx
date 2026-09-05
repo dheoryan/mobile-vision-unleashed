@@ -154,7 +154,7 @@ export function ProfileScreen({
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,.08) 34%, rgba(8,8,8,.56) 58%, var(--color-background) 100%)",
+                "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,.08) 30%, rgba(8,8,8,.48) 52%, var(--color-background) 84%, var(--color-background) 100%)",
             }}
           />
 
@@ -358,7 +358,7 @@ export function ProfileScreen({
                   You haven't posted yet. Share a signal from the Timeline tab.
                 </p>
               ) : (
-                <ProfilePostHistory posts={myPosts} searchPlaceholder="Search your signals" />
+                <ProfilePostHistory posts={myPosts} showControls={false} />
               )
             ) : repostedQuery.isLoading ? (
               <FeedSkeleton />
@@ -367,7 +367,7 @@ export function ProfileScreen({
                 Nothing reposted yet. Tap the repost icon on any post to add it here.
               </p>
             ) : (
-              <ProfilePostHistory posts={repostedPosts} searchPlaceholder="Search your reposts" />
+              <ProfilePostHistory posts={repostedPosts} showControls={false} />
             )}
           </>
         )}

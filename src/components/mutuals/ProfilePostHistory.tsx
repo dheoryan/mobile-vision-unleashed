@@ -14,10 +14,12 @@ export function ProfilePostHistory({
   posts,
   searchPlaceholder = "Search your posts",
   noMatchesCopy = "No posts match those filters.",
+  showControls = true,
 }: {
   posts: FeedPost[];
   searchPlaceholder?: string;
   noMatchesCopy?: string;
+  showControls?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
@@ -62,56 +64,58 @@ export function ProfilePostHistory({
 
   return (
     <div>
-      <div className="mb-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="w-full rounded-full border border-border bg-card py-2 pl-9 pr-8 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <XIcon className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={cycleSort}
-            className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <ArrowsDownUpIcon className="h-3 w-3" /> {sortLabel}
-          </button>
-        </div>
-
-        {tribes.length > 1 && (
-          <div className="flex flex-wrap gap-1.5">
-            <Chip active={tribeFilter === null} onClick={() => setTribeFilter(null)}>
-              All
-            </Chip>
-            {tribes.map((tid) => {
-              const t = tribeById(tid as TribeId);
-              return (
-                <Chip
-                  key={tid}
-                  active={tribeFilter === tid}
-                  onClick={() => setTribeFilter(tid)}
-                  color={t.colorVar}
+      {showControls && (
+        <div className="mb-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="w-full rounded-full border border-border bg-card py-2 pl-9 pr-8 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <TribeMark tribe={t} size="xs" />
-                  {t.name}
-                </Chip>
-              );
-            })}
+                  <XIcon className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={cycleSort}
+              className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ArrowsDownUpIcon className="h-3 w-3" /> {sortLabel}
+            </button>
           </div>
-        )}
-      </div>
+
+          {tribes.length > 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              <Chip active={tribeFilter === null} onClick={() => setTribeFilter(null)}>
+                All
+              </Chip>
+              {tribes.map((tid) => {
+                const t = tribeById(tid as TribeId);
+                return (
+                  <Chip
+                    key={tid}
+                    active={tribeFilter === tid}
+                    onClick={() => setTribeFilter(tid)}
+                    color={t.colorVar}
+                  >
+                    <TribeMark tribe={t} size="xs" />
+                    {t.name}
+                  </Chip>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">

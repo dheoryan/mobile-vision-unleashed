@@ -6,6 +6,7 @@ import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
 import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
+import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { getProfileByHandle } from "@/lib/profile.functions";
 import { usePostsByAuthor, useRepostedPostsByAuthor } from "@/lib/posts-store";
 import { useProfileVentureHistory } from "@/lib/ventures-store";
@@ -15,13 +16,12 @@ import { HelloModal } from "@/components/mutuals/HelloModal";
 import { AvatarLightbox } from "@/components/mutuals/AvatarLightbox";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
-import { PlusBadge } from "@/components/mutuals/PlusBadge";
+import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
 import { intentStore } from "@/lib/intent-store";
-import { GENDER_OPTIONS, optionLabel } from "@/lib/profile-options";
-import { TribeMark } from "@/components/mutuals/TribeMark";
+import { GENDER_OPTIONS, optionLabel, type GenderId } from "@/lib/profile-options";
+import { TribeBadge } from "@/components/mutuals/Shared";
 import {
   AppBootstrapSkeleton,
   CompactListSkeleton,
@@ -36,6 +36,7 @@ import {
 import { ProfilePostHistory } from "@/components/mutuals/ProfilePostHistory";
 import { ProfileVentureHistory } from "@/components/mutuals/ProfileVentureHistory";
 import { ProfileVibesPanel } from "@/components/mutuals/ProfileVibesPanel";
+import { GENDER_ICONS } from "@/lib/profile-option-icons";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
@@ -130,9 +131,9 @@ function PublicProfilePage() {
 
   const primaryId = (profile.tribe_ids?.[0] ?? "wolf") as TribeId;
   const tribe = tribeById(primaryId);
-  const otherTribes = (profile.tribe_ids ?? []).slice(1).map((id) => tribeById(id as TribeId));
   const avatar = profile.avatar_url || profile.avatar_emoji || "🌿";
   const isImg = avatar.startsWith("data:") || avatar.startsWith("http");
+  const ProfileGenderIcon = profile.gender ? GENDER_ICONS[profile.gender as GenderId] : null;
 
   return (
     <div className="bg-habitat min-h-screen pb-24">
@@ -162,131 +163,131 @@ function PublicProfilePage() {
       </header>
 
       <main className="mx-auto max-w-md px-5">
-        <section className="relative mt-6">
-          <div className="flex items-start gap-5">
-            <span className="relative shrink-0">
-              {isImg ? (
-                <button
-                  type="button"
-                  onClick={() => setAvatarLightboxOpen(true)}
-                  aria-label="View profile photo"
-                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card shadow-lg ring-2 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
-                >
-                  <img src={avatar} alt="" className="h-full w-full object-cover" />
-                </button>
-              ) : (
-                <span
-                  className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-card text-5xl shadow-lg ring-2"
-                  style={{ ["--tw-ring-color" as string]: tribe.colorVar }}
-                >
-                  {avatar}
-                </span>
-              )}
-              {showPlusBadge(profile.plan) && <PlusBadge size="md" />}
-            </span>
-            <div className="min-w-0 flex-1 pt-2">
-              <h2 className="font-display text-[26px] font-bold leading-tight">
-                {profile.display_name || "Someone"}
-              </h2>
-              {/* Handle stays directly under the name, no interruption - the
-                  pairing every social app trains people to expect. Tribe
-                  gets its own line right after instead of wedging between
-                  them. */}
-              {profile.handle && (
-                <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
-                  @{profile.handle.replace(/^@/, "")}
-                </p>
-              )}
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span
-                  className="label-mono inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
-                  style={{
-                    backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
-                    color: readableAccentColor(tribe.colorVar),
-                  }}
-                >
-                  <TribeMark tribe={tribe} size="xs" decorative={false} />
-                  {tribe.name}
-                </span>
-                {otherTribes.map((t) => (
-                  <TribeMark key={t.id} tribe={t} size="xs" decorative={false} />
-                ))}
-              </div>
+        <section className="relative -mx-5 min-h-[510px] overflow-hidden bg-background">
+          {isImg ? (
+            <button
+              type="button"
+              onClick={() => setAvatarLightboxOpen(true)}
+              aria-label="View profile photo"
+              className="absolute inset-0 h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+            >
+              <img src={avatar} alt="" className="h-full w-full object-cover object-center" />
+            </button>
+          ) : (
+            <div
+              className="absolute inset-0 flex items-center justify-center text-[11rem]"
+              style={{
+                background: `radial-gradient(circle at 50% 34%, color-mix(in oklab, ${tribe.colorVar} 35%, #111) 0%, #090909 68%)`,
+              }}
+              aria-hidden
+            >
+              {avatar}
             </div>
-          </div>
-          {profile.bio && (
-            <p className="mt-5 text-sm font-semibold text-foreground">{profile.bio}</p>
           )}
 
-          {/* Quick facts, Twitter/LinkedIn-style: small muted icon+text right
-              under the bio, not bold colorful badges. Tribe lives up by the
-              name instead (see above). Same treatment as your own Profile. */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <MapPinIcon className="h-3.5 w-3.5" />
-              {profile.city || "Somewhere"}
-            </span>
-            {profile.gender && <span>{optionLabel(GENDER_OPTIONS, profile.gender)}</span>}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,.08) 30%, rgba(8,8,8,.48) 52%, var(--color-background) 84%, var(--color-background) 100%)",
+            }}
+          />
+
+          <div className="absolute inset-x-0 top-0 z-10 flex items-center px-5 pt-4">
+            <TribeBadge
+              tribe={tribe}
+              className="border border-white/20 shadow-lg backdrop-blur-xl"
+            />
           </div>
 
-          {/* Bio and facts flow straight into stats, same as the reference -
-              nothing else competes for attention between them. Tags (their
-              own labeled sections) come after the contact action. */}
-          <div className="mt-6 flex items-stretch">
-            <Stat label="Moots" value={String(statsQ.data?.moots ?? 0)} />
-            <Stat label="Hosted" value={String(statsQ.data?.hosted ?? 0)} />
-            <Stat label="Joined" value={String(statsQ.data?.joined ?? 0)} />
+          <div className="relative z-[1] flex min-h-[510px] flex-col justify-end px-5 pb-5 pt-28 text-white">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1 className="min-w-0 truncate font-display text-[30px] font-bold leading-tight tracking-[-0.025em]">
+                {profile.display_name || "Someone"}
+              </h1>
+              {showPlusBadge(profile.plan) && (
+                <span className="label-mono inline-flex shrink-0 items-center gap-0.5 rounded-full border border-white/20 bg-black/30 px-2 py-1 text-white backdrop-blur-md">
+                  <LightningIcon className="h-3 w-3" weight="fill" /> PLUS
+                </span>
+              )}
+            </div>
+            {profile.handle && (
+              <p className="mt-0.5 truncate text-sm font-medium text-white/72">
+                @{profile.handle.replace(/^@/, "")}
+              </p>
+            )}
+            {profile.bio && (
+              <p className="mt-3 max-w-[36ch] text-sm font-medium leading-relaxed text-white/92">
+                {profile.bio}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-white/72">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPinIcon className="h-3.5 w-3.5" />
+                {profile.city || "Somewhere"}
+              </span>
+              {profile.gender && ProfileGenderIcon && (
+                <span className="inline-flex items-center gap-1.5">
+                  <ProfileGenderIcon className="h-3.5 w-3.5" />
+                  {optionLabel(GENDER_OPTIONS, profile.gender)}
+                </span>
+              )}
+            </div>
+            <div className="mt-5 grid grid-cols-3 divide-x divide-white/18 border-t border-white/18 pt-4">
+              <Stat label="Moots" value={String(statsQ.data?.moots ?? 0)} />
+              <Stat label="Hosted" value={String(statsQ.data?.hosted ?? 0)} />
+              <Stat label="Joined" value={String(statsQ.data?.joined ?? 0)} />
+            </div>
           </div>
+        </section>
 
-          {!isMe && (
-            <div className="mt-4 flex gap-2">
-              {/* Private contact outside your Tribe is earned, not assumed.
+        {!isMe && (
+          <div className="mt-4 flex gap-2">
+            {/* Private contact outside your Tribe is earned, not assumed.
                   If a DM isn't open yet, the action is a rationed Hello rather
                   than a dead button — showing someone and then hiding them
                   reads as broken. */}
-              {contact.data?.can_message !== false ? (
-                <button
-                  onClick={() => {
-                    intentStore.push({ kind: "openThreadWith", userId: profile.id });
-                    navigate({ to: "/" });
-                  }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold hover:bg-background/60"
-                >
-                  <ChatCircleIcon className="h-3.5 w-3.5" /> Message
-                </button>
-              ) : contact.data?.hello_status === "pending" ? (
-                <button
-                  disabled
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold text-muted-foreground disabled:opacity-70"
-                >
-                  <ClockIcon className="h-3.5 w-3.5" />
-                  {contact.data.awaiting_my_answer ? "Hello received" : "Hello sent"}
-                </button>
-              ) : contact.data?.hello_status === "declined" ? (
-                <button
-                  disabled
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold text-muted-foreground disabled:opacity-60"
-                >
-                  <ChatCircleIcon className="h-3.5 w-3.5" /> Not accepting
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      navigate({ to: "/login" });
-                      return;
-                    }
-                    setHelloOpen(true);
-                  }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary bg-primary/10 py-2.5 text-xs font-semibold text-primary hover:bg-primary/15"
-                >
-                  <HandIcon className="h-3.5 w-3.5" /> Say hello
-                </button>
-              )}
-            </div>
-          )}
-        </section>
+            {contact.data?.can_message !== false ? (
+              <button
+                onClick={() => {
+                  intentStore.push({ kind: "openThreadWith", userId: profile.id });
+                  navigate({ to: "/" });
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold hover:bg-background/60"
+              >
+                <ChatCircleIcon className="h-3.5 w-3.5" /> Message
+              </button>
+            ) : contact.data?.hello_status === "pending" ? (
+              <button
+                disabled
+                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold text-muted-foreground disabled:opacity-70"
+              >
+                <ClockIcon className="h-3.5 w-3.5" />
+                {contact.data.awaiting_my_answer ? "Hello received" : "Hello sent"}
+              </button>
+            ) : contact.data?.hello_status === "declined" ? (
+              <button
+                disabled
+                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-3 text-xs font-bold text-muted-foreground disabled:opacity-60"
+              >
+                <ChatCircleIcon className="h-3.5 w-3.5" /> Not accepting
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (!user) {
+                    navigate({ to: "/login" });
+                    return;
+                  }
+                  setHelloOpen(true);
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary bg-primary/10 py-2.5 text-xs font-semibold text-primary hover:bg-primary/15"
+              >
+                <HandIcon className="h-3.5 w-3.5" /> Say hello
+              </button>
+            )}
+          </div>
+        )}
 
         <ProfileActivityTabs value={activityTab} onChange={setActivityTab} />
 
@@ -304,11 +305,7 @@ function PublicProfilePage() {
               ) : (postsQ.data?.length ?? 0) === 0 ? (
                 <ProfileActivityEmpty copy="No signals yet." />
               ) : (
-                <ProfilePostHistory
-                  posts={postsQ.data!}
-                  searchPlaceholder="Search signals"
-                  noMatchesCopy="No signals match those filters."
-                />
+                <ProfilePostHistory posts={postsQ.data!} showControls={false} />
               )
             ) : repostsQ.isLoading ? (
               <FeedSkeleton count={2} />
@@ -320,11 +317,7 @@ function PublicProfilePage() {
             ) : (repostsQ.data?.length ?? 0) === 0 ? (
               <ProfileActivityEmpty copy="Nothing reposted yet." />
             ) : (
-              <ProfilePostHistory
-                posts={repostsQ.data!}
-                searchPlaceholder="Search reposts"
-                noMatchesCopy="No reposts match those filters."
-              />
+              <ProfilePostHistory posts={repostsQ.data!} showControls={false} />
             )}
           </>
         )}
@@ -384,10 +377,10 @@ function PublicProfilePage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex-1 text-center">
-      <p className="font-display text-2xl font-bold leading-none tracking-tight tabular-nums">
+      <p className="font-display text-2xl font-bold leading-none tracking-tight text-white tabular-nums">
         {value}
       </p>
-      <p className="label-mono mt-2 text-muted-foreground">{label}</p>
+      <p className="label-mono mt-2 text-white/72">{label}</p>
     </div>
   );
 }
