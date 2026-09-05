@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
@@ -26,7 +26,6 @@ export const Route = createFileRoute("/p/$postId")({
 function SharedPostPage() {
   const { postId } = Route.useParams();
   const { from, comment } = Route.useSearch();
-  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const getPost = useServerFn(getPostById);
   const postQuery = useQuery({
@@ -43,6 +42,24 @@ function SharedPostPage() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [from, postQuery.data]);
+
+  // A tap on the back button already knew to fall back to an explicit
+  // navigate() when there's nothing real to go back to (a shared link
+  // opened fresh, or arriving from notifications) - but that logic only
+  // ran on click, so a native swipe-back / Android back gesture bypassed it
+  // entirely and fell through to the browser's raw default, which could
+  // exit the installed app when there was no prior in-app history at all.
+  // Injecting a synthetic "parent" entry up front, once, means a plain
+  // history.back() lands in the same place either way - the gesture and
+  // the button now share one mechanism instead of two that could drift.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (from === "feed" && window.history.length > 1) return;
+    const postUrl = window.location.href;
+    const parentUrl = from === "notifications" ? "/notifications" : "/";
+    window.history.replaceState(window.history.state, "", parentUrl);
+    window.history.pushState(window.history.state, "", postUrl);
+  }, [postId, from]);
 
   if (authLoading) {
     return <AppBootstrapSkeleton />;
@@ -71,13 +88,10 @@ function SharedPostPage() {
     );
   }
 
-  const goBack = () => {
-    if (from === "feed" && window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    void navigate({ to: from === "notifications" ? "/notifications" : "/" });
-  };
+  // The mount effect above guarantees there's always a sane entry to land
+  // on, so a plain back() now does exactly what the old from/length branch
+  // used to build by hand - and does it the same way a swipe-back would.
+  const goBack = () => window.history.back();
 
   return (
     <div className="bg-habitat min-h-screen pb-12">

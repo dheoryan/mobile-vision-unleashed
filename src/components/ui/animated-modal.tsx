@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { useModalBackGesture } from "@/hooks/use-modal-back-gesture";
 
 /**
  * Shared bottom-sheet-on-mobile / centered-dialog-on-desktop primitive used by
@@ -12,6 +13,10 @@ import { cn } from "@/lib/utils";
  * (via tw-animate-css, already imported in styles.css). Radix waits for the
  * animation to finish before unmounting, so the exit fade works without any
  * JS animation library.
+ *
+ * `useModalBackGesture` gives every instance a real spot in browser history
+ * so swiping back (or Android's system back) closes this sheet instead of
+ * navigating whatever screen sits behind it - see that hook for why.
  */
 export function AnimatedModal({
   open,
@@ -57,6 +62,8 @@ export function AnimatedModal({
   const block = (e: Event) => {
     if (preventClose) e.preventDefault();
   };
+
+  useModalBackGesture(open, onOpenChange, preventClose);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>

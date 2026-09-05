@@ -205,6 +205,63 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Claude — Swipe-back audit: every AnimatedModal sheet, and shared-post links, now unwind correctly
+
+User asked to audit whether the native back gesture (iOS edge-swipe,
+Android system back) behaves like the on-screen back controls, or just
+"continuously goes back" regardless of what's actually on screen. It was
+the second one, in two distinct places:
+
+1. **Every one of the ~25 `AnimatedModal`-based sheets** (SafetyMenu,
+   PostOwnMenu, ChatMessageOwnMenu, SharePostSheet, CommentsModal,
+   ComposerModal, confirm dialogs, etc.) had zero history awareness -
+   Radix's Dialog doesn't touch browser history on its own. Swiping back
+   while one was open didn't close it; it navigated whatever screen sat
+   *behind* it while the sheet likely stayed visually open on top. Only
+   the app shell's own full-screen layers (Tribe chat, the Messages panel,
+   Hello Requests - see `app-navigation.ts`) already got this right, since
+   those explicitly push a history entry and listen for `popstate`.
+
+   Fixed with a new `useModalBackGesture` hook
+   (`src/hooks/use-modal-back-gesture.ts`), wired into `AnimatedModal`
+   itself so all ~25 call sites are fixed at once rather than patched
+   individually. Each open sheet pushes its id onto a `__modalStack` array
+   carried on the history state; a back-step closes only whichever id was
+   actually removed, so nested modals (a confirm dialog opened from inside
+   another sheet) unwind one at a time instead of a single swipe closing
+   everything at once or the wrong one. Closing normally (X button,
+   backdrop click, confirm action) consumes the entry it pushed via
+   `history.back()` so it doesn't linger as a phantom stop for a later,
+   real back-press to burn through. The stack-membership decision
+   (`wasPoppedPast`) is a pure function, unit-tested in
+   `tests/modal-back-gesture.test.ts` independent of any real
+   `window`/`history`.
+
+2. **`/p/$postId`'s smart back logic only ran on the button tap.** The
+   on-screen back button already knew to fall back to an explicit
+   navigate-home when there was nothing real to go back to (a shared link
+   opened fresh, or arriving from `/notifications`) - but a native
+   swipe-back never called that function; it just took the browser's raw
+   default, which could exit the installed PWA entirely on a freshly-opened
+   share link (exactly the flow the new Share system just shipped). Fixed
+   by injecting a synthetic "parent" history entry once on mount whenever
+   there's no usable real one, so a plain `history.back()` now lands in the
+   same place for both the tap and the gesture - one mechanism instead of
+   two that could drift apart. `goBack` itself is now just
+   `window.history.back()`. All existing assertions in
+   `tests/focused-post-navigation.test.ts` (which check for the literal
+   `from`/`history.length` branching) still pass because that exact
+   condition now gates the mount effect instead of the click handler.
+
+Verification: `npx tsc --noEmit`, `npx eslint` on every touched/new file,
+136/136 Node tests (3 new), `npm run build` all pass. No migration, no
+schema change - purely client-side. Live browser verification wasn't
+possible for the same reason as the rest of this session (local dev talks
+to production, no test credentials available here) - worth the user
+swipe-testing a few of the more commonly-used sheets (SafetyMenu,
+ChatMessageOwnMenu, the Share sheet) plus a freshly-opened shared post link
+before calling this fully confirmed.
+
 ### 2026-09-05 — Claude — Share system, phase 1: share a post into a DM or Tribe chat as a rich preview card
 
 **⚠️ One migration must be applied before this works in production** -

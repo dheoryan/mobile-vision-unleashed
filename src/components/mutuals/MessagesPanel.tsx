@@ -908,11 +908,16 @@ function VenturePartyThread({
               const pending = m.id.startsWith("tmp-");
               const senderName = mine ? "You" : displayVentureName(m.sender);
               const reactionState = chatReactions.stateFor(m);
+              // A Venture's party chat can mix people from different
+              // Tribes, unlike Tribe chat (one shared accent for everyone)
+              // or a DM (one accent for the other person) - so the accent
+              // here is per-message, keyed to whoever actually sent it.
+              const senderTribe = tribeOf(m.sender?.tribe_ids);
               return (
                 <MessageSwipeRow
                   key={m.id}
                   mine={mine}
-                  accentColor="var(--color-primary)"
+                  accentColor={senderTribe.colorVar}
                   disabled={pending || isComplete || selectMode}
                   onReply={() => startReply(m)}
                   onLongPress={
@@ -996,9 +1001,14 @@ function VenturePartyThread({
                               chatBubbleShape(groupPosition, mine),
                               !pending && "cursor-pointer",
                               mine
-                                ? "ml-auto border-primary/35 bg-primary/75 text-primary-foreground"
-                                : "border-border/80 bg-card/95 text-foreground",
+                                ? "ml-auto border-transparent text-primary-foreground"
+                                : "border-border/60 text-foreground",
                             )}
+                            style={{
+                              backgroundColor: mine
+                                ? `color-mix(in oklab, ${senderTribe.colorVar} 76%, var(--color-card))`
+                                : `color-mix(in oklab, ${senderTribe.colorVar} 18%, var(--color-card))`,
+                            }}
                             onClick={(event) => {
                               if (pending || (event.target as HTMLElement).closest("a, button"))
                                 return;
@@ -1027,7 +1037,7 @@ function VenturePartyThread({
                                 name={quote.name}
                                 snippet={quote.snippet}
                                 mine={mine}
-                                accentColor="var(--color-primary)"
+                                accentColor={senderTribe.colorVar}
                               />
                             )}
                             {m.attachment_url && m.attachment_type === "image" && (
