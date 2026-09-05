@@ -205,6 +205,105 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+*The three entries directly below are backfilled retroactively (user asked
+"is all of our updates in the devlog?" and the honest answer was "almost"
+- each of these shipped bundled into a commit whose own write-up only
+covered its headline change). Placed at today's top per this log's own
+"newest first" rule, since that reflects when they were written, not
+re-dating the underlying work.*
+
+### 2026-09-05 — Claude — Backfill: Venture chat message bubbles color by sender's Tribe
+
+Shipped in the same commit as the swipe-back audit fix below
+(`40bf13a`), whose own write-up covered only the navigation fix - this
+half of that commit never got its own entry.
+
+Venture party chat previously painted every "mine" bubble the same flat
+brand color and every other sender's bubble the same flat gray,
+regardless of who actually sent it - fine for Tribe chat (one shared
+accent already makes sense there, since everyone in the room shares that
+Tribe) and fine for a DM (one accent for the one other person), but wrong
+for a Venture, which can mix people from several different Tribes in the
+same room.
+
+Fixed in `MessagesPanel.tsx`'s `VenturePartyThread`: each message now
+computes `tribeOf(m.sender?.tribe_ids)` and uses that sender's own Tribe
+color for that one bubble's background (`color-mix` at 76% for "mine", an
+18% tint for others - kept the "mine is more saturated" convention
+Tribe/DM chat already use), plus the swipe-reply icon and the reply-quote
+block's accent. Keyed on the message's own sender, not the viewer, so
+everyone looking at the same thread sees the same color per person. The
+Venture composer's own send-button gradient was deliberately left alone -
+that's an already-decided, separate rule ("only the Venture chat composer
+opts into the gradient send action," see Decided table above) representing
+the shared Venture space itself, not any one participant's Tribe.
+
+### 2026-09-05 — Claude — Backfill: select multiple chat messages and bulk-unsend them
+
+Shipped in the same commit as the Share system phase 1 entry below
+(`0297ca3`), whose own write-up only covered sharing - this half of that
+commit never got its own entry.
+
+A new "Select messages" row in the existing own-message "⋯" menu
+(`ChatMessageOwnMenu`) enters select mode with that message pre-checked,
+across all three chat surfaces (DM, Tribe, Venture) per this app's
+standing rule that they share one capability set. While active, a new
+`ChatSelectionBar` replaces the thread's header (DM/Venture) or sits above
+the message list (Tribe, since its header lives in a separate wrapper
+component) showing a live count, a Cancel, and one bulk Unsend action -
+deliberately the *only* bulk action, not a general selection toolbar, per
+the user's own framing of the ask. Only the sender's own messages are
+selectable (a small checkmark badge appears on eligible bubbles), matching
+who can already unsend a single message; tapping someone else's bubble
+while selecting is a no-op.
+
+Building and testing this surfaced the real bug the user actually asked
+about next ("test our select multiple messages function, I think you'll
+see our current behavior is wrong"): Tribe chat's `unsendMessage` captured
+`previous = messages` as a stale snapshot of the *whole* array before each
+network call, then restored that whole snapshot on any single failure -
+so bulk-unsending several messages and having just one of them fail would
+silently un-delete every other, already-successful unsend in the same
+batch. Fixed by having both `unsendMessage` and `saveEdit` restore only
+the one item they touched via `setMessages`' functional form. (The
+identical bug was later found still live in DM and Venture's own
+optimistic-update helpers during the full app audit and fixed there too -
+see that entry above.)
+
+### 2026-09-05 — Claude — Backfill: iOS `-webkit-touch-callout` hardening for the long-press gesture
+
+Shipped as its own commit (`93faa51`) with only a one-line commit message
+- never got a devlog entry at all.
+
+Follow-up to the long-press-to-open-tray change (entry further below):
+user reported the gesture "didn't work" on their device after that
+change shipped, with a side-by-side comparison against WhatsApp's own
+long-press behavior. Reviewed `useSwipeReply`'s long-press timer logic
+and found it structurally sound, but identified one real gap: nothing
+stopped iOS's own native long-press callout (Copy / Look Up / Share) from
+racing the custom JS timer and winning, cancelling the pointer sequence
+via `pointercancel` before the app's own 450ms timer ever fired.
+
+Added `WebkitTouchCallout: "none"` to the swipe-row wrapper styles in both
+`MessagesPanel.tsx` and `TribeScreen.tsx`, alongside a code comment
+explaining why. Flagged to the user at the time that this was hardening,
+not a confirmed root-cause fix, since the more likely explanation for
+"didn't work" was that the previous long-press commit simply hadn't been
+published yet in Lovable - which a follow-up dashboard screenshot then
+confirmed (the commit was sitting in "Previewing," not "Published").
+
+### 2026-09-05 — Claude — Correction to the Share system entry below: the picker lists Moots, not DM threads
+
+That entry's own text says the "send to" picker lists "existing DM
+threads (`useThreads`)" - true of the first draft, but the user asked for
+it to list Moots instead before that draft ever shipped (a Moot is the
+actual "who can I message" relationship in this app - an accepted Hello -
+so it includes people you haven't started a conversation with yet, not
+just threads that already exist). The code that actually shipped in that
+same commit uses `useMyMoots()` (`social-store.ts`), not `useThreads()`.
+Not editing that entry's own text per this log's rule; this note is the
+correction.
+
 ### 2026-09-05 — Claude — Fixed a regression the swipe-back fix itself introduced: confirming delete/quote could snap you to a stale screen
 
 User reported "delete post is error" and "quoted signal also error" right
