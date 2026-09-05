@@ -96,7 +96,7 @@ export function ImageStrip({
             className="h-full w-full object-cover"
           />
           {i === 0 && (
-            <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+            <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-xs font-semibold text-white">
               Cover
             </span>
           )}

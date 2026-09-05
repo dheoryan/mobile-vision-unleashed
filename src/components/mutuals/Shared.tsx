@@ -3,7 +3,7 @@ import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import logoMark from "@/assets/logo-mark.svg";
 import { NotificationBell } from "./NotificationBell";
 import { TribeMark } from "./TribeMark";
-import { tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, tribeById, type Tribe, type TribeId } from "@/lib/mutuals-data";
 
 /**
  * The 44px circular back button used everywhere else in the app
@@ -73,7 +73,7 @@ export function AppHeader({
     >
       <div className="mx-auto grid max-w-md grid-cols-[1fr_auto_1fr] items-center px-5 py-3">
         <div className="min-w-0 justify-self-start leading-tight">
-          <p className="label-mono truncate text-muted-foreground">{subtitle ?? "Meutuals"}</p>
+          <p className="label-mono truncate text-muted-foreground">{subtitle ?? "MEUTUALS"}</p>
           <p className="truncate font-display text-sm font-semibold">{title}</p>
         </div>
         <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
@@ -137,7 +137,10 @@ export function TribeBadge({
   return (
     <span
       className={`label-mono inline-flex items-center gap-1.5 rounded-full py-1 pr-2.5 ${resolved ? "pl-1" : "pl-2.5"} ${className}`}
-      style={{ color: accent, backgroundColor: `color-mix(in oklab, ${accent} 16%, transparent)` }}
+      style={{
+        color: readableAccentColor(accent),
+        backgroundColor: `color-mix(in oklab, ${accent} 16%, transparent)`,
+      }}
     >
       {resolved && <TribeMark tribe={resolved} size="xs" />}
       {label}

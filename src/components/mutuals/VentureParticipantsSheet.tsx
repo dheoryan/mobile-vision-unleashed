@@ -169,7 +169,7 @@ export function VentureParticipantsSheet({
                         <span className="block truncate text-sm font-semibold transition-colors group-enabled:group-hover:text-primary group-enabled:group-focus-visible:text-primary">
                           {profile.display_name || profile.handle || "Participant"}
                         </span>
-                        <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground transition-colors group-enabled:group-hover:text-foreground group-enabled:group-focus-visible:text-foreground">
+                        <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground transition-colors group-enabled:group-hover:text-foreground group-enabled:group-focus-visible:text-foreground">
                           <span className="truncate">
                             {roleLabel}
                             {profile.handle ? ` · @${profile.handle}` : ""}

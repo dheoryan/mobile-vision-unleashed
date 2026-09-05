@@ -71,7 +71,7 @@ function TiersPage() {
           />
         </div>
 
-        <p className="mt-8 text-center text-[11px] text-muted-foreground">Mock pricing for demonstration. No payment is processed.</p>
+        <p className="mt-8 text-center text-xs text-muted-foreground">Mock pricing for demonstration. No payment is processed.</p>
       </div>
     </div>
   );

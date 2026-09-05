@@ -17,7 +17,7 @@ import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
 import { ShuffleIcon } from "@phosphor-icons/react/dist/csr/Shuffle";
 import { Link } from "@tanstack/react-router";
-import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
 import { PlusBadge } from "./PlusBadge";
 import { FeatureIllustration } from "./FeatureIllustration";
@@ -302,8 +302,8 @@ export function ExploreDeck({
     return (
       <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
         <div className="shrink-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-            <CheckIcon className="h-3 w-3 text-accent" weight="bold" /> {primarySetLabel} complete
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <CheckIcon className="h-3 w-3 text-accent-readable" weight="bold" /> {primarySetLabel} complete
           </span>
           <h3 className="mt-2 font-display text-[28px] font-bold leading-[1.05]">
             Where do you want to go next?
@@ -320,7 +320,7 @@ export function ExploreDeck({
             </span>
             <div className="min-w-0">
               <h4 className="font-display text-lg font-bold">Meet another five</h4>
-              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
                 Change the mix without repeating today’s people.
               </p>
             </div>
@@ -331,7 +331,7 @@ export function ExploreDeck({
                 key={option.id}
                 type="button"
                 onClick={() => startContinuation(option.id)}
-                className="min-h-10 shrink-0 rounded-full bg-secondary px-3 text-[11px] font-semibold text-foreground transition-colors hover:bg-primary/15 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="min-h-10 shrink-0 rounded-full bg-secondary px-3 text-xs font-semibold text-foreground transition-colors hover:bg-primary/15 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {option.label}
               </button>
@@ -340,7 +340,7 @@ export function ExploreDeck({
           <button
             type="button"
             onClick={onOpenNearby}
-            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <MapPinIcon className="h-3.5 w-3.5" /> Adjust discovery area
           </button>
@@ -363,12 +363,12 @@ export function ExploreDeck({
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
             className="flex w-full items-start gap-3 rounded-3xl border border-accent/35 bg-accent/8 p-4 text-left transition-colors hover:border-accent/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent-readable">
               <CalendarPlusIcon className="h-5 w-5" />
             </span>
             <div className="min-w-0">
               <h4 className="font-display text-lg font-bold">Find a Venture</h4>
-              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
                 Start with a real plan instead of another lens.
               </p>
             </div>
@@ -377,7 +377,7 @@ export function ExploreDeck({
 
         <div className="mt-auto border-t border-border/70 pt-2">
           {doorMessage && (
-            <p role="status" className="px-2 pb-1 text-[10px] leading-snug text-muted-foreground">
+            <p role="status" className="px-2 pb-1 text-xs leading-snug text-muted-foreground">
               {doorMessage}
             </p>
           )}
@@ -394,7 +394,7 @@ export function ExploreDeck({
               <span className="block text-xs font-semibold text-foreground">
                 Back to today’s five
               </span>
-              <span className="mt-0.5 block text-[10px] text-muted-foreground">
+              <span className="mt-0.5 block text-xs text-muted-foreground">
                 Review anyone again
               </span>
             </span>
@@ -540,12 +540,12 @@ export function ExploreDeck({
                   onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
                   className="absolute left-4 top-4 z-10 flex min-h-10 max-w-[calc(100%-5.5rem)] items-center gap-2 rounded-full border border-accent/40 bg-black/60 px-3 text-left text-white backdrop-blur-md transition-colors hover:border-accent active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
-                  <CalendarPlusIcon className="h-3.5 w-3.5 shrink-0 text-accent" />
+                  <CalendarPlusIcon className="h-3.5 w-3.5 shrink-0 text-accent-readable" />
                   <span className="min-w-0">
-                    <span className="block truncate text-[10px] font-semibold">
+                    <span className="block truncate text-xs font-semibold">
                       {person.openVentureTitle}
                     </span>
-                    <span className="block text-[9px] text-white/65">Hosting · spots open</span>
+                    <span className="block text-xs text-white/80">Hosting · spots open</span>
                   </span>
                 </button>
               )}
@@ -560,7 +560,7 @@ export function ExploreDeck({
                 aria-pressed={isFollowing}
                 className={cn(
                   "absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full border bg-black/55 backdrop-blur-sm transition-colors active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-                  isFollowing ? "border-accent/60 text-accent" : "border-white/20 text-white/80",
+                  isFollowing ? "border-accent/60 text-accent-readable" : "border-white/20 text-white/80",
                 )}
               >
                 {followPending === person.id ? (
@@ -573,7 +573,7 @@ export function ExploreDeck({
               </button>
 
               <div className="absolute inset-x-0 bottom-0 z-[1] p-5">
-                <div className="flex min-w-0 items-center gap-2 text-[11px] text-white/80">
+                <div className="flex min-w-0 items-center gap-2 text-xs text-white/80">
                   <span className="relative">
                     <TribeMark tribe={tribe} size="xs" />
                     {person.plus && <PlusBadge />}
@@ -583,19 +583,22 @@ export function ExploreDeck({
                 <h3 className="mt-2 truncate font-display text-3xl font-bold leading-none text-white">
                   {person.name}
                 </h3>
-                {person.handle && <p className="mt-1 text-xs text-white/65">{person.handle}</p>}
+                {person.handle && <p className="mt-1 text-xs text-white/80">{person.handle}</p>}
                 {(person.city || person.distanceBand || person.outsideRadius) && (
-                  <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px]">
+                  <p className="mt-2 flex min-w-0 items-center gap-1.5 text-xs">
                     <MapPinIcon
                       className="h-3.5 w-3.5 shrink-0"
-                      style={{ color: tribe.colorVar }}
+                      style={{ color: readableAccentColor(tribe.colorVar) }}
                     />
                     {person.city && <span className="truncate text-white/75">{person.city}</span>}
                     {person.city && (person.distanceBand || person.outsideRadius) && (
-                      <span className="shrink-0 text-white/45">·</span>
+                      <span className="shrink-0 text-white/70">·</span>
                     )}
                     {person.distanceBand && (
-                      <span className="shrink-0 font-semibold" style={{ color: tribe.colorVar }}>
+                      <span
+                        className="shrink-0 font-semibold"
+                        style={{ color: readableAccentColor(tribe.colorVar) }}
+                      >
                         {person.distanceBand}
                       </span>
                     )}
@@ -605,7 +608,7 @@ export function ExploreDeck({
                         far, never for the (much more common) "hasn't opted
                         into Nearby" case, which stays silent as before. */}
                     {!person.distanceBand && person.outsideRadius && (
-                      <span className="shrink-0 font-semibold text-white/55">
+                      <span className="shrink-0 font-semibold text-white/80">
                         Outside your radius
                       </span>
                     )}
@@ -616,7 +619,7 @@ export function ExploreDeck({
 
             <div className="flex min-h-0 flex-1 flex-col p-4">
               <section className="border-l-2 pl-4" style={{ borderColor: tribe.colorVar }}>
-                <p className="label-mono" style={{ color: tribe.colorVar }}>
+                <p className="label-mono" style={{ color: readableAccentColor(tribe.colorVar) }}>
                   In their words
                 </p>
                 <blockquote className="mt-1.5 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-foreground">
@@ -637,7 +640,7 @@ export function ExploreDeck({
                           className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
                           style={{
                             backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
-                            color: tribe.colorVar,
+                            color: readableAccentColor(tribe.colorVar),
                           }}
                         >
                           <CheckIcon className="h-2.5 w-2.5" />

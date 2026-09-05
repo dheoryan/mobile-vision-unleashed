@@ -29,7 +29,7 @@ export function QuotedPostPreview({ post }: { post: FeedPost }) {
           )}
         </span>
         <span className="truncate text-xs font-semibold">{name}</span>
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="shrink-0 text-xs text-muted-foreground">
           {timeAgoLabel(post.created_at)}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function QuotedPostPreview({ post }: { post: FeedPost }) {
             className="max-h-56 w-full rounded-lg object-cover"
           />
           {post.images.length > 1 && (
-            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-semibold text-white">
               +{post.images.length - 1} more
             </span>
           )}

@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "./Skeleton";
-import type { TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, type TribeId } from "@/lib/mutuals-data";
 import {
   dailyPulse,
   pulseStreak,
@@ -182,7 +182,7 @@ export function TribeRoomLayer({
                   Plans
                   {plans.length > 0 && (
                     <span
-                      className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white tabular-nums"
+                      className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center self-center rounded-full px-1 font-mono text-xs font-bold leading-none text-white tabular-nums"
                       style={{ backgroundColor: tribeColor }}
                     >
                       {plans.length > 9 ? "9+" : plans.length}
@@ -367,10 +367,13 @@ function DailyPulse({
       style={{ borderColor: tribeColor }}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="label-mono inline-flex items-center gap-1.5" style={{ color: tribeColor }}>
+        <span
+          className="label-mono inline-flex items-center gap-1.5"
+          style={{ color: readableAccentColor(tribeColor) }}
+        >
           <SparkleIcon className="h-3.5 w-3.5" /> Daily Tribevia
         </span>
-        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {streak >= 2 && (
             <span
               className="inline-flex items-center gap-0.5 normal-case tracking-normal text-foreground"
@@ -419,7 +422,7 @@ function DailyPulse({
             <button
               type="button"
               onClick={() => setShowAll(true)}
-              className="mx-auto flex min-h-9 items-center gap-1 rounded-full px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="mx-auto flex min-h-9 items-center gap-1 rounded-full px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               See all {answers.length} answers
             </button>
@@ -432,14 +435,14 @@ function DailyPulse({
 
 function AnswerFaces({ answers }: { answers: TribeRoomItem[] }) {
   if (!answers.length)
-    return <span className="text-[11px] text-muted-foreground">Be first in</span>;
+    return <span className="text-xs text-muted-foreground">Be first in</span>;
   return (
     <div className="flex items-center">
       {answers.slice(-4).map((answer, index) => (
         <Avatar key={answer.id} item={answer} className={cn(index > 0 && "-ml-2")} />
       ))}
       {answers.length > 4 && (
-        <span className="ml-2 text-[10px] text-muted-foreground">+{answers.length - 4}</span>
+        <span className="ml-2 text-xs text-muted-foreground">+{answers.length - 4}</span>
       )}
     </div>
   );
@@ -490,17 +493,17 @@ function PulseAnswer({
                 maxSlots: 4,
               })
             }
-            className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             style={{
               borderColor: `color-mix(in oklab, ${tribeColor} 45%, transparent)`,
-              color: tribeColor,
+              color: readableAccentColor(tribeColor),
             }}
           >
             Turn into Venture <ArrowRightIcon className="h-3 w-3" />
           </button>
         )}
         {linked && (
-          <span className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full bg-secondary/60 px-2.5 text-[11px] font-semibold text-muted-foreground">
+          <span className="mt-1.5 inline-flex min-h-9 items-center gap-1 rounded-full bg-secondary/60 px-2.5 text-xs font-semibold text-muted-foreground">
             <CheckIcon className="h-3 w-3" /> Venture live
           </span>
         )}
@@ -512,10 +515,10 @@ function PulseAnswer({
         aria-pressed={active}
         aria-label={active ? "Remove spark" : "Add spark"}
         className={cn(
-          "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full text-[10px] transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full text-xs transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           !active && "text-muted-foreground",
         )}
-        style={active ? { color: tribeColor } : undefined}
+        style={active ? { color: readableAccentColor(tribeColor) } : undefined}
       >
         <span aria-hidden="true" className="text-sm leading-none">
           🔥
@@ -561,12 +564,12 @@ function PlanRow({
       <div className="flex items-start gap-3">
         <Avatar item={item} />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {item.author?.display_name ?? "A member"} put a plan on the table
           </p>
           <h3 className="mt-1 font-display text-lg font-bold leading-tight">{item.content}</h3>
           {note && <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{note}</p>}
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <ClockIcon className="h-3.5 w-3.5" /> {whenLabel}
             </span>
@@ -601,14 +604,14 @@ function PlanRow({
                       style={active ? { backgroundColor: tribeColor } : undefined}
                     >
                       <span className="font-semibold">{option.label}</span>
-                      <span className="font-mono text-[10px]">
+                      <span className="font-mono text-xs">
                         {option.votes} {option.votes === 1 ? "person" : "people"}
                       </span>
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 Choose every time that works. The host confirms one exact start before publishing.
               </p>
             </fieldset>
@@ -674,7 +677,7 @@ function PlanRow({
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             style={{
               borderColor: `color-mix(in oklab, ${tribeColor} 45%, transparent)`,
-              color: tribeColor,
+              color: readableAccentColor(tribeColor),
             }}
           >
             Turn into Venture <ArrowRightIcon className="h-3.5 w-3.5" />
@@ -687,7 +690,7 @@ function PlanRow({
         )}
       </div>
       {!linked && (
-        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           Interested means “invite me if this goes live.” Nobody joins automatically.
         </p>
       )}
@@ -726,7 +729,7 @@ function VentureAnnouncement({
       />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="label-mono" style={{ color: tribeColor }}>
+          <p className="label-mono" style={{ color: readableAccentColor(tribeColor) }}>
             {complete ? "Completed together" : "Venture live"}
           </p>
           <h3 className="mt-1 truncate font-display text-lg font-bold">{item.content}</h3>
@@ -745,7 +748,7 @@ function VentureAnnouncement({
           type="button"
           onClick={onOpen}
           className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          style={{ color: tribeColor }}
+          style={{ color: readableAccentColor(tribeColor) }}
         >
           {complete ? "Open Venture memories" : "Open Venture"}
           <ArrowRightIcon className="h-3.5 w-3.5" />
@@ -797,7 +800,7 @@ function PulseComposer({
       <form onSubmit={submit} className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="label-mono" style={{ color: tribeColor }}>
+            <p className="label-mono" style={{ color: readableAccentColor(tribeColor) }}>
               Daily Tribevia · {tribeName}
             </p>
             <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
@@ -825,7 +828,7 @@ function PulseComposer({
           />
         </label>
         <div className="mt-4 flex items-center justify-between">
-          <span className="font-mono text-[10px] text-muted-foreground">{answer.length}/600</span>
+          <span className="font-mono text-xs text-muted-foreground">{answer.length}/600</span>
           <button
             type="submit"
             disabled={!answer.trim() || mutation.isPending}
@@ -962,7 +965,7 @@ function PlanComposer({
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div>
-            <p className="label-mono" style={{ color: tribeColor }}>
+            <p className="label-mono" style={{ color: readableAccentColor(tribeColor) }}>
               Plan together · {tribeName}
             </p>
             <h2 className="mt-1 font-display text-2xl font-bold">What could the room do?</h2>
@@ -987,7 +990,7 @@ function PlanComposer({
               placeholder="Small gallery hop"
               className="w-full border-b border-border bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground focus:border-primary"
             />
-            <span className="mt-1 block text-right font-mono text-[9px] text-muted-foreground">
+            <span className="mt-1 block text-right font-mono text-xs text-muted-foreground">
               {title.length}/80
             </span>
           </RoomField>
@@ -1083,14 +1086,14 @@ function PlanComposer({
                   ))}
                 </div>
                 {timeOptions[0] && (
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                     {planTimeLabel(timeOptions[0].day, timeOptions[0].period)}
                   </p>
                 )}
               </div>
             ) : (
               <div className="mt-3 space-y-2 border-l-2 border-border pl-3">
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   Add two or three windows. Members can choose every option that works.
                 </p>
                 {timeOptions.map((option, index) => (
@@ -1099,7 +1102,7 @@ function PlanComposer({
                     className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 border-b border-border py-2"
                   >
                     <span
-                      className="flex h-8 w-8 items-center justify-center rounded-full font-mono text-[10px] font-bold text-background"
+                      className="flex h-8 w-8 items-center justify-center rounded-full font-mono text-xs font-bold text-background"
                       style={{ backgroundColor: tribeColor }}
                     >
                       {String.fromCharCode(65 + index)}
@@ -1154,13 +1157,13 @@ function PlanComposer({
                     type="button"
                     onClick={addTimeOption}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    style={{ color: tribeColor }}
+                    style={{ color: readableAccentColor(tribeColor) }}
                   >
                     <PlusIcon className="h-3.5 w-3.5" /> Add another time
                   </button>
                 )}
                 {!validTiming && (
-                  <p className="text-[11px] font-medium text-destructive">
+                  <p className="text-xs font-medium text-destructive">
                     Each option needs a different date or time window.
                   </p>
                 )}
@@ -1201,7 +1204,7 @@ function PlanComposer({
           </RoomField>
         </div>
         <div className="shrink-0 border-t border-border bg-card px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <p className="text-[10px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             If you later publish this as a Venture, everyone who tapped Interested receives an
             invite and decides for themselves.
           </p>

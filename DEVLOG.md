@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Share counter consistency and app text readability audit | social/share flow, styles.css, text-bearing components/routes, audit report and tests | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,41 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-05 — Codex (Astra) — Share-action counters and full text-readability repair
+
+- Changed `shares_count` from a unique-sharer toggle into a completed-action
+  total, matching the user's Instagram/Threads direction. Each successful DM,
+  Tribe, native-share, or copy-link action adds one; retrying the same request
+  is idempotent and dismissing/failing the browser share flow adds nothing.
+- Added `share_events`, RLS, grants, atomic chat-insert triggers, an external
+  share RPC, account-delete anonymization, a preserved legacy baseline, and a
+  final count reconciliation in
+  `supabase/migrations/20260905040000_share_events.sql`. Message deletion keeps
+  completed-share history; original-post deletion cascades its events.
+- Removed the client toggle state, made in-app message IDs double as stable
+  share request IDs, invalidated both feed and focused-post caches, and stopped
+  treating counter recording as a best-effort second write after chat succeeds.
+- Audited all 135 TSX files under `src/components` and `src/routes`, plus global
+  text/color styles. Repaired 257 explicit sizes below 12px, four weak white
+  image-overlay treatments, raw dark accent text, inconsistent MEUTUALS casing,
+  and singular Tribe member copy. All locked MEUTUALS and Tribe base tokens are
+  unchanged; text-only accents use a foreground mix for contrast.
+- Live review at 390 × 844 covered Timeline, Discover, Ventures, Chats,
+  Profile, Notifications, Settings, loading states, post cards, and the Share
+  post sheet. `MEUTUALS_READABILITY_AUDIT.md` records full scope, findings, and
+  the screens that were source-audited but unavailable in the signed-in state.
+- Verification: TypeScript clean; production build clean; six Node
+  share/readability tests pass; rollback-only PostgreSQL behavior suite passes
+  repeated actions, retries, multi-actor counts, forged-request rejection,
+  deletion and anonymization; `LOVABLE_SHARE_EVENTS_VERIFY.sql` returns all 16
+  checks true in the isolated rehearsal database.
+- **Production pending:** this migration is Red under `CHANGE_PROTOCOL.md`
+  because it changes policies, grants, triggers, and reconciles existing rows.
+  Back up production, have the user paste the migration, then run
+  `LOVABLE_SHARE_EVENTS_VERIFY.sql` before publishing client code. The separate
+  deleted-shared-post marker migration `20260905030000` and verifier are also
+  still pending user-confirmed application. No push was performed.
 
 ### 2026-09-05 — Codex (Astra) — Durable deleted-post notices in shared chat messages
 

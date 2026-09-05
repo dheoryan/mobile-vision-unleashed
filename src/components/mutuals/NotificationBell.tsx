@@ -12,7 +12,7 @@ export function NotificationBell() {
     >
       <BellIcon className="h-5 w-5" weight={unread > 0 ? "fill" : "regular"} />
       {unread > 0 && (
-        <span className="bg-meutuals-gradient absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white">
+        <span className="bg-meutuals-gradient absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-xs font-bold leading-none text-white">
           {unread > 9 ? "9+" : unread}
         </span>
       )}

@@ -49,7 +49,7 @@ export function PwaInstallRow() {
         </span>
         <div>
           <p className="text-sm font-semibold">Installed app</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Running from your home screen in standalone mode.
           </p>
         </div>
@@ -82,7 +82,7 @@ export function PwaInstallRow() {
             <DeviceMobileIcon className="h-4 w-4 shrink-0 text-primary" />
             <div className="min-w-0">
               <p className="text-sm font-semibold">Install on iPhone</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Add MEUTUALS to your Home Screen from Safari.
               </p>
             </div>
@@ -90,7 +90,7 @@ export function PwaInstallRow() {
           <button
             type="button"
             onClick={() => setGuideOpen(true)}
-            className="min-h-11 shrink-0 rounded-full border border-primary/35 px-3 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="min-h-11 shrink-0 rounded-full border border-primary/35 px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Show steps
           </button>
@@ -107,7 +107,7 @@ export function PwaInstallRow() {
           <DeviceMobileIcon className="h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0">
             <p className="text-sm font-semibold">Install MEUTUALS</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {installable
                 ? "Add the full-screen app to this device."
                 : "See the steps for your browser and device."}
@@ -118,7 +118,7 @@ export function PwaInstallRow() {
           type="button"
           onClick={install}
           disabled={busy}
-          className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {busy ? "Opening…" : installable ? "Install" : "Show steps"}
         </button>
@@ -258,7 +258,7 @@ function InstallGuide({
                   <span className="mr-1.5 text-primary">{index + 1}.</span>
                   {step.title}
                 </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   {step.detail}
                 </p>
               </div>
@@ -269,7 +269,7 @@ function InstallGuide({
 
       <div className="mt-5 flex items-start gap-3 border-l-2 border-primary pl-4">
         <BellIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           After opening the installed app, enable notifications in Settings if you want Venture,
           Chat, and request alerts on this device.
         </p>

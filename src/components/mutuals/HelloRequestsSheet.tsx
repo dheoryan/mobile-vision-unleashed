@@ -103,7 +103,7 @@ function TabButton({
       {count > 0 && (
         <span
           className={cn(
-            "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
+            "rounded-full px-1.5 py-0.5 text-xs font-bold leading-none",
             active ? "bg-white/20 text-white" : "bg-primary/15 text-primary",
           )}
         >
@@ -155,7 +155,7 @@ function RequestsTab({ loading, rows }: { loading: boolean; rows: HelloWithProfi
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{name}</p>
                 {h.other?.handle && (
-                  <p className="truncate text-[11px] text-muted-foreground">@{h.other.handle}</p>
+                  <p className="truncate text-xs text-muted-foreground">@{h.other.handle}</p>
                 )}
               </div>
             </div>
@@ -235,14 +235,14 @@ function SentTab({ loading, rows }: { loading: boolean; rows: HelloWithProfile[]
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{name}</p>
-                <p className="truncate text-[11px] text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground">
                   Sent {timeAgoLabel(h.created_at)} · no response yet
                 </p>
               </div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{h.message}</p>
             {stale && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Still no reply after {daysPending} days. You can cancel and try again anytime.
               </p>
             )}

@@ -88,7 +88,7 @@ export function PushCategorySettings() {
         <h3 id="push-category-heading" className="text-sm font-semibold">
           What reaches you
         </h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           These choices apply whenever push notifications are on.
         </p>
       </div>
@@ -107,7 +107,7 @@ export function PushCategorySettings() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">{label}</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{detail}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{detail}</p>
               </div>
               <div className="flex h-11 w-12 shrink-0 items-center justify-center">
                 <Switch

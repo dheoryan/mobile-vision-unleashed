@@ -43,7 +43,7 @@ export function GenderSelect({
     <fieldset disabled={locked}>
       <div className="flex items-center justify-between gap-3">
         <legend className="font-display text-sm font-bold text-foreground">Gender</legend>
-        {hint && !locked && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+        {hint && !locked && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
       <div className="mt-2 flex gap-2">
         {GENDER_OPTIONS.map((option) => {
@@ -81,7 +81,7 @@ export function GenderSelect({
         })}
       </div>
       {locked && (
-        <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+        <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
           <LockIcon className="h-3 w-3" /> Can't be changed once set
         </p>
       )}

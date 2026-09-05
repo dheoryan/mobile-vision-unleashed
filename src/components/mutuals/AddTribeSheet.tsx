@@ -144,7 +144,7 @@ export function AddTribeSheet({
               <TribeMark tribe={current} size="md" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{current.name}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{current.scene}</p>
+                <p className="truncate text-xs text-muted-foreground">{current.scene}</p>
               </div>
               <span className="label-mono shrink-0 text-muted-foreground">HOME</span>
             </div>
@@ -175,7 +175,7 @@ export function AddTribeSheet({
                     <TribeMark tribe={t} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{t.name}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{t.scene}</p>
+                      <p className="truncate text-xs text-muted-foreground">{t.scene}</p>
                     </div>
                     <button
                       onClick={() => setConfirming(t.id)}
@@ -187,7 +187,7 @@ export function AddTribeSheet({
                 ))}
               </ul>
               {status.data?.available_at === null && status.data.can_switch && (
-                <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CheckIcon className="h-3.5 w-3.5 text-primary" /> You can change Tribe freely for
                   now.
                 </p>

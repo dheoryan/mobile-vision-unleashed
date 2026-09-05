@@ -437,7 +437,7 @@ function App() {
       person.id,
     );
     if (!isUuid) {
-      toast.error("That person isn't on Meutuals yet.");
+      toast.error("That person isn't on MEUTUALS yet.");
       return;
     }
     try {

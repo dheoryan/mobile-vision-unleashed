@@ -14,7 +14,7 @@ export function QuotedCommentPreview({ comment }: { comment: CommentRow }) {
 
   return (
     <div className="mt-3 rounded-xl border border-border bg-background/35 p-3">
-      <div className="mb-2 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="mb-2 flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
         <ChatTextIcon className="h-3 w-3" /> Reposted comment
       </div>
       <div className="flex items-center gap-2">
@@ -27,9 +27,9 @@ export function QuotedCommentPreview({ comment }: { comment: CommentRow }) {
         </span>
         <span className="min-w-0 truncate text-xs font-semibold">{name}</span>
         {handle && (
-          <span className="min-w-0 truncate text-[11px] text-muted-foreground">@{handle}</span>
+          <span className="min-w-0 truncate text-xs text-muted-foreground">@{handle}</span>
         )}
-        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
           {timeAgoLabel(comment.created_at)}
         </span>
       </div>

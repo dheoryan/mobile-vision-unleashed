@@ -14,16 +14,16 @@ export const Route = createFileRoute("/verify-email")({
   }),
   head: () => ({
     meta: [
-      { title: "Verify your email · Meutuals — Your tribe is waiting" },
+      { title: "Verify your email · MEUTUALS — Your tribe is waiting" },
       {
         name: "description",
         content:
-          "Check whether your Meutuals email address is verified, resend the confirmation link, and see what to do next.",
+          "Check whether your MEUTUALS email address is verified, resend the confirmation link, and see what to do next.",
       },
-      { property: "og:title", content: "Verify your email · Meutuals — Your tribe is waiting" },
+      { property: "og:title", content: "Verify your email · MEUTUALS — Your tribe is waiting" },
       {
         property: "og:description",
-        content: "Confirm your Meutuals email address or resend the verification link.",
+        content: "Confirm your MEUTUALS email address or resend the verification link.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -96,8 +96,8 @@ function VerifyEmailPage() {
   return (
     <div className="bg-habitat flex min-h-screen items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
-        <img src={logo} alt="Meutuals" className="mx-auto h-16 w-16 rounded-2xl" />
-        <p className="label-mono text-muted-foreground mt-4 text-center">Meutuals</p>
+        <img src={logo} alt="MEUTUALS" className="mx-auto h-16 w-16 rounded-2xl" />
+        <p className="label-mono text-muted-foreground mt-4 text-center">MEUTUALS</p>
 
         {loading ? (
           <p className="mt-6 text-center text-sm text-muted-foreground">Checking your account…</p>
@@ -111,7 +111,7 @@ function VerifyEmailPage() {
               onClick={() => navigate({ to: "/" })}
               className="mt-8 w-full rounded-2xl bg-meutuals-gradient py-3.5 text-sm font-semibold text-white transition-[filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              Continue to Meutuals
+              Continue to MEUTUALS
             </button>
           </>
         ) : (
@@ -126,7 +126,7 @@ function VerifyEmailPage() {
             <ol className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4 text-sm">
               <li className="flex gap-3">
                 <span className="label-mono text-muted-foreground">1</span>
-                <span>Open the email from Meutuals and tap the confirmation link.</span>
+                <span>Open the email from MEUTUALS and tap the confirmation link.</span>
               </li>
               <li className="flex gap-3">
                 <span className="label-mono text-muted-foreground">2</span>

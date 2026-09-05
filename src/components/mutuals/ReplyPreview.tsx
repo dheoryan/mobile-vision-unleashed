@@ -1,6 +1,7 @@
 import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { PencilIcon } from "@phosphor-icons/react/dist/csr/Pencil";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { readableAccentColor } from "@/lib/mutuals-data";
 
 /**
  * Compact reply preview that appears above the composer input
@@ -38,16 +39,19 @@ export function ReplyPreview({
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
           style={{
             backgroundColor: `color-mix(in oklab, ${accentColor} 22%, transparent)`,
-            color: accentColor,
+            color: readableAccentColor(accentColor),
           }}
         >
           <Icon className="h-3 w-3" />
         </span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[11px] font-semibold" style={{ color: accentColor }}>
+          <p
+            className="truncate text-xs font-semibold"
+            style={{ color: readableAccentColor(accentColor) }}
+          >
             {mode === "edit" ? "Editing your message" : `Replying to ${name}`}
           </p>
-          <p className="truncate text-[11px] text-muted-foreground">{snippet}</p>
+          <p className="truncate text-xs text-muted-foreground">{snippet}</p>
         </div>
       </div>
       <button
@@ -123,16 +127,16 @@ export function QuotedBlock({
       <div className="min-w-0 flex-1 leading-tight">
         <p
           className={
-            "truncate text-[10px] font-bold uppercase tracking-wide " + (mine ? "opacity-75" : "")
+            "truncate text-xs font-bold uppercase tracking-wide " + (mine ? "opacity-75" : "")
           }
-          style={mine ? undefined : { color: accentColor }}
+          style={mine ? undefined : { color: readableAccentColor(accentColor) }}
         >
           {name}
         </p>
         {/* One line, truncated. A two-line clamp made the quote compete with
             the reply for height, which is what made it read as a second
             message rather than as context for the first. */}
-        <p className={"truncate text-[11px] " + (mine ? "opacity-65" : "text-muted-foreground")}>
+        <p className={"truncate text-xs " + (mine ? "opacity-65" : "text-muted-foreground")}>
           {snippet}
         </p>
       </div>

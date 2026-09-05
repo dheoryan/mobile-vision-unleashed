@@ -32,7 +32,7 @@ export function DiscoveryRadiusSlider({
         aria-label="Discovery radius"
         onValueChange={([nextIndex]) => onChange(LOCATION_RADII[nextIndex] ?? 15)}
       />
-      <div className="mt-3 grid grid-cols-3 text-[10px] font-semibold" aria-hidden>
+      <div className="mt-3 grid grid-cols-3 text-xs font-semibold" aria-hidden>
         {LOCATION_RADII.map((radius, radiusIndex) => (
           <span key={radius} className={cn(radiusIndex === 0 && "text-left", radiusIndex === 1 && "text-center", radiusIndex === 2 && "text-right", value === radius ? "text-primary" : "text-muted-foreground")}>
             {radius === 5 ? "Close · 5 km" : radius === 15 ? "Local · 15 km" : "Wide · 50 km"}

@@ -92,7 +92,7 @@ import { MegaphoneIcon } from "@phosphor-icons/react/dist/csr/Megaphone";
 import { CubeIcon } from "@phosphor-icons/react/dist/csr/Cube";
 import { TrendUpIcon } from "@phosphor-icons/react/dist/csr/TrendUp";
 import type { Icon } from "@phosphor-icons/react";
-import { TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
+import { readableAccentColor, TRIBES, type TribeId, tribeById } from "@/lib/mutuals-data";
 import { uploadAvatar } from "@/lib/uploads";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -388,7 +388,7 @@ export function Onboarding({
               <PrimaryButton onClick={() => setStep(1)}>
                 Get started <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">
+              <p className="mt-3 text-center text-xs text-muted-foreground">
                 For socially curious adults, 18+
               </p>
               {/* No LegalFooter here - Terms/Privacy/Guidelines already show
@@ -427,7 +427,7 @@ export function Onboarding({
                 <p className="label-mono text-muted-foreground">
                   Card {tribeIndex + 1} / {TRIBES.length}
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {tribeId === viewedTribe.id ? "Your current choice" : "Explore before choosing"}
                 </p>
               </div>
@@ -511,7 +511,7 @@ export function Onboarding({
                     <span className="relative mt-3 font-display text-2xl font-bold">
                       {viewedTribe.motto}
                     </span>
-                    <span className="relative mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    <span className="relative mt-2 text-xs leading-relaxed text-muted-foreground">
                       {viewedTribe.about}
                     </span>
                     <span className="relative mt-4 label-mono text-muted-foreground">
@@ -521,7 +521,7 @@ export function Onboarding({
                       {viewedTribe.inside.map((item) => (
                         <span
                           key={item}
-                          className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-1.5 text-[11px] font-semibold"
+                          className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-1.5 text-xs font-semibold"
                         >
                           <SparkleIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
                           {item}
@@ -530,7 +530,7 @@ export function Onboarding({
                     </span>
                     <span className="relative mt-auto rounded-2xl bg-primary/10 p-2.5">
                       <span className="label-mono text-primary">Best for</span>
-                      <span className="mt-1 block text-[10px] leading-relaxed text-muted-foreground">
+                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                         {viewedTribe.bestFor}
                       </span>
                     </span>
@@ -575,7 +575,7 @@ export function Onboarding({
                 <ArrowRightIcon className="h-4 w-4" />
               </PrimaryButton>
               {tribeId && tribeId !== viewedTribe.id && (
-                <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                <p className="mt-2 text-center text-xs text-muted-foreground">
                   Currently selected: {tribe?.name}
                 </p>
               )}
@@ -649,7 +649,7 @@ export function Onboarding({
                   void onPickAvatar(file);
                 }}
               />
-              <p className="mt-3 text-[11px] text-muted-foreground">
+              <p className="mt-3 text-xs text-muted-foreground">
                 A photo helps with trust. The leaf works too.
               </p>
             </div>
@@ -710,13 +710,13 @@ export function Onboarding({
                         <CheckIcon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                           Current area confirmed
                         </p>
                         <p className="mt-1 truncate text-sm font-semibold">
                           {city || "Area found"}
                         </p>
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                           Refreshes automatically each time you open MEUTUALS, so your distance to
                           others stays accurate. Other members only ever see a distance band, never
                           your exact coordinates.
@@ -764,7 +764,7 @@ export function Onboarding({
                       )}
                       {locating ? "Finding your area…" : "Use my current area"}
                     </button>
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                       Uses this device once to find your district or city. Your pin is never shown.
                     </p>
                     <div className="mt-4 border-t border-border pt-4">
@@ -871,7 +871,7 @@ export function Onboarding({
                   <CheckIcon className="h-5 w-5" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Approximate location ready</p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {city ? `${city} · ` : ""}Update, pause, or remove it in Settings.
                     </p>
                   </div>
@@ -1092,11 +1092,11 @@ function ChoiceGroup({
       <div className="flex items-center justify-between gap-3">
         <legend
           className={cn("label-mono", !accentColor && "text-muted-foreground")}
-          style={accentColor ? { color: accentColor } : undefined}
+          style={accentColor ? { color: readableAccentColor(accentColor) } : undefined}
         >
           {label}
         </legend>
-        <span className="text-[10px] text-muted-foreground">{hint}</span>
+        <span className="text-xs text-muted-foreground">{hint}</span>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-1.5">
         {visibleOptions.map((option) => {
@@ -1137,7 +1137,7 @@ function ChoiceGroup({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
         >
           {expanded ? "Show less" : `Show ${options.length - maxVisible} more`}
           <CaretDownIcon className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
@@ -1169,13 +1169,13 @@ function SetupStage({
     >
       <span
         className={cn(
-          "mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
+          "mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
           done ? "bg-meutuals-gradient text-white" : "bg-secondary text-muted-foreground",
         )}
       >
         {done ? <CheckIcon className="h-3.5 w-3.5" /> : "·"}
       </span>
-      <p className="mt-1.5 text-[9px] font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-1.5 text-xs font-semibold text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -1206,8 +1206,8 @@ function Field({
         {hint && (
           <span
             className={cn(
-              "text-right text-[10px]",
-              hintTone === "success" && "text-accent",
+              "text-right text-xs",
+              hintTone === "success" && "text-accent-readable",
               hintTone === "danger" && "text-destructive",
               hintTone === "muted" && "text-muted-foreground",
             )}

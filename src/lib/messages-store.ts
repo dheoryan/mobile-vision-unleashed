@@ -124,21 +124,19 @@ export function useSharePostToDM() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: (input: { recipient_id: string; post_id: string; caption?: string | null }) =>
-      fn({ data: input }),
+    mutationFn: (input: {
+      recipient_id: string;
+      post_id: string;
+      request_id: string;
+      caption?: string | null;
+    }) => fn({ data: input }),
     onSuccess: (_saved, input) => {
       qc.invalidateQueries({ queryKey: THREADS_KEY });
       qc.invalidateQueries({ queryKey: THREAD_KEY(user?.id ?? "anonymous", input.recipient_id) });
-      // sharePostToDM also records a `shares` row server-side - refetch
-      // wherever this post is currently shown so its shares_count catches
-      // up, same as the native-share button's toggleShare already does.
+      // The message insert and share event commit together in Postgres.
+      // Refresh both feed and focused-post caches with the new total.
       qc.invalidateQueries({ queryKey: ["posts"] });
-      // Also invalidate useMyShares' own cache (social-store.ts's
-      // SHARES_KEY = ["social","shares"]) - without this, the paper-plane
-      // icon never learns the post is now shared, so a follow-up tap on
-      // the Share button reads it as unshared and toggles it, which
-      // actually *un*shares what was just shared in-app.
-      qc.invalidateQueries({ queryKey: ["social", "shares"] });
+      qc.invalidateQueries({ queryKey: ["shared-post"] });
     },
   });
 }

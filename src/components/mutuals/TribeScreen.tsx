@@ -185,7 +185,7 @@ export function TribeScreen({
               <h1 className="truncate font-display text-sm font-semibold leading-tight">
                 {tribe.name}
               </h1>
-              <span className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
+              <span className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
                 <UsersIcon className="h-3 w-3 shrink-0" />
                 <span className="truncate">
@@ -1021,7 +1021,7 @@ function GroupChat({
               return (
                 <div key={m.id} className="my-3 flex items-center gap-3 px-4" role="status">
                   <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
-                  <p className="max-w-[72%] text-center text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="max-w-[72%] text-center text-xs leading-relaxed text-muted-foreground">
                     {m.content} · {formatTime(m.created_at)}
                   </p>
                   <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
@@ -1060,7 +1060,7 @@ function GroupChat({
                 {!mine && !groupStart && <span aria-hidden="true" className="h-7 w-7 shrink-0" />}
                 <div className="min-w-0 max-w-[78%]">
                   {!mine && groupStart && (
-                    <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
+                    <p className="mb-1 px-1 text-xs font-medium text-muted-foreground">
                       {displayName}
                     </p>
                   )}
@@ -1152,7 +1152,7 @@ function GroupChat({
                           <p className="whitespace-pre-wrap break-words">
                             {m.content}
                             {m.edited_at && (
-                              <span className="ml-1.5 text-[10px] italic opacity-70">(edited)</span>
+                              <span className="ml-1.5 text-xs italic opacity-70">(edited)</span>
                             )}
                           </p>
                         )}
@@ -1201,7 +1201,7 @@ function GroupChat({
                   {groupEnd && (
                     <p
                       className={cn(
-                        "mt-1 px-1 text-[10px] text-muted-foreground",
+                        "mt-1 px-1 text-xs text-muted-foreground",
                         mine && "text-right",
                       )}
                     >
@@ -1260,7 +1260,7 @@ function GroupChat({
           accessory={
             mentionSuggestions.length > 0 ? (
               <div className="absolute bottom-full left-8 right-8 z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
-                <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   <AtIcon className="h-3 w-3" /> Mention members
                 </div>
                 {mentionSuggestions.map((member) => (

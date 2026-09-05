@@ -11,6 +11,7 @@
     "check:pwa": "node scripts/verify-pwa.mjs",
     "check:push": "node --test --test-isolation=none tests/push-notifications.test.ts tests/notification-presenter.test.ts",
     "check:tribe-room": "node --test tests/tribe-room.test.ts",
+    "check:readability": "node --test tests/text-readability.test.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."

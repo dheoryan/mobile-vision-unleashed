@@ -6,12 +6,11 @@ import {
   listMyFollowing,
   listMyLikes,
   listMyReposts,
-  listMyShares,
   reportContent,
   toggleFollow,
   toggleLike,
   toggleRepost,
-  toggleShare,
+  recordShare,
   listIncomingHellos,
   listOutgoingHellos,
   listMyMootProfiles,
@@ -24,7 +23,6 @@ import { useAuth } from "@/lib/auth-context";
 import type { FeedPost } from "@/lib/posts.functions";
 
 const LIKES_KEY = ["social", "likes"] as const;
-const SHARES_KEY = ["social", "shares"] as const;
 const REPOSTS_KEY = ["social", "reposts"] as const;
 const FOLLOWING_KEY = ["social", "following"] as const;
 const FOLLOW_COUNTS_KEY = ["social", "follow-counts"] as const;
@@ -194,51 +192,18 @@ export function useToggleLike() {
   });
 }
 
-export function useMyShares() {
-  const fn = useServerFn(listMyShares);
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: [...SHARES_KEY, user?.id ?? null],
-    queryFn: () => fn(),
-    enabled: !!user,
-    staleTime: 30_000,
-    select: (rows) => new Set(rows),
-  });
-}
-
-export function useToggleShare() {
-  const fn = useServerFn(toggleShare);
+export function useRecordShare() {
+  const fn = useServerFn(recordShare);
   const qc = useQueryClient();
-  const { user } = useAuth();
-  const key = [...SHARES_KEY, user?.id ?? null];
   return useMutation({
-    mutationFn: (postId: string) => fn({ data: { post_id: postId } }),
-    onMutate: async (postId) => {
-      await qc.cancelQueries({ queryKey: key });
-      const prev = qc.getQueryData<string[]>(key) ?? [];
-      const wasShared = prev.includes(postId);
-      const next = wasShared ? prev.filter((id) => id !== postId) : [...prev, postId];
-      qc.setQueryData(key, next);
-      patchFeedCount(qc, postId, "shares_count", wasShared ? -1 : 1);
-      return { prev, wasShared, postId };
-    },
-    onError: (_e, _i, ctx) => {
-      if (!ctx) return;
-      qc.setQueryData(key, ctx.prev);
-      patchFeedCount(qc, ctx.postId, "shares_count", ctx.wasShared ? 1 : -1);
-    },
+    mutationFn: (input: { post_id: string; request_id: string; channel: "native" | "clipboard" }) =>
+      fn({ data: input }),
+    retry: 1, // Reuses the same request id; a network retry cannot double count.
+    onSuccess: (result) =>
+      reconcileFeedCount(qc, result.post_id, "shares_count", result.shares_count),
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: SHARES_KEY });
-      qc.invalidateQueries({ queryKey: ["posts"] });
-    },
-    onSuccess: (result) => {
-      qc.setQueryData<string[]>(key, (cur) => {
-        const rows = cur ?? [];
-        return result.shared
-          ? Array.from(new Set([...rows, result.post_id]))
-          : rows.filter((id) => id !== result.post_id);
-      });
-      reconcileFeedCount(qc, result.post_id, "shares_count", result.shares_count);
+      void qc.invalidateQueries({ queryKey: ["posts"] });
+      void qc.invalidateQueries({ queryKey: ["shared-post"] });
     },
   });
 }

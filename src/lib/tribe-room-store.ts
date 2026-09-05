@@ -76,15 +76,15 @@ export function useSharePostToTribe() {
   const fn = useServerFn(sharePostToTribe);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { tribe_key: string; post_id: string; caption?: string | null }) =>
-      fn({ data: input }),
+    mutationFn: (input: {
+      tribe_key: string;
+      post_id: string;
+      request_id: string;
+      caption?: string | null;
+    }) => fn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["posts"] });
-      // See useSharePostToDM's identical note (messages-store.ts): without
-      // this, useMyShares' cache never learns the post is now shared, so a
-      // follow-up tap on the Share button reads it as unshared and
-      // un-shares what was just shared in-app.
-      qc.invalidateQueries({ queryKey: ["social", "shares"] });
+      qc.invalidateQueries({ queryKey: ["shared-post"] });
     },
   });
 }

@@ -172,7 +172,7 @@ export function PwaLifecycle() {
           <p className="text-sm font-semibold">
             {offline ? "You’re offline" : "MEUTUALS is ready to update"}
           </p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
             {offline
               ? "Live posts, chats, and Ventures will resume when your connection returns."
               : "Reload once to use the newest version."}

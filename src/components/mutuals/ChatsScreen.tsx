@@ -8,7 +8,7 @@ import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/csr/ChatCircleDots";
 import { AppHeader } from "./Shared";
 import { TribeMark } from "./TribeMark";
-import { TRIBES, tribeById, type TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, TRIBES, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -217,10 +217,10 @@ function Row({
           {meta && <span className="label-mono shrink-0 text-muted-foreground">{meta}</span>}
         </span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">{subtitle}</span>
-        {hint && <span className="label-mono mt-1 block text-accent">{hint}</span>}
+        {hint && <span className="label-mono mt-1 block text-accent-readable">{hint}</span>}
       </span>
       {!!unread && (
-        <span className="bg-meutuals-gradient flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold leading-none text-white">
+        <span className="bg-meutuals-gradient flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 font-mono text-xs font-bold leading-none text-white">
           {unread}
         </span>
       )}
@@ -340,7 +340,7 @@ export function ChatsScreen({
           >
             <HandIcon className="h-5 w-5" />
             {helloRequestCount > 0 && (
-              <span className="bg-meutuals-gradient absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white">
+              <span className="bg-meutuals-gradient absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-xs font-bold leading-none text-white">
                 {helloRequestCount > 9 ? "9+" : helloRequestCount}
               </span>
             )}
@@ -408,7 +408,7 @@ export function ChatsScreen({
               meta={tribeQuery.data?.lastAt ? timeAgoLabel(tribeQuery.data.lastAt) : null}
               hint={
                 tribeQuery.data?.memberCount
-                  ? `${tribeQuery.data.memberCount} members · everyone in your Tribe`
+                  ? `${tribeQuery.data.memberCount} ${tribeQuery.data.memberCount === 1 ? "member" : "members"} · everyone in your Tribe`
                   : "Everyone in your Tribe"
               }
               unread={tribeQuery.data?.unreadCount ?? null}
@@ -636,7 +636,11 @@ function MootsPickerSheet({
                   {group.tribe && <TribeMark tribe={group.tribe} size="xs" decorative={false} />}
                   <p
                     className="label-mono"
-                    style={{ color: group.tribe?.colorVar ?? "var(--muted-foreground)" }}
+                    style={{
+                      color: group.tribe
+                        ? readableAccentColor(group.tribe.colorVar)
+                        : "var(--muted-foreground)",
+                    }}
                   >
                     {group.tribe?.name ?? "Other"}
                   </p>
@@ -663,7 +667,7 @@ function MootsPickerSheet({
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold">{name}</p>
                             {m.handle && (
-                              <p className="truncate text-[11px] text-muted-foreground">
+                              <p className="truncate text-xs text-muted-foreground">
                                 @{m.handle}
                               </p>
                             )}

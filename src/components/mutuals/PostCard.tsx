@@ -1,3 +1,4 @@
+import { performExternalShare } from "@/lib/external-share";
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
@@ -11,7 +12,7 @@ import { RepeatIcon } from "@phosphor-icons/react/dist/csr/Repeat";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMySavedIds, useToggleSave } from "@/lib/posts-store";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
 import { PostOwnMenu } from "./PostOwnMenu";
@@ -21,8 +22,7 @@ import { QuotedCommentPreview, QuotedCommentUnavailable } from "./QuotedCommentP
 import {
   useSocial,
   useToggleLike,
-  useMyShares,
-  useToggleShare,
+  useRecordShare,
   useMyReposts,
   useToggleRepost,
 } from "@/lib/social-store";
@@ -133,7 +133,7 @@ function PostImageCarousel({
       </div>
       {images.length > 1 && (
         <>
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-semibold tabular-nums text-white">
             {index + 1}/{images.length}
           </span>
           <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
@@ -188,9 +188,8 @@ export function PostCard({
     plus: showPlusBadge(post.author?.plan),
   };
   const liked = social.liked.has(post.id);
-  const sharesQuery = useMyShares();
-  const shared = sharesQuery.data?.has(post.id) ?? false;
-  const toggleShare = useToggleShare();
+
+  const recordShare = useRecordShare();
   const savedIdsQuery = useMySavedIds();
   const saved = savedIdsQuery.data?.has(post.id) ?? false;
   const toggleSave = useToggleSave();
@@ -241,26 +240,23 @@ export function PostCard({
     if (post.id.startsWith("tmp-")) return;
     const url = `${window.location.origin}/p/${post.id}`;
 
-    // Prefer the OS share sheet - a copied link is the fallback, not the
-    // default, since it's the more effortful of the two for the person
-    // sharing and a weaker distribution channel for the app.
-    if (navigator.share) {
-      try {
-        await navigator.share({ url });
-        toggleShare.mutate(post.id);
-        return;
-      } catch (err) {
-        if ((err as Error)?.name === "AbortError") return; // picker dismissed, not a share
-        // any other failure falls through to the clipboard path below
-      }
-    }
-
-    toggleShare.mutate(post.id);
     try {
-      await navigator.clipboard?.writeText(url);
-      toast.success(shared ? "Unshared" : "Link copied");
-    } catch {
-      toast.success(shared ? "Unshared" : "Shared");
+      const channel = await performExternalShare(url, {
+        share: navigator.share ? (data) => navigator.share(data) : undefined,
+        copy: navigator.clipboard ? (value) => navigator.clipboard.writeText(value) : undefined,
+      });
+      if (!channel) return;
+      if (channel === "clipboard") toast.success("Link copied");
+      recordShare.mutate(
+        { post_id: post.id, request_id: crypto.randomUUID(), channel },
+        {
+          onError: () => toast.error("Shared, but the count couldn't update. Please refresh."),
+        },
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't share this post. Please try again.",
+      );
     }
   };
 
@@ -404,7 +400,7 @@ export function PostCard({
           <span
             className="label-mono rounded-full px-2 py-1"
             style={{
-              color: tribe.colorVar,
+              color: readableAccentColor(tribe.colorVar),
               backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 16%, transparent)`,
             }}
           >
@@ -458,7 +454,7 @@ export function PostCard({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading || editImages.length >= MAX_IMAGES}
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
             >
               {uploading ? (
                 <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
@@ -471,7 +467,7 @@ export function PostCard({
                   ? `Add more (${editImages.length}/${MAX_IMAGES})`
                   : "Add photo"}
             </button>
-            <span className="text-[10px] text-muted-foreground">{editText.length}/500</span>
+            <span className="text-xs text-muted-foreground">{editText.length}/500</span>
             <input
               ref={fileRef}
               type="file"
@@ -602,13 +598,11 @@ export function PostCard({
           }}
           className={cn(
             "flex items-center gap-1.5 rounded-md text-xs transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            shared ? "text-primary" : "hover:text-primary",
+            "hover:text-primary",
           )}
           aria-label="Share post"
-          aria-pressed={shared}
         >
-          <PaperPlaneTiltIcon className="h-4 w-4" weight={shared ? "fill" : "regular"} />{" "}
-          {post.shares_count}
+          <PaperPlaneTiltIcon className="h-4 w-4" weight="regular" /> {post.shares_count}
         </button>
       </footer>
 

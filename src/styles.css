@@ -26,6 +26,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-readable: color-mix(in oklab, var(--accent) 68%, var(--foreground));
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -285,8 +286,9 @@ html body [data-sonner-toaster][data-sonner-theme='dark'] {
   .text-balance { text-wrap: balance; }
   .label-mono {
     font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.16em;
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
   }
 

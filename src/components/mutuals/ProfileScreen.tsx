@@ -7,7 +7,7 @@ import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CrosshairIcon } from "@phosphor-icons/react/dist/csr/Crosshair";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { Link } from "@tanstack/react-router";
-import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
 import type { Profile } from "./Onboarding";
 import { AppHeader, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
@@ -175,7 +175,7 @@ export function ProfileScreen({
                   className="label-mono inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
                   style={{
                     backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
-                    color: tribe.colorVar,
+                    color: readableAccentColor(tribe.colorVar),
                   }}
                 >
                   <TribeMark tribe={tribe} size="xs" decorative={false} />
@@ -275,7 +275,7 @@ export function ProfileScreen({
                 {/* A percentage is a number with no verb — it nags without
                     telling you what to do. The bar still shows progress. */}
                 <span className="font-semibold">Finish your profile</span>
-                <span style={{ color: tribe.colorVar }}>
+                <span style={{ color: readableAccentColor(tribe.colorVar) }}>
                   {PROFILE_FIELD_COUNT - profileCompletion} left
                 </span>
               </div>
@@ -350,7 +350,7 @@ export function ProfileScreen({
                       : p,
                   )
                 }
-                className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-[11px] text-muted-foreground transition-colors hover:text-foreground active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="mt-3 w-full rounded-xl border border-dashed border-border py-2 text-xs text-muted-foreground transition-colors hover:text-foreground active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Demo: toggle plan to {isPlus ? "Free" : "Plus"}
               </button>
@@ -551,12 +551,12 @@ function CityField({ value, onChange }: { value: string; onChange: (v: string) =
           type="button"
           onClick={refresh}
           disabled={refreshing}
-          className="shrink-0 rounded text-[11px] font-semibold text-primary transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+          className="shrink-0 rounded text-xs font-semibold text-primary transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {refreshing ? "Updating…" : "Update"}
         </button>
       </div>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
         Tap Update to refresh it now - it also refreshes automatically each time you open MEUTUALS.
         Other members only ever see a distance band, never your exact coordinates.
       </p>
@@ -590,7 +590,7 @@ function TagGroup({
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
+            className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary active:scale-95"
           >
             +{hiddenCount} more
           </button>
@@ -604,7 +604,7 @@ function ProfileTag({ label, accentColor }: { label: string; accentColor?: strin
   return (
     <span
       className={cn(
-        "rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+        "rounded-full border px-2.5 py-1 text-xs font-semibold",
         !accentColor && "border-transparent bg-secondary text-foreground",
       )}
       style={
@@ -612,7 +612,7 @@ function ProfileTag({ label, accentColor }: { label: string; accentColor?: strin
           ? {
               borderColor: `color-mix(in oklab, ${accentColor} 45%, transparent)`,
               backgroundColor: `color-mix(in oklab, ${accentColor} 18%, transparent)`,
-              color: accentColor,
+              color: readableAccentColor(accentColor),
             }
           : undefined
       }
@@ -1194,8 +1194,8 @@ function Input({
         {hint && (
           <span
             className={cn(
-              "text-[10px]",
-              hintTone === "success" && "text-accent",
+              "text-xs",
+              hintTone === "success" && "text-accent-readable",
               hintTone === "danger" && "text-destructive",
               hintTone === "muted" && "text-muted-foreground",
             )}
@@ -1253,7 +1253,7 @@ function ProfileChoiceGroup({
     <fieldset>
       <div className="flex items-center justify-between gap-3">
         <legend className="font-display text-sm font-bold text-foreground">{label}</legend>
-        {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {visibleOptions.map((option) => {
@@ -1288,7 +1288,7 @@ function ProfileChoiceGroup({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
         >
           {expanded ? "Show less" : `Show ${options.length - maxVisible} more`}
           <CaretDownIcon className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />

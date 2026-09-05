@@ -150,7 +150,7 @@ export function EnablePushBanner() {
           <button
             onClick={enable}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-meutuals-gradient px-3 py-1.5 text-[11px] font-semibold text-white transition-[filter] hover:brightness-110 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-meutuals-gradient px-3 py-1.5 text-xs font-semibold text-white transition-[filter] hover:brightness-110 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
           >
             {loading ? (
               <SpinnerGapIcon className="h-3 w-3 animate-spin" />
@@ -161,7 +161,7 @@ export function EnablePushBanner() {
           </button>
           <button
             onClick={dismiss}
-            className="rounded-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Not now
           </button>
@@ -266,7 +266,7 @@ export function PushSettingsRow() {
             </p>
           </div>
         </div>
-        <p className="border-t border-border px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="border-t border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
           On iPhone or iPad: tap Share → Add to Home Screen.
         </p>
       </div>
@@ -382,7 +382,7 @@ export function PushSettingsRow() {
           <summary className="cursor-pointer list-none text-xs font-semibold text-primary">
             How to unblock notifications
           </summary>
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
             Open this app’s notification permissions, choose Allow, then return here and try again.
           </p>
         </details>
@@ -452,7 +452,7 @@ export function PushSettingsRow() {
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold">Push notifications</p>
             {status === "active" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.12em] text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> On
               </span>
             )}

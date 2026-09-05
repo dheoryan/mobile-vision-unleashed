@@ -32,7 +32,7 @@ export function VentureSearching({ label = "Looking for plans near you…" }: { 
         />
       </div>
       <p className="mt-4 text-xs font-semibold text-muted-foreground">{label}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground/70">Ventures appear as people post them.</p>
+      <p className="mt-1 text-xs text-muted-foreground/70">Ventures appear as people post them.</p>
     </div>
   );
 }

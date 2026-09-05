@@ -740,7 +740,7 @@ function RoleChoiceCard({
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{title}</span>
         <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{body}</span>
-        <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary">
+        <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
           {title === "Looking" ? "Browse Ventures" : "Create Venture"}
           <ArrowRightIcon className="h-3.5 w-3.5" />
         </span>
@@ -869,12 +869,12 @@ function LookView({
           <button
             type="button"
             onClick={onOpenMine}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <TicketIcon className="h-3.5 w-3.5 text-primary" />
             My Ventures
             {joinedVentures.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-xs font-bold text-white">
                 {joinedVentures.length}
               </span>
             )}
@@ -919,7 +919,7 @@ function LookView({
           </span>
           <span className="min-w-0">
             <span className="block text-xs font-semibold">See how far each Venture is</span>
-            <span className="block text-[11px] leading-snug text-muted-foreground">
+            <span className="block text-xs leading-snug text-muted-foreground">
               Uses your approximate area privately. It does not make you discoverable.
             </span>
           </span>
@@ -1049,7 +1049,7 @@ function HostView({
               }
             }}
             className={cn(
-              "inline-flex min-h-11 items-center gap-1 rounded-full px-3.5 text-[11px] font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "inline-flex min-h-11 items-center gap-1 rounded-full px-3.5 text-xs font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               formOpen
                 ? "border border-border text-muted-foreground transition-colors hover:text-foreground"
                 : "bg-meutuals-gradient text-white transition-[transform,filter] hover:brightness-110",
@@ -1093,7 +1093,7 @@ function HostView({
                   nothing to flag, so the badge only appears once there's an
                   actual count to carry. */}
               {tab === "active" && count > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-[9px] font-bold text-white">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-xs font-bold text-white">
                   {count}
                 </span>
               )}
@@ -1565,12 +1565,12 @@ function HostForm({
           />
           <section className="space-y-2 border-t border-border pt-4">
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent-readable">
                 <LockIcon className="h-4 w-4" />
               </span>
               <span>
                 <span className="block text-sm font-semibold">After acceptance</span>
-                <span className="block text-[11px] leading-relaxed text-muted-foreground">
+                <span className="block text-xs leading-relaxed text-muted-foreground">
                   Add the exact entrance, table, or meeting point. Only you and accepted members can
                   read it.
                 </span>
@@ -1586,7 +1586,7 @@ function HostForm({
                 className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
               />
             </label>
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Avoid private home addresses.</span>
               <span>{arrivalDetails.length}/280</span>
             </div>
@@ -1605,7 +1605,7 @@ function HostForm({
           {draft && (draft.timeOptions?.length ?? 0) > 0 && (
             <FieldLabel label="From the Tribe plan">
               <div className="mt-1 grid gap-2 border-l-2 border-primary/50 pl-3">
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   Availability is a guide. Confirm one exact start before this Venture goes live.
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -1629,7 +1629,7 @@ function HostForm({
                       >
                         <span className="block font-semibold">{option.label}</span>
                         <span
-                          className={cn("font-mono text-[9px]", !active && "text-muted-foreground")}
+                          className={cn("font-mono text-xs", !active && "text-muted-foreground")}
                         >
                           {option.votes} available · starts at {optionTime}
                         </span>
@@ -1663,7 +1663,7 @@ function HostForm({
                   className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
                 />
               </div>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 {dayChoiceLabel(day)}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -1726,7 +1726,7 @@ function HostForm({
               {/* Show the computed end. A duration is easier to pick than a second
                   clock, but only if you can see what it resolved to — otherwise
                   "all evening" quietly becomes a Venture that ends at 3am. */}
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 {resolvedDurationMins
                   ? endsAtLabel(day, time, resolvedDurationMins)
                   : "End must be after the start · earlier clocks mean next day"}
@@ -1788,7 +1788,7 @@ function HostForm({
               />
             </div>
             {audienceLocked && (
-              <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                 Locked — people have already applied. Narrowing the audience now would cut them out
                 of a Venture they already joined.
               </p>
@@ -1825,7 +1825,7 @@ function HostForm({
                     type="button"
                     onClick={() => toggleIntent(intent)}
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white",
+                      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-white",
                       scope === "all" && "bg-meutuals-gradient",
                     )}
                     style={
@@ -1901,7 +1901,7 @@ function HostForm({
               rows={3}
               className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
             />
-            <div className="mt-1 flex items-start justify-between gap-3 text-[10px] text-muted-foreground">
+            <div className="mt-1 flex items-start justify-between gap-3 text-xs text-muted-foreground">
               <span>Don't post a home address, phone number, or exact private location.</span>
               <span className="shrink-0">{note.length}/280</span>
             </div>
@@ -1922,7 +1922,7 @@ function HostForm({
                   ) : (
                     <ImageIcon className="h-5 w-5" />
                   )}
-                  <span className="text-[11px] font-semibold">
+                  <span className="text-xs font-semibold">
                     {uploading ? "Uploading…" : "Add a photo of the place"}
                   </span>
                 </span>
@@ -1944,7 +1944,7 @@ function HostForm({
                   setImagePath(null);
                   setImagePreview(null);
                 }}
-                className="mt-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                className="mt-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
               >
                 Remove photo
               </button>
@@ -2228,7 +2228,7 @@ function InviteConnectedUsersPanel({
             Pick someone from your Tribe, or someone you're Moots with.
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+        <span className="shrink-0 rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">
           {venture.filled_slots}/{venture.max_slots}
         </span>
       </div>
@@ -2317,7 +2317,7 @@ function InviteCandidateRow({
           <p className="truncate text-xs font-semibold">{displayName(candidate)}</p>
           <RelationshipPill relationship={candidate.relationship} />
         </div>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
           {candidate.handle ? `@${candidate.handle}` : candidate.city || "Connected"}
         </p>
       </div>
@@ -2326,7 +2326,7 @@ function InviteCandidateRow({
         onClick={onInvite}
         disabled={disabled}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           disabled
             ? "border border-border text-muted-foreground"
             : "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -2355,7 +2355,7 @@ function RelationshipPill({
         ? "Moot"
         : "Tribe";
   return (
-    <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+    <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
       {label}
     </span>
   );
@@ -2394,7 +2394,7 @@ function VentureCardHeader({
             <span className="truncate text-xs font-semibold">{displayName(host)}</span>
             {hostTribe && <TribeBadge tribe={hostTribe} />}
             {host?.city && (
-              <span className="truncate text-[11px] text-muted-foreground">{host.city}</span>
+              <span className="truncate text-xs text-muted-foreground">{host.city}</span>
             )}
           </div>
         )}
@@ -2404,7 +2404,7 @@ function VentureCardHeader({
           <p className="text-sm font-bold">
             {venture.filled_slots}/{venture.max_slots}
           </p>
-          <p className="text-[10px] text-muted-foreground">slots</p>
+          <p className="text-xs text-muted-foreground">slots</p>
         </div>
         {!hideHost && (
           <SafetyMenu
@@ -2424,12 +2424,12 @@ function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hid
     <div className="mt-3 space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {venture.intents.slice(0, 5).map((intent) => (
-          <span key={intent} className="label-mono rounded-full bg-accent/15 px-2 py-1 text-accent">
+          <span key={intent} className="label-mono rounded-full bg-accent/15 px-2 py-1 text-accent-readable">
             {intent}
           </span>
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {timingLabel(venture) && (
           <span className="inline-flex items-center gap-1">
             <ClockIcon className="h-3.5 w-3.5" /> {timingLabel(venture)}
@@ -2571,7 +2571,7 @@ function StatusPill({ status }: { status: string }) {
     status === "open" || status === "accepted"
       ? "border-primary/40 bg-primary/10 text-primary"
       : status === "pending" || status === "invited"
-        ? "border-accent/40 bg-accent/10 text-accent"
+        ? "border-accent/40 bg-accent/10 text-accent-readable"
         : "border-border bg-secondary text-muted-foreground";
   return <span className={cn("label-mono rounded-full border px-2 py-1", color)}>{label}</span>;
 }
@@ -2589,7 +2589,7 @@ function FieldLabel({
     <div className="block">
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
         <span className="label-mono text-muted-foreground">{label}</span>
-        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
       {children}
     </div>
@@ -2639,7 +2639,7 @@ function FormRow({
           {value}
         </span>
         {hint && (
-          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{hint}</span>
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{hint}</span>
         )}
       </span>
       <CaretRightIcon className="h-4 w-4 text-muted-foreground" />
@@ -2769,7 +2769,7 @@ function ChoiceButton({
       {body && (
         <p
           className={cn(
-            "mt-0.5 line-clamp-2 text-[11px]",
+            "mt-0.5 line-clamp-2 text-xs",
             active && (accentColor || gradient) ? "text-white/80" : "text-muted-foreground",
           )}
         >

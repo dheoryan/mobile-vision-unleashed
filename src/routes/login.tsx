@@ -71,9 +71,9 @@ function LoginPage() {
   return (
     <div className="bg-habitat flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <img src={logo} alt="Meutuals" className="mx-auto h-16 w-16 rounded-2xl" />
-        <p className="label-mono text-muted-foreground mt-4 text-center">Meutuals</p>
-        <h1 className="mt-2 text-center font-display text-3xl font-bold">Log in to Meutuals</h1>
+        <img src={logo} alt="MEUTUALS" className="mx-auto h-16 w-16 rounded-2xl" />
+        <p className="label-mono text-muted-foreground mt-4 text-center">MEUTUALS</p>
+        <h1 className="mt-2 text-center font-display text-3xl font-bold">Log in to MEUTUALS</h1>
         <form onSubmit={submit} className="mt-8 space-y-3">
           <input
             type="email"
@@ -98,7 +98,7 @@ function LoginPage() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <div className="my-4 flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           OR
           <span className="h-px flex-1 bg-border" />

@@ -59,7 +59,7 @@ export function SharedPostCard({
             className="aspect-[16/11] w-full object-cover"
           />
           {post.images.length > 1 && (
-            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-semibold text-white">
               +{post.images.length - 1} more
             </span>
           )}
@@ -68,7 +68,7 @@ export function SharedPostCard({
       <div className="space-y-1 px-3 py-2.5">
         <div className="flex items-center gap-2">
           <span
-            className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px]"
+            className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs"
             style={{ backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 28%, transparent)` }}
           >
             {isImageAvatar ? (
@@ -78,7 +78,7 @@ export function SharedPostCard({
             )}
           </span>
           <span className="truncate text-xs font-semibold">{name}</span>
-          <span className="shrink-0 text-[10px] text-muted-foreground">
+          <span className="shrink-0 text-xs text-muted-foreground">
             {timeAgoLabel(post.created_at)}
           </span>
           <CaretRightIcon className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />

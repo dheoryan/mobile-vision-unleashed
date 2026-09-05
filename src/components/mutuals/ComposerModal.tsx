@@ -347,7 +347,7 @@ export function ComposerModal({
                 Camera
               </button>
             </div>
-            <span className="text-[11px] text-muted-foreground">{text.length}/500</span>
+            <span className="text-xs text-muted-foreground">{text.length}/500</span>
             <input
               ref={fileRef}
               type="file"

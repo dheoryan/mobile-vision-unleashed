@@ -160,7 +160,7 @@ export function HelloModal({
             <MagicWandIcon className="h-3.5 w-3.5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-primary">
               Suggested opener
             </span>
             <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
@@ -179,7 +179,7 @@ export function HelloModal({
         className={cn("mt-3 flex items-center gap-2", isFree ? "justify-end" : "justify-between")}
       >
         {!isFree && (
-          <span className="inline-flex min-w-0 items-center rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          <span className="inline-flex min-w-0 items-center rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
             <span className="truncate">
               {hellosLeft === undefined
                 ? "Tribemates and active Venture co-members don't count against your monthly Hellos"
@@ -187,7 +187,7 @@ export function HelloModal({
             </span>
           </span>
         )}
-        <span className="shrink-0 text-[11px] text-muted-foreground">{message.length}/280</span>
+        <span className="shrink-0 text-xs text-muted-foreground">{message.length}/280</span>
       </div>
 
       <button
@@ -204,7 +204,7 @@ export function HelloModal({
         )}
       </button>
       {hellosLeft === 0 && !isFree && (
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+        <p className="mt-2 text-center text-xs text-muted-foreground">
           You've used this month's Hellos. They reset at the start of next month.
         </p>
       )}

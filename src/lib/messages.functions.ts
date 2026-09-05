@@ -248,6 +248,7 @@ export const sharePostToDM = createServerFn({ method: "POST" })
       .object({
         recipient_id: z.string().uuid(),
         post_id: z.string().uuid(),
+        request_id: z.string().uuid(),
         caption: z.string().trim().max(2000).nullish(),
       })
       .parse(input),
@@ -279,35 +280,35 @@ export const sharePostToDM = createServerFn({ method: "POST" })
     }
 
     const { data: row, error } = await messagesTable(supabase)
-      .insert({
-        sender_id: userId,
-        recipient_id: data.recipient_id,
-        content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
-        shared_post_id: data.post_id,
-      })
+      .upsert(
+        {
+          id: data.request_id,
+          sender_id: userId,
+          recipient_id: data.recipient_id,
+          content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
+          shared_post_id: data.post_id,
+        },
+        { onConflict: "id", ignoreDuplicates: true },
+      )
       .select(MESSAGE_COLS)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
 
-    // Counts this the same as the "Share" button's own native-share/copy-link
-    // path (toggleShare in social.functions.ts): a `shares` row per person
-    // who has ever shared the post, trigger-maintained into shares_count.
-    // Upsert with ignoreDuplicates rather than toggleShare's delete-if-exists
-    // dance - sharing to a second person shouldn't undo the first share, and
-    // this never needs to turn the count back off. Best-effort: a failure
-    // here shouldn't roll back a message that already sent.
-    await supabase
-      .from("shares")
-      .upsert(
-        { post_id: data.post_id, user_id: userId },
-        { onConflict: "user_id,post_id", ignoreDuplicates: true },
-      )
-      .then(({ error: shareError }) => {
-        if (shareError) console.warn("[sharePostToDM] shares upsert failed", shareError.message);
-      });
+    const saved =
+      row ??
+      (await messagesTable(supabase).select(MESSAGE_COLS).eq("id", data.request_id).single()).data;
+    if (
+      !saved ||
+      saved.sender_id !== userId ||
+      saved.recipient_id !== data.recipient_id ||
+      saved.shared_post_id !== data.post_id
+    ) {
+      throw new Error("This share request no longer matches. Close the picker and try again.");
+    }
+    // The chat INSERT trigger records the share event atomically.
 
     return {
-      ...(row as Omit<DMMessage, "reactions" | "my_reactions">),
+      ...(saved as Omit<DMMessage, "reactions" | "my_reactions">),
       reactions: emptyChatReactions(),
       my_reactions: [],
     };

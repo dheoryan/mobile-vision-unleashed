@@ -205,14 +205,14 @@ export function VenuePicker({
             <span className="truncate">{value.host_label}</span>
             {value.google_place_id && (
               <SealCheckIcon
-                className="h-3.5 w-3.5 shrink-0 text-accent"
+                className="h-3.5 w-3.5 shrink-0 text-accent-readable"
                 aria-label="Verified place"
               />
             )}
           </p>
-          <p className="truncate text-[11px] text-muted-foreground">{value.area}</p>
+          <p className="truncate text-xs text-muted-foreground">{value.area}</p>
           {!value.google_place_id && (
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Host-named place · map optional
             </p>
           )}
@@ -242,7 +242,7 @@ export function VenuePicker({
           <PencilLineIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <div>
             <p className="text-xs font-semibold">Name the place your way</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
               Add the place and its area exactly how you would tell a friend. A map pin is optional.
             </p>
           </div>
@@ -267,7 +267,7 @@ export function VenuePicker({
             placeholder="Kemang, Jakarta Selatan"
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
-          <span className="text-[10px] leading-relaxed text-muted-foreground">
+          <span className="text-xs leading-relaxed text-muted-foreground">
             This is what people use to decide whether the trip works for them.
           </span>
         </label>
@@ -309,7 +309,7 @@ export function VenuePicker({
               <MapPinIcon className="h-3.5 w-3.5" />
               Find a verified pin with Google Maps
             </button>
-            <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
               Adds distance guidance and an optional map for accepted participants.
             </p>
           </>
@@ -332,9 +332,9 @@ export function VenuePicker({
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold">{chosen.suggestion}</p>
               {chosen.area && (
-                <p className="truncate text-[11px] text-muted-foreground">{chosen.area}</p>
+                <p className="truncate text-xs text-muted-foreground">{chosen.area}</p>
               )}
-              <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-accent">
+              <p className="mt-1 font-mono text-xs uppercase tracking-widest text-accent-readable">
                 Matched on Google
               </p>
             </div>
@@ -344,7 +344,7 @@ export function VenuePicker({
         {!chosen.place_id && (
           <div className="flex items-start gap-2 rounded-xl border border-dashed border-border p-3">
             <PencilLineIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               An unlisted place. It works exactly like any other Venture — it just has no map pin,
               so no distance shows on the board.
             </p>
@@ -370,7 +370,7 @@ export function VenuePicker({
             placeholder={chosen.area || "Kemang, Jakarta Selatan"}
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
-          <p className="text-[10px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Your words, not Google's. This is the line people read on the board when they are
             deciding whether it is near enough to bother.
           </p>
@@ -412,14 +412,14 @@ export function VenuePicker({
       <div className="flex items-start justify-between gap-3 pb-1">
         <div>
           <p className="text-xs font-semibold">Find a verified pin</p>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
             Optional—use this when distance and map guidance will help the group.
           </p>
         </div>
         <button
           type="button"
           onClick={useFreeText}
-          className="min-h-9 shrink-0 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="min-h-9 shrink-0 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Enter manually
         </button>
@@ -439,7 +439,7 @@ export function VenuePicker({
       </div>
 
       {error && (
-        <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-[11px] leading-relaxed text-destructive">
+        <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs leading-relaxed text-destructive">
           {error}
         </p>
       )}
@@ -458,14 +458,14 @@ export function VenuePicker({
             >
               <span className="truncate text-xs font-semibold">{row.primary}</span>
               {row.secondary && (
-                <span className="truncate text-[11px] text-muted-foreground">{row.secondary}</span>
+                <span className="truncate text-xs text-muted-foreground">{row.secondary}</span>
               )}
             </button>
           ))}
         </div>
       )}
 
-      <p className="text-right text-[10px] text-muted-foreground">Places by Google</p>
+      <p className="text-right text-xs text-muted-foreground">Places by Google</p>
     </div>
   );
 }

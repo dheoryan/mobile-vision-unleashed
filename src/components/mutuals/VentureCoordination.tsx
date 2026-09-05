@@ -133,7 +133,7 @@ export function VentureCoordinationPanel({
         <div className="mt-3 flex items-start gap-2 border-t border-border/70 pt-3">
           <PushPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
               Host update
             </p>
             {coordination?.announcement ? (
@@ -168,7 +168,7 @@ export function VentureCoordinationPanel({
                 type="button"
                 onClick={() => onSetStatus(null)}
                 disabled={statusPending}
-                className="min-h-9 rounded px-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="min-h-9 rounded px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 Clear
               </button>
@@ -186,7 +186,7 @@ export function VentureCoordinationPanel({
                   disabled={statusPending}
                   aria-pressed={selected}
                   className={cn(
-                    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-3 text-[11px] font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+                    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
                     selected
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground",
@@ -236,7 +236,7 @@ export function VentureCoordinationPanel({
               placeholder="Meet beside the front counter. I’ll be wearing a green jacket."
               className="mt-2 w-full resize-none rounded-2xl border border-border bg-background p-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
-            <span className="mt-1 block text-right text-[10px] text-muted-foreground">
+            <span className="mt-1 block text-right text-xs text-muted-foreground">
               {announcementDraft.length}/280
             </span>
           </label>

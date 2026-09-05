@@ -267,7 +267,7 @@ export function PushPromptModal() {
                 key={i}
                 className="flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/40 p-3"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   {i + 1}
                 </span>
                 <span className="flex items-start gap-2 text-xs text-foreground">
@@ -344,13 +344,13 @@ export function PushPromptModal() {
                 </span>
                 <CaretDownIcon className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
-              <p className="mt-2 text-[11px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Optional — installing gives a fullscreen app and more reliable notifications.
               </p>
               <ol className="mt-2 space-y-2">
                 {androidSteps.map((s, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-foreground">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {i + 1}
                     </span>
                     <span className="flex items-start gap-2">

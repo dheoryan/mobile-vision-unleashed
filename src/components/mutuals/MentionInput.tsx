@@ -81,7 +81,7 @@ export function MentionSuggestions({
                 {p.display_name || "Someone"}
               </span>
               {p.handle && (
-                <span className="block truncate text-[11px] text-muted-foreground">
+                <span className="block truncate text-xs text-muted-foreground">
                   @{p.handle}
                 </span>
               )}

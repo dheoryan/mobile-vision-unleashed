@@ -365,17 +365,17 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold">{venture.title}</p>
-            <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-primary">
+            <span className="rounded-full border border-primary/40 px-2 py-0.5 text-xs uppercase tracking-[0.14em] text-primary">
               {isComplete ? "Memory" : "Party"}
             </span>
           </div>
           <p className="truncate text-xs text-muted-foreground">{preview}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {last ? timeAgo(last.created_at) : timeAgo(venture.created_at)}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {Math.max(venture.filled_slots, 1)}/{venture.max_slots}
           </span>
         </div>
@@ -417,7 +417,7 @@ function ThreadRow({ t, onOpen }: { t: DMThreadSummary; onOpen: () => void }) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {timeAgo(t.last_message.created_at)}
           </span>
           {!isMine && t.unread_count > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
@@ -512,7 +512,7 @@ function VentureMootPerson({
     action = <SpinnerGapIcon className="h-4 w-4 animate-spin text-muted-foreground" />;
   } else if (status === "accepted") {
     action = (
-      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500">
         <CheckIcon className="h-3.5 w-3.5" /> Moots
       </span>
     );
@@ -522,7 +522,7 @@ function VentureMootPerson({
         type="button"
         onClick={acceptMoot}
         disabled={busy}
-        className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+        className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
       >
         {accepting ? (
           <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
@@ -533,9 +533,9 @@ function VentureMootPerson({
       </button>
     );
   } else if (status === "pending") {
-    action = <span className="text-[11px] font-semibold text-primary">Requested</span>;
+    action = <span className="text-xs font-semibold text-primary">Requested</span>;
   } else if (status === "declined") {
-    action = <span className="text-[11px] text-muted-foreground">Unavailable</span>;
+    action = <span className="text-xs text-muted-foreground">Unavailable</span>;
   } else {
     const noRequestsLeft = contact.data?.hellos_left_this_month === 0;
     action = (
@@ -544,7 +544,7 @@ function VentureMootPerson({
         onClick={requestMoot}
         disabled={busy || noRequestsLeft}
         title={noRequestsLeft ? "Your Hello allowance resets next month." : undefined}
-        className="inline-flex min-h-8 items-center gap-1 rounded-full border border-primary/50 px-3 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+        className="inline-flex min-h-8 items-center gap-1 rounded-full border border-primary/50 px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
       >
         {requesting ? (
           <SpinnerGapIcon className="h-3.5 w-3.5 animate-spin" />
@@ -561,7 +561,7 @@ function VentureMootPerson({
       <Avatar value={avatarOf(person)} size={9} tribeColor={tribe.colorVar} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-semibold">{displayVentureName(person)}</p>
-        <p className="truncate text-[10px] text-muted-foreground">{tribe.name}</p>
+        <p className="truncate text-xs text-muted-foreground">{tribe.name}</p>
       </div>
       <div className="shrink-0">{action}</div>
     </li>
@@ -822,7 +822,7 @@ function VenturePartyThread({
                 type="button"
                 onClick={() => setParticipantsOpen(true)}
                 aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
-                className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-xs text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span>{isComplete ? "Venture memory" : "Party chat"}</span>
                 <span aria-hidden="true">·</span>
@@ -876,7 +876,7 @@ function VenturePartyThread({
                         setText(prompt.text);
                         requestAnimationFrame(() => inputRef.current?.focus());
                       }}
-                      className="min-h-11 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="min-h-11 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {prompt.label}
                     </button>
@@ -897,7 +897,7 @@ function VenturePartyThread({
                 return (
                   <div key={m.id} className="my-3 flex items-center gap-3 px-2" role="status">
                     <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
-                    <p className="max-w-[72%] text-center text-[10px] leading-relaxed text-muted-foreground">
+                    <p className="max-w-[72%] text-center text-xs leading-relaxed text-muted-foreground">
                       {m.content} · {shortTime(m.created_at)}
                     </p>
                     <span className="h-px flex-1 bg-border/70" aria-hidden="true" />
@@ -951,7 +951,7 @@ function VenturePartyThread({
                         return (
                           <div className="min-w-0">
                             {!mine && groupStart && (
-                              <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
+                              <p className="mb-1 px-1 text-xs font-medium text-muted-foreground">
                                 {senderName}
                               </p>
                             )}
@@ -985,7 +985,7 @@ function VenturePartyThread({
                       return (
                         <div className="min-w-0">
                           {!mine && groupStart && (
-                            <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
+                            <p className="mb-1 px-1 text-xs font-medium text-muted-foreground">
                               {senderName}
                             </p>
                           )}
@@ -1047,7 +1047,7 @@ function VenturePartyThread({
                               <p className="whitespace-pre-wrap leading-relaxed">
                                 {messageBody}
                                 {m.edited_at && (
-                                  <span className="ml-1.5 text-[10px] italic opacity-70">
+                                  <span className="ml-1.5 text-xs italic opacity-70">
                                     (edited)
                                   </span>
                                 )}
@@ -1095,7 +1095,7 @@ function VenturePartyThread({
                           {groupEnd && (
                             <p
                               className={cn(
-                                "mt-1 px-1 text-[10px] text-muted-foreground",
+                                "mt-1 px-1 text-xs text-muted-foreground",
                                 mine && "text-right",
                               )}
                             >
@@ -1126,7 +1126,7 @@ function VenturePartyThread({
         {isComplete ? (
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
             <p className="text-xs font-semibold">This party chat is now a memory.</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Add someone as a Moot above to keep talking one-to-one.
             </p>
           </div>
@@ -1369,7 +1369,7 @@ function Thread({
                 <p className="truncate text-sm font-semibold">
                   {other?.display_name?.trim() || "Someone"}
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {tribe.name}
                   {other?.city ? ` · ${other.city}` : ""}
                 </p>
@@ -1510,7 +1510,7 @@ function Thread({
                             <p className="whitespace-pre-wrap break-words">
                               {messageBody}
                               {m.edited_at && (
-                                <span className="ml-1.5 text-[10px] italic opacity-70">
+                                <span className="ml-1.5 text-xs italic opacity-70">
                                   (edited)
                                 </span>
                               )}
@@ -1569,7 +1569,7 @@ function Thread({
                   {groupEnd && (
                     <p
                       className={cn(
-                        "mt-1 px-1 text-[10px] text-muted-foreground",
+                        "mt-1 px-1 text-xs text-muted-foreground",
                         mine && "text-right",
                       )}
                     >

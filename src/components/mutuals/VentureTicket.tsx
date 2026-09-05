@@ -105,7 +105,7 @@ export function VentureTicket({
             <span className="my-1.5 h-px w-6 bg-border" aria-hidden />
             <span className="font-mono text-[13px] font-bold">{stub.time}</span>
             {duration && (
-              <span className="font-mono text-[9px] text-muted-foreground">{duration}</span>
+              <span className="font-mono text-xs text-muted-foreground">{duration}</span>
             )}
           </div>
         )}
@@ -133,14 +133,14 @@ export function VentureTicket({
               <span className="truncate">{venture.venue.host_label}</span>
               {venture.venue.google_place_id && (
                 <SealCheckIcon
-                  className="h-3 w-3 shrink-0 text-accent"
+                  className="h-3 w-3 shrink-0 text-accent-readable"
                   aria-label="Verified place"
                 />
               )}
             </p>
           )}
 
-          <p className="flex items-center gap-1 font-mono text-[9.5px] uppercase tracking-wider text-muted-foreground">
+          <p className="flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-muted-foreground">
             <UsersIcon className="h-2.5 w-2.5" />
             {venture.filled_slots} of {venture.max_slots} going
           </p>
@@ -153,7 +153,7 @@ export function VentureTicket({
                 type="button"
                 onClick={onDeclineInvite}
                 disabled={busy}
-                className="flex-1 rounded-xl border border-border py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="flex-1 rounded-xl border border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 <XIcon className="mr-1 inline h-3 w-3" /> Pass
               </button>
@@ -161,7 +161,7 @@ export function VentureTicket({
                 type="button"
                 onClick={onAcceptInvite}
                 disabled={busy}
-                className="inline-flex flex-[1.4] items-center justify-center gap-1 rounded-xl bg-primary py-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="inline-flex flex-[1.4] items-center justify-center gap-1 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 {busy ? (
                   <SpinnerGapIcon className="h-3 w-3 animate-spin" />
@@ -175,7 +175,7 @@ export function VentureTicket({
             <button
               type="button"
               onClick={onOpenChat}
-              className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-meutuals-gradient py-2.5 text-[11px] font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-meutuals-gradient py-2.5 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <ChatCircleIcon className="h-3.5 w-3.5" /> Open party chat
             </button>
@@ -184,7 +184,7 @@ export function VentureTicket({
               type="button"
               onClick={() => onLeave(venture.my_application!.id)}
               disabled={busy}
-              className="mt-1 self-start rounded text-[11px] font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+              className="mt-1 self-start rounded text-xs font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
               Withdraw my request
             </button>
@@ -194,7 +194,7 @@ export function VentureTicket({
             // host's decision as a self-withdrawal. Stamp above already
             // names the status; this is just the absence of any action.
             venture.my_application && (
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {status === "declined" ? "Request declined" : "Request withdrawn"}
               </p>
             )
@@ -285,7 +285,7 @@ export function VentureTicketDetail({
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{host.display_name}</span>
                 {host.city && (
-                  <span className="block truncate text-[11px] text-muted-foreground">
+                  <span className="block truncate text-xs text-muted-foreground">
                     {host.city}
                   </span>
                 )}
@@ -304,17 +304,17 @@ export function VentureTicketDetail({
                   <span className="truncate">{venture.venue.host_label}</span>
                   {GOOGLE_PLACES_ENABLED && venture.venue.google_place_id && (
                     <SealCheckIcon
-                      className="h-3.5 w-3.5 shrink-0 text-accent"
+                      className="h-3.5 w-3.5 shrink-0 text-accent-readable"
                       aria-label="Verified place"
                     />
                   )}
                 </p>
                 {venture.venue.area && (
-                  <p className="truncate text-[11px] text-muted-foreground">{venture.venue.area}</p>
+                  <p className="truncate text-xs text-muted-foreground">{venture.venue.area}</p>
                 )}
                 {accepted && venture.private_venue ? (
                   <div className="mt-3 border-t border-border/70 pt-3">
-                    <p className="mb-1 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-accent">
+                    <p className="mb-1 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-accent-readable">
                       <ShieldCheckIcon className="h-3 w-3" /> Accepted members only
                     </p>
                     <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/85">
@@ -322,12 +322,12 @@ export function VentureTicketDetail({
                     </p>
                   </div>
                 ) : accepted ? (
-                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                     The host has not added private arrival details yet. Check the party chat before
                     leaving.
                   </p>
                 ) : (
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <ShieldCheckIcon className="h-3 w-3" /> Exact arrival details unlock after
                     acceptance.
                   </p>
@@ -356,14 +356,14 @@ export function VentureTicketDetail({
                       <MapTrifoldIcon className="h-4 w-4" />
                     </span>
                     <span className="text-xs font-semibold">Load the meeting map</span>
-                    <span className="text-[10px] leading-relaxed text-muted-foreground">
+                    <span className="text-xs leading-relaxed text-muted-foreground">
                       Loads Google Maps only when you ask. Google receives your IP address.
                     </span>
                   </button>
                 ) : (
                   <div className="flex min-h-24 flex-col items-center justify-center gap-2 px-5 py-4 text-center">
                     <MapTrifoldIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Map preview is unavailable. Open the place in Maps instead.
                     </span>
                   </div>
@@ -372,7 +372,7 @@ export function VentureTicketDetail({
                   href={externalMapUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center justify-center gap-1.5 border-t border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                  className="flex min-h-11 items-center justify-center gap-1.5 border-t border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 >
                   Open in Maps <ArrowSquareOutIcon className="h-3 w-3" />
                 </a>
@@ -399,7 +399,7 @@ export function VentureTicketDetail({
               {going.map((a) => (
                 <span
                   key={a.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px]"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs"
                 >
                   <span className="text-xs">{a.applicant?.avatar_emoji ?? "•"}</span>
                   {a.applicant?.display_name ?? "Someone"}
@@ -407,7 +407,7 @@ export function VentureTicketDetail({
               ))}
             </div>
           ) : (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               {venture.filled_slots > 1
                 ? `${venture.filled_slots - 1} other${venture.filled_slots > 2 ? "s" : ""} joined. Names show up in the party chat.`
                 : "You're the first one in."}
@@ -421,7 +421,7 @@ export function VentureTicketDetail({
             {venture.intents.map((intent) => (
               <span
                 key={intent}
-                className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
+                className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
               >
                 {intent}
               </span>
@@ -448,14 +448,14 @@ export function VentureTicketDetail({
             type="button"
             onClick={() => onLeave(venture.my_application!.id)}
             disabled={leaving}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-2.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             <SignOutIcon className="h-3.5 w-3.5" />
             {leaving ? "Leaving…" : accepted ? "Leave this Venture" : "Withdraw my request"}
           </button>
         ) : (
           venture.my_application && (
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               {venture.my_application.status === "declined"
                 ? "Request declined"
                 : "Request withdrawn"}
@@ -474,7 +474,7 @@ export function VentureTicketDetail({
  */
 function Stamp({ status }: { status?: string }) {
   const map: Record<string, { label: string; className: string; icon: boolean }> = {
-    accepted: { label: "You're in", className: "border-accent text-accent", icon: true },
+    accepted: { label: "You're in", className: "border-accent text-accent-readable", icon: true },
     invited: {
       label: "Invited — needs an answer",
       className: "border-primary text-primary",
@@ -493,7 +493,7 @@ function Stamp({ status }: { status?: string }) {
     <span
       className={cn(
         "mt-0.5 inline-flex w-fit items-center gap-1 rounded border px-1.5 py-0.5",
-        "font-mono text-[9px] font-bold uppercase tracking-widest",
+        "font-mono text-xs font-bold uppercase tracking-widest",
         stamp.className,
       )}
     >

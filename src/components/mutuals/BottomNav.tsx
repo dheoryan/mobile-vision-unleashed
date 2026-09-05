@@ -80,12 +80,12 @@ export function BottomNav({
                 >
                   <Icon className="h-5 w-5" weight={isActive ? "fill" : "regular"} />
                   {!!badge && (
-                    <span className="bg-meutuals-gradient absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] font-bold leading-none text-white ring-2 ring-background">
+                    <span className="bg-meutuals-gradient absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-xs font-bold leading-none text-white ring-2 ring-background">
                       {badge > 9 ? "9+" : badge}
                     </span>
                   )}
                 </span>
-                <span className="text-[10px] font-medium tracking-wide">{label}</span>
+                <span className="text-xs font-medium tracking-wide">{label}</span>
               </button>
             </li>
           );

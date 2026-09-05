@@ -494,6 +494,7 @@ export const sharePostToTribe = createServerFn({ method: "POST" })
       .object({
         tribe_key: z.string().trim().min(1).max(40),
         post_id: z.string().uuid(),
+        request_id: z.string().uuid(),
         caption: z.string().trim().max(600).nullish(),
       })
       .parse(input),
@@ -516,28 +517,32 @@ export const sharePostToTribe = createServerFn({ method: "POST" })
       throw new Error("This Tribe-only post can only be shared within its own Tribe");
     }
 
-    const { error } = await tribeMessagesTable(supabase).insert({
-      tribe_id: tribe.id,
-      sender_id: userId,
-      content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
-      shared_post_id: data.post_id,
-      room_kind: null,
-    });
+    const { error } = await tribeMessagesTable(supabase).upsert(
+      {
+        id: data.request_id,
+        tribe_id: tribe.id,
+        sender_id: userId,
+        content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
+        shared_post_id: data.post_id,
+        room_kind: null,
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
     if (error) throw new Error(error.message);
 
-    // Same shares_count bookkeeping as sharePostToDM (messages.functions.ts)
-    // - a `shares` row per person who has ever shared the post, upserted
-    // rather than toggled so a second share never undoes the count, and
-    // best-effort since this shouldn't roll back a message that already sent.
-    await supabase
-      .from("shares")
-      .upsert(
-        { post_id: data.post_id, user_id: userId },
-        { onConflict: "user_id,post_id", ignoreDuplicates: true },
-      )
-      .then(({ error: shareError }) => {
-        if (shareError) console.warn("[sharePostToTribe] shares upsert failed", shareError.message);
-      });
+    const { data: saved } = await tribeMessagesTable(supabase)
+      .select("sender_id, tribe_id, shared_post_id")
+      .eq("id", data.request_id)
+      .single();
+    if (
+      !saved ||
+      saved.sender_id !== userId ||
+      saved.tribe_id !== tribe.id ||
+      saved.shared_post_id !== data.post_id
+    ) {
+      throw new Error("This share request no longer matches. Close the picker and try again.");
+    }
+    // The chat INSERT trigger records the share event atomically.
 
     return { ok: true };
   });

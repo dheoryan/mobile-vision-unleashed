@@ -307,7 +307,7 @@ export function DiscoverScreen() {
             <h2 className="truncate font-display text-lg font-bold">
               {searchMode ? "Search" : deckSectionTitle}
             </h2>
-            <p className="truncate text-[11px] text-muted-foreground">
+            <p className="truncate text-xs text-muted-foreground">
               {searchMode
                 ? debounced
                   ? `${filtered.length} found`
@@ -322,7 +322,7 @@ export function DiscoverScreen() {
               type="button"
               onClick={() => intentStore.push({ kind: "openTab", tab: "profile" })}
               aria-label="Add profile interests for better matches"
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[10px] font-semibold text-primary transition-colors hover:text-primary/80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold text-primary transition-colors hover:text-primary/80 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <MagicWandIcon className="h-3.5 w-3.5" /> Improve matches
             </button>
@@ -375,7 +375,7 @@ export function DiscoverScreen() {
                 locationQuery.data ? "Adjust nearby preferences" : "Enable nearby discovery"
               }
               className={cn(
-                "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 locationQuery.data?.discoverable
                   ? "border-primary/35 bg-primary/10 text-primary"
                   : "border-border bg-card text-muted-foreground",
@@ -665,7 +665,7 @@ function BrowseMenuSheet({
         </span>
         <span>
           Explore Tribes
-          <span className="block text-[11px] font-normal text-muted-foreground">
+          <span className="block text-xs font-normal text-muted-foreground">
             Preview the rooms behind the people
           </span>
         </span>
@@ -680,7 +680,7 @@ function BrowseMenuSheet({
         </span>
         <span>
           Saved
-          <span className="block text-[11px] font-normal text-muted-foreground">
+          <span className="block text-xs font-normal text-muted-foreground">
             Profiles you've kept for later
           </span>
         </span>
@@ -751,7 +751,7 @@ function TribeBrowserSheet({
                   <span className="block truncate font-display text-xl font-bold text-white">
                     {tribe.name}
                   </span>
-                  <span className="mt-1 block text-[10px] text-white/70">
+                  <span className="mt-1 block text-xs text-white/70">
                     {counts?.[tribe.id] === undefined
                       ? "Room preview"
                       : `${counts[tribe.id]} members`}
@@ -923,7 +923,7 @@ function NearbyPreferencesSheet({
         <div className="mt-6 flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-border bg-background/60 px-4">
           <div>
             <p className="text-sm font-semibold">Show me in nearby discovery</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {discoverable
                 ? "Active for mutual-radius matches"
                 : "Paused—your area remains private"}
@@ -945,7 +945,7 @@ function NearbyPreferencesSheet({
           />
         </div>
 
-        <div className="mt-4 flex items-start gap-2 rounded-xl bg-primary/8 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+        <div className="mt-4 flex items-start gap-2 rounded-xl bg-primary/8 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
           <ShieldCheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <p>
             The radius is mutual: both people must allow the distance. Members only see a broad
@@ -1032,7 +1032,7 @@ function TribePreviewSheet({
             <TribeMark tribe={displayTribe} size="lg" decorative={false} />
             <h3 className="mt-4 font-display text-2xl font-bold">{displayTribe.name}</h3>
             <p className="text-xs text-muted-foreground">{displayTribe.scene}</p>
-            <p className="mt-2 text-[11px] text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               {members.length} visible registered members
             </p>
 
@@ -1057,7 +1057,7 @@ function TribePreviewSheet({
                     </span>
                   ))}
                 </div>
-                <p className="text-[11px] font-semibold text-primary">
+                <p className="text-xs font-semibold text-primary">
                   {mootsHere.length} of your Moots {mootsHere.length === 1 ? "is" : "are"} here
                 </p>
               </div>
@@ -1068,7 +1068,7 @@ function TribePreviewSheet({
               {recentPosts.length ? (
                 recentPosts.map((p) => (
                   <li key={p.id} className="rounded-xl border border-border bg-background/40 p-3">
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {p.author?.display_name || "Someone"} · {timeAgoLabel(p.created_at)}
                     </p>
                     <p className="mt-0.5 line-clamp-2 text-xs">{p.content}</p>
@@ -1173,7 +1173,7 @@ function PersonRow({
               return <TribeBadge key={id} tribe={t} />;
             })}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{person.city || person.handle || "Registered member"}</span>
             {person.distanceBand && (
               <span className="inline-flex items-center gap-1 text-primary">
@@ -1187,7 +1187,7 @@ function PersonRow({
             )}
           </div>
           {reason && (
-            <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <p className="mt-1 inline-block rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
               {reason.label}
             </p>
           )}
@@ -1201,7 +1201,7 @@ function PersonRow({
           className={cn(
             "flex min-h-11 min-w-20 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60",
             following
-              ? "border-accent bg-accent/15 text-accent"
+              ? "border-accent bg-accent/15 text-accent-readable"
               : "border-primary bg-primary/15 text-primary",
           )}
         >

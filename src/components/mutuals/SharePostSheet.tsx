@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
@@ -50,6 +50,12 @@ export function SharePostSheet({
   const [query, setQuery] = useState("");
   const [caption, setCaption] = useState("");
   const [sendingKey, setSendingKey] = useState<string | null>(null);
+  const requests = useRef(new Map<string, string>());
+  const requestId = (target: string) => {
+    const key = JSON.stringify([postId, target, caption]);
+    if (!requests.current.has(key)) requests.current.set(key, crypto.randomUUID());
+    return requests.current.get(key)!;
+  };
   const navigate = useNavigate();
   const profile = useMyProfile();
   const { data: moots } = useMyMoots();
@@ -66,6 +72,7 @@ export function SharePostSheet({
     .filter((tribe) => !q || tribe.name.toLowerCase().includes(q));
 
   const close = () => {
+    requests.current.clear();
     setQuery("");
     setCaption("");
     onOpenChange(false);
@@ -75,7 +82,12 @@ export function SharePostSheet({
     if (sendingKey) return;
     setSendingKey(`dm:${recipientId}`);
     shareToDM.mutate(
-      { recipient_id: recipientId, post_id: postId, caption: caption || null },
+      {
+        recipient_id: recipientId,
+        post_id: postId,
+        request_id: requestId(`dm:${recipientId}`),
+        caption: caption || null,
+      },
       {
         onSuccess: () => {
           toast.success("Sent");
@@ -97,7 +109,12 @@ export function SharePostSheet({
     if (sendingKey) return;
     setSendingKey(`tribe:${tribeId}`);
     shareToTribe.mutate(
-      { tribe_key: tribeId, post_id: postId, caption: caption || null },
+      {
+        tribe_key: tribeId,
+        post_id: postId,
+        request_id: requestId(`tribe:${tribeId}`),
+        caption: caption || null,
+      },
       {
         onSuccess: () => {
           toast.success(`Shared to ${tribeById(tribeId).name}`);
@@ -151,7 +168,7 @@ export function SharePostSheet({
         <div className="min-h-0 flex-1 overflow-y-auto px-2">
           {tribeTargets.length > 0 && (
             <div className="px-3 pb-1 pt-2">
-              <p className="label-mono text-[10px] text-muted-foreground">TRIBES</p>
+              <p className="label-mono text-xs text-muted-foreground">TRIBES</p>
             </div>
           )}
           {tribeTargets.map((tribe) => {
@@ -177,7 +194,7 @@ export function SharePostSheet({
 
           {dmTargets.length > 0 && (
             <div className="px-3 pb-1 pt-3">
-              <p className="label-mono text-[10px] text-muted-foreground">MOOTS</p>
+              <p className="label-mono text-xs text-muted-foreground">MOOTS</p>
             </div>
           )}
           {dmTargets.map((moot) => {
@@ -236,7 +253,7 @@ export function SharePostSheet({
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">More options</span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
-                Share outside Meutuals, or copy the link
+                Share outside MEUTUALS, or copy the link
               </span>
             </span>
           </button>

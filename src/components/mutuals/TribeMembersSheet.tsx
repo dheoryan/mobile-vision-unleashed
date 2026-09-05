@@ -6,7 +6,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGl
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
-import type { Tribe } from "@/lib/mutuals-data";
+import { readableAccentColor, type Tribe } from "@/lib/mutuals-data";
 import { visibleTribeMembers, type TribeMemberSummary } from "@/lib/tribe-members";
 import { SafetyMenu } from "./SafetyMenu";
 import { Skeleton } from "./Skeleton";
@@ -160,7 +160,7 @@ export function TribeMembersSheet({
                 type="button"
                 onClick={() => setQuery("")}
                 className="mt-3 min-h-11 rounded-full px-4 text-xs font-semibold transition-opacity active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                style={{ color: tribe.colorVar }}
+                style={{ color: readableAccentColor(tribe.colorVar) }}
               >
                 Clear search
               </button>
@@ -204,7 +204,7 @@ export function TribeMembersSheet({
                         <span className="block truncate text-sm font-semibold transition-colors group-enabled:group-hover:text-primary group-enabled:group-focus-visible:text-primary">
                           {member.display_name || "Member"}
                         </span>
-                        <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground transition-colors group-enabled:group-hover:text-foreground group-enabled:group-focus-visible:text-foreground">
+                        <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground transition-colors group-enabled:group-hover:text-foreground group-enabled:group-focus-visible:text-foreground">
                           <span className="truncate">
                             {isMe
                               ? "You"
@@ -227,7 +227,7 @@ export function TribeMembersSheet({
                       <span
                         className="label-mono rounded-full px-2.5 py-1"
                         style={{
-                          color: tribe.colorVar,
+                          color: readableAccentColor(tribe.colorVar),
                           backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 14%, transparent)`,
                         }}
                       >
@@ -269,7 +269,7 @@ export function TribeMembersSheet({
         </div>
 
         {hasMore && !loading && !error && (
-          <p className="shrink-0 border-t border-border px-5 py-3 text-center text-[11px] text-muted-foreground">
+          <p className="shrink-0 border-t border-border px-5 py-3 text-center text-xs text-muted-foreground">
             Showing the first 200 members.
           </p>
         )}

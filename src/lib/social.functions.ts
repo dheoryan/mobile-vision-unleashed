@@ -77,50 +77,27 @@ export const toggleLike = createServerFn({ method: "POST" })
 
 // --- Shares ----------------------------------------------------------------
 
-export const listMyShares = createServerFn({ method: "GET" })
+export const recordShare = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data, error } = await supabase.from("shares").select("post_id").eq("user_id", userId);
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r: { post_id: string }) => r.post_id);
-  });
-
-export const toggleShare = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => postIn.parse(input))
+  .inputValidator((input: unknown) =>
+    postIn
+      .extend({
+        request_id: z.string().uuid(),
+        channel: z.enum(["native", "clipboard"]),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: existing } = await supabase
-      .from("shares")
-      .select("post_id")
-      .eq("post_id", data.post_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (existing) {
-      const { error } = await supabase
-        .from("shares")
-        .delete()
-        .eq("post_id", data.post_id)
-        .eq("user_id", userId);
-      if (error) throw new Error(error.message);
-      return {
-        post_id: data.post_id,
-        shared: false,
-        shares_count: await getPostCount(supabase, "shares", data.post_id),
-      };
-    }
-    const { error } = await supabase
-      .from("shares")
-      .insert({ post_id: data.post_id, user_id: userId });
+    // Generated DB types predate this additive migration.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: count, error } = await (context.supabase as any).rpc("record_external_share", {
+      _post_id: data.post_id,
+      _request_id: data.request_id,
+      _channel: data.channel,
+    });
     if (error) throw new Error(error.message);
-    return {
-      post_id: data.post_id,
-      shared: true,
-      shares_count: await getPostCount(supabase, "shares", data.post_id),
-    };
+    return { post_id: data.post_id, shares_count: count as number };
   });
-
 // --- Reposts -----------------------------------------------------------
 
 export const listMyReposts = createServerFn({ method: "GET" })

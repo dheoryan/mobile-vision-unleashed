@@ -183,7 +183,7 @@ function BoardListItem({
             className="absolute inset-0 h-full w-full"
           />
           {timing && (
-            <span className="absolute inset-x-1 bottom-1 truncate rounded-md bg-background/90 px-1.5 py-1 text-center font-mono text-[8px] font-bold uppercase tracking-wide backdrop-blur-sm">
+            <span className="absolute inset-x-1 bottom-1 truncate rounded-md bg-background/90 px-1.5 py-1 text-center font-mono text-xs font-bold uppercase tracking-wide backdrop-blur-sm">
               {timing}
             </span>
           )}
@@ -193,9 +193,9 @@ function BoardListItem({
           <span className="mb-2 flex w-full items-center justify-between gap-2">
             <span
               className={cn(
-                "rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.16em]",
+                "rounded border px-1.5 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.12em]",
                 accepted
-                  ? "border-accent text-accent"
+                  ? "border-accent text-accent-readable"
                   : pending
                     ? "border-primary/50 text-primary"
                     : "border-border text-muted-foreground",
@@ -217,22 +217,22 @@ function BoardListItem({
           </span>
 
           {timing && (
-            <span className="mt-1 truncate text-[11px] text-muted-foreground">{timing}</span>
+            <span className="mt-1 truncate text-xs text-muted-foreground">{timing}</span>
           )}
 
           {venture.venue && (
-            <span className="mt-1 flex min-w-0 items-center gap-1 text-[11px] leading-tight text-foreground/80">
+            <span className="mt-1 flex min-w-0 items-center gap-1 text-xs leading-tight text-foreground/80">
               <span className="truncate">{venture.venue.host_label}</span>
               {venture.venue.google_place_id && (
                 <SealCheckIcon
-                  className="h-3 w-3 shrink-0 text-accent"
+                  className="h-3 w-3 shrink-0 text-accent-readable"
                   aria-label="Verified place"
                 />
               )}
             </span>
           )}
 
-          <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+          <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <UsersIcon className="h-2.5 w-2.5" />
               {venture.filled_slots}/{venture.max_slots} going
@@ -261,7 +261,7 @@ function BoardListItem({
               {venture.filled_slots} going · {remaining} open
             </DetailItem>
             <DetailItem icon={<UserCheckIcon className="h-3.5 w-3.5" />} label="Hosted by">
-              {venture.host?.display_name || "A Meutuals member"}
+              {venture.host?.display_name || "A MEUTUALS member"}
             </DetailItem>
             <DetailItem icon={<MapPinIcon className="h-3.5 w-3.5" />} label="Area">
               {venture.venue
@@ -277,7 +277,7 @@ function BoardListItem({
                 {venture.intents.map((intent) => (
                   <span
                     key={intent}
-                    className="rounded-full border border-border px-2.5 py-1 text-[10px] text-muted-foreground"
+                    className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
                   >
                     {intent}
                   </span>
@@ -314,7 +314,7 @@ function BoardListItem({
                   type="button"
                   onClick={() => onWithdraw(application.id)}
                   disabled={withdrawing}
-                  className="min-h-11 w-full rounded text-[11px] font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                  className="min-h-11 w-full rounded text-xs font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
                 >
                   {withdrawing ? "Withdrawing…" : "Withdraw my request"}
                 </button>
@@ -364,11 +364,11 @@ function DetailItem({
 }) {
   return (
     <div className="min-w-0 rounded-xl bg-secondary/35 p-3">
-      <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {icon}
         {label}
       </p>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-foreground/85">{children}</p>
+      <p className="mt-1.5 text-xs leading-relaxed text-foreground/85">{children}</p>
     </div>
   );
 }

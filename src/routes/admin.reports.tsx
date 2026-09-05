@@ -119,12 +119,12 @@ function ReportCard({ report }: { report: ModerationReport }) {
           <p className="mt-2 text-sm"><span className="font-semibold">{report.reason}</span>{report.details ? ` — ${report.details}` : ""}</p>
           {report.target_preview && <p className="mt-2 rounded-xl bg-background/60 p-3 text-xs text-muted-foreground">{report.target_preview}</p>}
         </div>
-        <div className={`inline-flex items-center gap-1 text-[11px] ${overdue ? "text-destructive" : "text-muted-foreground"}`}>
+        <div className={`inline-flex items-center gap-1 text-xs ${overdue ? "text-destructive" : "text-muted-foreground"}`}>
           <ClockIcon className="h-3.5 w-3.5" />
           {report.status === "pending" ? `Due ${new Date(report.due_at).toLocaleString()}` : report.status}
         </div>
       </div>
-      <p className="mt-3 text-[11px] text-muted-foreground">
+      <p className="mt-3 text-xs text-muted-foreground">
         Reported {timeAgoLabel(report.created_at)} by {report.reporter?.display_name || "Deleted account"}
       </p>
 

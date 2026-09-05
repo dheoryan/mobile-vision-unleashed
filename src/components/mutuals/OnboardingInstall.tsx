@@ -194,7 +194,7 @@ export function OnboardingInstall({ onContinue }: { onContinue: () => void }) {
                         <span className="mr-1.5 text-primary">{index + 1}.</span>
                         {step.title}
                       </p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         {step.detail}
                       </p>
                     </div>

@@ -258,13 +258,13 @@ function NotificationsPage() {
                 type="button"
                 onClick={markEverythingRead}
                 disabled={markingAll}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 <ChecksIcon className={cn("h-3.5 w-3.5", markingAll && "animate-pulse")} />
                 Read all
               </button>
             ) : (
-              <span className="px-2 text-[10px] text-muted-foreground">All read</span>
+              <span className="px-2 text-xs text-muted-foreground">All read</span>
             )}
           </div>
         </div>
@@ -281,7 +281,7 @@ function NotificationsPage() {
           </div>
         ) : isError ? (
           <section role="alert" className="mt-8 border-y border-border py-8 text-center">
-            <WarningIcon className="mx-auto h-7 w-7 text-accent" />
+            <WarningIcon className="mx-auto h-7 w-7 text-accent-readable" />
             <h2 className="mt-3 font-display text-lg font-bold">Activity could not load.</h2>
             <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
               {error instanceof Error ? error.message : "Check your connection and try again."}
@@ -312,7 +312,7 @@ function NotificationsPage() {
                 onSelect={selectNotification}
               />
             ))}
-            <p className="border-t border-border pt-5 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="border-t border-border pt-5 text-center font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Latest activity · {items.length} shown
             </p>
           </div>
@@ -466,7 +466,7 @@ function NotificationRowItem({
               “{notification.preview}”
             </span>
           )}
-          <span className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <span className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
             {timeAgoLabel(notification.created_at)}
             {isUnread && (
               <span

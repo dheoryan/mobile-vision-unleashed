@@ -96,7 +96,7 @@ function UpgradePage() {
         >
           <LightningIcon className="h-4 w-4" weight="fill" /> Coming soon
         </button>
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">MEUTUALS+ isn't available for purchase yet.</p>
+        <p className="mt-3 text-center text-xs text-muted-foreground">MEUTUALS+ isn't available for purchase yet.</p>
 
         <div className="mt-8 text-center">
           <Link to="/tiers" className="text-xs text-primary hover:underline">Compare full subscription tiers →</Link>
@@ -119,7 +119,7 @@ function PlanCard({
       )}
       <p className="label-mono text-muted-foreground">{title}</p>
       <p className="mt-1 font-display text-3xl font-bold">{price}</p>
-      <p className="text-[11px] text-muted-foreground">{sub}</p>
+      <p className="text-xs text-muted-foreground">{sub}</p>
       <ul className="mt-4 space-y-2">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-xs">

@@ -34,6 +34,10 @@ export const TRIBES: Tribe[] = [
 
 export const tribeById = (id: TribeId) => TRIBES.find(t => t.id === id)!;
 
+/** Keeps the agreed Tribe hue while lifting text contrast on dark surfaces. */
+export const readableAccentColor = (color: string) =>
+  `color-mix(in oklab, ${color} 68%, var(--foreground))`;
+
 export interface Person {
   id: string;
   name: string;

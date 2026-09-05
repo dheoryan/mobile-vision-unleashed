@@ -15,7 +15,7 @@ import { HelloModal } from "@/components/mutuals/HelloModal";
 import { AvatarLightbox } from "@/components/mutuals/AvatarLightbox";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { tribeById, type TribeId } from "@/lib/mutuals-data";
+import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
 import { PlusBadge } from "@/components/mutuals/PlusBadge";
 import { SafetyMenu } from "@/components/mutuals/SafetyMenu";
 import { showPlusBadge } from "@/lib/feature-flags";
@@ -214,7 +214,7 @@ function PublicProfilePage() {
                   className="label-mono inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
                   style={{
                     backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
-                    color: tribe.colorVar,
+                    color: readableAccentColor(tribe.colorVar),
                   }}
                 >
                   <TribeMark tribe={tribe} size="xs" decorative={false} />
@@ -493,7 +493,7 @@ function SignalTag({ label, accentColor }: { label: string; accentColor?: string
           ? {
               borderColor: `color-mix(in oklab, ${accentColor} 45%, transparent)`,
               backgroundColor: `color-mix(in oklab, ${accentColor} 18%, transparent)`,
-              color: accentColor,
+              color: readableAccentColor(accentColor),
             }
           : undefined
       }

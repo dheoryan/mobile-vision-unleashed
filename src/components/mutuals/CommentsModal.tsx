@@ -354,7 +354,7 @@ export function CommentsThread({
                     <p className="text-xs text-muted-foreground">Couldn't load this.</p>
                     <button
                       onClick={() => hiddenQuery.refetch()}
-                      className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="shrink-0 rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       Retry
                     </button>
@@ -385,7 +385,7 @@ export function CommentsThread({
                           })
                         }
                         disabled={unhideComment.isPending && unhideComment.variables === c.id}
-                        className="flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+                        className="flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                       >
                         <EyeIcon className="h-3 w-3" /> Unhide
                       </button>
@@ -496,7 +496,7 @@ export function CommentsThread({
                 <p className="truncate text-xs font-medium">
                   {uploadingImage ? "Uploading…" : "Photo attached"}
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {uploadingImage ? "Hang on a second" : "Ready to send"}
                 </p>
               </div>
@@ -959,11 +959,11 @@ function CommentItem({
             ) : (
               <p className="truncate text-xs font-semibold">{name}</p>
             )}
-            <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
               {isPending ? "sending…" : timeAgoLabel(c.created_at)}
             </span>
             {!isPending && c.edited_at && (
-              <span className="shrink-0 text-[10px] text-muted-foreground/70">· edited</span>
+              <span className="shrink-0 text-xs text-muted-foreground/70">· edited</span>
             )}
           </div>
           {c.content && (
@@ -979,7 +979,7 @@ function CommentItem({
               className="max-h-52 w-full rounded-xl object-cover"
             />
           )}
-          <div className="-mb-1 mt-0.5 flex min-h-11 items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="-mb-1 mt-0.5 flex min-h-11 items-center gap-1 text-xs text-muted-foreground">
             {!isPending && (
               <button
                 onClick={() => onReply(c)}
