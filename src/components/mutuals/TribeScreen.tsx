@@ -966,9 +966,10 @@ function GroupChat({
                   {m.deleted_at ? (
                     <div
                       className={cn(
-                        "border px-3.5 py-2.5 text-sm italic text-muted-foreground",
+                        "w-fit max-w-full border px-3.5 py-2.5 text-sm italic text-muted-foreground",
                         chatBubbleShape(groupPosition, mine),
                         "border-border/80 bg-card/60",
+                        mine && "ml-auto",
                       )}
                     >
                       Message removed
@@ -976,11 +977,15 @@ function GroupChat({
                   ) : (
                     <div
                       className={cn(
-                        "space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
+                        // w-fit so the bubble sizes to its own content
+                        // instead of stretching to match the reaction tray
+                        // rendered as a sibling below it once that tray
+                        // opens.
+                        "w-fit max-w-full space-y-2 border px-3.5 py-2.5 text-sm leading-relaxed",
                         chatBubbleShape(groupPosition, mine),
                         canChat && "cursor-pointer",
                         mine
-                          ? "border-transparent text-primary-foreground"
+                          ? "ml-auto border-transparent text-primary-foreground"
                           : "border-border/80 bg-card/95 text-foreground",
                       )}
                       style={

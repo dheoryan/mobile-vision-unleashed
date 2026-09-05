@@ -48,6 +48,7 @@ type TribeSummary = {
   lastContent: string | null;
   lastSenderName: string | null;
   lastAt: string | null;
+  lastDeleted: boolean;
   memberCount: number | null;
   unreadCount: number;
 };
@@ -74,9 +75,13 @@ function useTribeChatSummary(tribeName: string | null) {
       // overall without ever appearing there, which previously surfaced it
       // as this preview's "last message" even though tapping in couldn't
       // find it.
-      const { data: rows } = await supabase
-        .from("tribe_messages")
-        .select("content, created_at, sender_id")
+      // tribe_messages.deleted_at (20260904010000) isn't in the generated
+      // Database types yet, same lag as elsewhere - `as any` on this one
+      // query keeps that from breaking every other typed tribe_messages
+      // read in the file.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows } = await (supabase.from("tribe_messages") as any)
+        .select("content, created_at, sender_id, deleted_at")
         .eq("tribe_id", tribeRow.id)
         .is("room_kind", null)
         .order("created_at", { ascending: false })
@@ -122,9 +127,10 @@ function useTribeChatSummary(tribeName: string | null) {
 
       return {
         dbTribeId: tribeRow.id,
-        lastContent: last?.content ?? null,
+        lastContent: last?.deleted_at ? null : (last?.content ?? null),
         lastSenderName: senderName,
         lastAt: last?.created_at ?? null,
+        lastDeleted: Boolean(last?.deleted_at),
         memberCount: count ?? null,
         unreadCount,
       };
@@ -395,7 +401,9 @@ export function ChatsScreen({
               subtitle={
                 tribeQuery.data?.lastContent
                   ? `${tribeQuery.data.lastSenderName ?? "Someone"}: ${tribeQuery.data.lastContent}`
-                  : "No messages yet — say something."
+                  : tribeQuery.data?.lastDeleted
+                    ? "Message removed"
+                    : "No messages yet — say something."
               }
               meta={tribeQuery.data?.lastAt ? timeAgoLabel(tribeQuery.data.lastAt) : null}
               hint={

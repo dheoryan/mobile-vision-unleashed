@@ -43,7 +43,16 @@ export function ChatMessageActions({
       {open && !disabled && (
         <div
           className={cn(
-            "mt-1 flex w-max max-w-[calc(100vw-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-full border border-border/80 bg-popover p-0.5 shadow-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            // 6 reactions + reply + "..." at the old h-11 (44px) touch
+            // targets added up to ~368px - wider than this tray's own
+            // max-w cap on an ordinary phone screen, so the "..." at the
+            // end was only reachable by scrolling the tray sideways. This
+            // app doesn't do horizontal scroll anywhere else, so instead
+            // of leaning on overflow-x-auto to hide that, everything here
+            // is sized to actually fit one row (8 buttons at h-9/36px is
+            // ~300px including dividers and padding, comfortably under
+            // the cap on any real phone width).
+            "mt-1 flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-0.5 rounded-full border border-border/80 bg-popover p-0.5 shadow-xl",
             mine && "ml-auto",
           )}
           role="toolbar"
@@ -59,35 +68,35 @@ export function ChatMessageActions({
                 aria-label={label}
                 aria-pressed={myReactions.includes(id)}
                 className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   myReactions.includes(id) && "bg-secondary text-foreground",
                 )}
               >
-                <span aria-hidden className="text-[19px] leading-none">
+                <span aria-hidden className="text-base leading-none">
                   {emoji}
                 </span>
               </button>
             );
           })}
-          <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
+          <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border" />
           <button
             type="button"
             onClick={onReply}
             aria-label="Reply to message"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <ArrowBendUpLeftIcon className="h-4 w-4" />
+            <ArrowBendUpLeftIcon className="h-3.5 w-3.5" />
           </button>
           {mine && onMoreOptions && (
             <>
-              <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
+              <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border" />
               <button
                 type="button"
                 onClick={onMoreOptions}
                 aria-label="Message options"
-                className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-90 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <DotsThreeIcon className="h-4 w-4" weight="bold" />
+                <DotsThreeIcon className="h-3.5 w-3.5" weight="bold" />
               </button>
             </>
           )}

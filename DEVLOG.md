@@ -205,6 +205,141 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-04 — Claude — Tribe unsend fix, take 2 - production's schema disagreed with this repo's migrations twice in a row
+
+**⚠️ One migration must be applied before this is fixed in production** -
+`20260904030000_fix_tribe_message_unsend_content_v2.sql`. Function
+replacement only.
+
+The previous fix (20260904020000, `content := null`) was itself wrong -
+reported live as `null value in column "content" ... violates not-null
+constraint`. Production's `tribe_messages.content` is actually `NOT
+NULL`, contradicting this repo's own `create_tribe_messages.sql` (no NOT
+NULL on that column) - a second untracked production-only change on this
+exact column, on top of the untracked `tribe_messages_content_check` from
+the first fix. Neither `''` (fails the check) nor `null` (fails not-null)
+can ever work here.
+
+Fixed properly this time by sidestepping the question of what the
+constraints require entirely: the client already renders the "Message
+removed" tombstone purely from `deleted_at` being set - it never reads a
+deleted message's `content` - so unsend now stores a real, non-empty
+placeholder (`'[message removed]'`) that satisfies NOT NULL and any
+"must have visible content" check by construction, without that string
+ever reaching a screen.
+
+Except it almost did: the Chats-list "Your Tribe" row preview
+(`useTribeChatSummary`, `ChatsScreen.tsx`) reads `tribe_messages.content`
+directly for its subtitle and had no `deleted_at` check either - would
+have shown the literal placeholder text verbatim if the newest message
+happened to be an unsent one. Fixed alongside: `deleted_at` added to the
+select, `lastContent` nulled and a new `lastDeleted` flag added when set,
+subtitle now shows "Message removed" instead of either the placeholder or
+the misleading "No messages yet" fallback.
+
+`tsc`, `eslint` (clean), the full `node --test` suite (133/133), and
+`npm run build` all pass. Docker-rehearsed, though the sandbox still
+doesn't carry either untracked production constraint, so this proves the
+function itself is sound, not that it clears constraints this repo has
+no record of - the placeholder approach is deliberately robust to that
+uncertainty rather than requiring exact knowledge of them.
+
+---
+
+### 2026-09-04 — Claude — Message bubbles no longer stretch to match the reaction tray's width
+
+No schema change, pure client-side app code — safe to deploy on its own.
+Follow-up to the same day's tray-resize entry below - same root cause
+family, different symptom.
+
+Reported with a screenshot: a short "hello" bubble rendered nearly full
+width once its reaction tray opened. Cause: the bubble and the tray are
+sibling block elements inside one shared wrapper
+(`<div className="max-w-[80%]">` in DM, `min-w-0`/`min-w-0 max-w-[78%]`
+in Venture/Tribe), and that wrapper is itself a flex item that shrinks to
+fit its widest child. Before the tray opens, that's the bubble - compact,
+as expected. Once the tray renders (a `w-fit` element with its own
+natural width, larger than a short message), it becomes the widest
+child, the shared wrapper grows to match it, and the bubble - a plain
+block div with no width of its own - stretches to fill that now-wider
+wrapper.
+
+Fixed by giving the bubble (both the normal bubble and the "Message
+removed" tombstone, in all three surfaces) its own `w-fit max-w-full`
+sizing, decoupling its width from whatever else renders in the shared
+wrapper. Since that also meant an own-message bubble could now render
+narrower than the wrapper, `mine && "ml-auto"` was added alongside it so
+it still hugs the right edge instead of drifting left inside its own now-
+oversized box.
+
+`tsc`, `eslint` (clean), the full `node --test` suite (133/133), and
+`npm run build` all pass.
+
+---
+
+### 2026-09-04 — Claude — Reaction tray resized so the "..." button no longer needs a horizontal scroll to reach
+
+No schema change, pure client-side app code — safe to deploy on its own.
+
+Reported directly: opening the tray on a message left the "…" (Message
+options) button off-screen to the right, only reachable by scrolling the
+tray sideways - and this app deliberately never scrolls horizontally
+anywhere. Root cause was arithmetic: 6 reactions + reply + "…" at the old
+`h-11` (44px) touch targets add up to ~368px, wider than the tray's own
+`max-w-[calc(100vw-1.5rem)]` cap on an ordinary phone screen - the
+`overflow-x-auto` + hidden scrollbar was quietly relying on a sideways
+swipe that had no visible affordance telling anyone it existed.
+
+`ChatMessageActions.tsx`'s tray: all 8 possible buttons (6 reactions +
+reply + own-message "…") down to `h-9 w-9` (36px, still a reasonable
+touch target for a compact reaction bar - Telegram's own inline reaction
+row uses about the same), emoji/icon sizes scaled down to match, dividers
+narrowed slightly. Total width now ~300px including padding and
+dividers, comfortably under the cap on any real phone width. Dropped
+`overflow-x-auto`/the hidden-scrollbar workaround entirely now that the
+content actually fits, rather than keeping it as a safety net that would
+have hidden the same problem again if it recurred.
+
+`tsc`, `eslint` (clean), the full `node --test` suite (133/133), and
+`npm run build` all pass.
+
+---
+
+### 2026-09-04 — Claude — Fixed unsend failing on Tribe chat with a check-constraint error
+
+**⚠️ One migration must be applied before this is fully fixed in
+production** - `20260904020000_fix_tribe_message_unsend_content.sql`.
+Function replacement only.
+
+Reported with a live error banner: `new row for relation "tribe_messages"
+violates check constraint "tribe_messages_content_check"` when unsending a
+Tribe message. `enforce_tribe_message_edit_fields` (20260904010000) set
+`content := ''` on unsend, on the assumption `tribe_messages.content` was
+`NOT NULL` like some other chat tables' content columns - checking the
+actual `create table` (`20260517133500_create_tribe_messages.sql:196`)
+shows it's nullable, same as `messages`/`venture_messages`. `''` was very
+likely being rejected by a "non-empty if present" style check that exists
+in production but isn't in this repo's migration history at all (grepped
+every migration for it - not found; presumably added directly against
+production outside version control at some point). Fixed by switching
+unsend to `content := null`, the same "cleared" value the other two
+tables already use without issue - sidesteps the constraint regardless of
+its exact shape, since `tribe_messages_has_content_or_attachment` already
+treats null and empty identically via
+`nullif(trim(coalesce(content, '')), '')`.
+
+Docker-rehearsed (edit and unsend both still pass; the sandbox doesn't
+carry the untracked constraint so this doesn't prove it clears that exact
+check, only that nothing else regressed) - asked the user for the
+constraint's real definition as a safety net in case `null` alone isn't
+sufficient. No app-code change needed - the client already only ever
+sends `{ deleted_at }` on unsend; the trigger alone decides what happens
+to `content`.
+
+`tsc`, full `node --test` suite (133/133) unaffected (no TS touched).
+
+---
+
 ### 2026-09-04 — Claude — Chat message actions open on long-press, not a plain tap
 
 No schema change, pure client-side app code — safe to deploy on its own.
