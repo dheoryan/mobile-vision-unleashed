@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex (Astra) | Shared-post deletion and missing error feedback | new shared-post guard migration, posts-store.ts, PostCard.tsx, regression tests | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
