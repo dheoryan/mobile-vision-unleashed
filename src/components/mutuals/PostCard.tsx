@@ -738,13 +738,7 @@ export function PostCard({
           <button
             onClick={() => {
               setConfirmDel(false);
-              deletePost.mutate(
-                { id: post.id },
-                {
-                  onSuccess: () => toast.success("Post deleted"),
-                  onError: (e) => toast.error((e as Error).message),
-                },
-              );
+              deletePost.mutate({ id: post.id });
             }}
             className="rounded-full bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground"
           >

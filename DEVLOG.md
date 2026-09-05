@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Shared-post deletion and missing error feedback | new shared-post guard migration, posts-store.ts, PostCard.tsx, regression tests | 2026-09-05 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,36 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-05 — Codex (Astra) — Shared posts could not be deleted; failures were silent
+
+- User reported that deleting a post shared into chat did nothing and showed
+  no error. Reproduced the database failure in both DM and Tribe chat using
+  temporary tables, the real local guard functions, an authenticated JWT,
+  and `ON DELETE SET NULL`. The shared-post migration made `shared_post_id`
+  immutable, so its own FK cleanup raised a message-edit exception and rolled
+  back the post deletion.
+- Prepared `20260905020000_fix_shared_post_deletion.sql`. Both guards now allow
+  a nested trigger to clear a non-null shared-post reference only when every
+  other field is unchanged. The exception precedes sender/tombstone checks so
+  another person's share or an already-unsent share cannot block deletion.
+  Direct reference edits and normal message protections remain enforced.
+- Moved delete notifications from PostCard's per-call callbacks to mutation
+  callbacks in `post-deletion.ts`: optimistic removal unmounts the card before
+  the request settles, which suppressed both the failure and success toast.
+  Failed deletes now restore each affected cache separately, preserving
+  concurrent changes and avoiding duplicates/cross-list insertion.
+- Verification: two MutationObserver regression tests pass, including observer
+  unmount before success/failure. The rollback-only SQL test clears eight DM/
+  Tribe references, preserves the messages and their metadata, rejects direct
+  reference changes and forbidden edits, and still allows sender edits.
+  TypeScript, targeted ESLint, and production build pass. The read-only
+  `LOVABLE_SHARED_POST_DELETE_VERIFY.sql` returns every check true locally.
+- **Production pending:** no push or production SQL was performed. Apply the
+  function-only migration under CHANGE_PROTOCOL's trigger-change process and
+  run the verification SQL; publish the client changes for reliable feedback.
+  Local SQL rehearsals roll back their migration and test data. They verify
+  the guard/FK conflict, not the full production schema or signed-in UI.
 
 *The three entries directly below are backfilled retroactively (user asked
 "is all of our updates in the devlog?" and the honest answer was "almost"

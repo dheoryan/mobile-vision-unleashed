@@ -29,6 +29,8 @@ import {
   type FeedPost,
 } from "@/lib/posts.functions";
 import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
+import { postDeletionOptions } from "@/lib/post-deletion";
 
 export type { FeedPost, CommentRow } from "@/lib/posts.functions";
 
@@ -307,28 +309,7 @@ export function useEditPost() {
 export function useDeletePost() {
   const fn = useServerFn(deletePost);
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { id: string }) => fn({ data: input }),
-    onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["posts"] });
-      const removed: FeedPost[] = [];
-      patchListsWith(qc, (rows) =>
-        rows.filter((p) => {
-          if (p.id === input.id) {
-            removed.push(p);
-            return false;
-          }
-          return true;
-        }),
-      );
-      return { removed };
-    },
-    onError: (_e, _i, ctx) => {
-      if (!ctx?.removed.length) return;
-      patchListsWith(qc, (rows) => [...ctx.removed, ...rows]);
-    },
-    onSettled: () => invalidateAllPostLists(qc),
-  });
+  return useMutation(postDeletionOptions(qc, (input) => fn({ data: input }), toast));
 }
 
 export function useComments(postId: string | null) {
