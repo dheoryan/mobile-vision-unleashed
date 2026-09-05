@@ -315,9 +315,8 @@ export function Onboarding({
       className={cn(
         "bg-habitat relative overflow-x-hidden",
         // Steps 3+'s content is naturally scrollable (the interest pickers
-        // need it). Steps 0 and 2 have a fixed budget and stay viewport-bound.
-        // Step 1 may scroll on a short phone so its card never clips content.
-        step === 0 || step === 2 ? "h-dvh overflow-hidden" : "min-h-dvh",
+        // need it). The first three steps use a fixed viewport composition.
+        step <= 2 ? "h-dvh overflow-hidden" : "min-h-dvh",
       )}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
@@ -334,7 +333,7 @@ export function Onboarding({
           step === 1
             ? "pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]"
             : "pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(3rem,env(safe-area-inset-top))]",
-          step === 0 || step === 2 ? "h-full min-h-0" : "min-h-dvh",
+          step <= 2 ? "h-full min-h-0" : "min-h-dvh",
         )}
       >
         <div className="flex items-center justify-between">
@@ -590,7 +589,7 @@ export function Onboarding({
               ))}
             </div>
 
-            <div className="mt-auto shrink-0 pt-1">
+            <div className="shrink-0">
               <PrimaryButton
                 onClick={() => {
                   if (tribeId === viewedTribe.id) setStep(2);
