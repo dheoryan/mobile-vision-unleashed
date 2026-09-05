@@ -61,6 +61,7 @@ export function VentureTicket({
   const status = venture.my_application?.status;
   const accepted = status === "accepted";
   const invited = status === "invited";
+  const pending = status === "pending";
 
   const mins = durationMinutes(venture);
   const duration = mins ? (mins % 60 === 0 ? `${mins / 60}h` : `${mins}m`) : null;
@@ -178,16 +179,24 @@ export function VentureTicket({
             >
               <ChatCircleIcon className="h-3.5 w-3.5" /> Open party chat
             </button>
+          ) : pending && venture.my_application ? (
+            <button
+              type="button"
+              onClick={() => onLeave(venture.my_application!.id)}
+              disabled={busy}
+              className="mt-1 self-start rounded text-[11px] font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+            >
+              Withdraw my request
+            </button>
           ) : (
+            // Declined or self-withdrawn (cancelled): there's nothing left
+            // to withdraw - offering that action here would relabel a
+            // host's decision as a self-withdrawal. Stamp above already
+            // names the status; this is just the absence of any action.
             venture.my_application && (
-              <button
-                type="button"
-                onClick={() => onLeave(venture.my_application!.id)}
-                disabled={busy}
-                className="mt-1 self-start rounded text-[11px] font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
-              >
-                Withdraw my request
-              </button>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {status === "declined" ? "Request declined" : "Request withdrawn"}
+              </p>
             )
           )}
         </div>
@@ -434,7 +443,7 @@ export function VentureTicketDetail({
             <ChatCircleIcon className="h-4 w-4" /> Open party chat
           </button>
         )}
-        {venture.my_application && (
+        {venture.my_application && (venture.my_application.status === "pending" || accepted) ? (
           <button
             type="button"
             onClick={() => onLeave(venture.my_application!.id)}
@@ -444,6 +453,14 @@ export function VentureTicketDetail({
             <SignOutIcon className="h-3.5 w-3.5" />
             {leaving ? "Leaving…" : accepted ? "Leave this Venture" : "Withdraw my request"}
           </button>
+        ) : (
+          venture.my_application && (
+            <p className="text-center text-[11px] text-muted-foreground">
+              {venture.my_application.status === "declined"
+                ? "Request declined"
+                : "Request withdrawn"}
+            </p>
+          )
         )}
       </div>
     </AnimatedModal>

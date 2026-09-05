@@ -129,6 +129,7 @@ function App() {
   } | null>(null);
   const [pendingVentureChatId, setPendingVentureChatId] = useState<string | null>(null);
   const [showOnboardingInstall, setShowOnboardingInstall] = useState(false);
+  const [onboardingHandleTaken, setOnboardingHandleTaken] = useState(false);
   const handledNotificationTarget = useRef<string | null>(null);
   const intent = useIntent();
   const threadsQuery = useThreads();
@@ -399,6 +400,8 @@ function App() {
     return (
       <Onboarding
         saving={updateProfile.isPending || saveLocation.isPending}
+        handleTakenError={onboardingHandleTaken}
+        onHandleTakenErrorConsumed={() => setOnboardingHandleTaken(false)}
         onDone={(p, location) =>
           updateProfile.mutate(profileToPatch(p), {
             onSuccess: () => {
@@ -411,7 +414,18 @@ function App() {
                   }),
               });
             },
-            onError: (err) => toast.error((err as Error).message),
+            onError: (err) => {
+              // The live handle check on step 2 only catches a collision
+              // that already existed at the time it ran - two people can
+              // both pass it and only actually collide here, at the final
+              // write, by which point the handle field is several steps
+              // behind with no way back to it from where the error lands.
+              if ((err as Error).message === "That handle is already taken.") {
+                setOnboardingHandleTaken(true);
+                return;
+              }
+              toast.error((err as Error).message);
+            },
           })
         }
       />
@@ -470,26 +484,37 @@ function App() {
         initialTribeDraft={ventureDraft}
         onTribeDraftFinished={(draft, venture) => {
           setVentureDraft(null);
-          announceTribeVenture.mutate(
-            {
-              tribe_key: draft.tribeId,
-              source_message_id: draft.sourceMessageId,
-              venture_id: venture.id,
-            },
-            {
-              onSuccess: (result) => {
-                if (result.invited_count > 0) {
-                  toast.success(
-                    `${result.invited_count} interested ${result.invited_count === 1 ? "member was" : "members were"} invited.`,
-                  );
-                }
+          const announce = () =>
+            announceTribeVenture.mutate(
+              {
+                tribe_key: draft.tribeId,
+                source_message_id: draft.sourceMessageId,
+                venture_id: venture.id,
               },
-              onError: (error) =>
-                toast.error("Venture is live, but the Tribe card was not posted", {
-                  description: (error as Error).message,
-                }),
-            },
-          );
+              {
+                onSuccess: (result) => {
+                  if (result.invited_count > 0) {
+                    toast.success(
+                      `${result.invited_count} interested ${result.invited_count === 1 ? "member was" : "members were"} invited.`,
+                    );
+                  }
+                },
+                onError: (error) =>
+                  // A "Try again" that re-announces this *same* Venture,
+                  // not a prompt to redo the whole creation flow - retrying
+                  // via a fresh Venture used to be the only path visible
+                  // here, and since the server now dedupes by source
+                  // message rather than venture id, a second Venture
+                  // created that way would just sit un-announced forever
+                  // instead of the old bug (re-inviting everyone a second
+                  // time to a duplicate).
+                  toast.error("Venture is live, but the Tribe card was not posted", {
+                    description: (error as Error).message,
+                    action: { label: "Try again", onClick: announce },
+                  }),
+              },
+            );
+          announce();
         }}
         onTribeDraftCancelled={() => setVentureDraft(null)}
         notificationDestination={ventureDestination}

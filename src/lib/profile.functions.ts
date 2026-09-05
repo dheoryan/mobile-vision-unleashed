@@ -12,6 +12,26 @@ import {
  *  the same enum instead of accepting a free-form string. */
 export const TRIBE_IDS = ["wolf", "koi", "cat", "owl", "bee"] as const;
 
+/** Same bidirectional block check RLS already applies to posts/comments
+ *  (has_blocked, see 20260820000300_fix_two_way_blocking.sql) - called
+ *  directly here because the profiles table's own SELECT policy doesn't
+ *  gate on it, so a direct id/handle lookup is the one path that wouldn't
+ *  otherwise see a block at all. */
+async function isBlockedEitherWay(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  viewerId: string,
+  targetId: string,
+): Promise<boolean> {
+  if (viewerId === targetId) return false;
+  const { data, error } = await supabase.rpc("has_blocked", {
+    _viewer: viewerId,
+    _target: targetId,
+  });
+  if (error) throw new Error(error.message);
+  return Boolean(data);
+}
+
 const updateSchema = z.object({
   display_name: z.string().min(1).max(60).optional(),
   handle: z.string().max(30).nullable().optional(),
@@ -70,13 +90,22 @@ export const getProfileById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("profiles")
       .select(PROFILE_COLS)
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) return null;
+    // The profiles table's own SELECT policy has no block check (unlike
+    // posts/comments, which both gate on has_blocked in RLS) - a direct
+    // profile lookup was the one path that still leaked a blocked
+    // account's bio/city/interests even though every other discovery
+    // surface (Discover, Explore) already filters blocks out. Same "not
+    // found" response either way, so a block reads no differently than an
+    // unknown id.
+    if (await isBlockedEitherWay(supabase, userId, row.id)) return null;
     return row as ProfileRow | null;
   });
 
@@ -84,7 +113,7 @@ export const getProfileByHandle = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ handle: z.string().min(1).max(60) }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     // handle may be a uuid (from /u/$id usage) or an actual @handle
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       data.handle,
@@ -93,6 +122,10 @@ export const getProfileByHandle = createServerFn({ method: "GET" })
     q = isUuid ? q.eq("id", data.handle) : q.eq("handle", data.handle.replace(/^@/, ""));
     const { data: row, error } = await q.maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) return null;
+    // See getProfileById's identical note - a blocked account's full
+    // profile stays viewable via its direct handle link otherwise.
+    if (await isBlockedEitherWay(supabase, userId, row.id)) return null;
     return row as ProfileRow | null;
   });
 
@@ -195,6 +228,7 @@ export const getTribeSwitchStatus = createServerFn({ method: "GET" })
     // `tribe_changed_at` is added by 20260820002000_one_tribe_per_user.sql and
     // won't appear in the generated types until they're regenerated against the
     // migrated schema. Same cast pattern already used in ventures.functions.ts.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as unknown as any;
     const { data, error } = await db
       .from("profiles")

@@ -2,6 +2,7 @@ import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { timeAgoLabel } from "@/lib/time";
 import type { FeedPost } from "@/lib/posts-store";
+import { LazyImage } from "./LazyImage";
 
 /**
  * A quoted post embedded read-only inside another post (or the composer
@@ -38,7 +39,19 @@ export function QuotedPostPreview({ post }: { post: FeedPost }) {
         </p>
       )}
       {post.images[0] && (
-        <img src={post.images[0]} alt="" className="mt-2 max-h-56 w-full rounded-lg object-cover" />
+        <div className="relative mt-2">
+          <LazyImage
+            src={post.images[0]}
+            alt=""
+            wrapperClassName="max-h-56 w-full overflow-hidden rounded-lg"
+            className="max-h-56 w-full rounded-lg object-cover"
+          />
+          {post.images.length > 1 && (
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
+              +{post.images.length - 1} more
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

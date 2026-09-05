@@ -91,6 +91,14 @@ import type { TribeVentureDraft } from "@/lib/tribe-room";
 
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 
+// A declined or cancelled application isn't a live claim on a slot - the
+// only statuses that should hide a Venture from the joinable board or mark
+// it "yours" are the ones where the applicant still has a stake in it.
+const LIVE_APPLICATION_STATUSES = new Set(["invited", "accepted", "pending"]);
+function isLiveApplicationStatus(status: string | undefined) {
+  return status !== undefined && LIVE_APPLICATION_STATUSES.has(status);
+}
+
 function safeLocalStorage() {
   if (typeof window === "undefined") return null;
   try {
@@ -808,15 +816,26 @@ function LookView({
     [joinedVentures],
   );
 
+  // A declined or self-withdrawn (cancelled) application isn't a live claim
+  // on a slot - the Venture should come back to the board, not disappear
+  // everywhere. VentureBoard already renders "Closed to you"/"Request
+  // declined" for exactly that status; it just never used to receive one.
   const requestedVentureIds = useMemo(
-    () => new Set(joinedVentures.map((venture) => venture.id)),
+    () =>
+      new Set(
+        joinedVentures
+          .filter((venture) => isLiveApplicationStatus(venture.my_application?.status))
+          .map((venture) => venture.id),
+      ),
     [joinedVentures],
   );
 
   const joinableVentures = useMemo(
     () =>
       openVentures.filter(
-        (venture) => !venture.my_application && !requestedVentureIds.has(venture.id),
+        (venture) =>
+          !isLiveApplicationStatus(venture.my_application?.status) &&
+          !requestedVentureIds.has(venture.id),
       ),
     [openVentures, requestedVentureIds],
   );
@@ -972,6 +991,7 @@ function HostView({
   onFocused?: () => void;
 }) {
   const [hostTab, setHostTab] = useState<"active" | "history">("active");
+  const hostFormViewport = useVisualViewport(formOpen);
   const activeVentures = useMemo(
     () => hostedVentures.filter((venture) => venture.status !== "closed"),
     [hostedVentures],
@@ -1082,17 +1102,61 @@ function HostView({
         })}
       </div>
 
-      {formOpen && (
-        <HostForm
-          profile={profile}
-          draft={tribeDraft}
-          onCancel={() => {
-            setFormOpen(false);
-            if (tribeDraft) onDraftCancelled();
-          }}
-          onCreated={onCreated}
-        />
-      )}
+      {/* A dialog, not an inline expansion - same reasoning as the Edit
+          Venture flow below. Beyond the layout benefit that flow already
+          gets, this one matters for a real data-loss bug: rendered inline,
+          BottomNav stayed fully visible and tappable while a multi-field
+          draft was in progress, and since index.tsx only mounts the active
+          tab (fully tearing down the previous one on switch), tapping away
+          destroyed the whole in-progress application with no warning. A
+          modal's own overlay sits on top of BottomNav, so there's nothing
+          left to tap away to without first explicitly cancelling (which
+          already correctly discards the draft) or finishing. */}
+      <AnimatedModal
+        open={formOpen}
+        onOpenChange={(next) => {
+          if (next) return;
+          setFormOpen(false);
+          if (tribeDraft) onDraftCancelled();
+        }}
+        title={tribeDraft ? "Turn this plan into a Venture" : "Host a Venture"}
+        contentClassName="scroll-panel max-h-[90dvh] overflow-y-auto"
+        viewportStyle={visualViewportStyle(hostFormViewport)}
+      >
+        <div className="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl font-bold leading-tight">
+                {tribeDraft ? "Turn this plan into a Venture" : "Host a Venture"}
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Everyone who taps in sees this exactly as you set it up.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setFormOpen(false);
+                if (tribeDraft) onDraftCancelled();
+              }}
+              aria-label="Close"
+              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          </div>
+          <HostForm
+            profile={profile}
+            draft={tribeDraft}
+            variant="modal"
+            onCancel={() => {
+              setFormOpen(false);
+              if (tribeDraft) onDraftCancelled();
+            }}
+            onCreated={onCreated}
+          />
+        </div>
+      </AnimatedModal>
 
       <div>
         {isLoading ? (

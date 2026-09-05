@@ -4,6 +4,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { tribeById, type TribeId } from "@/lib/mutuals-data";
 import { timeAgoLabel } from "@/lib/time";
 import type { FeedPost } from "@/lib/posts-store";
+import { LazyImage } from "./LazyImage";
 
 /** A post shared into a DM or Tribe chat. Purpose-built for the chat
  *  context rather than reusing `QuotedPostPreview` (that one's `border
@@ -34,12 +35,29 @@ export function SharedPostCard({ post }: { post: FeedPost | null }) {
       type="button"
       onClick={(event) => {
         event.stopPropagation();
-        void navigate({ to: "/p/$postId", params: { postId: post.id }, search: {} });
+        // "chat" tells the post page there's a real prior screen (this
+        // conversation) sitting in history - without it, the post page
+        // treated this exactly like a bare shared link and inserted a
+        // synthetic Home entry between the chat and the post, so tapping
+        // back landed on Home instead of returning to the conversation.
+        void navigate({ to: "/p/$postId", params: { postId: post.id }, search: { from: "chat" } });
       }}
       className="block w-full overflow-hidden rounded-xl bg-background text-left text-foreground shadow-sm transition-opacity active:opacity-80"
     >
       {post.images[0] && (
-        <img src={post.images[0]} alt="" className="aspect-[16/11] w-full object-cover" />
+        <div className="relative">
+          <LazyImage
+            src={post.images[0]}
+            alt=""
+            wrapperClassName="aspect-[16/11] w-full"
+            className="aspect-[16/11] w-full object-cover"
+          />
+          {post.images.length > 1 && (
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
+              +{post.images.length - 1} more
+            </span>
+          )}
+        </div>
       )}
       <div className="space-y-1 px-3 py-2.5">
         <div className="flex items-center gap-2">

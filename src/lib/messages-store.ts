@@ -66,6 +66,9 @@ export function useSendMessage(otherId: string) {
       await qc.cancelQueries({ queryKey: threadKey });
       const tempId = `tmp-${Date.now()}`;
       const current = qc.getQueryData<DMMessage[]>(threadKey) ?? [];
+      const replyTo = input.reply_to_id
+        ? (current.find((message) => message.id === input.reply_to_id) ?? null)
+        : null;
       const optimistic: DMMessage = {
         id: tempId,
         sender_id: user?.id ?? "me",
@@ -76,9 +79,7 @@ export function useSendMessage(otherId: string) {
         attachment_url: input.attachment_url ?? null,
         attachment_type: input.attachment_url ? "image" : null,
         reply_to_id: input.reply_to_id ?? null,
-        reply_to: input.reply_to_id
-          ? (current.find((message) => message.id === input.reply_to_id) ?? null)
-          : null,
+        reply_to: replyTo,
         edited_at: null,
         deleted_at: null,
         shared_post_id: null,
@@ -86,11 +87,20 @@ export function useSendMessage(otherId: string) {
         my_reactions: [],
       };
       qc.setQueryData<DMMessage[]>(threadKey, [...current, optimistic]);
-      return { tempId };
+      return { tempId, replyTo };
     },
     onSuccess: (saved, _v, ctx) => {
+      // sendMessage's response is the raw inserted row - it has
+      // reply_to_id but not the joined reply_to preview (only the list
+      // endpoint does that join). Carrying forward what onMutate already
+      // resolved from local state avoids a real flicker: the quote would
+      // otherwise show correctly while "sending…" and then disappear the
+      // instant the send actually confirms, only reappearing on the next
+      // poll.
       qc.setQueryData<DMMessage[]>(threadKey, (cur) =>
-        (cur ?? []).map((m) => (m.id === ctx?.tempId ? saved : m)),
+        (cur ?? []).map((m) =>
+          m.id === ctx?.tempId ? { ...saved, reply_to: ctx?.replyTo ?? null } : m,
+        ),
       );
     },
     onError: (_e, _v, ctx) => {
@@ -123,28 +133,49 @@ export function useSharePostToDM() {
       // wherever this post is currently shown so its shares_count catches
       // up, same as the native-share button's toggleShare already does.
       qc.invalidateQueries({ queryKey: ["posts"] });
+      // Also invalidate useMyShares' own cache (social-store.ts's
+      // SHARES_KEY = ["social","shares"]) - without this, the paper-plane
+      // icon never learns the post is now shared, so a follow-up tap on
+      // the Share button reads it as unshared and toggles it, which
+      // actually *un*shares what was just shared in-app.
+      qc.invalidateQueries({ queryKey: ["social", "shares"] });
     },
   });
 }
 
 /** Patches one message's fields across whatever thread cache currently
- *  holds it, with a snapshot for rollback - shared by edit and unsend since
- *  both are "change this one message in place, everywhere it might be
- *  cached" operations. */
+ *  holds it, returning that message's pre-patch fields (from wherever it
+ *  was first found) so a caller can undo just this one patch later.
+ *
+ *  Deliberately does NOT snapshot/restore the whole array the way this used
+ *  to: a full-array rollback on a bulk action (multi-select unsend fires
+ *  several of these concurrently) would restore every cache to its
+ *  pre-batch state the moment any *one* of them failed, silently undoing
+ *  every other message's already-applied - and possibly already
+ *  server-confirmed - change in the same batch. Restoring only the single
+ *  id a call actually touched, via this same "map and replace by id"
+ *  shape, makes concurrent calls independent of each other regardless of
+ *  timing. Same fix already applied to Tribe chat's unsendMessage
+ *  (TribeScreen.tsx) after this exact bug was found there first. */
 function patchMessageEverywhere(
   qc: ReturnType<typeof useQueryClient>,
   id: string,
   patch: Partial<DMMessage>,
-) {
+): DMMessage | undefined {
+  let previous: DMMessage | undefined;
   const snapshots = qc.getQueriesData<DMMessage[]>({ queryKey: ["messages", "thread"] });
   for (const [key, data] of snapshots) {
     if (!data) continue;
     qc.setQueryData<DMMessage[]>(
       key,
-      data.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+      data.map((m) => {
+        if (m.id !== id) return m;
+        previous ??= m;
+        return { ...m, ...patch };
+      }),
     );
   }
-  return snapshots;
+  return previous;
 }
 
 export function useEditMessage() {
@@ -154,14 +185,14 @@ export function useEditMessage() {
     mutationFn: (input: { id: string; content: string }) => fn({ data: input }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["messages", "thread"] });
-      const snapshots = patchMessageEverywhere(qc, input.id, {
+      const previous = patchMessageEverywhere(qc, input.id, {
         content: input.content,
         edited_at: new Date().toISOString(),
       });
-      return { snapshots };
+      return { previous };
     },
-    onError: (_error, _input, context) => {
-      for (const [key, value] of context?.snapshots ?? []) qc.setQueryData(key, value);
+    onError: (_error, input, context) => {
+      if (context?.previous) patchMessageEverywhere(qc, input.id, context.previous);
     },
     onSuccess: (saved) => {
       patchMessageEverywhere(qc, saved.id, saved);
@@ -176,16 +207,16 @@ export function useUnsendMessage() {
     mutationFn: (id: string) => fn({ data: { id } }),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: ["messages", "thread"] });
-      const snapshots = patchMessageEverywhere(qc, id, {
+      const previous = patchMessageEverywhere(qc, id, {
         content: null,
         attachment_url: null,
         attachment_type: null,
         deleted_at: new Date().toISOString(),
       });
-      return { snapshots };
+      return { previous, id };
     },
     onError: (_error, _id, context) => {
-      for (const [key, value] of context?.snapshots ?? []) qc.setQueryData(key, value);
+      if (context?.previous) patchMessageEverywhere(qc, context.id, context.previous);
     },
     onSuccess: (saved) => {
       patchMessageEverywhere(qc, saved.id, saved);

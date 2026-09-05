@@ -46,7 +46,7 @@ export const Route = createFileRoute("/u/$handle")({
 
 function PublicProfilePage() {
   const { handle } = Route.useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const profileFn = useServerFn(getProfileByHandle);
@@ -54,6 +54,12 @@ function PublicProfilePage() {
   const profileQ = useQuery({
     queryKey: ["profile-public", handle],
     queryFn: () => profileFn({ data: { handle } }),
+    // getProfileByHandle requires auth - without this gate the query fires
+    // for a logged-out visitor anyway, fails with an auth error, and
+    // profileQ.data comes back undefined exactly like a genuinely unknown
+    // handle would, which used to render the same "User not found" for
+    // both cases (see the isError check below for the real distinction).
+    enabled: !!user && !authLoading,
     staleTime: 30_000,
   });
 
@@ -72,6 +78,33 @@ function PublicProfilePage() {
   const myProfile = useMyProfile();
   const sameTribe = !!profile?.tribe_ids?.some((id) => myProfile?.tribeIds.includes(id as TribeId));
 
+  if (authLoading) {
+    return <AppBootstrapSkeleton />;
+  }
+
+  if (!user) {
+    return (
+      <div className="bg-habitat flex min-h-screen items-center justify-center px-5">
+        <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center">
+          <p className="label-mono text-muted-foreground">Shared profile</p>
+          <h1 className="mt-2 font-display text-2xl font-bold">Sign in to view this profile.</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            MEUTUALS is an 18+ community. Sign in first so profile visibility rules can be applied.
+          </p>
+          <Link
+            to="/login"
+            onClick={() =>
+              window.sessionStorage.setItem("meutuals:post-login-path", `/u/${handle}`)
+            }
+            className="mt-5 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (profileQ.isLoading) {
     return <AppBootstrapSkeleton />;
   }
@@ -79,7 +112,14 @@ function PublicProfilePage() {
   if (!profile) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-habitat px-4 text-center">
-        <p className="font-display text-xl">User not found</p>
+        <p className="font-display text-xl">
+          {profileQ.isError ? "Couldn't load this profile" : "User not found"}
+        </p>
+        {profileQ.isError && (
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Something went wrong loading this page. Try again in a moment.
+          </p>
+        )}
         <Link
           to="/"
           className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"

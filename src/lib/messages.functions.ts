@@ -96,6 +96,27 @@ async function addReactionState(
   }
 
   const byId = new Map(messages.map((message) => [message.id, message]));
+
+  // A reply's target can sit outside this page's own fetch window - an
+  // older message in a long-running thread this query's .limit() already
+  // cut off. Previously that meant reply_to just resolved to null and the
+  // "replying to X" quote silently disappeared with no error. One small
+  // extra fetch for exactly the missing ids (bounded by how many distinct
+  // replies are on this page, not the whole thread) resolves it instead.
+  const missingReplyIds = Array.from(
+    new Set(
+      messages
+        .map((message) => message.reply_to_id)
+        .filter((id): id is string => Boolean(id) && !byId.has(id as string)),
+    ),
+  );
+  if (missingReplyIds.length) {
+    const { data: extra } = await messagesTable(supabase)
+      .select(MESSAGE_COLS)
+      .in("id", missingReplyIds);
+    for (const row of (extra ?? []) as DMMessage[]) byId.set(row.id, row);
+  }
+
   return messages.map((message) => ({
     ...message,
     reactions: counts.get(message.id) ?? emptyChatReactions(),

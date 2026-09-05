@@ -658,6 +658,18 @@ export const editPost = createServerFn({ method: "POST" })
         throw new Error("Post images must belong to the author");
       }
     }
+    // Same ownership check editComment already does, for the same reason:
+    // without it, a non-owner's blocked-by-RLS update surfaces as
+    // PostgREST's generic "JSON object requested, multiple (or no) rows
+    // returned" instead of a message the UI can actually show someone.
+    const { data: current, error: lookupError } = await supabase
+      .from("posts")
+      .select("author_id")
+      .eq("id", data.id)
+      .single();
+    if (lookupError) throw new Error(lookupError.message);
+    if (current.author_id !== userId) throw new Error("You can only edit your own post");
+
     const patch: { content: string; image_url?: string | null } = { content: data.content };
     if (data.image_paths !== undefined) patch.image_url = data.image_paths[0] ?? null;
     const { data: row, error } = await supabase
@@ -681,9 +693,29 @@ export const deletePost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { error } = await supabase.from("posts").delete().eq("id", data.id);
+    const { supabase, userId } = context;
+    // A plain .delete() with no .select() reports {error: null} whether it
+    // deleted a row or RLS quietly filtered it out to zero - checking
+    // ownership first, and the returned row after, closes both the false
+    // "deleted" success this used to report on someone else's post and
+    // gives an actionable message instead of silence.
+    const { data: current, error: lookupError } = await supabase
+      .from("posts")
+      .select("author_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (lookupError) throw new Error(lookupError.message);
+    if (!current) throw new Error("This post is already gone");
+    if (current.author_id !== userId) throw new Error("You can only delete your own post");
+
+    const { data: deleted, error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!deleted) throw new Error("This post is already gone");
     return { id: data.id };
   });
 
@@ -1054,17 +1086,23 @@ export const getTribeMemberCounts = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const out: Record<string, number> = {};
-    await Promise.all(
-      data.tribe_ids.map(async (tid) => {
-        const { count, error } = await supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .contains("tribe_ids", [tid]);
-        if (error) throw new Error(error.message);
-        out[tid] = count ?? 0;
-      }),
-    );
+    const out: Record<string, number> = Object.fromEntries(data.tribe_ids.map((tid) => [tid, 0]));
+    // One query instead of one `count` round trip per tribe id - tally
+    // membership client-side from a single overlaps() fetch instead.
+    // Nothing to duplicate correctness-wise: "one Tribe per user" is
+    // already enforced at the database layer, so each profile's tribe_ids
+    // is really just its single membership, and this only ever fetches
+    // the up-to-20 tribes actually asked for, not every profile.
+    const { data: rows, error } = await supabase
+      .from("profiles")
+      .select("tribe_ids")
+      .overlaps("tribe_ids", data.tribe_ids);
+    if (error) throw new Error(error.message);
+    for (const row of (rows ?? []) as { tribe_ids: string[] | null }[]) {
+      for (const tid of row.tribe_ids ?? []) {
+        if (tid in out) out[tid] += 1;
+      }
+    }
     return out;
   });
 
@@ -1072,15 +1110,28 @@ export const deleteComment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const { data: existing, error: lookupError } = await commentsTable(supabase)
-      .select("post_id, image_url")
+      .select("post_id, author_id, image_url")
       .eq("id", data.id)
       .single();
     if (lookupError) throw new Error(lookupError.message);
+    // Comments are readable by anyone who can see the post, not just their
+    // author - this lookup alone would previously succeed for *anyone*, so
+    // without this check a non-owner's attempt reached the delete (silently
+    // blocked by RLS, reported back as success) and then unconditionally
+    // deleted the comment's image file from storage - corrupting a comment
+    // that was never actually deleted by knocking out the photo it still
+    // references.
+    if (existing.author_id !== userId) throw new Error("You can only delete your own comment");
     const postId = existing.post_id as string;
-    const { error } = await commentsTable(supabase).delete().eq("id", data.id);
+    const { data: deleted, error } = await commentsTable(supabase)
+      .delete()
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!deleted) throw new Error("This comment is already gone");
     const image = existing.image_url as string | null;
     if (image && isCommentImagePath(image)) {
       await supabase.storage.from(COMMENT_IMAGE_BUCKET).remove([image]);

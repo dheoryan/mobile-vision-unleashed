@@ -52,11 +52,19 @@ export const uploadPostImage = (userId: string, file: File) =>
   uploadTo("post-images", userId, file);
 export const uploadCommentImage = (userId: string, file: File) =>
   uploadTo("comment-images", userId, file);
-export const uploadTribeChatImage = (tribeId: string, userId: string, file: File) =>
-  uploadTo("tribe-chat-attachments", userId, file, tribeId);
+const CHAT_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+// Tribe chat's own image picker used to skip this allow-list entirely,
+// falling through to uploadTo's generic "starts with image/" check and
+// letting through subtypes (SVG, BMP, TIFF) DM/Venture already reject for
+// the identical feature via uploadChatImage below.
+export const uploadTribeChatImage = (tribeId: string, userId: string, file: File) => {
+  if (!CHAT_IMAGE_TYPES.has(file.type)) {
+    throw new Error("Use a JPG, PNG, WebP, or GIF image.");
+  }
+  return uploadTo("tribe-chat-attachments", userId, file, tribeId);
+};
 export const uploadVentureImage = (userId: string, file: File) =>
   uploadTo("venture-images", userId, file);
-const CHAT_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 export const uploadChatImage = (
   userId: string,
   channelKind: "dm" | "venture",

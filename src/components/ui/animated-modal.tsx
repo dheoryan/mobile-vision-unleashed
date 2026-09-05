@@ -87,6 +87,17 @@ export function AnimatedModal({
             onEscapeKeyDown={block}
             onInteractOutside={block}
             onPointerDownOutside={block}
+            // Radix renders this through a Portal - the DOM node sits
+            // outside whatever rendered <AnimatedModal>, but React still
+            // bubbles a click through the *component* tree it was authored
+            // in. A caller whose own root has an onClick (PostCard's
+            // "open this post" handler is the recurring example) would
+            // otherwise see every tap inside any sheet built on this
+            // primitive, with no way for the sheet itself to know it's
+            // nested inside something clickable. Stopping it here once
+            // fixes every current and future AnimatedModal instance.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             style={contentStyle}
             className={cn(
               "pointer-events-auto relative mx-auto w-full max-w-md border border-border bg-card duration-150",

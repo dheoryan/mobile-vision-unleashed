@@ -1295,6 +1295,25 @@ export const applyToVenture = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existingError) throw new Error(existingError.message);
     if (existing) {
+      // A declined or self-withdrawn (cancelled) row isn't a live
+      // application - returning it unchanged used to make a genuine
+      // reapply a silent no-op: the toast said "sent," nothing actually
+      // changed, and the Venture stayed invisible everywhere (see the
+      // joinable-board fix in VenturesScreen.tsx). Live statuses
+      // (pending/accepted/invited) still short-circuit here unchanged,
+      // since applying again while one of those is active isn't a new
+      // request.
+      if (existing.status === "declined" || existing.status === "cancelled") {
+        const { data: reopened, error: reopenError } = await db
+          .from("venture_applications")
+          .update({ status: "pending", message: data.message, decided_at: null })
+          .eq("id", existing.id)
+          .select(APP_COLS)
+          .single();
+        if (reopenError) throw new Error(reopenError.message);
+        const applicantMap = await fetchProfiles(db, [userId]);
+        return mapApplication(reopened as VentureApplicationDbRow, applicantMap);
+      }
       const applicantMap = await fetchProfiles(db, [userId]);
       return mapApplication(existing as VentureApplicationDbRow, applicantMap);
     }
@@ -1783,7 +1802,48 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       }
     }
 
-    const byId = new Map(mapped.map((message) => [message.id, message]));
+    const byId = new Map<
+      string,
+      Pick<
+        VentureMessage,
+        "id" | "sender_id" | "content" | "attachment_type" | "sender" | "deleted_at"
+      >
+    >(mapped.map((message) => [message.id, message]));
+
+    // See messages.functions.ts's identical fix: a reply's target can sit
+    // outside this page's own 500-message fetch window in a long-running
+    // party chat, which used to make the quote just disappear with no
+    // error. One small extra fetch (plus resolving just those senders) for
+    // exactly the missing ids resolves it instead.
+    const missingReplyIds = Array.from(
+      new Set(
+        mapped
+          .map((message) => message.reply_to_id)
+          .filter((id): id is string => Boolean(id) && !byId.has(id as string)),
+      ),
+    );
+    if (missingReplyIds.length) {
+      const { data: extraRows } = await db
+        .from("venture_messages")
+        .select(MESSAGE_COLS)
+        .in("id", missingReplyIds);
+      const rows = (extraRows ?? []) as VentureMessageDbRow[];
+      const extraSenders = await fetchProfiles(
+        db,
+        rows.map((row) => row.sender_id),
+      );
+      for (const row of rows) {
+        byId.set(row.id, {
+          id: row.id,
+          sender_id: row.sender_id,
+          content: row.content,
+          attachment_type: row.attachment_type,
+          deleted_at: row.deleted_at ?? null,
+          sender: extraSenders.get(row.sender_id) ?? null,
+        });
+      }
+    }
+
     return mapped.map((message) => ({
       ...message,
       reply_to: message.reply_to_id ? (byId.get(message.reply_to_id) ?? null) : null,

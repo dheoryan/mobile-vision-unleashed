@@ -53,6 +53,102 @@ async function resolveMemberTribe(
   return tribe as { id: string; key: string };
 }
 
+const TRIBE_MESSAGE_COLS =
+  "id, tribe_id, sender_id, content, attachment_url, attachment_type, reply_to_id, mentions, created_at, room_kind, edited_at, deleted_at, shared_post_id";
+
+// shared_post_id/edited_at/deleted_at aren't in the generated Database
+// types yet - same "migration is live, types.ts hasn't caught up"
+// situation as messagesTable() in messages.functions.ts.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function tribeMessagesTable(supabase: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return supabase.from("tribe_messages") as any;
+}
+
+const sendTribeMessageSchema = z
+  .object({
+    tribe_key: z.string().trim().min(1).max(40),
+    content: z.string().trim().max(2000).nullish(),
+    attachment_url: z.string().min(1).max(500).nullish(),
+    attachment_type: z.literal("image").nullish(),
+    reply_to_id: z.string().uuid().nullish(),
+    mentions: z.array(z.string().uuid()).max(20).optional().default([]),
+  })
+  .refine((value) => Boolean(value.content?.trim() || value.attachment_url), {
+    message: "Message text or an attachment is required",
+  });
+
+// Tribe chat's send/edit/unsend used to be raw client-side Supabase calls
+// with no server function at all - unlike DM and Venture, which both
+// validate content through a Zod schema capped at 2000 characters matching
+// their own DB CHECK constraint. Tribe's DB-side constraint has no upper
+// bound at all, so before this there was no message-length limit anywhere
+// in the stack for this one surface. This app-layer cap is deliberately
+// not paired with a matching DB migration: this table's CHECK constraints
+// have already diverged from what's tracked in this repo twice this
+// session in ways discovered only by production errors (see the
+// 20260904020000/20260904030000 unsend fixes) - touching them again on a
+// guess is exactly the risk that cost two rounds last time.
+export const sendTribeMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => sendTribeMessageSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const tribe = await resolveMemberTribe(supabase, userId, data.tribe_key);
+    const { data: row, error } = await tribeMessagesTable(supabase)
+      .insert({
+        tribe_id: tribe.id,
+        sender_id: userId,
+        // Empty string, not null - tribe_messages.content is NOT NULL in
+        // production (an untracked divergence found this session), and an
+        // image-only message with no caption is a real, supported case.
+        content: data.content?.trim() ?? "",
+        attachment_url: data.attachment_url ?? null,
+        attachment_type: data.attachment_url ? "image" : null,
+        reply_to_id: data.reply_to_id ?? null,
+        mentions: data.mentions ?? [],
+        room_kind: null,
+      })
+      .select(TRIBE_MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const editTribeMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), content: z.string().trim().min(1).max(2000) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    // enforce_tribe_message_edit_fields (20260904010000) is the real gate -
+    // sender-only, blocks structured Room items and an already-unsent
+    // message, stamps edited_at. Same reliance already used by
+    // editMessage/unsendMessage in messages.functions.ts.
+    const { data: row, error } = await tribeMessagesTable(supabase)
+      .update({ content: data.content })
+      .eq("id", data.id)
+      .select(TRIBE_MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const unsendTribeMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await tribeMessagesTable(supabase)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .select(TRIBE_MESSAGE_COLS)
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
 export const listTribeRoom = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => tribeSchema.parse(input))
@@ -420,11 +516,7 @@ export const sharePostToTribe = createServerFn({ method: "POST" })
       throw new Error("This Tribe-only post can only be shared within its own Tribe");
     }
 
-    // shared_post_id (20260905010000) isn't in the generated Database types
-    // yet - same "migration is live, types.ts hasn't caught up" situation as
-    // messagesTable() in messages.functions.ts.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from("tribe_messages") as any).insert({
+    const { error } = await tribeMessagesTable(supabase).insert({
       tribe_id: tribe.id,
       sender_id: userId,
       content: data.caption?.trim() || SHARED_POST_DEFAULT_CAPTION,
@@ -559,6 +651,34 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
     }
     if (venture.user_id !== userId) throw new Error("Only the Venture host can announce it");
 
+    // A plan/pulse-answer converts into at most one announced Venture, ever
+    // - checked here, before any invite is written, and keyed on the
+    // *source message*, not the venture_id this call was given. That
+    // matters for a very real failure mode: if a first announce attempt
+    // fails after already inserting invites (network drop between that
+    // step and the message-insert below) but the client only shows a
+    // generic "Venture is live, but the card wasn't posted" toast with no
+    // targeted retry, the only recovery path visible in the UI is redoing
+    // the whole flow - which creates a second, brand-new Venture and would
+    // call this function again with a *different* venture_id. The old
+    // dedupe check here was keyed on room_metadata's venture_id, so it
+    // never recognized that retry as a repeat and re-invited everyone who
+    // marked Interested a second time, to a second Venture thread. Keying
+    // on reply_to_id instead means any retry against the same source stops
+    // here, before touching invites, regardless of which venture_id it was
+    // called with - the cost is that a genuinely new venture created by
+    // that retry stays un-announced, which is a much smaller problem than
+    // silently double-inviting real members.
+    const { data: existingForSource, error: existingForSourceError } = await supabase
+      .from("tribe_messages")
+      .select("id")
+      .eq("tribe_id", tribe.id)
+      .eq("room_kind", "venture")
+      .eq("reply_to_id", source.id)
+      .maybeSingle();
+    if (existingForSourceError) throw new Error(existingForSourceError.message);
+    if (existingForSource) return { id: existingForSource.id, invited_count: 0 };
+
     // "Interested" is explicit consent to receive an invitation, not consent
     // to be joined automatically. Translate those reactions into durable
     // invited applications. Existing applications are never overwritten: a
@@ -607,16 +727,6 @@ export const announceTribeVenture = createServerFn({ method: "POST" })
         invitedCount = invitations.length;
       }
     }
-
-    const { data: existing, error: existingError } = await supabase
-      .from("tribe_messages")
-      .select("id")
-      .eq("tribe_id", tribe.id)
-      .eq("room_kind", "venture")
-      .contains("room_metadata", { venture_id: venture.id })
-      .maybeSingle();
-    if (existingError) throw new Error(existingError.message);
-    if (existing) return { id: existing.id, invited_count: invitedCount };
 
     const { data: row, error } = await supabase
       .from("tribe_messages")

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { FeatureIllustration } from "./FeatureIllustration";
 import welcomeArt from "@/assets/app-illustrations/onboarding-01.webp";
@@ -155,9 +155,19 @@ export const primaryTribe = (profile: Profile): TribeId => profile.tribeIds[0];
 export function Onboarding({
   onDone,
   saving = false,
+  handleTakenError = false,
+  onHandleTakenErrorConsumed,
 }: {
   onDone: (profile: Profile, location?: OnboardingLocation) => void;
   saving?: boolean;
+  /** Set when the step-4 submit's write actually landed on a handle
+   *  collision - the live check on step 2 only catches a collision that
+   *  already existed when that step ran; two people grabbing the same
+   *  handle in the same window can both pass it and only fail at the final
+   *  write, by which point the handle is baked into state from a screen
+   *  already left behind with no way to get back to it. */
+  handleTakenError?: boolean;
+  onHandleTakenErrorConsumed?: () => void;
 }) {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
@@ -188,6 +198,18 @@ export function Onboarding({
   const viewedTribe = TRIBES[tribeIndex];
   const handleValid = handle.length >= 3 && handle.length <= 30;
   const handleAvailability = useHandleAvailability(handle, handleValid);
+
+  useEffect(() => {
+    if (!handleTakenError) return;
+    setStep(2);
+    toast.error("That handle was just taken", {
+      description: "Someone grabbed it a moment before you finished - pick another to continue.",
+    });
+    onHandleTakenErrorConsumed?.();
+    // Fires once per truthy edge, not on every render of a still-true prop -
+    // the parent flips it back to false right after this reads it anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleTakenError]);
   const tribePrimaryInterests = tribeId ? primaryInterests(tribeId) : [];
   const tribeSecondaryInterests = tribeId ? secondaryInterests(tribeId) : [];
   const primaryInterestCount = interests.filter((id) =>

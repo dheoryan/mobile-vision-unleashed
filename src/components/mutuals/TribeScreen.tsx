@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { AtIcon } from "@phosphor-icons/react/dist/csr/At";
 import { CalendarPlusIcon } from "@phosphor-icons/react/dist/csr/CalendarPlus";
@@ -24,6 +25,7 @@ import {
   type TribeVentureDraft,
 } from "@/lib/tribe-room";
 import { useToggleTribeRoomReaction } from "@/lib/tribe-room-store";
+import { editTribeMessage, sendTribeMessage, unsendTribeMessage } from "@/lib/tribe-room.functions";
 import { ChatMessageActions } from "./ChatMessageActions";
 import { ChatMessageOwnMenu } from "./ChatMessageOwnMenu";
 import { ChatSelectionBar } from "./ChatSelectionBar";
@@ -453,6 +455,9 @@ function GroupChat({
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const toggleReaction = useToggleTribeRoomReaction(tribeId);
+  const sendTribeMessageFn = useServerFn(sendTribeMessage);
+  const editTribeMessageFn = useServerFn(editTribeMessage);
+  const unsendTribeMessageFn = useServerFn(unsendTribeMessage);
 
   useEffect(() => {
     let cancelled = false;
@@ -597,7 +602,49 @@ function GroupChat({
       my_reactions: myReactions.get(row.id) ?? [],
       sender: profileMap[row.sender_id],
     }));
-    const byId = new Map(mapped.map((m) => [m.id, m]));
+    const byId = new Map<
+      string,
+      Pick<
+        TribeMessage,
+        "id" | "content" | "sender_id" | "attachment_type" | "sender" | "deleted_at"
+      >
+    >(mapped.map((m) => [m.id, m]));
+
+    // See messages.functions.ts's identical fix: a reply's target can sit
+    // outside this page's own 100-message fetch window - the tightest of
+    // the three chat surfaces' page sizes, so the easiest to actually hit.
+    // Previously that meant reply_to just resolved to null and the
+    // "replying to X" quote silently disappeared with no error.
+    const missingReplyIds = Array.from(
+      new Set(
+        mapped
+          .map((m) => m.reply_to_id)
+          .filter((id): id is string => Boolean(id) && !byId.has(id as string)),
+      ),
+    );
+    if (missingReplyIds.length) {
+      // deleted_at (20260904010000) isn't in the generated Database types
+      // yet - same situation as unsendMessage's own cast just below.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: extraRows } = await (supabase.from("tribe_messages") as any)
+        .select("id, content, sender_id, attachment_type, deleted_at")
+        .in("id", missingReplyIds);
+      const extraSenderIds = (extraRows ?? []).map((row: { sender_id: string }) => row.sender_id);
+      const extraProfileMap: Record<string, TribeMember> = {};
+      if (extraSenderIds.length) {
+        const { data: extraProfiles } = await supabase
+          .from("profiles")
+          .select("id, display_name, handle, avatar_emoji, avatar_url")
+          .in("id", extraSenderIds);
+        (extraProfiles ?? []).forEach((profile) => {
+          extraProfileMap[profile.id] = profile;
+        });
+      }
+      for (const row of extraRows ?? []) {
+        byId.set(row.id, { ...row, sender: extraProfileMap[row.sender_id] });
+      }
+    }
+
     setMessages(
       mapped.map((m) => ({
         ...m,
@@ -795,12 +842,13 @@ function GroupChat({
         item.id === id ? { ...item, content, edited_at: editedAt } : item,
       );
     });
-    const { error } = await supabase.from("tribe_messages").update({ content }).eq("id", id);
-    if (error) {
+    try {
+      await editTribeMessageFn({ data: { id, content } });
+    } catch (error) {
       const restore = previousItem;
       if (restore)
         setMessages((current) => current.map((item) => (item.id === id ? restore : item)));
-      toast.error(error.message);
+      toast.error(error instanceof Error ? error.message : "Couldn't edit message");
     }
   };
 
@@ -820,20 +868,13 @@ function GroupChat({
           : item,
       );
     });
-    // tribe_messages.deleted_at (20260904010000) isn't in the generated
-    // Database types yet - same "migration is live, types.ts hasn't caught
-    // up" situation as commentsTable in posts.functions.ts. `as any` here
-    // rather than a table-wide helper since this is the only tribe_messages
-    // write in this file that touches the unlanded column.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from("tribe_messages") as any)
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) {
+    try {
+      await unsendTribeMessageFn({ data: { id } });
+    } catch (error) {
       const restore = previousItem;
       if (restore)
         setMessages((current) => current.map((item) => (item.id === id ? restore : item)));
-      toast.error(error.message);
+      toast.error(error instanceof Error ? error.message : "Couldn't unsend message");
     }
   };
 
@@ -893,19 +934,17 @@ function GroupChat({
         ),
       );
 
-      const payload = {
-        tribe_id: dbTribeId,
-        sender_id: user.id,
-        content: cleanContent,
-        attachment_url: attachmentUrl,
-        attachment_type: attachmentUrl ? "image" : null,
-        reply_to_id: replyTo?.id ?? null,
-        mentions: collectMentionIds(cleanContent, mentionRegistry),
-      };
+      await sendTribeMessageFn({
+        data: {
+          tribe_key: tribeId,
+          content: cleanContent || null,
+          attachment_url: attachmentUrl,
+          attachment_type: attachmentUrl ? "image" : null,
+          reply_to_id: replyTo?.id ?? null,
+          mentions: collectMentionIds(cleanContent, mentionRegistry),
+        },
+      });
 
-      const { error } = await supabase.from("tribe_messages").insert(payload);
-
-      if (error) throw error;
       setText("");
       setCaret(0);
       setReplyTo(null);

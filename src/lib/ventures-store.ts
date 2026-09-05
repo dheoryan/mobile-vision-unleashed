@@ -28,7 +28,7 @@ import {
   type VentureArrivalStatus,
   type ProfileVentureHistoryItem,
 } from "@/lib/ventures.functions";
-import type { RichMessageInput } from "@/lib/chat";
+import { emptyChatReactions, type RichMessageInput } from "@/lib/chat";
 
 export type {
   VentureApplication,
@@ -329,29 +329,94 @@ export function useUpdateVentureAnnouncement(ventureId: string) {
 export function useSendVentureMessage(ventureId: string) {
   const fn = useServerFn(sendVentureMessage);
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const key = MESSAGES_KEY(ventureId);
   return useMutation({
     mutationFn: (input: RichMessageInput) => fn({ data: { venture_id: ventureId, ...input } }),
-    onSuccess: (message) => {
-      qc.setQueryData<VentureMessage[]>(MESSAGES_KEY(ventureId), (cur) => [
-        ...(cur ?? []),
-        message,
-      ]);
-      qc.invalidateQueries({ queryKey: MESSAGES_KEY(ventureId) });
+    // Mirrors useSendMessage's optimistic path (messages-store.ts) - Venture
+    // chat was clearly built from that same component but never given the
+    // matching mutation logic, so it sent with no immediate feedback while
+    // DM felt instant, and MessagesPanel.tsx's "pending"/tmp- id UI for
+    // Venture messages sat dead with nothing that could ever produce a
+    // tmp- id. This also fixes a freshly-sent reply's quote never
+    // appearing at all until the next poll, since sendVentureMessage's raw
+    // response has reply_to_id but not the joined reply_to preview.
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const tempId = `tmp-${Date.now()}`;
+      const current = qc.getQueryData<VentureMessage[]>(key) ?? [];
+      const replyTo = input.reply_to_id
+        ? (current.find((message) => message.id === input.reply_to_id) ?? null)
+        : null;
+      const optimistic: VentureMessage = {
+        id: tempId,
+        venture_id: ventureId,
+        sender_id: user?.id ?? "me",
+        content: input.content ?? null,
+        created_at: new Date().toISOString(),
+        attachment_url: input.attachment_url ?? null,
+        attachment_type: input.attachment_url ? "image" : null,
+        reply_to_id: input.reply_to_id ?? null,
+        mentions: input.mentions ?? [],
+        message_kind: "user",
+        system_event: null,
+        edited_at: null,
+        deleted_at: null,
+        reactions: emptyChatReactions(),
+        my_reactions: [],
+        // Never read for a "mine" bubble (only !mine branches touch
+        // sender), so leaving it unset costs nothing while "sending…".
+        sender: null,
+        reply_to: replyTo,
+      };
+      qc.setQueryData<VentureMessage[]>(key, [...current, optimistic]);
+      return { tempId, replyTo };
+    },
+    onSuccess: (saved, _input, ctx) => {
+      qc.setQueryData<VentureMessage[]>(key, (cur) => {
+        const list = cur ?? [];
+        const withReplyTo = { ...saved, reply_to: ctx?.replyTo ?? null };
+        return list.some((m) => m.id === ctx?.tempId)
+          ? list.map((m) => (m.id === ctx?.tempId ? withReplyTo : m))
+          : [...list, withReplyTo];
+      });
       qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: (_error, _input, ctx) => {
+      qc.setQueryData<VentureMessage[]>(key, (cur) =>
+        (cur ?? []).filter((m) => m.id !== ctx?.tempId),
+      );
     },
   });
 }
 
+/** Patches one message's fields in the Venture's messages cache, returning
+ *  its pre-patch fields so a caller can undo just this one patch later.
+ *
+ *  Deliberately does NOT snapshot/restore the whole array the way this used
+ *  to: a full-array rollback on a bulk action (multi-select unsend fires
+ *  several of these concurrently) would restore the cache to its pre-batch
+ *  state the moment any *one* of them failed, silently undoing every other
+ *  message's already-applied - and possibly already server-confirmed -
+ *  change in the same batch. Restoring only the single id a call actually
+ *  touched makes concurrent calls independent of each other regardless of
+ *  timing. Same fix already applied to Tribe chat's unsendMessage
+ *  (TribeScreen.tsx) and DM's patchMessageEverywhere (messages-store.ts)
+ *  after this exact bug was found there first. */
 function patchVentureMessage(
   qc: ReturnType<typeof useQueryClient>,
   ventureId: string,
   id: string,
   patch: Partial<VentureMessage>,
-) {
+): VentureMessage | undefined {
   const key = MESSAGES_KEY(ventureId);
-  const previous = qc.getQueryData<VentureMessage[]>(key);
+  let previous: VentureMessage | undefined;
   qc.setQueryData<VentureMessage[]>(key, (cur) =>
-    cur?.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    cur?.map((m) => {
+      if (m.id !== id) return m;
+      previous ??= m;
+      return { ...m, ...patch };
+    }),
   );
   return previous;
 }
@@ -369,8 +434,8 @@ export function useEditVentureMessage(ventureId: string) {
       });
       return { previous };
     },
-    onError: (_error, _input, context) => {
-      if (context?.previous) qc.setQueryData(MESSAGES_KEY(ventureId), context.previous);
+    onError: (_error, input, context) => {
+      if (context?.previous) patchVentureMessage(qc, ventureId, input.id, context.previous);
     },
     onSuccess: (saved) => {
       patchVentureMessage(qc, ventureId, saved.id, saved);
@@ -391,10 +456,10 @@ export function useUnsendVentureMessage(ventureId: string) {
         attachment_type: null,
         deleted_at: new Date().toISOString(),
       });
-      return { previous };
+      return { previous, id };
     },
     onError: (_error, _id, context) => {
-      if (context?.previous) qc.setQueryData(MESSAGES_KEY(ventureId), context.previous);
+      if (context?.previous) patchVentureMessage(qc, ventureId, context.id, context.previous);
     },
     onSuccess: (saved) => {
       patchVentureMessage(qc, ventureId, saved.id, saved);

@@ -205,6 +205,114 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Claude — Full app audit, then fixed every finding
+
+Ran a systematic audit across the whole app (6 parallel passes: chat,
+feed/posts, Tribes/Ventures, profile/notifications, routing/auth, and the
+server-function layer) looking for broken logic, inconsistent behavior,
+and the wrong UI for a job - deliberately not re-litigating the open
+audience-primitive question or other items already tracked in
+`MEUTUALS_PRODUCTION_AUDIT.md`. Found 23 concrete issues; the user asked
+to fix all of them. 22 were real and fixed (all client/server-function
+layer - **no new migration, nothing for the user to run this time**); one
+(DM chat has no @mentions) was correctly pushed back on - a DM is
+inherently 1:1, so there's no ambiguity for a mention to resolve, unlike
+Tribe/Venture group chat.
+
+**Two systemic patterns, each explaining several findings at once:**
+- A click inside a Radix Dialog portal bubbles through React's *component*
+  tree (where it was authored) rather than the DOM tree it renders into.
+  PostCard's own "open this post" onClick was reachable from *any* click
+  inside four of its own overlays that were never wrapped to stop it
+  (repost sheet, quote composer, delete-confirm, media lightbox) - already
+  fixed once for the Share sheet specifically, this time fixed **once, in
+  `AnimatedModal` itself** (`src/components/ui/animated-modal.tsx`), so
+  every sheet built on it is covered regardless of where it's nested.
+- An optimistic update that snapshots a whole list before a request, then
+  restores that whole snapshot on failure, wipes out every other change to
+  that list made in the meantime. Found and fixed once in Tribe chat's
+  unsend; this pass found DM's `patchMessageEverywhere` and Venture's
+  `patchVentureMessage` (both in their respective `-store.ts` files) had
+  the identical bug, never ported the fix. Both now restore only the one
+  message they touched.
+
+**Fixed, by area:**
+- **Feed/posts:** the portal-bubbling pattern above (Critical); in-app
+  sharing never invalidated the Share icon's own cache, so a follow-up tap
+  could silently un-share what was just shared (`messages-store.ts`,
+  `tribe-room-store.ts`); `SharedPostCard` was the one caller that skipped
+  the `from` param the rest of the app already uses for deterministic back
+  navigation, so tapping a shared post in chat then tapping back detoured
+  through Home (added a `"chat"` value alongside `"feed"`/`"notifications"`
+  in `p.$postId.tsx`); `QuotedPostPreview`/`SharedPostCard` now use
+  `LazyImage` and show a "+N more" badge for multi-image posts, matching
+  the main feed's carousel.
+- **Chat (DM/Tribe/Venture):** the whole-array-rollback pattern above;
+  Venture chat had no optimistic send at all (dead `pending`/`tmp-` UI
+  code that could never fire) and a freshly-sent reply's quote disappeared
+  in DM / never appeared in Venture until the next poll, since neither
+  send function returns the joined `reply_to` - both fixed together by
+  giving Venture chat the same optimistic-send path DM already had
+  (`ventures-store.ts`); a reply's quote also silently vanished whenever
+  its target fell outside the current page's fetch window (a long-running
+  thread) - now resolved with one small extra fetch for exactly the
+  missing ids, in all three surfaces; Tribe chat's send/edit/unsend were
+  raw client-side Supabase calls with **no server function and no message
+  length limit anywhere in the stack** - added `sendTribeMessage`/
+  `editTribeMessage`/`unsendTribeMessage` in `tribe-room.functions.ts`
+  mirroring DM's Zod-validated pattern (deliberately not paired with a new
+  DB constraint - this table's constraints have already diverged from
+  what's tracked here twice this session in ways only found via
+  production errors); Tribe chat's image picker skipped the JPG/PNG/WebP/
+  GIF allow-list DM/Venture both enforce for the same feature.
+- **Tribes/Ventures:** retrying a failed "Turn into Venture" announce
+  could create a second Venture and double-invite everyone who marked
+  Interested - the dedupe check now keys on the source message, not the
+  venture id, checked before any invite is written, and the failure toast
+  got a real "Try again" action that re-announces the *same* Venture
+  instead of prompting a redo of the whole flow (`tribe-room.functions.ts`,
+  `routes/index.tsx`); a declined or self-withdrawn Venture application
+  made the Venture disappear from both the board and My Ventures
+  permanently, with fully-built "Closed to you" UI in `VentureBoard.tsx`
+  that could never render because the board it's given was pre-filtered -
+  `joinableVentures` now only excludes live statuses
+  (invited/accepted/pending), and `applyToVenture` resets a stale
+  declined/cancelled row back to pending instead of silently no-opping;
+  `VentureTicket`'s own withdraw button had the same "shown for any
+  non-live status" bug, fixed alongside it.
+- **Profile/notifications:** a blocked user's full profile (bio, city,
+  interests) stayed visible via their direct `/u/$handle` link - every
+  other discovery surface already filters blocks out, this was the one
+  direct-lookup path that didn't (`profile.functions.ts`, using the
+  existing `has_blocked` RPC, no new migration); logged-out visits to
+  `/u/$handle` and `/notifications` showed "User not found" / a bare empty
+  state instead of a sign-in prompt with a saved return path, unlike
+  `/p/$postId`'s existing pattern - both now match it; Explore's deck
+  could render completely blank if the candidate pool shrank mid-session
+  (someone blocked, left their Tribe) since `index` was never clamped to
+  the new length - now clamped, with a real empty state if the pool hits
+  zero; a handle collision at the final onboarding step left the user
+  stuck with no way back to fix it - now routes back to step 2 with a
+  toast instead of silently retrying the same doomed handle.
+- **Server functions:** `deletePost`/`deleteComment` reported success even
+  when RLS had silently blocked the delete (no `.select()` after
+  `.delete()` can't tell 0 rows from 1) - worse for `deleteComment`, which
+  looked up `image_url` before checking ownership, so a non-owner's
+  blocked delete still unconditionally deleted the comment's image file
+  out from under a comment that was never actually removed; both now
+  check ownership first and verify a row actually came back;
+  `getTribeMemberCounts` fired one `count` query per requested Tribe id -
+  now one query total, tallied client-side (safe because "one Tribe per
+  user" is already enforced, so there's nothing to double-count).
+
+Verification: `npx tsc --noEmit`, `npx eslint` on every touched file
+(clean except one pre-existing warning unrelated to any of this),
+137/137 Node tests (1 new, covering the back-navigation `"chat"` source),
+`npm run build` all pass. Several fixes were confirmed against the local
+Docker sandbox directly (RLS behavior for a non-owner's blocked delete,
+`has_blocked`'s bidirectional check, `tribe_ids`' one-per-profile shape)
+rather than just reasoned about. No migration to apply this time.
+
 ### 2026-09-05 — Claude — Swipe-back audit: every AnimatedModal sheet, and shared-post links, now unwind correctly
 
 User asked to audit whether the native back gesture (iOS edge-swipe,

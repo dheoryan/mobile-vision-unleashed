@@ -185,6 +185,19 @@ export function ExploreDeck({
     setPhotoFailed(false);
   }, [person?.id]);
 
+  // `index` is only ever reset on a session-key change (the effect above) -
+  // it was never clamped when the *pool itself* shrinks, which it can do
+  // live (someone gets blocked, leaves their Tribe, or otherwise drops out
+  // of eligibility between refetches) independently of anything the viewer
+  // does. Viewing the last card when that happens left `index` pointing
+  // past the new end of the array, `person` resolving to undefined, and
+  // the whole deck rendering nothing at all - no card, no controls, no
+  // error - until the viewer changed mood or day.
+  useEffect(() => {
+    if (currentPeople.length === 0) return;
+    setIndex((current) => Math.min(current, currentPeople.length - 1));
+  }, [currentPeople.length]);
+
   const advance = () => {
     if (index + 1 < currentPeople.length) {
       setIndex((current) => current + 1);
@@ -433,7 +446,25 @@ export function ExploreDeck({
     );
   }
 
-  if (!person) return null;
+  if (!person) {
+    // The clamp above handles a shrinking-but-nonempty pool; this is only
+    // reached if every remaining candidate dropped out at once (e.g. a
+    // block cleared the whole deck). A real, labeled state instead of a
+    // silent blank screen - matching the "done" phase's own visual
+    // language rather than introducing a new empty-state look.
+    return (
+      <section className="flex h-full min-h-0 flex-col items-center justify-center rounded-[28px] border border-border bg-card p-6 text-center motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+        <FeatureIllustration src={discoverArt} size="lg" className="w-[190px] opacity-85" />
+        <h3 className="mt-3 font-display text-2xl font-bold leading-tight">
+          Nobody left in this deck.
+        </h3>
+        <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+          The people in it changed while you were looking. Try a different mood or check back
+          tomorrow.
+        </p>
+      </section>
+    );
+  }
 
   const tribe = tribeById(person.tribeId);
   const isFollowing = following.has(person.id);

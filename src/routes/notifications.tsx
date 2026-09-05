@@ -42,6 +42,8 @@ import {
 import { cn } from "@/lib/utils";
 import { notificationHomeSearch } from "@/lib/notification-navigation";
 import { intentStore } from "@/lib/intent-store";
+import { useAuth } from "@/lib/auth-context";
+import { AppBootstrapSkeleton } from "@/components/mutuals/Skeleton";
 
 interface NotificationsSearch {
   open?: string;
@@ -119,6 +121,7 @@ const TEXTS: Record<NotificationKind, string> = {
 };
 
 function NotificationsPage() {
+  const { user, loading: authLoading } = useAuth();
   const {
     items,
     unread,
@@ -198,6 +201,39 @@ function NotificationsPage() {
       }),
     );
   };
+
+  if (authLoading) {
+    return <AppBootstrapSkeleton />;
+  }
+
+  // useNotifications' query is enabled: !!user, so a logged-out visitor
+  // used to just see the same "no notifications yet" empty state real
+  // notifications would produce - no hint that signing in would show
+  // anything, and (unlike /p/$postId's equivalent gate) no return path
+  // saved, so signing in separately landed them on the default tab
+  // instead of back here.
+  if (!user) {
+    return (
+      <div className="bg-habitat flex min-h-screen items-center justify-center px-5">
+        <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center">
+          <p className="label-mono text-muted-foreground">Notifications</p>
+          <h1 className="mt-2 font-display text-2xl font-bold">Sign in to see what's new.</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            MEUTUALS is an 18+ community. Sign in first so activity can be shown.
+          </p>
+          <Link
+            to="/login"
+            onClick={() =>
+              window.sessionStorage.setItem("meutuals:post-login-path", "/notifications")
+            }
+            className="mt-5 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-habitat pb-16">

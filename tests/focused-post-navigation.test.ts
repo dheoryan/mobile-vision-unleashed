@@ -10,6 +10,10 @@ const notificationsSource = readFileSync(
   new URL("../src/routes/notifications.tsx", import.meta.url),
   "utf8",
 );
+const sharedPostCardSource = readFileSync(
+  new URL("../src/components/mutuals/SharedPostCard.tsx", import.meta.url),
+  "utf8",
+);
 
 test("notification post links preserve their source for deterministic back navigation", () => {
   assert.match(notificationsSource, /from: "notifications"/);
@@ -17,7 +21,23 @@ test("notification post links preserve their source for deterministic back navig
   assert.match(focusedPostSource, /search\.from === "feed" \|\| search\.from === "notifications"/);
   assert.match(focusedPostSource, /comment: typeof search\.comment === "string"/);
   assert.match(focusedPostSource, /from === "notifications" \? "\/notifications" : "\/"/);
-  assert.match(focusedPostSource, /from === "feed" && window\.history\.length > 1/);
+  // "feed" and "chat" both mean a real prior screen is already sitting in
+  // history - only "notifications" and a bare shared link (from
+  // undefined) fall through to the synthetic-parent-entry path.
+  assert.match(
+    focusedPostSource,
+    /\(from === "feed" \|\| from === "chat"\) && window\.history\.length > 1/,
+  );
+});
+
+test("a post shared into chat identifies itself as chat, not a bare deep link", () => {
+  // SharedPostCard.tsx is the one caller that used to navigate to
+  // /p/$postId with no `from` at all, which made the post page treat a
+  // real in-app tap (from a DM or Tribe chat, with real history behind it)
+  // as an untrusted deep link and inject an extra Home entry - tapping
+  // back from a shared post landed on Home instead of the chat thread.
+  assert.match(sharedPostCardSource, /from: "chat"/);
+  assert.match(focusedPostSource, /from\?: "feed" \| "notifications" \| "chat"/);
 });
 
 test("focused posts use the app secondary-header back control", () => {

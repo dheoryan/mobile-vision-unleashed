@@ -119,17 +119,7 @@ export function SharePostSheet({
       title="Share post"
       contentClassName="overflow-hidden"
     >
-      <div
-        className="flex max-h-[80vh] flex-col pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2"
-        // AnimatedModal's Radix Dialog portals this content to document.body,
-        // but React still bubbles a click through the *component* tree it
-        // was authored in, not the DOM tree it renders into - so a tap on a
-        // Moot/Tribe row here would otherwise also reach PostCard's own
-        // open-the-post onClick further up its JSX (same reason
-        // PostOwnMenu's trigger wrapper stops propagation).
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className="flex max-h-[80vh] flex-col pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
         <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-muted-foreground/35" />
         <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-3">
           <div>

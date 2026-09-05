@@ -11,13 +11,19 @@ import { AppBootstrapSkeleton, PostCardSkeleton } from "@/components/mutuals/Ske
 import type { TribeId } from "@/lib/mutuals-data";
 
 interface SharedPostSearch {
-  from?: "feed" | "notifications";
+  // "chat" covers both DM and Tribe chat - a shared-post embed there is
+  // always real in-app navigation with a real history entry behind it,
+  // same as "feed", just not literally the feed.
+  from?: "feed" | "notifications" | "chat";
   comment?: string;
 }
 
 export const Route = createFileRoute("/p/$postId")({
   validateSearch: (search: Record<string, unknown>): SharedPostSearch => ({
-    from: search.from === "feed" || search.from === "notifications" ? search.from : undefined,
+    from:
+      search.from === "feed" || search.from === "notifications" || search.from === "chat"
+        ? search.from
+        : undefined,
     comment: typeof search.comment === "string" ? search.comment : undefined,
   }),
   component: SharedPostPage,
@@ -54,7 +60,13 @@ function SharedPostPage() {
   // the button now share one mechanism instead of two that could drift.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (from === "feed" && window.history.length > 1) return;
+    // "feed" and "chat" both mean this page was reached by real in-app
+    // navigation - there's a genuine prior screen sitting in history, so a
+    // plain back() already lands correctly and doesn't need a synthetic
+    // entry. "notifications" and no value at all (a raw shared link opened
+    // fresh) are the two cases with nothing trustworthy to fall back to.
+    const hasRealPriorScreen = (from === "feed" || from === "chat") && window.history.length > 1;
+    if (hasRealPriorScreen) return;
     const postUrl = window.location.href;
     const parentUrl = from === "notifications" ? "/notifications" : "/";
     window.history.replaceState(window.history.state, "", parentUrl);
