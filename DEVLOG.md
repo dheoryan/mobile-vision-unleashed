@@ -205,6 +205,20 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-05 — Codex (Astra) — Deleted-share repair and readability release deployed
+
+- User confirmed both production migration queries succeeded and every deleted
+  shared-post and share-event verification result returned `true` before the
+  client release.
+- Fetched `origin/main` and confirmed no divergence, then pushed the seven
+  reviewed commits through `c9217e8` to `main`. Unrelated local `.env`, lockfile,
+  generated art, avatar assets, and workspace files stayed outside the release.
+- Opened the latest GitHub revision in Lovable Preview, published the pending
+  changes to `https://moots.lovable.app`, and received Lovable's “Your website
+  was updated” completion signal. A cache-busted public load succeeded and the
+  served bundle contains both `This post has been deleted.` and the new
+  `accent-readable` token from this release.
+
 ### 2026-09-05 — Codex (Astra) — Share-event migration orphan repair
 
 - Production exposed a legacy `shares` row for deleted post
