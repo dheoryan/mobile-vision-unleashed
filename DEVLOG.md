@@ -205,6 +205,18 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-06 — Codex (Astra) — Profile redesign deployed
+
+- Fetched `origin/main`, confirmed zero incoming commits and ten reviewed local
+  commits through `992a993`, then pushed them with unrelated `.env`, lockfile,
+  generated art, avatar assets, and workspace files excluded.
+- Updated Lovable Preview to GitHub revision `992a993` and published the
+  pending changes to `https://moots.lovable.app`. Lovable returned “Your
+  website was updated.”
+- Verified the cache-busted signed-in production profile serves the full-photo
+  hero, Signals/Ventures/Vibes navigation, compact Original/Reposts switch,
+  and the Vibe Map with all three expandable layers.
+
 ### 2026-09-06 — Codex (Astra) — Profile signal switch simplified
 
 - Removed the nested outlined capsule and high-contrast white selection from
