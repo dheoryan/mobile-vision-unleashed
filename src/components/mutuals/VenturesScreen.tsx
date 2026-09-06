@@ -881,6 +881,7 @@ function MyVenturesView({
   onFocused?: () => void;
 }) {
   const [ventureTab, setVentureTab] = useState<"active" | "history">("active");
+  const [ownershipTab, setOwnershipTab] = useState<"hosted" | "joined">("hosted");
   const [detailId, setDetailId] = useState<string | null>(null);
   const hostFormViewport = useVisualViewport(formOpen);
   const hostedActive = useMemo(
@@ -945,6 +946,17 @@ function MyVenturesView({
     hostedActive.length + invitations.length + joinedActive.length + pending.length;
   const historyCount =
     hostedMemories.length + joinedMemories.length + hostedCancelled.length + joinedCancelled.length;
+  const joinedActiveCount = invitations.length + joinedActive.length + pending.length;
+  const hostedHistoryCount = hostedMemories.length + hostedCancelled.length;
+  const joinedHistoryCount = joinedMemories.length + joinedCancelled.length;
+  const selectedCount =
+    ventureTab === "active"
+      ? ownershipTab === "hosted"
+        ? hostedActive.length
+        : joinedActiveCount
+      : ownershipTab === "hosted"
+        ? hostedHistoryCount
+        : joinedHistoryCount;
   const detail = joinedVentures.find((venture) => venture.id === detailId) ?? null;
 
   const withdraw = useWithdrawVentureApplication();
@@ -997,6 +1009,7 @@ function MyVenturesView({
     setVentureTab(
       ["completed", "cancelled"].includes(ventureLifecycle(focused)) ? "history" : "active",
     );
+    setOwnershipTab(focusedHosted ? "hosted" : "joined");
     setFormOpen(false);
     if (focusedJoined) setDetailId(focused.id);
     const frame = window.requestAnimationFrame(() => {
@@ -1010,11 +1023,14 @@ function MyVenturesView({
 
   const openCreator = () => {
     setVentureTab("active");
+    setOwnershipTab("hosted");
     setFormOpen(true);
   };
 
   useEffect(() => {
-    if (formOpen) setVentureTab("active");
+    if (!formOpen) return;
+    setVentureTab("active");
+    setOwnershipTab("hosted");
   }, [formOpen]);
 
   return (
@@ -1074,6 +1090,53 @@ function MyVenturesView({
                 >
                   {count}
                 </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        role="tablist"
+        aria-label={`${ventureTab === "active" ? "Active" : "History"} Venture ownership`}
+        className="mb-5 grid grid-cols-2 border-b border-border"
+      >
+        {(["hosted", "joined"] as const).map((tab) => {
+          const selected = ownershipTab === tab;
+          const count =
+            ventureTab === "active"
+              ? tab === "hosted"
+                ? hostedActive.length
+                : joinedActiveCount
+              : tab === "hosted"
+                ? hostedHistoryCount
+                : joinedHistoryCount;
+          return (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setOwnershipTab(tab)}
+              className={cn(
+                "relative inline-flex min-h-10 items-center justify-center gap-2 px-3 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab === "hosted" ? (
+                <LightningIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
+              ) : (
+                <UsersIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
+              )}
+              {tab === "hosted" ? "Hosted" : "Joined"}
+              {count > 0 && (
+                <span className="font-mono text-[10px] text-muted-foreground">{count}</span>
+              )}
+              {selected && (
+                <span
+                  aria-hidden
+                  className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary"
+                />
               )}
             </button>
           );
@@ -1140,31 +1203,61 @@ function MyVenturesView({
       <div className="pb-4">
         {isLoading ? (
           <VentureListSkeleton />
-        ) : ventureTab === "active" && activeCount === 0 ? (
+        ) : selectedCount === 0 ? (
           <EmptyPanel
-            icon={<UsersIcon className="h-6 w-6" />}
-            title="No active Ventures."
-            body="Create a plan or join one from the board. Everything active will stay together here."
-            actionLabel="Create Venture"
-            onAction={openCreator}
-            gradient
-          />
-        ) : ventureTab === "history" && historyCount === 0 ? (
-          <EmptyPanel
-            icon={<ArrowCounterClockwiseIcon className="h-6 w-6" />}
-            title="No Venture history yet."
-            body="Completed Ventures become memories here. Cancelled plans stay as quiet records."
-            actionLabel="Back to active"
-            onAction={() => setVentureTab("active")}
+            icon={
+              ventureTab === "history" ? (
+                <ArrowCounterClockwiseIcon className="h-6 w-6" />
+              ) : ownershipTab === "hosted" ? (
+                <LightningIcon className="h-6 w-6" />
+              ) : (
+                <UsersIcon className="h-6 w-6" />
+              )
+            }
+            title={
+              ventureTab === "active"
+                ? ownershipTab === "hosted"
+                  ? "No hosted Ventures."
+                  : "No joined Ventures."
+                : ownershipTab === "hosted"
+                  ? "No hosted history yet."
+                  : "No joined history yet."
+            }
+            body={
+              ventureTab === "active"
+                ? ownershipTab === "hosted"
+                  ? "Create a plan and manage its requests here."
+                  : "Invitations, requests and confirmed plans will appear here."
+                : "Completed Ventures become memories here. Cancelled plans stay as quiet records."
+            }
+            actionLabel={
+              ventureTab === "active"
+                ? ownershipTab === "hosted"
+                  ? "Create Venture"
+                  : "Browse Venture board"
+                : ownershipTab === "hosted" && joinedHistoryCount > 0
+                  ? "View joined history"
+                  : ownershipTab === "joined" && hostedHistoryCount > 0
+                    ? "View hosted history"
+                    : "Back to active"
+            }
+            onAction={
+              ventureTab === "active"
+                ? ownershipTab === "hosted"
+                  ? openCreator
+                  : onBrowse
+                : ownershipTab === "hosted" && joinedHistoryCount > 0
+                  ? () => setOwnershipTab("joined")
+                  : ownershipTab === "joined" && hostedHistoryCount > 0
+                    ? () => setOwnershipTab("hosted")
+                    : () => setVentureTab("active")
+            }
+            gradient={ventureTab === "active" && ownershipTab === "hosted"}
           />
         ) : ventureTab === "active" ? (
-          <div className="flex flex-col gap-7">
-            {hostedActive.length > 0 && (
-              <MyVenturesGroup
-                title="Hosted Ventures"
-                description="Plans you organize, including requests and guest lists."
-                count={hostedActive.length}
-              >
+          <div className={cn("flex flex-col", ownershipTab === "hosted" ? "gap-3" : "gap-6")}>
+            {ownershipTab === "hosted" && hostedActive.length > 0 && (
+              <VentureRoleContent>
                 {hostedActive.map((venture) => (
                   <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
                     <HostedVentureCard
@@ -1175,75 +1268,67 @@ function MyVenturesView({
                     />
                   </div>
                 ))}
-              </MyVenturesGroup>
+              </VentureRoleContent>
             )}
 
-            {invitations.length + joinedActive.length + pending.length > 0 && (
-              <MyVenturesGroup
-                title="Joined Ventures"
-                description="Invitations, confirmed plans and requests you sent."
-                count={invitations.length + joinedActive.length + pending.length}
-                urgent={invitations.length > 0}
-              >
-                {invitations.length > 0 && (
-                  <VentureStatusGroup title="Needs your reply" count={invitations.length} urgent>
-                    {invitations.map((venture) => (
-                      <JoinedVentureTicket
-                        key={venture.id}
-                        venture={venture}
-                        onOpenChat={onOpenChat}
-                        onOpenDetail={setDetailId}
-                        onLeave={withdrawRequest}
-                        withdrawingApplicationId={withdrawingApplicationId}
-                        respondingApplicationId={respondingApplicationId}
-                        onRespond={respondToInvite}
-                      />
-                    ))}
-                  </VentureStatusGroup>
-                )}
-                {joinedActive.length > 0 && (
-                  <VentureStatusGroup title="Going" count={joinedActive.length}>
-                    {joinedActive.map((venture) => (
-                      <JoinedVentureTicket
-                        key={venture.id}
-                        venture={venture}
-                        onOpenChat={onOpenChat}
-                        onOpenDetail={setDetailId}
-                        onLeave={withdrawRequest}
-                        withdrawingApplicationId={withdrawingApplicationId}
-                        respondingApplicationId={respondingApplicationId}
-                        onRespond={respondToInvite}
-                      />
-                    ))}
-                  </VentureStatusGroup>
-                )}
-                {pending.length > 0 && (
-                  <VentureStatusGroup title="Requested" count={pending.length}>
-                    {pending.map((venture) => (
-                      <JoinedVentureTicket
-                        key={venture.id}
-                        venture={venture}
-                        onOpenChat={onOpenChat}
-                        onOpenDetail={setDetailId}
-                        onLeave={withdrawRequest}
-                        withdrawingApplicationId={withdrawingApplicationId}
-                        respondingApplicationId={respondingApplicationId}
-                        onRespond={respondToInvite}
-                      />
-                    ))}
-                  </VentureStatusGroup>
-                )}
-              </MyVenturesGroup>
-            )}
+            {ownershipTab === "joined" &&
+              invitations.length + joinedActive.length + pending.length > 0 && (
+                <VentureRoleContent>
+                  {invitations.length > 0 && (
+                    <VentureStatusGroup title="Needs your reply" count={invitations.length} urgent>
+                      {invitations.map((venture) => (
+                        <JoinedVentureTicket
+                          key={venture.id}
+                          venture={venture}
+                          onOpenChat={onOpenChat}
+                          onOpenDetail={setDetailId}
+                          onLeave={withdrawRequest}
+                          withdrawingApplicationId={withdrawingApplicationId}
+                          respondingApplicationId={respondingApplicationId}
+                          onRespond={respondToInvite}
+                        />
+                      ))}
+                    </VentureStatusGroup>
+                  )}
+                  {joinedActive.length > 0 && (
+                    <VentureStatusGroup title="Going" count={joinedActive.length}>
+                      {joinedActive.map((venture) => (
+                        <JoinedVentureTicket
+                          key={venture.id}
+                          venture={venture}
+                          onOpenChat={onOpenChat}
+                          onOpenDetail={setDetailId}
+                          onLeave={withdrawRequest}
+                          withdrawingApplicationId={withdrawingApplicationId}
+                          respondingApplicationId={respondingApplicationId}
+                          onRespond={respondToInvite}
+                        />
+                      ))}
+                    </VentureStatusGroup>
+                  )}
+                  {pending.length > 0 && (
+                    <VentureStatusGroup title="Requested" count={pending.length}>
+                      {pending.map((venture) => (
+                        <JoinedVentureTicket
+                          key={venture.id}
+                          venture={venture}
+                          onOpenChat={onOpenChat}
+                          onOpenDetail={setDetailId}
+                          onLeave={withdrawRequest}
+                          withdrawingApplicationId={withdrawingApplicationId}
+                          respondingApplicationId={respondingApplicationId}
+                          onRespond={respondToInvite}
+                        />
+                      ))}
+                    </VentureStatusGroup>
+                  )}
+                </VentureRoleContent>
+              )}
           </div>
         ) : (
-          <div className="flex flex-col gap-7">
-            {hostedMemories.length + hostedCancelled.length > 0 && (
-              <MyVenturesGroup
-                title="Hosted Ventures"
-                description="Memories and records from plans you organized."
-                count={hostedMemories.length + hostedCancelled.length}
-              >
+          <div className="flex flex-col gap-6">
+            {ownershipTab === "hosted" && hostedMemories.length + hostedCancelled.length > 0 && (
+              <VentureRoleContent>
                 {hostedMemories.length > 0 && (
                   <VentureStatusGroup title="Venture memories" count={hostedMemories.length}>
                     {hostedMemories.map((venture) => (
@@ -1272,15 +1357,11 @@ function MyVenturesView({
                     ))}
                   </VentureStatusGroup>
                 )}
-              </MyVenturesGroup>
+              </VentureRoleContent>
             )}
 
-            {joinedMemories.length + joinedCancelled.length > 0 && (
-              <MyVenturesGroup
-                title="Joined Ventures"
-                description="Memories and records from plans you attended."
-                count={joinedMemories.length + joinedCancelled.length}
-              >
+            {ownershipTab === "joined" && joinedMemories.length + joinedCancelled.length > 0 && (
+              <VentureRoleContent>
                 {joinedMemories.length > 0 && (
                   <VentureStatusGroup title="Venture memories" count={joinedMemories.length}>
                     {joinedMemories.map((venture) => (
@@ -1313,7 +1394,7 @@ function MyVenturesView({
                     ))}
                   </VentureStatusGroup>
                 )}
-              </MyVenturesGroup>
+              </VentureRoleContent>
             )}
           </div>
         )}
@@ -1334,36 +1415,8 @@ function MyVenturesView({
   );
 }
 
-function MyVenturesGroup({
-  title,
-  description,
-  count,
-  urgent = false,
-  children,
-}: {
-  title: string;
-  description: string;
-  count: number;
-  urgent?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-4 px-1">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={cn("label-mono", urgent ? "text-primary" : "text-foreground")}>
-              {title}
-            </span>
-            {urgent && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />}
-          </div>
-          <p className="mt-1 text-xs leading-snug text-muted-foreground">{description}</p>
-        </div>
-        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{count}</span>
-      </div>
-      <div className="flex flex-col gap-3">{children}</div>
-    </section>
-  );
+function VentureRoleContent({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 function VentureStatusGroup({

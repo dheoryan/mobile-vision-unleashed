@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Replace My Ventures ownership sections with Hosted/Joined subtabs | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Hosted/Joined My Ventures subtabs
+
+- Replaced the stacked ownership section headers with a true second tab level:
+  `Active / History` remains the primary switch, and `Hosted / Joined` now
+  controls the cards within either state. The subtab uses a compact underline,
+  Phosphor icons, and per-role counts so it reads as secondary navigation.
+- Hosted management cards and joined participant tickets can no longer render
+  together. Joined cards retain only useful status dividers (`Needs your
+  reply`, `Going`, `Requested`, memories, and cancelled), and empty states now
+  respond to the exact primary/subtab combination.
+- Notification destinations select the correct lifecycle and ownership tab;
+  opening the creator selects Active → Hosted.
+- Validation: Prettier, `npx tsc --noEmit`, targeted ESLint, Venture lifecycle
+  tests, `git diff --check`, and `npm run build` pass. No database change.
 
 ### 2026-09-06 — Codex (Astra) — Venture peer-view switch and ownership groups
 
