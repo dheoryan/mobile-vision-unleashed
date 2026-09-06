@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Improve Discover stacked-card swipe physics | `DEVLOG.md`, `src/components/mutuals/ExploreDeck.tsx` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Fluid Discover stack swipes
+
+- Removed the fixed 96 px drag clamp that made Discover cards stop against an
+  artificial breakpoint while the finger continued moving.
+- Valid swipes now track the pointer continuously, use the existing distance
+  and velocity threshold, then carry the full card beyond the viewport with a
+  restrained tilt and fade before promoting the next profile.
+- Added progressive movement to the two backing layers so the stack closes the
+  gap during a forward swipe instead of changing only after release.
+- Kept resistance at the beginning of the deck, smooth snap-back for incomplete
+  gestures, vertical page gesture protection, and an immediate reduced-motion
+  path.
+- Validation: focused Prettier and ESLint checks, `npx tsc --noEmit`,
+  `git diff --check`, and the Cloudflare production build pass; existing build
+  warnings remain.
 
 ### 2026-09-06 — Codex (Astra) — Single-title primary headers
 

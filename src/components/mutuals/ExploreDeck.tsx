@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type TransitionEvent as ReactTransitionEvent,
 } from "react";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
@@ -53,6 +54,7 @@ export interface DeckPerson {
 }
 
 export type ExploreDeckPhase = "primary" | "doors" | "continuation" | "done";
+type SwipeMotion = "idle" | "dragging" | "exiting" | "resetting";
 
 interface GestureState {
   pointerId: number;
@@ -88,9 +90,9 @@ function moodLabel(mood: ExploreMood): string {
 }
 
 /**
- * A bounded consideration deck, never a reject stack. Horizontal gestures and
- * the outer arrow controls only change position. Nobody is removed, downranked
- * or hidden by browsing past them.
+ * A bounded consideration deck, never a reject stack. Horizontal gestures only
+ * change position. Nobody is removed, downranked or hidden by browsing past
+ * them.
  */
 export function ExploreDeck({
   people,
@@ -131,7 +133,7 @@ export function ExploreDeck({
   const [helloFor, setHelloFor] = useState<DeckPerson | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
   const [dragX, setDragX] = useState(0);
-  const [dragging, setDragging] = useState(false);
+  const [swipeMotion, setSwipeMotion] = useState<SwipeMotion>("idle");
   const gestureRef = useRef<GestureState | null>(null);
 
   const continuationPeople = useMemo(() => {
@@ -173,6 +175,9 @@ export function ExploreDeck({
   };
 
   useEffect(() => {
+    gestureRef.current = null;
+    setDragX(0);
+    setSwipeMotion("idle");
     setIndex(0);
     setContinuationMood(null);
     setDoorMessage(null);
@@ -230,6 +235,7 @@ export function ExploreDeck({
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (swipeMotion === "exiting" || swipeMotion === "resetting") return;
     const target = event.target as HTMLElement;
     if (target.closest("button, a, input, textarea, select")) return;
     if (
@@ -266,31 +272,65 @@ export function ExploreDeck({
 
     if (!gesture.horizontal) return;
     event.preventDefault();
-    setDragging(true);
-    const resistance = deltaX > 0 && index === 0 ? 0.28 : 0.82;
-    setDragX(Math.max(-96, Math.min(96, deltaX * resistance)));
+    setSwipeMotion("dragging");
+    const cardWidth = event.currentTarget.getBoundingClientRect().width;
+    const translatedX = deltaX > 0 && index === 0 ? deltaX * 0.22 : deltaX;
+    const travelLimit = Math.max(cardWidth * 1.15, 240);
+    setDragX(Math.max(-travelLimit, Math.min(travelLimit, translatedX)));
   };
 
   const finishPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current;
     gestureRef.current = null;
-    setDragging(false);
-    setDragX(0);
-    if (!gesture || !gesture.horizontal || gesture.pointerId !== event.pointerId) return;
+    if (!gesture || !gesture.horizontal || gesture.pointerId !== event.pointerId) {
+      setSwipeMotion("idle");
+      setDragX(0);
+      return;
+    }
 
     const deltaX = event.clientX - gesture.startX;
     const elapsed = Math.max(performance.now() - gesture.startTime, 1);
     const velocity = Math.abs(deltaX) / elapsed;
     const committed = Math.abs(deltaX) >= 62 || (Math.abs(deltaX) >= 34 && velocity >= 0.45);
-    if (!committed) return;
-    if (deltaX < 0) advance();
-    else if (index > 0) back();
+    const direction = deltaX < 0 ? -1 : 1;
+    const canMove = direction < 0 || index > 0;
+
+    if (!committed || !canMove) {
+      setSwipeMotion("idle");
+      setDragX(0);
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setSwipeMotion("idle");
+      setDragX(0);
+      if (direction < 0) advance();
+      else back();
+      return;
+    }
+
+    const cardWidth = event.currentTarget.getBoundingClientRect().width;
+    setSwipeMotion("exiting");
+    setDragX(direction * Math.max(cardWidth + 64, window.innerWidth * 0.72));
   };
 
   const cancelPointer = () => {
     gestureRef.current = null;
-    setDragging(false);
+    setSwipeMotion("idle");
     setDragX(0);
+  };
+
+  const finishSwipeExit = (event: ReactTransitionEvent<HTMLDivElement>) => {
+    if (event.propertyName !== "transform" || swipeMotion !== "exiting") return;
+    const direction = dragX < 0 ? -1 : 1;
+
+    // Put the promoted card at rest with transitions disabled, then restore
+    // the regular snap-back transition on the next painted frame.
+    setSwipeMotion("resetting");
+    setDragX(0);
+    if (direction < 0) advance();
+    else back();
+    window.requestAnimationFrame(() => setSwipeMotion("idle"));
   };
 
   if (!primaryPeople.length) return null;
@@ -473,6 +513,9 @@ export function ExploreDeck({
   const helloStatus = contact.data?.hello_status ?? null;
   const profileParams = { handle: person.handle.replace(/^@/, "") || person.id };
   const hasPhoto = isImageAvatar(person.avatar) && !photoFailed;
+  const nextRevealProgress = Math.min(Math.max(-dragX / 220, 0), 1);
+  const cardTilt = Math.max(-4, Math.min(4, dragX / 36));
+  const cardOpacity = swipeMotion === "exiting" ? Math.max(0.18, 1 - Math.abs(dragX) / 420) : 1;
 
   return (
     <div className="relative flex h-full min-h-0 flex-col" aria-live="polite">
@@ -503,6 +546,9 @@ export function ExploreDeck({
                 boxShadow: isNext
                   ? "0 -5px 18px color-mix(in oklab, var(--background) 58%, transparent)"
                   : "none",
+                transform: isNext
+                  ? `translateY(${nextRevealProgress * 6}px) scale(${0.985 + nextRevealProgress * 0.015})`
+                  : `translateY(${nextRevealProgress * 3}px) scale(${0.975 + nextRevealProgress * 0.01})`,
               }}
             />
           );
@@ -512,11 +558,18 @@ export function ExploreDeck({
           onPointerMove={onPointerMove}
           onPointerUp={finishPointer}
           onPointerCancel={cancelPointer}
+          onTransitionEnd={finishSwipeExit}
           className={cn(
             "absolute inset-x-0 bottom-0 top-3 z-[2] touch-pan-y",
-            !dragging && "transition-transform duration-200 ease-out motion-reduce:transition-none",
+            swipeMotion === "idle" &&
+              "transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none",
+            swipeMotion === "exiting" &&
+              "transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           )}
-          style={{ transform: `translate3d(${dragX}px, 0, 0)` }}
+          style={{
+            opacity: cardOpacity,
+            transform: `translate3d(${dragX}px, 0, 0) rotate(${cardTilt}deg)`,
+          }}
         >
           <article
             key={`${sessionKey}-${phase}-${person.id}`}
