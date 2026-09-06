@@ -19,11 +19,12 @@ Venue changes and push-secret rotation are applied and verified. Google Venue
 precision is intentionally feature-flagged off pending a team decision. Never
 force-push.
 
-**Pending public UI publish (2026-09-06):** local `main` and `origin/main` are
-both at `23c5679`. Lovable has imported that revision and its preview shows the
-latest login copy, but the project still reports **unpublished changes
-available**. `moots.lovable.app` remains on the earlier published bundle until
-the explicit Lovable **Publish changes** action is confirmed and completed.
+**Latest public UI release (2026-09-06):** the Venture, Discover, profile,
+Chats, and login interface release through app commit `23c5679` is published on
+`moots.lovable.app`. The user confirmed the Lovable publish completed, and a
+read-only browser check verified the updated My Ventures experience and the
+`Your people are here.` sign-in heading. Later commits only reconcile this
+release documentation.
 
 **Local dev talks to PRODUCTION.** `localhost:8082` uses the production Supabase
 project. Creating a Venture there makes a real row on a real board that 34 real
@@ -70,7 +71,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Record and verify the published 2026-09-06 UI release | `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -211,6 +211,21 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — User + Codex — UI release published and verified
+
+- The user confirmed that the Lovable Publish action completed for the UI
+  release through app commit `23c5679`.
+- A read-only check of `moots.lovable.app` verified the published My Ventures
+  experience: the Venture board text action, Active/Memories segment, and
+  All/Hosted/Joined filters are live. The public sign-in page also displays the
+  approved `Your people are here.` heading.
+- This entry and the preceding release-state reconciliation are documentation
+  only. The application validation recorded in the release entry below remains
+  current, no database change belongs to this release, and the user's existing
+  `.env` and `package-lock.json` modifications were left untouched.
+- Publication verification: live read-only browser checks, `git diff --check`,
+  `npx tsc --noEmit`, and `npm run build` pass.
 
 ### 2026-09-06 — Codex (Astra) — Pending UI release state reconciled
 
