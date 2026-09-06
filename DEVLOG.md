@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Align the My Ventures lifecycle segmented control with the Venture Board scope control | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture segmented-control consistency
+
+- Rebuilt Active/Memories with the same shared segment component and container
+  geometry used by All Tribes/My Tribe. Both controls now have matching gaps,
+  height, rounding, typography, selected gradient, and pressed semantics.
+- The Memories count stays legible over the selected gradient with a restrained
+  translucent badge. This prevents the two controls from drifting separately
+  in later styling changes.
+- Validation: signed-in local Chrome comparison of both Venture views,
+  Prettier, `npx tsc --noEmit`, targeted ESLint, `git diff --check`, and
+  `npm run build` pass. Released by pushing `main`; no database change.
 
 ### 2026-09-06 — Codex (Astra) — Discover distance outline and UI release
 

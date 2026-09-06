@@ -99,6 +99,8 @@ const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 const VENTURE_DRAFT_KEY = "mutuals:venture-draft";
 const VENTURE_VIEW_SWITCH_CLASS =
   "inline-flex h-11 w-36 shrink-0 items-center justify-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+const VENTURE_SEGMENTED_CONTROL_CLASS =
+  "grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1";
 
 type StoredVentureDraft = {
   title: string;
@@ -458,7 +460,7 @@ function RoleButton({
   accentColor,
 }: {
   active: boolean;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   onClick: () => void;
   children: React.ReactNode;
   /** Selected state fills with this Tribe color instead of the brand
@@ -471,6 +473,7 @@ function RoleButton({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
         "flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
@@ -794,7 +797,7 @@ function LookView({
       {/* Filter comes right after the title it filters, not before - a
           control reading before the thing it controls made the section feel
           headerless. */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1">
+      <div className={VENTURE_SEGMENTED_CONTROL_CLASS}>
         <RoleButton
           active={scope === "all"}
           icon={<SlidersHorizontalIcon className="h-4 w-4" />}
@@ -1116,42 +1119,32 @@ function MyVenturesView({
         }
       />
 
-      <div
-        aria-label="My Ventures"
-        className="mb-4 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-1"
-      >
+      <div aria-label="My Ventures" className={cn(VENTURE_SEGMENTED_CONTROL_CLASS, "mb-4")}>
         {(["active", "history"] as const).map((tab) => {
           const selected = ventureTab === tab;
           const count = tab === "active" ? activeCount : historyCount;
           return (
-            <button
+            <RoleButton
               key={tab}
-              type="button"
-              aria-pressed={selected}
+              active={selected}
               onClick={() => {
                 setVentureTab(tab);
                 setFormOpen(false);
                 if (tribeDraft) onDraftCancelled();
               }}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                selected
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
             >
               {tab === "active" ? "Active" : "Memories"}
               {count > 0 && (
                 <span
                   className={cn(
                     "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
-                    selected ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground",
+                    selected ? "bg-black/20 text-white" : "bg-secondary text-muted-foreground",
                   )}
                 >
                   {count}
                 </span>
               )}
-            </button>
+            </RoleButton>
           );
         })}
       </div>
