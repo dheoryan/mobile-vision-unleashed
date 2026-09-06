@@ -119,6 +119,10 @@ export function VentureTicket({
         )}
 
         <div className="flex min-w-0 flex-col gap-1.5 p-3.5">
+          <span className="label-mono inline-flex self-start items-center gap-1 rounded-full bg-accent/15 px-2 py-1 text-accent-readable">
+            <UsersIcon className="h-3 w-3" weight="fill" />
+            Joined
+          </span>
           {/* The title opens the back of the ticket. Everything a member needs
               to actually turn up lives there — until now an accepted member
               could see that they were in and nothing else about what they had

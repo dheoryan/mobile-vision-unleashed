@@ -906,7 +906,7 @@ function MyVenturesView({
   onFocused?: () => void;
 }) {
   const [ventureTab, setVentureTab] = useState<"active" | "history">("active");
-  const [ownershipTab, setOwnershipTab] = useState<"hosted" | "joined">("hosted");
+  const [roleFilter, setRoleFilter] = useState<"all" | "hosted" | "joined">("all");
   const [detailId, setDetailId] = useState<string | null>(null);
   const hostFormViewport = useVisualViewport(formOpen);
   const hostedActive = useMemo(
@@ -992,14 +992,37 @@ function MyVenturesView({
   const joinedActiveCount = invitations.length + joinedActive.length + pending.length;
   const hostedHistoryCount = hostedMemories.length + hostedCancelled.length;
   const joinedHistoryCount = joinedMemories.length + joinedCancelled.length;
+  const allActiveVentures = useMemo(
+    () =>
+      [
+        ...hostedActive.map((venture) => ({ venture, role: "hosted" as const })),
+        ...joinedActive.map((venture) => ({ venture, role: "joined" as const })),
+        ...pending.map((venture) => ({ venture, role: "joined" as const })),
+      ].sort((left, right) => compareUpcomingVentures(left.venture, right.venture)),
+    [hostedActive, joinedActive, pending],
+  );
+  const allMemoryVentures = useMemo(
+    () =>
+      [
+        ...hostedMemories.map((venture) => ({ venture, role: "hosted" as const })),
+        ...hostedCancelled.map((venture) => ({ venture, role: "hosted" as const })),
+        ...joinedMemories.map((venture) => ({ venture, role: "joined" as const })),
+        ...joinedCancelled.map((venture) => ({ venture, role: "joined" as const })),
+      ].sort((left, right) => compareRecentVentures(left.venture, right.venture)),
+    [hostedCancelled, hostedMemories, joinedCancelled, joinedMemories],
+  );
   const selectedCount =
-    ventureTab === "active"
-      ? ownershipTab === "hosted"
-        ? hostedActive.length
-        : joinedActiveCount
-      : ownershipTab === "hosted"
-        ? hostedHistoryCount
-        : joinedHistoryCount;
+    roleFilter === "all"
+      ? ventureTab === "active"
+        ? activeCount
+        : historyCount
+      : ventureTab === "active"
+        ? roleFilter === "hosted"
+          ? hostedActive.length
+          : joinedActiveCount
+        : roleFilter === "hosted"
+          ? hostedHistoryCount
+          : joinedHistoryCount;
   const detail = joinedVentures.find((venture) => venture.id === detailId) ?? null;
 
   const withdraw = useWithdrawVentureApplication();
@@ -1052,7 +1075,7 @@ function MyVenturesView({
     setVentureTab(
       ["completed", "cancelled"].includes(ventureLifecycle(focused)) ? "history" : "active",
     );
-    setOwnershipTab(focusedHosted ? "hosted" : "joined");
+    setRoleFilter(focusedHosted ? "hosted" : "joined");
     setFormOpen(false);
     if (focusedJoined) setDetailId(focused.id);
     const frame = window.requestAnimationFrame(() => {
@@ -1066,14 +1089,14 @@ function MyVenturesView({
 
   const openCreator = () => {
     setVentureTab("active");
-    setOwnershipTab("hosted");
+    setRoleFilter("hosted");
     setFormOpen(true);
   };
 
   useEffect(() => {
     if (!formOpen) return;
     setVentureTab("active");
-    setOwnershipTab("hosted");
+    setRoleFilter("hosted");
   }, [formOpen]);
 
   return (
@@ -1139,47 +1162,51 @@ function MyVenturesView({
         })}
       </div>
 
-      <div
-        role="tablist"
-        aria-label={`${ventureTab === "active" ? "Active" : "Memories"} Venture ownership`}
-        className="mb-5 grid grid-cols-2 border-b border-border"
-      >
-        {(["hosted", "joined"] as const).map((tab) => {
-          const selected = ownershipTab === tab;
+      <div role="group" aria-label="Filter Ventures by role" className="mb-5 flex flex-wrap gap-2">
+        {(["all", "hosted", "joined"] as const).map((filter) => {
+          const selected = roleFilter === filter;
           const count =
-            ventureTab === "active"
-              ? tab === "hosted"
-                ? hostedActive.length
-                : joinedActiveCount
-              : tab === "hosted"
-                ? hostedHistoryCount
-                : joinedHistoryCount;
+            filter === "all"
+              ? ventureTab === "active"
+                ? activeCount
+                : historyCount
+              : ventureTab === "active"
+                ? filter === "hosted"
+                  ? hostedActive.length
+                  : joinedActiveCount
+                : filter === "hosted"
+                  ? hostedHistoryCount
+                  : joinedHistoryCount;
           return (
             <button
-              key={tab}
+              key={filter}
               type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => setOwnershipTab(tab)}
+              aria-pressed={selected}
+              onClick={() => setRoleFilter(filter)}
               className={cn(
-                "relative inline-flex min-h-10 items-center justify-center gap-2 px-3 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-                selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-[color,background-color,border-color,transform,filter] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                selected
+                  ? "border-transparent bg-meutuals-gradient text-white shadow-sm hover:brightness-110"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
-              {tab === "hosted" ? (
+              {filter === "all" ? (
+                <SlidersHorizontalIcon className="h-3.5 w-3.5" />
+              ) : filter === "hosted" ? (
                 <LightningIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
               ) : (
                 <UsersIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
               )}
-              {tab === "hosted" ? "Hosted" : "Joined"}
+              {filter === "all" ? "All" : filter === "hosted" ? "Hosted" : "Joined"}
               {count > 0 && (
-                <span className="font-mono text-[10px] text-muted-foreground">{count}</span>
-              )}
-              {selected && (
                 <span
-                  aria-hidden
-                  className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary"
-                />
+                  className={cn(
+                    "font-mono text-[10px]",
+                    selected ? "text-white/75" : "text-muted-foreground",
+                  )}
+                >
+                  {count}
+                </span>
               )}
             </button>
           );
@@ -1251,7 +1278,7 @@ function MyVenturesView({
             icon={
               ventureTab === "history" ? (
                 <ArrowCounterClockwiseIcon className="h-6 w-6" />
-              ) : ownershipTab === "hosted" ? (
+              ) : roleFilter === "hosted" ? (
                 <LightningIcon className="h-6 w-6" />
               ) : (
                 <UsersIcon className="h-6 w-6" />
@@ -1259,47 +1286,97 @@ function MyVenturesView({
             }
             title={
               ventureTab === "active"
-                ? ownershipTab === "hosted"
-                  ? "No hosted Ventures."
-                  : "No joined Ventures."
-                : ownershipTab === "hosted"
-                  ? "No hosted memories yet."
-                  : "No joined memories yet."
+                ? roleFilter === "all"
+                  ? "No active Ventures."
+                  : roleFilter === "hosted"
+                    ? "No hosted Ventures."
+                    : "No joined Ventures."
+                : roleFilter === "all"
+                  ? "No memories yet."
+                  : roleFilter === "hosted"
+                    ? "No hosted memories yet."
+                    : "No joined memories yet."
             }
             body={
               ventureTab === "active"
-                ? ownershipTab === "hosted"
-                  ? "Create a plan and manage its requests here."
-                  : "Invitations, requests and confirmed plans will appear here."
+                ? roleFilter === "all"
+                  ? "Join a plan from the board or create one with the header button."
+                  : roleFilter === "hosted"
+                    ? "Create a plan and manage its requests here."
+                    : "Invitations, requests and confirmed plans will appear here."
                 : "Completed Ventures become memories here. Cancelled plans stay as quiet records."
             }
             actionLabel={
               ventureTab === "active"
-                ? ownershipTab === "hosted"
+                ? roleFilter === "hosted"
                   ? "Create Venture"
                   : "Browse Venture board"
-                : ownershipTab === "hosted" && joinedHistoryCount > 0
+                : roleFilter === "hosted" && joinedHistoryCount > 0
                   ? "View joined memories"
-                  : ownershipTab === "joined" && hostedHistoryCount > 0
+                  : roleFilter === "joined" && hostedHistoryCount > 0
                     ? "View hosted memories"
                     : "Back to active"
             }
             onAction={
               ventureTab === "active"
-                ? ownershipTab === "hosted"
+                ? roleFilter === "hosted"
                   ? openCreator
                   : onBrowse
-                : ownershipTab === "hosted" && joinedHistoryCount > 0
-                  ? () => setOwnershipTab("joined")
-                  : ownershipTab === "joined" && hostedHistoryCount > 0
-                    ? () => setOwnershipTab("hosted")
+                : roleFilter === "hosted" && joinedHistoryCount > 0
+                  ? () => setRoleFilter("joined")
+                  : roleFilter === "joined" && hostedHistoryCount > 0
+                    ? () => setRoleFilter("hosted")
                     : () => setVentureTab("active")
             }
             gradient={ventureTab === "active"}
           />
+        ) : ventureTab === "active" && roleFilter === "all" ? (
+          <div className="flex flex-col gap-6">
+            {invitations.length > 0 && (
+              <VentureStatusGroup title="Needs your reply" count={invitations.length} urgent>
+                {invitations.map((venture) => (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ))}
+              </VentureStatusGroup>
+            )}
+            <div className="flex flex-col gap-3">
+              {allActiveVentures.map(({ venture, role }) =>
+                role === "hosted" ? (
+                  <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
+                    <HostedVentureCard
+                      venture={venture}
+                      profile={profile}
+                      onOpenChat={() => onOpenChat(venture)}
+                      onChanged={onChanged}
+                    />
+                  </div>
+                ) : (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ),
+              )}
+            </div>
+          </div>
         ) : ventureTab === "active" ? (
-          <div className={cn("flex flex-col", ownershipTab === "hosted" ? "gap-3" : "gap-6")}>
-            {ownershipTab === "hosted" && hostedActive.length > 0 && (
+          <div className={cn("flex flex-col", roleFilter === "hosted" ? "gap-3" : "gap-6")}>
+            {roleFilter === "hosted" && hostedActive.length > 0 && (
               <VentureRoleContent>
                 {hostedActive.map((venture) => (
                   <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
@@ -1314,7 +1391,7 @@ function MyVenturesView({
               </VentureRoleContent>
             )}
 
-            {ownershipTab === "joined" &&
+            {roleFilter === "joined" &&
               invitations.length + joinedActive.length + pending.length > 0 && (
                 <VentureRoleContent>
                   {invitations.length > 0 && (
@@ -1368,9 +1445,35 @@ function MyVenturesView({
                 </VentureRoleContent>
               )}
           </div>
+        ) : roleFilter === "all" ? (
+          <div className="flex flex-col gap-3">
+            {allMemoryVentures.map(({ venture, role }) =>
+              role === "hosted" ? (
+                <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
+                  <HostedVentureCard
+                    venture={venture}
+                    profile={profile}
+                    onOpenChat={() => onOpenChat(venture)}
+                    onChanged={onChanged}
+                  />
+                </div>
+              ) : (
+                <JoinedVentureTicket
+                  key={venture.id}
+                  venture={venture}
+                  onOpenChat={onOpenChat}
+                  onOpenDetail={setDetailId}
+                  onLeave={withdrawRequest}
+                  withdrawingApplicationId={withdrawingApplicationId}
+                  respondingApplicationId={respondingApplicationId}
+                  onRespond={respondToInvite}
+                />
+              ),
+            )}
+          </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {ownershipTab === "hosted" && hostedMemories.length + hostedCancelled.length > 0 && (
+            {roleFilter === "hosted" && hostedMemories.length + hostedCancelled.length > 0 && (
               <VentureRoleContent>
                 {hostedMemories.length > 0 && (
                   <VentureStatusGroup title="Venture memories" count={hostedMemories.length}>
@@ -1403,7 +1506,7 @@ function MyVenturesView({
               </VentureRoleContent>
             )}
 
-            {ownershipTab === "joined" && joinedMemories.length + joinedCancelled.length > 0 && (
+            {roleFilter === "joined" && joinedMemories.length + joinedCancelled.length > 0 && (
               <VentureRoleContent>
                 {joinedMemories.length > 0 && (
                   <VentureStatusGroup title="Venture memories" count={joinedMemories.length}>
@@ -2896,6 +2999,12 @@ function VentureCardHeader({
           judgement about the person, so they get the anchor position. */}
       {!hideHost && <Avatar profile={host} size="md" />}
       <div className="min-w-0 flex-1">
+        {hideHost && (
+          <span className="label-mono mb-1.5 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-primary">
+            <LightningIcon className="h-3 w-3" weight="fill" />
+            Hosted
+          </span>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate font-display text-lg font-bold">{venture.title}</h3>
           <StatusPill status={venture.status} />

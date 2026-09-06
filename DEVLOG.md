@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Replace Venture ownership subtabs with All/Hosted/Joined filters and card badges | `src/components/mutuals/VenturesScreen.tsx`, `src/components/mutuals/VentureTicket.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,20 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — My Ventures ownership filters
+
+- Replaced the nested Hosted/Joined subtabs with compact All/Hosted/Joined
+  filter chips below Active/Memories. All is the default; the selected chip
+  uses the MEUTUALS gradient and counts reflect the current primary tab.
+- Active All pins invitations first, then renders hosted, joined, and requested
+  cards in one upcoming-date stream. Memories All uses one latest-first stream.
+  Filtered views retain useful joined status groups.
+- Added Hosted and Joined role badges directly to each card. Empty states
+  respond to the exact filter, and notification and creation deep-links select
+  the correct role.
+- Validation: Prettier, `npx tsc --noEmit`, targeted ESLint, Venture lifecycle
+  tests, `git diff --check`, and `npm run build` pass. No database change.
 
 ### 2026-09-06 — Codex (Astra) — Venture Memories label and chronological cards
 
