@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Stacked-card treatment for Discover profile deck | `DEVLOG.md`, `src/components/mutuals/ExploreDeck.tsx` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,20 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Discover profile card stack
+
+- Added two restrained backing layers behind the active Discover profile card,
+  using the next real profiles' Tribe accents for subtle depth without exposing
+  their content before they become active.
+- The stack reflects the remaining deck: one layer disappears on the
+  penultimate introduction and both disappear on the final card. Backing cards
+  are decorative and cannot receive pointer or accessibility focus.
+- Preserved the existing horizontal drag and arrow behavior. The active card
+  now sits 12 px forward in the composition, allowing the queued edges to read
+  without reducing the Discover controls or creating another scroll area.
+- Validation: focused ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  Cloudflare production build pass; existing build warnings remain.
 
 ### 2026-09-06 — Codex (Astra) — Centered Venture loading composition
 

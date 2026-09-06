@@ -164,6 +164,7 @@ export function ExploreDeck({
 
   const currentPeople = phase === "continuation" ? continuationPeople : primaryPeople;
   const person = phase === "primary" || phase === "continuation" ? currentPeople[index] : null;
+  const queuedPeople = currentPeople.slice(index + 1, index + 3);
   const contact = useContactStatus(person?.id ?? null);
   const reasons = useMemo(() => (person?.signals ? matchReasons(person.signals, 2) : []), [person]);
 
@@ -303,7 +304,8 @@ export function ExploreDeck({
       <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
         <div className="shrink-0">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            <CheckIcon className="h-3 w-3 text-accent-readable" weight="bold" /> {primarySetLabel} complete
+            <CheckIcon className="h-3 w-3 text-accent-readable" weight="bold" /> {primarySetLabel}{" "}
+            complete
           </span>
           <h3 className="mt-2 font-display text-[28px] font-bold leading-[1.05]">
             Where do you want to go next?
@@ -483,13 +485,36 @@ export function ExploreDeck({
       )}
       <p className="sr-only">Showing {person.name}</p>
       <div className="relative min-h-0 flex-1">
+        {queuedPeople.map((queuedPerson, queueIndex) => {
+          const queuedTribe = tribeById(queuedPerson.tribeId);
+          const isNext = queueIndex === 0;
+          return (
+            <span
+              key={queuedPerson.id}
+              aria-hidden
+              className="pointer-events-none absolute rounded-[28px] border motion-safe:transition-[transform,background-color,border-color] motion-safe:duration-200"
+              style={{
+                left: isNext ? "0.375rem" : "0.75rem",
+                right: isNext ? "0.375rem" : "0.75rem",
+                top: isNext ? "0.375rem" : "0",
+                bottom: isNext ? "0.1875rem" : "0.375rem",
+                zIndex: isNext ? 1 : 0,
+                backgroundColor: `color-mix(in oklab, ${queuedTribe.colorVar} ${isNext ? 18 : 11}%, var(--card))`,
+                borderColor: `color-mix(in oklab, ${queuedTribe.colorVar} ${isNext ? 42 : 26}%, var(--border))`,
+                boxShadow: isNext
+                  ? "0 -5px 18px color-mix(in oklab, var(--background) 58%, transparent)"
+                  : "none",
+              }}
+            />
+          );
+        })}
         <div
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={finishPointer}
           onPointerCancel={cancelPointer}
           className={cn(
-            "h-full touch-pan-y",
+            "absolute inset-x-0 bottom-0 top-3 z-[2] touch-pan-y",
             !dragging && "transition-transform duration-200 ease-out motion-reduce:transition-none",
           )}
           style={{ transform: `translate3d(${dragX}px, 0, 0)` }}
@@ -560,7 +585,9 @@ export function ExploreDeck({
                 aria-pressed={isFollowing}
                 className={cn(
                   "absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full border bg-black/55 backdrop-blur-sm transition-colors active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-                  isFollowing ? "border-accent/60 text-accent-readable" : "border-white/20 text-white/80",
+                  isFollowing
+                    ? "border-accent/60 text-accent-readable"
+                    : "border-white/20 text-white/80",
                 )}
               >
                 {followPending === person.id ? (
