@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Refine Venture role filter outline and align peer-view switch sizing | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture control visual alignment
+
+- Changed the selected All/Hosted/Joined role filter from a solid fill to a
+  one-pixel MEUTUALS gradient outline around the existing dark surface. Labels
+  stay high-contrast and the count uses the primary accent.
+- Shared one fixed `144 × 44 px` style between the `My Ventures` and
+  `Venture board` peer-view switches so the action no longer changes size when
+  moving between views.
+- Validation: local Chrome visual check in both views, Prettier,
+  `npx tsc --noEmit`, targeted ESLint, `git diff --check`, and `npm run build`
+  pass. No database change.
 
 ### 2026-09-06 — Codex (Astra) — My Ventures ownership filters
 

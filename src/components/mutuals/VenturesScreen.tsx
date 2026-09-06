@@ -97,6 +97,8 @@ import type { TribeVentureDraft } from "@/lib/tribe-room";
 
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 const VENTURE_DRAFT_KEY = "mutuals:venture-draft";
+const VENTURE_VIEW_SWITCH_CLASS =
+  "inline-flex h-11 w-36 shrink-0 items-center justify-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 type StoredVentureDraft = {
   title: string;
@@ -774,11 +776,7 @@ function LookView({
         title="Open Ventures"
         hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
         action={
-          <button
-            type="button"
-            onClick={onOpenMine}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
+          <button type="button" onClick={onOpenMine} className={VENTURE_VIEW_SWITCH_CLASS}>
             <TicketIcon className="h-3.5 w-3.5 text-primary" />
             My Ventures
             {liveJoinedCount > 0 && (
@@ -1111,11 +1109,7 @@ function MyVenturesView({
               : `${historyCount} memories & records`
         }
         action={
-          <button
-            type="button"
-            onClick={onBrowse}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
+          <button type="button" onClick={onBrowse} className={VENTURE_VIEW_SWITCH_CLASS}>
             <MagnifyingGlassIcon className="h-3.5 w-3.5 text-primary" />
             Venture board
           </button>
@@ -1184,30 +1178,37 @@ function MyVenturesView({
               aria-pressed={selected}
               onClick={() => setRoleFilter(filter)}
               className={cn(
-                "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-[color,background-color,border-color,transform,filter] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                selected
-                  ? "border-transparent bg-meutuals-gradient text-white shadow-sm hover:brightness-110"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                "group inline-flex min-h-9 items-stretch justify-center rounded-full p-px text-xs font-semibold transition-[color,background-color,transform,filter] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                selected ? "bg-meutuals-gradient shadow-sm" : "bg-border hover:bg-primary/40",
               )}
             >
-              {filter === "all" ? (
-                <SlidersHorizontalIcon className="h-3.5 w-3.5" />
-              ) : filter === "hosted" ? (
-                <LightningIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
-              ) : (
-                <UsersIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
-              )}
-              {filter === "all" ? "All" : filter === "hosted" ? "Hosted" : "Joined"}
-              {count > 0 && (
-                <span
-                  className={cn(
-                    "font-mono text-[10px]",
-                    selected ? "text-white/75" : "text-muted-foreground",
-                  )}
-                >
-                  {count}
-                </span>
-              )}
+              <span
+                className={cn(
+                  "inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-full bg-card px-3",
+                  selected
+                    ? "text-foreground"
+                    : "text-muted-foreground group-hover:text-foreground",
+                )}
+              >
+                {filter === "all" ? (
+                  <SlidersHorizontalIcon className="h-3.5 w-3.5" />
+                ) : filter === "hosted" ? (
+                  <LightningIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
+                ) : (
+                  <UsersIcon className="h-3.5 w-3.5" weight={selected ? "fill" : "regular"} />
+                )}
+                {filter === "all" ? "All" : filter === "hosted" ? "Hosted" : "Joined"}
+                {count > 0 && (
+                  <span
+                    className={cn(
+                      "font-mono text-[10px]",
+                      selected ? "text-primary" : "text-muted-foreground",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
