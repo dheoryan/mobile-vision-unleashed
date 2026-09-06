@@ -212,6 +212,42 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-06 — User + Claude — Explore: specific-vibe lens, deck end-of-round redesign
+
+- Added `ExploreLens = ExploreMood | { vibeId: string }` to `explore-moods.ts`,
+  additive over the existing 5-mood system — every prior call site and all 5
+  original tests kept working with zero changes, plus 2 new tests for the
+  vibe path. The Discovery Lens sheet (`DiscoverScreen.tsx`) previously only
+  ever offered 5 hardcoded moods, none of which reflected the real ~85-option
+  interest catalogue people actually pick from in onboarding and Venture
+  Vibes (`INTEREST_OPTION_GROUPS`); now it offers quick moods plus the same
+  Tribe-grouped picker used everywhere else, collapsed to a preview with
+  "Show all 85".
+- Redesigned `ExploreDeck.tsx`'s "doors" (Today's Five complete) and "done"
+  (that's enough cards) screens, which previously restated "you're done"
+  three ways (a checkmark badge, a heading, overlapping subtext) and lost
+  the deck's own card-stack visual identity at exactly the moment a user
+  decides what happens next. Both screens now: state the status once, keep
+  a peeking-stack silhouette behind the card, lead with "Find a Venture" as
+  one full-width gradient CTA (Ventures is the best-built thing in the
+  product, per `MEUTUALS_PRODUCTION_AUDIT.md` — it shouldn't be found after
+  scrolling past a picker), and present "pick a new lens" as a labeled row
+  of real buttons rather than a card whose chevron implied the whole thing
+  was one tap target when the actual action lived in smaller chips inside
+  it. Continuation rounds get the same two-tier quick-mood/specific-vibe
+  choice as the initial pick.
+- The active continuation lens now surfaces through the header's existing
+  filter pill (`onContinuationLensChange` callback new-wired
+  ExploreDeck → DiscoverScreen) instead of a second pill inside the deck
+  restating the same fact — one source of truth, not two displays.
+- Icon consistency: replaced `ArrowRightIcon` with `CaretRightIcon` (this
+  app's established "leads forward" convention — see `PostCard.tsx`,
+  `CommentsModal.tsx`, `Onboarding.tsx`, etc.) everywhere in this file.
+- Pure client code, no schema/RLS — Green per `CHANGE_PROTOCOL.md`. `npx tsc
+  --noEmit`, targeted ESLint, `node --test tests/explore-moods.test.ts`, and
+  `npm run build` all pass. Pushed to `main`; Lovable Publish remains a
+  manual user-confirmed action.
+
 ### 2026-09-06 — User + Claude — Venture card redesign published
 
 - The user confirmed the Lovable Publish action completed for the Venture
