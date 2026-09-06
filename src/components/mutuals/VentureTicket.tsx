@@ -14,7 +14,13 @@ import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 import type { VentureParty } from "@/lib/ventures.functions";
-import { clock, durationMinutes, timingLabel, ventureTz } from "@/lib/venture-time";
+import {
+  clock,
+  durationMinutes,
+  timingLabel,
+  ventureLifecycle,
+  ventureTz,
+} from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
 import { VentureVibeLabel } from "./VentureVibeLabel";
 
@@ -63,6 +69,7 @@ export function VentureTicket({
   const accepted = status === "accepted";
   const invited = status === "invited";
   const pending = status === "pending";
+  const lifecycle = ventureLifecycle(venture);
 
   const mins = durationMinutes(venture);
   const duration = mins ? (mins % 60 === 0 ? `${mins / 60}h` : `${mins}m`) : null;
@@ -146,7 +153,7 @@ export function VentureTicket({
             {venture.filled_slots} of {venture.max_slots} going
           </p>
 
-          <Stamp status={status} />
+          <Stamp status={status} lifecycle={lifecycle} />
 
           {invited ? (
             <div className="mt-1.5 flex gap-2">
@@ -178,7 +185,12 @@ export function VentureTicket({
               onClick={onOpenChat}
               className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl bg-meutuals-gradient py-2.5 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <ChatCircleIcon className="h-3.5 w-3.5" /> Open party chat
+              <ChatCircleIcon className="h-3.5 w-3.5" />
+              {lifecycle === "cancelled"
+                ? "View cancelled plan"
+                : lifecycle === "completed"
+                  ? "Open Venture Memory"
+                  : "Open party chat"}
             </button>
           ) : pending && venture.my_application ? (
             <button
@@ -471,7 +483,13 @@ export function VentureTicketDetail({
  * muted tones rather than nothing at all — the shape says "almost", which is
  * exactly what waiting on a host is.
  */
-function Stamp({ status }: { status?: string }) {
+function Stamp({
+  status,
+  lifecycle,
+}: {
+  status?: string;
+  lifecycle?: ReturnType<typeof ventureLifecycle>;
+}) {
   const map: Record<string, { label: string; className: string; icon: boolean }> = {
     accepted: { label: "You're in", className: "border-accent text-accent-readable", icon: true },
     invited: {
@@ -485,7 +503,14 @@ function Stamp({ status }: { status?: string }) {
       icon: false,
     },
   };
-  const stamp = status ? map[status] : undefined;
+  const stamp =
+    lifecycle === "cancelled"
+      ? { label: "Cancelled", className: "border-border text-muted-foreground", icon: false }
+      : lifecycle === "completed"
+        ? { label: "Venture memory", className: "border-primary/50 text-primary", icon: true }
+        : status
+          ? map[status]
+          : undefined;
   if (!stamp) return null;
 
   return (

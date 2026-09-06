@@ -29,6 +29,57 @@ export type VentureTiming = {
   time_window?: string | null;
 };
 
+export type VentureLifecycleInput = VentureTiming & {
+  status?: "open" | "full" | "closed" | null;
+  ended_at?: string | null;
+  closed_at?: string | null;
+  cancelled_at?: string | null;
+};
+
+export type VentureLifecycle = "scheduled" | "happening" | "completed" | "cancelled";
+
+/** Shared lifecycle used by the board, host dashboard, chat and profile history. */
+export function ventureLifecycle(
+  venture: VentureLifecycleInput,
+  now: Date = new Date(),
+): VentureLifecycle {
+  if (venture.cancelled_at) return "cancelled";
+  if (venture.status === "closed" || venture.closed_at || venture.ended_at) return "completed";
+
+  const current = now.getTime();
+  const end = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
+  if (Number.isFinite(end) && end <= current) return "completed";
+
+  const start = venture.starts_at ? Date.parse(venture.starts_at) : Number.NaN;
+  if (Number.isFinite(start) && start <= current) return "happening";
+  return "scheduled";
+}
+
+export function ventureAcceptsRequests(
+  venture: VentureLifecycleInput,
+  now: Date = new Date(),
+): boolean {
+  if (venture.status !== "open" || ventureLifecycle(venture, now) !== "scheduled") return false;
+  const start = venture.starts_at ? Date.parse(venture.starts_at) : Number.NaN;
+  return !Number.isFinite(start) || start > now.getTime();
+}
+
+/** Short, action-oriented state shown on cards where timing needs emphasis. */
+export function ventureStateLabel(
+  venture: VentureLifecycleInput,
+  now: Date = new Date(),
+): string | null {
+  const lifecycle = ventureLifecycle(venture, now);
+  if (lifecycle === "cancelled") return "Cancelled";
+  if (lifecycle === "completed") return "Completed";
+  if (lifecycle === "happening") return "Happening now";
+
+  const start = venture.starts_at ? Date.parse(venture.starts_at) : Number.NaN;
+  if (Number.isFinite(start) && start - now.getTime() <= 2 * 60 * 60 * 1000) return "Starts soon";
+  if (venture.status === "full") return "Requests closed";
+  return null;
+}
+
 const FALLBACK_TZ = "Asia/Jakarta";
 
 function viewerTz(): string {
@@ -142,9 +193,7 @@ export function zoneAbbr(tz: string): string {
  * tells you when it stopped.
  */
 export function isPast(v: VentureTiming, now: Date = new Date()): boolean {
-  if (!v.ends_at) return false;
-  const end = new Date(v.ends_at).getTime();
-  return !Number.isNaN(end) && end < now.getTime();
+  return ventureLifecycle(v, now) === "completed";
 }
 
 /** How the host picks an end: a duration, not a second clock. */

@@ -9,6 +9,11 @@ export type PushNotificationKind =
   | "venture_apply"
   | "venture_invite"
   | "venture_accept"
+  | "venture_decline"
+  | "venture_invite_accept"
+  | "venture_invite_decline"
+  | "venture_withdraw"
+  | "venture_leave"
   | "venture_message"
   | "tribe_join"
   | "hello"
@@ -30,6 +35,11 @@ const KIND_TEXT: Record<PushNotificationKind, string> = {
   venture_apply: "asked to join your Venture",
   venture_invite: "invited you to a Venture",
   venture_accept: "accepted you into a Venture",
+  venture_decline: "couldn't fit your Venture request",
+  venture_invite_accept: "accepted your Venture invitation",
+  venture_invite_decline: "passed on your Venture invitation",
+  venture_withdraw: "withdrew their Venture request",
+  venture_leave: "left your Venture",
   venture_message: "sent a Venture message",
   tribe_join: "joined your Tribe",
   hello: "said hello",
@@ -52,6 +62,11 @@ const PRIVATE_PREVIEW_KINDS = new Set<PushNotificationKind>([
   "venture_apply",
   "venture_invite",
   "venture_accept",
+  "venture_decline",
+  "venture_invite_accept",
+  "venture_invite_decline",
+  "venture_withdraw",
+  "venture_leave",
   "venture_message",
 ]);
 

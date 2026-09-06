@@ -88,6 +88,32 @@ test("every high-intent kind resolves to its actionable context", () => {
   assert.deepEqual(
     notificationDestination(
       notification({
+        kind: "venture_invite_accept",
+        venture_id: "00000000-0000-4000-8000-000000000002",
+      }),
+    ),
+    {
+      kind: "venture",
+      ventureId: "00000000-0000-4000-8000-000000000002",
+      mode: "host",
+    },
+  );
+  assert.deepEqual(
+    notificationDestination(
+      notification({
+        kind: "venture_decline",
+        venture_id: "00000000-0000-4000-8000-000000000002",
+      }),
+    ),
+    {
+      kind: "venture",
+      ventureId: "00000000-0000-4000-8000-000000000002",
+      mode: "yours",
+    },
+  );
+  assert.deepEqual(
+    notificationDestination(
+      notification({
         kind: "venture_message",
         venture_id: "00000000-0000-4000-8000-000000000002",
       }),

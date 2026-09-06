@@ -34,6 +34,11 @@ const VENTURE_KINDS = new Set<NotificationKind>([
   "venture_apply",
   "venture_invite",
   "venture_accept",
+  "venture_decline",
+  "venture_invite_accept",
+  "venture_invite_decline",
+  "venture_withdraw",
+  "venture_leave",
   "venture_message",
 ]);
 
@@ -140,9 +145,22 @@ export function notificationDestination(item: NotificationRow): NotificationDest
   if (
     item.kind === "venture_apply" ||
     item.kind === "venture_invite" ||
-    item.kind === "venture_accept"
+    item.kind === "venture_accept" ||
+    item.kind === "venture_decline" ||
+    item.kind === "venture_invite_accept" ||
+    item.kind === "venture_invite_decline" ||
+    item.kind === "venture_withdraw" ||
+    item.kind === "venture_leave"
   ) {
-    const mode = item.kind === "venture_apply" ? "host" : "yours";
+    const mode = [
+      "venture_apply",
+      "venture_invite_accept",
+      "venture_invite_decline",
+      "venture_withdraw",
+      "venture_leave",
+    ].includes(item.kind)
+      ? "host"
+      : "yours";
     return item.venture_id
       ? { kind: "venture", ventureId: item.venture_id, mode }
       : { kind: "tab", tab: "ventures" };

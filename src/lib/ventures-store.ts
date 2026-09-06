@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth-context";
 import {
   applyToVenture,
-  closeHostedVenture,
+  completeHostedVenture,
+  cancelHostedVenture,
   updateHostedVenture,
   withdrawVentureApplication,
   reopenHostedVenture,
@@ -14,6 +15,7 @@ import {
   listProfileVentureHistory,
   listOpenVentures,
   listVentureMessages,
+  markVentureRoomRead,
   sendVentureMessage,
   editVentureMessage,
   unsendVentureMessage,
@@ -153,8 +155,17 @@ export function useDecideVentureApplication() {
   });
 }
 
-export function useCloseHostedVenture() {
-  const fn = useServerFn(closeHostedVenture);
+export function useCompleteHostedVenture() {
+  const fn = useServerFn(completeHostedVenture);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ventureId: string) => fn({ data: { venture_id: ventureId } }),
+    onSuccess: () => invalidateVentures(qc),
+  });
+}
+
+export function useCancelHostedVenture() {
+  const fn = useServerFn(cancelHostedVenture);
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ventureId: string) => fn({ data: { venture_id: ventureId } }),
@@ -220,6 +231,15 @@ export function useVentureMessages(ventureId: string | null, enabled = true) {
     enabled: !!user && !!ventureId && enabled,
     staleTime: 5_000,
     refetchInterval: 8_000,
+  });
+}
+
+export function useMarkVentureRoomRead(ventureId: string) {
+  const fn = useServerFn(markVentureRoomRead);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => fn({ data: { venture_id: ventureId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["chats", "venture-previews"] }),
   });
 }
 

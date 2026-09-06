@@ -17,6 +17,7 @@ import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpL
 import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
 import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
 import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
+import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { toast } from "sonner";
@@ -76,6 +77,11 @@ const ICONS: Record<NotificationKind, React.ReactNode> = {
   venture_apply: <UsersIcon className="h-3.5 w-3.5" weight="fill" />,
   venture_invite: <UsersIcon className="h-3.5 w-3.5" weight="fill" />,
   venture_accept: <UserCheckIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_decline: <UserMinusIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_invite_accept: <UserCheckIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_invite_decline: <UserMinusIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_withdraw: <UserMinusIcon className="h-3.5 w-3.5" weight="fill" />,
+  venture_leave: <UserMinusIcon className="h-3.5 w-3.5" weight="fill" />,
   venture_message: <ChatCircleIcon className="h-3.5 w-3.5" weight="fill" />,
   tribe_join: <UsersIcon className="h-3.5 w-3.5" weight="fill" />,
   hello: <HandIcon className="h-3.5 w-3.5" weight="fill" />,
@@ -106,6 +112,11 @@ const TEXTS: Record<NotificationKind, string> = {
   venture_apply: "asked to join your Venture",
   venture_invite: "invited you to a Venture",
   venture_accept: "accepted you into a Venture",
+  venture_decline: "couldn't fit your Venture request",
+  venture_invite_accept: "accepted your Venture invitation",
+  venture_invite_decline: "passed on your Venture invitation",
+  venture_withdraw: "withdrew their Venture request",
+  venture_leave: "left your Venture",
   venture_message: "sent a Venture message",
   tribe_join: "joined your Tribe",
   hello: "said Hello",

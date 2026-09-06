@@ -67,6 +67,7 @@ export type VentureParty = {
   created_at: string;
   ended_at: string | null;
   closed_at: string | null;
+  cancelled_at: string | null;
   /** Object path in the private venture-images bucket, or null. Callers resolve
    *  a signed URL with signVentureImageUrl at render time — never a public URL,
    *  because a scope='mine' Venture is Tribe-only. */
@@ -152,6 +153,7 @@ type VentureDbRow = {
   created_at: string;
   ended_at: string | null;
   closed_at: string | null;
+  cancelled_at: string | null;
   image_url: string | null;
 };
 
@@ -205,6 +207,8 @@ type VentureMessageDbRow = {
 const PROFILE_COLS =
   "id, display_name, handle, avatar_emoji, avatar_url, plan, city, bio, tribe_ids";
 const VENTURE_COLS =
+  "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, venue_place_id, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, cancelled_at, image_url";
+const PRE_CANCELLATION_VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, venue_place_id, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
 const LEGACY_VENTURE_COLS =
   "id, user_id, title, intents, scope, time_window, starts_at, ends_at, venue_tz, note, max_slots, filled_slots, status, created_at, ended_at, closed_at, image_url";
@@ -313,8 +317,18 @@ function isCoordinationSchemaUnavailable(error: any): boolean {
   );
 }
 
+function isCancellationSchemaUnavailable(error: any): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  const text = [error.message, error.details, error.hint].filter(Boolean).join(" ").toLowerCase();
+  return new Set(["PGRST204", "42703"]).has(code) && text.includes("cancelled_at");
+}
+
 async function selectVenturesWithFallback(buildQuery: (columns: string) => any) {
   let result = await buildQuery(VENTURE_COLS);
+  if (result.error && isCancellationSchemaUnavailable(result.error)) {
+    result = await buildQuery(PRE_CANCELLATION_VENTURE_COLS);
+  }
   if (result.error && isVenueSchemaUnavailable(result.error)) {
     result = await buildQuery(LEGACY_VENTURE_COLS);
   }
@@ -455,6 +469,7 @@ function mapParty(
     created_at: row.created_at,
     ended_at: row.ended_at,
     closed_at: row.closed_at,
+    cancelled_at: row.cancelled_at ?? null,
     image_url: row.image_url ?? null,
     host,
     my_application: myApplication,
@@ -519,7 +534,7 @@ async function requireVentureMember(
 }
 
 function ventureRowIsComplete(
-  venture: Pick<VentureDbRow, "status" | "ends_at" | "closed_at" | "ended_at">,
+  venture: Pick<VentureDbRow, "status" | "ends_at" | "closed_at" | "ended_at" | "cancelled_at">,
 ): boolean {
   const scheduledEnd = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
   return (
@@ -528,6 +543,17 @@ function ventureRowIsComplete(
     !!venture.ended_at ||
     (Number.isFinite(scheduledEnd) && scheduledEnd <= Date.now())
   );
+}
+
+function ventureRowAcceptsApplications(
+  venture: Pick<VentureDbRow, "status" | "starts_at" | "ends_at" | "cancelled_at">,
+): boolean {
+  if (venture.status !== "open" || venture.cancelled_at) return false;
+  const start = venture.starts_at ? Date.parse(venture.starts_at) : Number.NaN;
+  const end = venture.ends_at ? Date.parse(venture.ends_at) : Number.NaN;
+  if (Number.isFinite(start) && start <= Date.now()) return false;
+  if (Number.isFinite(end) && end <= Date.now()) return false;
+  return true;
 }
 
 // Who a host may invite: anyone sharing a Tribe with them (Tribemates are
@@ -600,6 +626,7 @@ export const listOpenVentures = createServerFn({ method: "GET" })
         .select(columns)
         .eq("status", "open")
         .neq("user_id", userId)
+        .or(`starts_at.is.null,starts_at.gt.${nowIso}`)
         .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
         .order("starts_at", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false })
@@ -950,7 +977,9 @@ export const inviteUserToVenture = createServerFn({ method: "POST" })
 
     const venture = await fetchVentureOrThrow(db, data.venture_id);
     if (venture.user_id !== userId) throw new Error("Only the host can invite people.");
-    if (venture.status === "closed") throw new Error("This Venture is closed.");
+    if (!ventureRowAcceptsApplications(venture)) {
+      throw new Error("Invites close when the Venture starts.");
+    }
     if (venture.status === "full" || (venture.filled_slots ?? 1) >= (venture.max_slots ?? 4)) {
       throw new Error("This Venture is already full.");
     }
@@ -1026,7 +1055,9 @@ export const respondToVentureInvite = createServerFn({ method: "POST" })
     const venture = await fetchVentureOrThrow(db, app.venture_id);
 
     if (data.status === "accepted") {
-      if (venture.status === "closed") throw new Error("This Venture is closed.");
+      if (!ventureRowAcceptsApplications(venture)) {
+        throw new Error("This invite expired when the Venture started.");
+      }
       if (venture.status === "full") throw new Error("This Venture is full.");
 
       const { count, error: countError } = await db
@@ -1283,7 +1314,10 @@ export const applyToVenture = createServerFn({ method: "POST" })
 
     const row = await fetchVentureOrThrow(db, data.venture_id);
     if (row.user_id === userId) throw new Error("You are already hosting this Venture.");
-    if (row.status !== "open" || (row.filled_slots ?? 1) >= (row.max_slots ?? 4)) {
+    if (!ventureRowAcceptsApplications(row)) {
+      throw new Error("Requests close when the Venture starts.");
+    }
+    if ((row.filled_slots ?? 1) >= (row.max_slots ?? 4)) {
       throw new Error("This Venture is already full.");
     }
 
@@ -1361,7 +1395,9 @@ export const decideVentureApplication = createServerFn({ method: "POST" })
     if (venture.user_id !== userId) throw new Error("Only the host can review requests.");
 
     if (data.status === "accepted") {
-      if (venture.status === "closed") throw new Error("This Venture is closed.");
+      if (!ventureRowAcceptsApplications(venture) && app.status !== "accepted") {
+        throw new Error("Requests closed when the Venture started.");
+      }
       if (venture.status === "full" && app.status !== "accepted")
         throw new Error("This Venture is full.");
 
@@ -1391,7 +1427,44 @@ export const decideVentureApplication = createServerFn({ method: "POST" })
     return mapApplication(updated as VentureApplicationDbRow, applicantMap);
   });
 
-export const closeHostedVenture = createServerFn({ method: "POST" })
+export const completeHostedVenture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<VentureParty> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    const now = new Date().toISOString();
+
+    const current = await fetchVentureOrThrow(db, data.venture_id);
+    if (current.user_id !== userId) throw new Error("Venture not found or you are not its host.");
+    const start = current.starts_at ? Date.parse(current.starts_at) : Number.NaN;
+    if (Number.isFinite(start) && start > Date.now()) {
+      throw new Error("You can mark this complete after it starts. Cancel it if the plan is off.");
+    }
+
+    let result = await db
+      .from("ventures")
+      .update({ status: "closed", closed_at: now, ended_at: now, cancelled_at: null })
+      .eq("id", data.venture_id)
+      .eq("user_id", userId)
+      .select(VENTURE_COLS)
+      .single();
+    if (isCancellationSchemaUnavailable(result.error)) {
+      result = await db
+        .from("ventures")
+        .update({ status: "closed", closed_at: now, ended_at: now })
+        .eq("id", data.venture_id)
+        .eq("user_id", userId)
+        .select(PRE_CANCELLATION_VENTURE_COLS)
+        .single();
+    }
+    if (result.error) throw new Error(result.error.message);
+
+    const hosts = await fetchProfiles(db, [userId]);
+    return mapParty(result.data as VentureDbRow, hosts.get(userId) ?? null);
+  });
+
+export const cancelHostedVenture = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<VentureParty> => {
@@ -1401,11 +1474,14 @@ export const closeHostedVenture = createServerFn({ method: "POST" })
 
     const { data: row, error } = await db
       .from("ventures")
-      .update({ status: "closed", closed_at: now, ended_at: now })
+      .update({ status: "closed", closed_at: now, ended_at: null, cancelled_at: now })
       .eq("id", data.venture_id)
       .eq("user_id", userId)
       .select(VENTURE_COLS)
       .single();
+    if (isCancellationSchemaUnavailable(error)) {
+      throw new Error("Cancellation needs the Venture journey database update.");
+    }
     if (error) throw new Error(error.message);
 
     const hosts = await fetchProfiles(db, [userId]);
@@ -1571,9 +1647,20 @@ export const reopenHostedVenture = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const db = supabase as unknown as any;
 
+    const current = await fetchVentureOrThrow(db, data.venture_id);
+    if (current.user_id !== userId) throw new Error("Venture not found or you are not its host.");
+    if (!current.cancelled_at) throw new Error("Completed Ventures stay in Memories.");
+    const start = current.starts_at ? Date.parse(current.starts_at) : Number.NaN;
+    if (Number.isFinite(start) && start <= Date.now()) {
+      throw new Error("This Venture has already started. Host a new one instead.");
+    }
+    if ((current.filled_slots ?? 1) >= (current.max_slots ?? 4)) {
+      throw new Error("This Venture is already full.");
+    }
+
     const { data: row, error } = await db
       .from("ventures")
-      .update({ status: "open", closed_at: null, ended_at: null })
+      .update({ status: "open", closed_at: null, ended_at: null, cancelled_at: null })
       .eq("id", data.venture_id)
       .eq("user_id", userId)
       .select(VENTURE_COLS)
@@ -1848,6 +1935,36 @@ export const listVentureMessages = createServerFn({ method: "GET" })
       ...message,
       reply_to: message.reply_to_id ? (byId.get(message.reply_to_id) ?? null) : null,
     }));
+  });
+
+/** Advance only this member's pointer after they actually open the room. */
+export const markVentureRoomRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ venture_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<{ schema_ready: boolean }> => {
+    const { supabase, userId } = context;
+    const db = supabase as unknown as any;
+    await requireVentureMember(db, data.venture_id, userId);
+    const { error } = await db.from("venture_room_reads").upsert(
+      {
+        venture_id: data.venture_id,
+        user_id: userId,
+        last_read_at: new Date().toISOString(),
+      },
+      { onConflict: "venture_id,user_id" },
+    );
+    if (error) {
+      const code = String(error.code ?? "");
+      const message = String(error.message ?? "").toLowerCase();
+      if (
+        ["PGRST204", "PGRST205", "42P01", "42703"].includes(code) &&
+        message.includes("venture_room_reads")
+      ) {
+        return { schema_ready: false };
+      }
+      throw new Error(error.message);
+    }
+    return { schema_ready: true };
   });
 
 export const sendVentureMessage = createServerFn({ method: "POST" })

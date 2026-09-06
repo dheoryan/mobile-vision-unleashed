@@ -1,10 +1,10 @@
 import { CalendarIcon } from "@phosphor-icons/react/dist/csr/Calendar";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import type { ProfileVentureHistoryItem } from "@/lib/ventures.functions";
-import { isPast, timingLabel } from "@/lib/venture-time";
+import { timingLabel, ventureLifecycle } from "@/lib/venture-time";
 
 function isCompleted(venture: ProfileVentureHistoryItem): boolean {
-  return venture.status === "closed" || isPast(venture);
+  return ventureLifecycle(venture) === "completed";
 }
 
 function VentureHistoryCard({
@@ -57,8 +57,9 @@ export function ProfileVentureHistory({
   ventures: ProfileVentureHistoryItem[];
   onSelect?: (venture: ProfileVentureHistoryItem) => void;
 }) {
-  const upcoming = ventures.filter((venture) => !isCompleted(venture));
-  const past = ventures.filter(isCompleted);
+  const visible = ventures.filter((venture) => ventureLifecycle(venture) !== "cancelled");
+  const upcoming = visible.filter((venture) => !isCompleted(venture));
+  const past = visible.filter(isCompleted);
 
   return (
     <div className="space-y-5">

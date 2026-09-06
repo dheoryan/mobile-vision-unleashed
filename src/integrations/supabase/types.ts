@@ -1249,6 +1249,8 @@ export type Database = {
           attachment_url: string | null
           content: string | null
           created_at: string
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           mentions: string[]
           message_kind: string
@@ -1263,6 +1265,8 @@ export type Database = {
           attachment_url?: string | null
           content?: string | null
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           mentions?: string[]
           message_kind?: string
@@ -1277,6 +1281,8 @@ export type Database = {
           attachment_url?: string | null
           content?: string | null
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           mentions?: string[]
           message_kind?: string
@@ -1375,8 +1381,42 @@ export type Database = {
           },
         ]
       }
+      venture_room_reads: {
+        Row: {
+          last_read_at: string
+          user_id: string
+          venture_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          user_id: string
+          venture_id: string
+        }
+        Update: {
+          last_read_at?: string
+          user_id?: string
+          venture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venture_room_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venture_room_reads_venture_id_fkey"
+            columns: ["venture_id"]
+            isOneToOne: false
+            referencedRelation: "ventures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ventures: {
         Row: {
+          cancelled_at: string | null
           closed_at: string | null
           created_at: string
           ended_at: string | null
@@ -1397,6 +1437,7 @@ export type Database = {
           venue_tz: string | null
         }
         Insert: {
+          cancelled_at?: string | null
           closed_at?: string | null
           created_at?: string
           ended_at?: string | null
@@ -1417,6 +1458,7 @@ export type Database = {
           venue_tz?: string | null
         }
         Update: {
+          cancelled_at?: string | null
           closed_at?: string | null
           created_at?: string
           ended_at?: string | null

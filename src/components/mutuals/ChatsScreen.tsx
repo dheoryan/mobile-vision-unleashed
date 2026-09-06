@@ -21,7 +21,7 @@ import type { VentureParty } from "@/lib/ventures.functions";
 import { useBlocked } from "@/lib/blocked-store";
 import { timeAgoLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { timingLabel } from "@/lib/venture-time";
+import { timingLabel, ventureLifecycle } from "@/lib/venture-time";
 import { ConversationListSkeleton } from "./Skeleton";
 
 type Filter = "all" | "tribe" | "ventures" | "direct";
@@ -37,9 +37,10 @@ type UnifiedChatItem =
       kind: "venture";
       key: string;
       lastAt: string;
-      unreadCount: 0;
+      unreadCount: number;
       venture: VentureParty;
       memory: boolean;
+      cancelled: boolean;
     }
   | {
       kind: "direct";
@@ -48,24 +49,6 @@ type UnifiedChatItem =
       unreadCount: number;
       thread: DMThreadSummary;
     };
-
-/**
- * Unread state, and the one thing this screen deliberately cannot do yet.
- *
- * `messages` carries `read_at`, so DM threads have a real unread count. Tribe
- * rooms now have a per-user pointer too. Venture rooms still do not, so this
- * intentionally returns no fabricated badge for them.
- *
- * That is fine today and it is why this indirection exists rather than a
- * scattering of `undefined`s: adding a `conversation_reads` table later turns
- * this one function into a lookup, and nothing else on the screen changes.
- * Shipping the badge is a product decision (an unread dot is an attention
- * signal, and this app already has notifications doing that job), so it is
- * deliberately not being made here.
- */
-function unreadFor(_kind: "venture", _conversationId: string): number | null {
-  return null;
-}
 
 type TribeSummary = {
   dbTribeId: string;
@@ -172,22 +155,34 @@ function useVentureChatPreviews(ventureIds: string[]) {
     staleTime: 10_000,
     refetchInterval: 30_000,
     queryFn: async () => {
-      // venture_messages.deleted_at (20260904010000) isn't in the generated
-      // Database types yet, same lag as elsewhere - `as any` on this one
-      // query keeps that from breaking every other typed venture_messages
-      // read in the file.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase.from("venture_messages") as any)
-        .select("venture_id, content, attachment_type, created_at, sender_id, deleted_at")
-        .in("venture_id", ventureIds)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      const newest = new Map<string, { content: string; created_at: string }>();
+      const [{ data }, readsResult] = await Promise.all([
+        supabase
+          .from("venture_messages")
+          .select("venture_id, content, attachment_type, created_at, sender_id, deleted_at")
+          .in("venture_id", ventureIds)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase
+          .from("venture_room_reads")
+          .select("venture_id, last_read_at")
+          .eq("user_id", user!.id)
+          .in("venture_id", ventureIds),
+      ]);
+      const readAt = new Map<string, string>(
+        ((readsResult.data ?? []) as Array<{ venture_id: string; last_read_at: string }>).map(
+          (row) => [row.venture_id, row.last_read_at],
+        ),
+      );
+      const newest = new Map<
+        string,
+        { content: string; created_at: string; unreadCount: number }
+      >();
       for (const row of (data ?? []) as Array<{
         venture_id: string;
         content: string | null;
         attachment_type: string | null;
         created_at: string;
+        sender_id: string;
         deleted_at: string | null;
       }>) {
         if (!newest.has(row.venture_id)) {
@@ -196,7 +191,13 @@ function useVentureChatPreviews(ventureIds: string[]) {
               ? "Message removed"
               : row.content || (row.attachment_type === "image" ? "Photo" : "Message"),
             created_at: row.created_at,
+            unreadCount: 0,
           });
+        }
+        const pointer = readAt.get(row.venture_id);
+        if (pointer && row.sender_id !== user!.id && row.created_at > pointer) {
+          const preview = newest.get(row.venture_id)!;
+          preview.unreadCount += 1;
         }
       }
       return newest;
@@ -367,11 +368,14 @@ export function ChatsScreen({
       return at < bt ? 1 : -1;
     });
   }, [ventureChats, previewsQuery.data]);
-  const activeVentures = sortedVentures.filter(
-    (venture) => venture.status !== "closed" && !venture.closed_at && !venture.ended_at,
+  const activeVentures = sortedVentures.filter((venture) =>
+    ["scheduled", "happening"].includes(ventureLifecycle(venture)),
   );
   const ventureMemories = sortedVentures.filter(
-    (venture) => venture.status === "closed" || !!venture.closed_at || !!venture.ended_at,
+    (venture) => ventureLifecycle(venture) === "completed",
+  );
+  const cancelledVentures = sortedVentures.filter(
+    (venture) => ventureLifecycle(venture) === "cancelled",
   );
 
   const allChats = useMemo<UnifiedChatItem[]>(() => {
@@ -392,9 +396,10 @@ export function ChatsScreen({
         kind: "venture",
         key: `venture-${venture.id}`,
         lastAt: preview?.created_at ?? venture.created_at,
-        unreadCount: 0,
+        unreadCount: preview?.unreadCount ?? 0,
         venture,
-        memory: venture.status === "closed" || !!venture.closed_at || !!venture.ended_at,
+        memory: ventureLifecycle(venture) === "completed",
+        cancelled: ventureLifecycle(venture) === "cancelled",
       });
     }
 
@@ -417,7 +422,11 @@ export function ChatsScreen({
 
   const directUnreadCount = threads.reduce((total, thread) => total + thread.unread_count, 0);
   const tribeUnreadCount = tribeQuery.data?.unreadCount ?? 0;
-  const reliableUnreadCount = directUnreadCount + tribeUnreadCount;
+  const ventureUnreadCount = Array.from(previewsQuery.data?.values() ?? []).reduce(
+    (total, preview) => total + preview.unreadCount,
+    0,
+  );
+  const reliableUnreadCount = directUnreadCount + tribeUnreadCount + ventureUnreadCount;
 
   const showTribe = filter === "tribe";
   const showVentures = filter === "ventures";
@@ -534,10 +543,12 @@ export function ChatsScreen({
                 return (
                   <Row
                     key={item.key}
-                    context={item.memory ? "Memory" : "Venture"}
+                    context={item.cancelled ? "Cancelled" : item.memory ? "Memory" : "Venture"}
                     leading={
                       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
-                        {item.memory ? (
+                        {item.cancelled ? (
+                          <XIcon className="h-4.5 w-4.5" weight="bold" />
+                        ) : item.memory ? (
                           <UsersIcon className="h-4.5 w-4.5" weight="fill" />
                         ) : (
                           <LightningIcon className="h-4.5 w-4.5" weight="fill" />
@@ -547,19 +558,23 @@ export function ChatsScreen({
                     title={item.venture.title}
                     subtitle={
                       preview?.content ??
-                      (item.memory
-                        ? "Venture complete — reconnect with your party."
-                        : "No messages yet.")
+                      (item.cancelled
+                        ? "This Venture was cancelled."
+                        : item.memory
+                          ? "Venture complete — reconnect with your party."
+                          : "No messages yet.")
                     }
                     meta={preview ? timeAgoLabel(preview.created_at) : null}
                     hint={
-                      item.memory
-                        ? "Completed · find your Moots"
-                        : [timingLabel(item.venture), `${item.venture.filled_slots} going`]
-                            .filter(Boolean)
-                            .join(" · ")
+                      item.cancelled
+                        ? "Read-only record"
+                        : item.memory
+                          ? "Completed · find your Moots"
+                          : [timingLabel(item.venture), `${item.venture.filled_slots} going`]
+                              .filter(Boolean)
+                              .join(" · ")
                     }
-                    unread={null}
+                    unread={item.unreadCount || null}
                     onClick={() => onOpenVentureChat(item.venture)}
                   />
                 );
@@ -660,7 +675,7 @@ export function ChatsScreen({
                     hint={[timingLabel(venture), `${venture.filled_slots} going`]
                       .filter(Boolean)
                       .join(" · ")}
-                    unread={unreadFor("venture", venture.id)}
+                    unread={preview?.unreadCount ?? 0}
                     onClick={() => onOpenVentureChat(venture)}
                   />
                 );
@@ -687,7 +702,34 @@ export function ChatsScreen({
                     subtitle={preview?.content ?? "Venture complete — reconnect with your party."}
                     meta={preview ? timeAgoLabel(preview.created_at) : null}
                     hint="Completed · find your Moots"
-                    unread={unreadFor("venture", venture.id)}
+                    unread={preview?.unreadCount ?? 0}
+                    onClick={() => onOpenVentureChat(venture)}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {!isLoading && showVentures && cancelledVentures.length > 0 && (
+          <>
+            <GroupLabel>Cancelled Ventures</GroupLabel>
+            <div className="flex flex-col gap-1">
+              {cancelledVentures.map((venture) => {
+                const preview = previewsQuery.data?.get(venture.id);
+                return (
+                  <Row
+                    key={venture.id}
+                    leading={
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+                        <XIcon className="h-4.5 w-4.5" weight="bold" />
+                      </span>
+                    }
+                    title={venture.title}
+                    subtitle={preview?.content ?? "This Venture was cancelled."}
+                    meta={preview ? timeAgoLabel(preview.created_at) : null}
+                    hint="Read-only record"
+                    unread={preview?.unreadCount ?? 0}
                     onClick={() => onOpenVentureChat(venture)}
                   />
                 );

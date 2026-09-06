@@ -23,6 +23,7 @@ import {
   useEditVentureMessage,
   useMyHostedVentures,
   useMyJoinedVentures,
+  useMarkVentureRoomRead,
   useSendVentureMessage,
   useSetVentureArrivalStatus,
   useUnsendVentureMessage,
@@ -75,6 +76,7 @@ import {
 } from "@/lib/chat-grouping";
 import { useVisualViewport, visualViewportStyle } from "@/hooks/use-visual-viewport";
 import { useStickToBottomOnKeyboard } from "@/hooks/use-stick-to-bottom";
+import { ventureLifecycle } from "@/lib/venture-time";
 
 type ReplyTarget = ChatReplyTarget;
 
@@ -346,12 +348,16 @@ function VentureThreadRow({ venture, onOpen }: { venture: VentureParty; onOpen: 
   const last = msgs?.[msgs.length - 1];
   const isMine = last?.sender_id === user?.id;
   const lastSenderName = displayVentureName(last?.sender);
-  const isComplete = venture.status === "closed" || !!venture.closed_at || !!venture.ended_at;
+  const lifecycle = ventureLifecycle(venture);
+  const isComplete = lifecycle === "completed" || lifecycle === "cancelled";
+  const isCancelled = lifecycle === "cancelled";
   const preview = last
     ? `${isMine ? "You" : lastSenderName}: ${last.content || (last.attachment_type === "image" ? "Photo" : "Message")}`
-    : isComplete
-      ? "Venture complete · reconnect with your party"
-      : `${Math.max(venture.filled_slots, 1)}/${venture.max_slots} slots · No messages yet`;
+    : isCancelled
+      ? "Venture cancelled"
+      : isComplete
+        ? "Venture complete · reconnect with your party"
+        : `${Math.max(venture.filled_slots, 1)}/${venture.max_slots} slots · No messages yet`;
 
   return (
     <li>
@@ -436,8 +442,7 @@ function shortTime(iso: string) {
 }
 
 function useVentureComplete(venture: VentureParty) {
-  const lifecycleComplete =
-    venture.status === "closed" || !!venture.closed_at || !!venture.ended_at;
+  const lifecycleComplete = ["completed", "cancelled"].includes(ventureLifecycle(venture));
   const [scheduledComplete, setScheduledComplete] = useState(false);
 
   useEffect(() => {
@@ -648,7 +653,10 @@ function VenturePartyThread({
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastMarkedMessageRef = useRef<string | null>(null);
   const isComplete = useVentureComplete(venture);
+  const isCancelled = !!venture.cancelled_at;
+  const markVentureRead = useMarkVentureRoomRead(venture.id);
   const chatReactions = useOptimisticChatReactions("venture");
   const participants = useMemo(() => listVentureParticipants(venture), [venture]);
   const participantProfiles = useMemo(
@@ -696,6 +704,13 @@ function VenturePartyThread({
       cancelAnimationFrame(raf2);
     };
   }, [msgs, isComplete]);
+
+  useEffect(() => {
+    const latestId = msgs?.at(-1)?.id;
+    if (!latestId || lastMarkedMessageRef.current === latestId) return;
+    lastMarkedMessageRef.current = latestId;
+    markVentureRead.mutate();
+  }, [markVentureRead, msgs]);
   useStickToBottomOnKeyboard(scrollRef, bottomRef, keyboardOpen);
 
   const startEdit = (id: string, content: string | null) => {
@@ -824,7 +839,9 @@ function VenturePartyThread({
                 aria-label={`View ${participants.length} Venture ${participants.length === 1 ? "participant" : "participants"}`}
                 className="group mt-0.5 inline-flex min-h-5 max-w-full items-center gap-1 rounded text-xs text-muted-foreground transition-colors hover:text-foreground active:opacity-70 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <span>{isComplete ? "Venture memory" : "Party chat"}</span>
+                <span>
+                  {isCancelled ? "Cancelled Venture" : isComplete ? "Venture memory" : "Party chat"}
+                </span>
                 <span aria-hidden="true">·</span>
                 <UsersIcon className="h-3 w-3 shrink-0" />
                 <span className="truncate">
@@ -1047,9 +1064,7 @@ function VenturePartyThread({
                               <p className="whitespace-pre-wrap leading-relaxed">
                                 {messageBody}
                                 {m.edited_at && (
-                                  <span className="ml-1.5 text-xs italic opacity-70">
-                                    (edited)
-                                  </span>
+                                  <span className="ml-1.5 text-xs italic opacity-70">(edited)</span>
                                 )}
                               </p>
                             )}
@@ -1117,7 +1132,7 @@ function VenturePartyThread({
               );
             })
           )}
-          {isComplete && <VentureMootRecap venture={venture} />}
+          {isComplete && !isCancelled && <VentureMootRecap venture={venture} />}
         </div>
         <div ref={bottomRef} />
       </div>
@@ -1125,9 +1140,13 @@ function VenturePartyThread({
       <div className={cn("shrink-0", isComplete && "p-3")}>
         {isComplete ? (
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-            <p className="text-xs font-semibold">This party chat is now a memory.</p>
+            <p className="text-xs font-semibold">
+              {isCancelled ? "This Venture was cancelled." : "This party chat is now a memory."}
+            </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Add someone as a Moot above to keep talking one-to-one.
+              {isCancelled
+                ? "The conversation stays available as a read-only record."
+                : "Add someone as a Moot above to keep talking one-to-one."}
             </p>
           </div>
         ) : (
@@ -1510,9 +1529,7 @@ function Thread({
                             <p className="whitespace-pre-wrap break-words">
                               {messageBody}
                               {m.edited_at && (
-                                <span className="ml-1.5 text-xs italic opacity-70">
-                                  (edited)
-                                </span>
+                                <span className="ml-1.5 text-xs italic opacity-70">(edited)</span>
                               )}
                             </p>
                           )}

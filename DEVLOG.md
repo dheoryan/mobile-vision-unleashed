@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Venture journey consistency, lifecycle, unread state, and creation UX | `src/components/mutuals/{VenturesScreen,VentureBoard,ChatsScreen,MessagesPanel,ProfileVentureHistory}.tsx`, `src/lib/{ventures.functions,ventures-store,venture-time,notification-presenter}.ts`, `src/routes/notifications.tsx`, `supabase/migrations/*`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,42 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture journey consistency pass
+
+- Replaced screen-specific interpretations of a Venture with one shared
+  lifecycle (`scheduled`, `happening`, `completed`, `cancelled`). The board,
+  Hosting, My Ventures, Chats, tickets, and public profile history now agree.
+  Requests and invitations close at the advertised start, and cards call out
+  `Starts soon`, `Happening now`, and closed-request states.
+- Split the host's old destructive `Close` action into a reviewed choice:
+  **Complete** creates a Venture Memory and profile proof after the start;
+  **Cancel** keeps a read-only record but does not increase Hosted/Joined or
+  show a Moot recap. A cancelled future plan can be reopened when it still has
+  capacity.
+- Added per-member Venture room read pointers and unread counts in the unified
+  Chats inbox. Existing members are baselined at migration time; new hosts and
+  accepted members receive a pointer automatically. Opening a room advances
+  only that member's pointer.
+- Corrected application attention: declined members can send a new request,
+  the My Ventures badge counts only live items and prioritises invitations,
+  and application/invite/withdraw/leave notifications now name the actual
+  transition and route to the person who needs it.
+- Tightened creation UX: the header plus opens the creator directly, local
+  drafts restore after closing, All Tribes copy no longer implies distance is
+  a gate, and the Vibe sheet leads with icon-backed suggestions drawn from the
+  member's existing Interest pool.
+- Added Red migration
+  `20260906010000_venture_journey_consistency.sql` and paste-ready
+  `LOVABLE_VENTURE_JOURNEY_VERIFY.sql`. They are committed but intentionally
+  **not applied to production**; the migration changes RLS, triggers, grants,
+  and notification constraints and must go through Lovable's SQL editor under
+  `CHANGE_PROTOCOL.md` before the matching UI is published.
+- Validation: `npx tsc --noEmit`; targeted ESLint across every changed runtime
+  and test file; `node --test --test-isolation=none
+  tests/venture-lifecycle.test.ts`; `npm run check:push`; and `npm run build`
+  all pass. The build retains the existing chunk-size and third-party
+  directive warnings only.
 
 ### 2026-09-06 — Codex (Astra) — Venture Vibes unified with profile Interests
 

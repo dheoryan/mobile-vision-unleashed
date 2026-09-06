@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { CalendarDotIcon } from "@phosphor-icons/react/dist/csr/CalendarDot";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
-import { LockIcon } from "@phosphor-icons/react/dist/csr/Lock";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { NavigationArrowIcon } from "@phosphor-icons/react/dist/csr/NavigationArrow";
 import { SealCheckIcon } from "@phosphor-icons/react/dist/csr/SealCheck";
@@ -11,7 +10,14 @@ import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
 import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import type { VentureParty } from "@/lib/ventures.functions";
-import { dayKey, dayLabel, timingLabel, ventureTz } from "@/lib/venture-time";
+import {
+  dayKey,
+  dayLabel,
+  timingLabel,
+  ventureAcceptsRequests,
+  ventureStateLabel,
+  ventureTz,
+} from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
 import { VentureImage } from "./VentureImage";
 import { VentureVibeLabel } from "./VentureVibeLabel";
@@ -142,6 +148,8 @@ function BoardListItem({
   const pending = application?.status === "pending";
   const declined = application?.status === "declined";
   const full = venture.filled_slots >= venture.max_slots;
+  const requestsOpen = ventureAcceptsRequests(venture);
+  const timingState = ventureStateLabel(venture);
   const remaining = Math.max(venture.max_slots - venture.filled_slots, 0);
   const detailsId = `venture-list-item-${venture.id}`;
   const timing = timingLabel(venture);
@@ -151,12 +159,16 @@ function BoardListItem({
     : pending
       ? "Request sent"
       : declined
-        ? "Closed to you"
-        : full
-          ? "Sold out"
-          : remaining === 1
-            ? "Last spot"
-            : `${remaining} spots`;
+        ? "Request again"
+        : !requestsOpen
+          ? "Requests closed"
+          : timingState
+            ? timingState
+            : full
+              ? "Sold out"
+              : remaining === 1
+                ? "Last spot"
+                : `${remaining} spots`;
 
   return (
     <article
@@ -306,13 +318,13 @@ function BoardListItem({
             >
               <ChatCircleIcon className="h-4 w-4" /> Open party chat
             </button>
-          ) : pending || declined ? (
+          ) : pending ? (
             <div className="space-y-2">
               <div className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-semibold text-muted-foreground">
-                {pending ? <UsersIcon className="h-4 w-4" /> : <LockIcon className="h-4 w-4" />}
-                {pending ? "Request pending" : "Request declined"}
+                <UsersIcon className="h-4 w-4" />
+                Request pending
               </div>
-              {pending && application && (
+              {application && (
                 <button
                   type="button"
                   onClick={() => onWithdraw(application.id)}
@@ -338,7 +350,7 @@ function BoardListItem({
               <button
                 type="button"
                 onClick={onApply}
-                disabled={applying || full}
+                disabled={applying || full || !requestsOpen}
                 className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-meutuals-gradient px-4 text-xs font-semibold text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
               >
                 {applying ? (
@@ -346,7 +358,13 @@ function BoardListItem({
                 ) : (
                   <UserCheckIcon className="h-4 w-4" />
                 )}
-                {full ? "This one is full" : "Request this Venture"}
+                {!requestsOpen
+                  ? "Requests are closed"
+                  : full
+                    ? "This one is full"
+                    : declined
+                      ? "Send a new request"
+                      : "Request this Venture"}
               </button>
             </div>
           )}

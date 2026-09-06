@@ -26,7 +26,7 @@ import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
 import { TRIBES, tribeById, type Person, type TribeId } from "@/lib/mutuals-data";
-import { INTEREST_OPTION_GROUPS } from "@/lib/profile-options";
+import { INTEREST_OPTION_GROUPS, INTEREST_OPTIONS } from "@/lib/profile-options";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
@@ -46,7 +46,8 @@ import {
   useApplyToVenture,
   useWithdrawVentureApplication,
   useReopenHostedVenture,
-  useCloseHostedVenture,
+  useCompleteHostedVenture,
+  useCancelHostedVenture,
   useCreateHostedVenture,
   useUpdateHostedVenture,
   useDecideVentureApplication,
@@ -82,6 +83,9 @@ import {
   dayChoiceLabel,
   timingPayload,
   todayKey,
+  ventureAcceptsRequests,
+  ventureLifecycle,
+  ventureStateLabel,
 } from "@/lib/venture-time";
 import { VentureBoard } from "./VentureBoard";
 import { VentureSearching } from "./VentureSearching";
@@ -93,6 +97,41 @@ import { requestBrowserLocation } from "@/lib/location";
 import type { TribeVentureDraft } from "@/lib/tribe-room";
 
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
+const VENTURE_DRAFT_KEY = "mutuals:venture-draft";
+
+type StoredVentureDraft = {
+  title: string;
+  intents: string[];
+  scope: VentureScope;
+  day: string;
+  time: string;
+  durationMins: number;
+  durationMode: "preset" | "custom";
+  customEndTime: string;
+  maxSlots: number;
+  note: string;
+  venue: PickedVenue | null;
+  arrivalDetails: string;
+  imagePath: string | null;
+};
+
+function ventureDraftStorageKey(userId: string) {
+  return `${VENTURE_DRAFT_KEY}:${userId}`;
+}
+
+function readStoredHostDraft(userId?: string): StoredVentureDraft | null {
+  if (!userId) return null;
+  try {
+    const raw = safeLocalStorage()?.getItem(ventureDraftStorageKey(userId));
+    return raw ? (JSON.parse(raw) as StoredVentureDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredHostDraft(userId?: string) {
+  if (userId) safeLocalStorage()?.removeItem(ventureDraftStorageKey(userId));
+}
 
 // A declined or cancelled application isn't a live claim on a slot - the
 // only statuses that should hide a Venture from the joinable board or mark
@@ -284,11 +323,7 @@ export function VenturesScreen({
     if (userId) markVentureIntroSeen(userId);
     persistMode("host");
     setStage("feature");
-    // Land on your Ventures, not on a blank form. listMyHostedVentures filters
-    // only on user_id — every Venture you have ever hosted is in there, closed
-    // ones included — so this surface is the history and the edit path. Opening
-    // the form on arrival hid all of it behind a field you had not asked for.
-    setHostFormOpen(false);
+    setHostFormOpen(true);
   };
 
   const handleCreated = (venture: VentureParty) => {
@@ -506,13 +541,27 @@ function YoursView({
     onFocused?.();
   }, [focusVentureId, isLoading, joinedVentures, onFocused]);
 
-  const byStatus = (status: string) =>
-    joinedVentures.filter((v) => (v.my_application?.status as string) === status);
+  const byStatus = (status: string, lifecycle?: ReturnType<typeof ventureLifecycle>) =>
+    joinedVentures.filter(
+      (v) =>
+        (v.my_application?.status as string) === status &&
+        (!lifecycle || ventureLifecycle(v) === lifecycle),
+    );
 
   const groups = [
-    { key: "invited", label: "Needs an answer", ventures: byStatus("invited") },
-    { key: "accepted", label: "You're going", ventures: byStatus("accepted") },
-    { key: "pending", label: "Waiting on a host", ventures: byStatus("pending") },
+    { key: "invited", label: "Needs an answer", ventures: byStatus("invited", "scheduled") },
+    {
+      key: "accepted",
+      label: "You're going",
+      ventures: joinedVentures.filter(
+        (v) =>
+          v.my_application?.status === "accepted" &&
+          ["scheduled", "happening"].includes(ventureLifecycle(v)),
+      ),
+    },
+    { key: "pending", label: "Waiting on a host", ventures: byStatus("pending", "scheduled") },
+    { key: "memories", label: "Venture memories", ventures: byStatus("accepted", "completed") },
+    { key: "cancelled", label: "Cancelled plans", ventures: byStatus("accepted", "cancelled") },
   ].filter((g) => g.ventures.length > 0);
 
   if (isLoading) return <VentureListSkeleton />;
@@ -838,6 +887,22 @@ function LookView({
       joinedVentures.filter((venture) => (venture.my_application?.status as string) === "accepted"),
     [joinedVentures],
   );
+  const liveJoinedCount = useMemo(
+    () =>
+      joinedVentures.filter((venture) => {
+        const lifecycle = ventureLifecycle(venture);
+        return (
+          isLiveApplicationStatus(venture.my_application?.status) &&
+          lifecycle !== "cancelled" &&
+          lifecycle !== "completed"
+        );
+      }).length,
+    [joinedVentures],
+  );
+  const invitationCount = joinedVentures.filter(
+    (venture) =>
+      venture.my_application?.status === "invited" && ventureLifecycle(venture) === "scheduled",
+  ).length;
 
   // A declined or self-withdrawn (cancelled) application isn't a live claim
   // on a slot - the Venture should come back to the board, not disappear
@@ -896,9 +961,12 @@ function LookView({
           >
             <TicketIcon className="h-3.5 w-3.5 text-primary" />
             My Ventures
-            {joinedVentures.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-xs font-bold text-white">
-                {joinedVentures.length}
+            {liveJoinedCount > 0 && (
+              <span
+                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-xs font-bold text-white"
+                aria-label={`${invitationCount} invitation${invitationCount === 1 ? "" : "s"} need an answer`}
+              >
+                {invitationCount > 0 ? invitationCount : liveJoinedCount}
               </span>
             )}
           </button>
@@ -1016,11 +1084,17 @@ function HostView({
   const [hostTab, setHostTab] = useState<"active" | "history">("active");
   const hostFormViewport = useVisualViewport(formOpen);
   const activeVentures = useMemo(
-    () => hostedVentures.filter((venture) => venture.status !== "closed"),
+    () =>
+      hostedVentures.filter((venture) =>
+        ["scheduled", "happening"].includes(ventureLifecycle(venture)),
+      ),
     [hostedVentures],
   );
   const historicalVentures = useMemo(
-    () => hostedVentures.filter((venture) => venture.status === "closed"),
+    () =>
+      hostedVentures.filter((venture) =>
+        ["completed", "cancelled"].includes(ventureLifecycle(venture)),
+      ),
     [hostedVentures],
   );
   const visibleVentures = hostTab === "active" ? activeVentures : historicalVentures;
@@ -1033,7 +1107,9 @@ function HostView({
       onFocused?.();
       return;
     }
-    setHostTab(focused.status === "closed" ? "history" : "active");
+    setHostTab(
+      ["completed", "cancelled"].includes(ventureLifecycle(focused)) ? "history" : "active",
+    );
     setFormOpen(false);
     const frame = window.requestAnimationFrame(() => {
       document
@@ -1153,7 +1229,8 @@ function HostView({
                 {tribeDraft ? "Turn this plan into a Venture" : "Host a Venture"}
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Everyone who taps in sees this exactly as you set it up.
+                Everyone who taps in sees this exactly as you set it up. Your draft saves on this
+                device.
               </p>
             </div>
             <button
@@ -1249,33 +1326,47 @@ function HostForm({
   variant?: "inline" | "modal";
   draft?: TribeVentureDraft | null;
 }) {
+  const { user } = useAuth();
   const create = useCreateHostedVenture();
   const update = useUpdateHostedVenture();
   const isEditing = Boolean(editing);
+  const storedDraft = !editing && !draft ? readStoredHostDraft(user?.id) : null;
   const suggestedTime = preferredDraftTime(draft);
-  const [title, setTitle] = useState(editing?.title ?? draft?.title ?? "");
-  const [intents, setIntents] = useState<string[]>(editing?.intents ?? []);
-  const [scope, setScope] = useState<VentureScope>(editing?.scope ?? (draft ? "mine" : "all"));
+  const [title, setTitle] = useState(editing?.title ?? draft?.title ?? storedDraft?.title ?? "");
+  const [intents, setIntents] = useState<string[]>(editing?.intents ?? storedDraft?.intents ?? []);
+  const [scope, setScope] = useState<VentureScope>(
+    editing?.scope ?? (draft ? "mine" : (storedDraft?.scope ?? "all")),
+  );
   // Timing is three pieces of local state that resolve to two timestamps on
   // submit. `day` and `time` are kept apart because they are picked apart —
   // a chip row and a clock — and joining them earlier would mean re-splitting
   // an ISO string every render.
-  const [day, setDay] = useState<string>(() => suggestedTime?.day ?? initialDay(editing));
+  const [day, setDay] = useState<string>(
+    () => suggestedTime?.day ?? storedDraft?.day ?? initialDay(editing),
+  );
   const [time, setTime] = useState<string>(() =>
-    suggestedTime ? periodDefaultTime(suggestedTime.period) : initialTime(editing),
+    suggestedTime
+      ? periodDefaultTime(suggestedTime.period)
+      : (storedDraft?.time ?? initialTime(editing)),
   );
   const [durationMins, setDurationMins] = useState<number>(
-    () => durationMinutes(editing ?? {}) ?? 180,
+    () => durationMinutes(editing ?? {}) ?? storedDraft?.durationMins ?? 180,
   );
-  const [durationMode, setDurationMode] = useState<"preset" | "custom">("preset");
-  const [customEndTime, setCustomEndTime] = useState<string>(() =>
-    endTimeForDuration(
-      suggestedTime?.day ?? initialDay(editing),
-      suggestedTime ? periodDefaultTime(suggestedTime.period) : initialTime(editing),
-      durationMinutes(editing ?? {}) ?? 180,
-    ),
+  const [durationMode, setDurationMode] = useState<"preset" | "custom">(
+    storedDraft?.durationMode ?? "preset",
   );
-  const [maxSlots, setMaxSlots] = useState(editing?.max_slots ?? draft?.maxSlots ?? 4);
+  const [customEndTime, setCustomEndTime] = useState<string>(
+    () =>
+      storedDraft?.customEndTime ??
+      endTimeForDuration(
+        suggestedTime?.day ?? initialDay(editing),
+        suggestedTime ? periodDefaultTime(suggestedTime.period) : initialTime(editing),
+        durationMinutes(editing ?? {}) ?? 180,
+      ),
+  );
+  const [maxSlots, setMaxSlots] = useState(
+    editing?.max_slots ?? draft?.maxSlots ?? storedDraft?.maxSlots ?? 4,
+  );
   const [note, setNote] = useState(
     editing?.note ??
       (draft
@@ -1283,7 +1374,7 @@ function HostForm({
             .filter(Boolean)
             .join("\n")
             .slice(0, 280)
-        : ""),
+        : (storedDraft?.note ?? "")),
   );
   const [venue, setVenue] = useState<PickedVenue | null>(() =>
     editing?.venue
@@ -1296,12 +1387,14 @@ function HostForm({
           latitude: null,
           longitude: null,
         }
-      : null,
+      : (storedDraft?.venue ?? null),
   );
   const [arrivalDetails, setArrivalDetails] = useState(
-    editing?.private_venue?.arrival_details ?? "",
+    editing?.private_venue?.arrival_details ?? storedDraft?.arrivalDetails ?? "",
   );
-  const [imagePath, setImagePath] = useState<string | null>(editing?.image_url ?? null);
+  const [imagePath, setImagePath] = useState<string | null>(
+    editing?.image_url ?? storedDraft?.imagePath ?? null,
+  );
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   /** Which decision is open. One at a time, by construction. */
@@ -1309,21 +1402,72 @@ function HostForm({
     draft ? "when" : null,
   );
   const closeSheet = () => setSheet(null);
-  const { user } = useAuth();
   const resolvedDurationMins =
     durationMode === "custom" ? minutesUntilEnd(day, time, customEndTime) : durationMins;
 
-  // Resolve a preview for a photo that already exists on the Venture.
+  // Resolve a preview for an existing image, including a locally-restored draft.
   useEffect(() => {
-    if (!editing?.image_url) return;
+    if (!imagePath || imagePreview) return;
     let cancelled = false;
-    void signVentureImageUrl(editing.image_url).then((url) => {
+    void signVentureImageUrl(imagePath).then((url) => {
       if (!cancelled) setImagePreview(url);
     });
     return () => {
       cancelled = true;
     };
-  }, [editing?.image_url]);
+  }, [imagePath, imagePreview]);
+
+  useEffect(() => {
+    if (isEditing || draft || !user?.id) return;
+    const hasDraftContent = Boolean(
+      title.trim() || intents.length || venue || note.trim() || arrivalDetails.trim() || imagePath,
+    );
+    const storage = safeLocalStorage();
+    const key = ventureDraftStorageKey(user.id);
+    if (!hasDraftContent) {
+      storage?.removeItem(key);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const safeVenue = venue ? { ...venue, latitude: null, longitude: null } : null;
+      storage?.setItem(
+        key,
+        JSON.stringify({
+          title,
+          intents,
+          scope,
+          day,
+          time,
+          durationMins,
+          durationMode,
+          customEndTime,
+          maxSlots,
+          note,
+          venue: safeVenue,
+          arrivalDetails,
+          imagePath,
+        } satisfies StoredVentureDraft),
+      );
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [
+    arrivalDetails,
+    customEndTime,
+    day,
+    draft,
+    durationMins,
+    durationMode,
+    imagePath,
+    intents,
+    isEditing,
+    maxSlots,
+    note,
+    scope,
+    time,
+    title,
+    user?.id,
+    venue,
+  ]);
 
   // Audience is locked in the database once anyone has applied, because
   // flipping 'all' -> 'mine' would retroactively revoke access for people from
@@ -1348,6 +1492,12 @@ function HostForm({
           (group) => !("tribeId" in group) || profile.tribeIds.includes(group.tribeId),
         )
       : INTEREST_OPTION_GROUPS;
+  const visibleIntentIds = new Set(
+    visibleIntentGroups.flatMap((group) => group.items.map((option) => option.id)),
+  );
+  const suggestedIntents = INTEREST_OPTIONS.filter(
+    (option) => profile.interests.includes(option.id) && visibleIntentIds.has(option.id),
+  ).slice(0, 6);
   const canSubmit =
     title.trim().length >= 3 &&
     intents.length > 0 &&
@@ -1439,6 +1589,7 @@ function HostForm({
       },
       {
         onSuccess: (venture) => {
+          clearStoredHostDraft(user?.id);
           toast.success("Venture is live.");
           requestPushPrompt("venture");
           onCreated(venture);
@@ -1789,7 +1940,7 @@ function HostForm({
                 active={scope === "all"}
                 onClick={() => !audienceLocked && setScope("all")}
                 title="All Tribes"
-                body="Anyone nearby can apply."
+                body="Members from any Tribe can apply."
                 gradient
               />
               <ChoiceButton
@@ -1861,6 +2012,37 @@ function HostForm({
                     <XIcon className="h-3 w-3" />
                   </button>
                 ))}
+              </div>
+            )}
+            {suggestedIntents.length > 0 && (
+              <div className="mb-3 rounded-xl border border-primary/30 bg-primary/[0.06] p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="label-mono text-primary">Suggested from your Vibes</p>
+                  <span className="text-xs text-muted-foreground">Quick picks</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedIntents.map((option) => {
+                    const active = intents.includes(option.label);
+                    const atLimit = !active && intents.length >= 5;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        disabled={atLimit}
+                        onClick={() => toggleIntent(option.label)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                          active
+                            ? "border-transparent bg-meutuals-gradient text-white"
+                            : "border-primary/35 bg-background text-foreground",
+                          atLimit && "opacity-35",
+                        )}
+                      >
+                        <VentureVibeLabel value={option.label} />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {/* No inner max-height any more. Inside a bounded sheet a second scroller
@@ -1994,13 +2176,23 @@ function HostedVentureCard({
   onChanged: () => void;
 }) {
   const decide = useDecideVentureApplication();
-  const close = useCloseHostedVenture();
+  const complete = useCompleteHostedVenture();
+  const cancel = useCancelHostedVenture();
   const reopen = useReopenHostedVenture();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [endActionOpen, setEndActionOpen] = useState(false);
   const pending = venture.applications.filter((app) => app.status === "pending");
   const accepted = venture.applications.filter((app) => app.status === "accepted");
   const isClosed = venture.status === "closed";
+  const acceptsRequests = ventureAcceptsRequests(venture);
+  const canComplete = !venture.starts_at || Date.parse(venture.starts_at) <= Date.now();
+  const canReopen =
+    isClosed &&
+    !!venture.cancelled_at &&
+    (!venture.starts_at || Date.parse(venture.starts_at) > Date.now()) &&
+    venture.filled_slots < venture.max_slots;
+  const stateLabel = ventureStateLabel(venture);
   // The Edit Venture dialog holds a raw text input (Venture title) directly,
   // not just sheet triggers - same iOS keyboard-vs-viewport issue as
   // VentureSheet, needs the same fix.
@@ -2017,10 +2209,22 @@ function HostedVentureCard({
     );
   };
 
-  const closeVenture = () => {
-    close.mutate(venture.id, {
+  const completeVenture = () => {
+    complete.mutate(venture.id, {
       onSuccess: () => {
-        toast.success("Venture moved to History.");
+        setEndActionOpen(false);
+        toast.success("Venture completed and moved to Memories.");
+        onChanged();
+      },
+      onError: (err) => toast.error((err as Error).message),
+    });
+  };
+
+  const cancelVenture = () => {
+    cancel.mutate(venture.id, {
+      onSuccess: () => {
+        setEndActionOpen(false);
+        toast.success("Venture cancelled. Everyone in the party has been notified.");
         onChanged();
       },
       onError: (err) => toast.error((err as Error).message),
@@ -2033,11 +2237,16 @@ function HostedVentureCard({
       header={<VentureCardHeader venture={venture} hideHost />}
     >
       <VentureMeta venture={venture} hideHost />
+      {stateLabel && (
+        <p className="label-mono mt-3 inline-flex rounded-full border border-primary/35 bg-primary/10 px-2.5 py-1 text-primary">
+          {stateLabel}
+        </p>
+      )}
 
       {/* Closing by mistake used to mean recreating the plan and losing its
           party chat. enforce_venture_host_edits permits closed -> open for
           exactly this. */}
-      {isClosed && (
+      {canReopen && (
         <button
           type="button"
           onClick={() =>
@@ -2062,7 +2271,7 @@ function HostedVentureCard({
       )}
 
       <div className={cn("mt-4 grid gap-2", isClosed ? "grid-cols-1" : "grid-cols-2")}>
-        {!isClosed && (
+        {acceptsRequests && (
           <button
             type="button"
             onClick={() => setEditOpen(true)}
@@ -2095,21 +2304,58 @@ function HostedVentureCard({
         {!isClosed && (
           <button
             type="button"
-            onClick={closeVenture}
-            disabled={close.isPending}
+            onClick={() => setEndActionOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
-            {close.isPending ? (
-              <SpinnerGapIcon className="h-4 w-4 animate-spin" />
-            ) : (
-              <XIcon className="h-4 w-4" />
-            )}
-            Close
+            <XIcon className="h-4 w-4" /> End
           </button>
         )}
       </div>
 
-      {inviteOpen && !isClosed && (
+      <AnimatedModal
+        open={endActionOpen}
+        onOpenChange={setEndActionOpen}
+        title="End this Venture"
+        contentClassName="max-w-sm"
+      >
+        <div className="p-5">
+          <h2 className="font-display text-xl font-bold">What happened with this plan?</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Complete creates a Venture Memory. Cancel keeps the record visible without counting it
+            as a completed meetup.
+          </p>
+          <div className="mt-5 grid gap-2">
+            <button
+              type="button"
+              onClick={completeVenture}
+              disabled={!canComplete || complete.isPending || cancel.isPending}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-meutuals-gradient px-4 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {complete.isPending ? (
+                <SpinnerGapIcon className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckIcon className="h-4 w-4" />
+              )}
+              {canComplete ? "It happened · Complete" : "Complete after it starts"}
+            </button>
+            <button
+              type="button"
+              onClick={cancelVenture}
+              disabled={complete.isPending || cancel.isPending}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            >
+              {cancel.isPending ? (
+                <SpinnerGapIcon className="h-4 w-4 animate-spin" />
+              ) : (
+                <XIcon className="h-4 w-4" />
+              )}
+              It didn't happen · Cancel
+            </button>
+          </div>
+        </div>
+      </AnimatedModal>
+
+      {inviteOpen && acceptsRequests && (
         <InviteConnectedUsersPanel venture={venture} onInvited={onChanged} />
       )}
 
@@ -2118,13 +2364,20 @@ function HostedVentureCard({
           <p className="label-mono text-muted-foreground">Pending requests</p>
           {pending.length ? (
             <div className="mt-2 space-y-2">
+              {!acceptsRequests && (
+                <p className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">
+                  Requests closed when this Venture started. You can still decline outstanding
+                  requests.
+                </p>
+              )}
               {pending.map((application) => (
                 <ApplicantRow
                   key={application.id}
                   application={application}
                   busy={decide.isPending && decide.variables?.application_id === application.id}
-                  onAccept={() => decideApp(application, "accepted")}
+                  onAccept={() => acceptsRequests && decideApp(application, "accepted")}
                   onDecline={() => decideApp(application, "declined")}
+                  acceptDisabled={!acceptsRequests}
                 />
               ))}
             </div>
@@ -2484,11 +2737,13 @@ function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hid
 function ApplicantRow({
   application,
   busy,
+  acceptDisabled = false,
   onAccept,
   onDecline,
 }: {
   application: VentureApplication;
   busy: boolean;
+  acceptDisabled?: boolean;
   onAccept: () => void;
   onDecline: () => void;
 }) {
@@ -2524,7 +2779,7 @@ function ApplicantRow({
         <button
           type="button"
           onClick={onAccept}
-          disabled={busy}
+          disabled={busy || acceptDisabled}
           className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
         >
           {busy ? (
