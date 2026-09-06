@@ -431,7 +431,6 @@ export function ChatsScreen({
     <div className="min-h-screen bg-habitat pb-24">
       <AppHeader
         title="Chats"
-        subtitle="Rooms"
         accent="var(--color-primary)"
         action={
           <button

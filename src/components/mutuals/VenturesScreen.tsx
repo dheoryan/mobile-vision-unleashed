@@ -311,19 +311,6 @@ export function VenturesScreen({
                 ? "My Ventures"
                 : "Hosting"
         }
-        subtitle={
-          stage === "intro"
-            ? "Optional"
-            : stage === "role"
-              ? "Choose mode"
-              : stage === "loading"
-                ? "Getting things ready"
-                : mode === "look"
-                  ? "Find one plan"
-                  : mode === "yours"
-                    ? "Plans in motion"
-                    : "Plans you run"
-        }
         accent="var(--color-primary)"
         action={
           stage === "feature" && mode !== "host" ? (

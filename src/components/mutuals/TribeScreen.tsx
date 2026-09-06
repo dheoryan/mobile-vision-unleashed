@@ -201,14 +201,7 @@ export function TribeScreen({
           </div>
         </header>
       )}
-      {!onBack && (
-        <AppHeader
-          title={tribe.name}
-          subtitle="Chat"
-          accent={tribe.colorVar}
-          action={newPlanButton}
-        />
-      )}
+      {!onBack && <AppHeader title={tribe.name} accent={tribe.colorVar} action={newPlanButton} />}
       <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pt-2">
         {!onBack && (
           <div className="shrink-0 px-2">

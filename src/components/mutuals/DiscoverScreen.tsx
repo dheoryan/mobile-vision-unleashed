@@ -288,7 +288,6 @@ export function DiscoverScreen() {
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-habitat">
       <AppHeader
         title="Discover"
-        subtitle="Beyond your Tribe"
         accent="var(--color-primary)"
         action={
           <button

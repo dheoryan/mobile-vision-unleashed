@@ -105,7 +105,7 @@ export function TimelineScreen({
 
   return (
     <div className="bg-habitat min-h-screen pb-28">
-      <AppHeader title="Timeline" subtitle="Signals" accent="var(--color-primary)" />
+      <AppHeader title="Timeline" accent="var(--color-primary)" />
       <main className="mx-auto max-w-md px-5">
         {/* ── Tab switcher ── */}
         <div className="mt-4 flex gap-2 rounded-full bg-card p-1">

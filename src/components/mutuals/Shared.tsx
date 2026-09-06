@@ -49,12 +49,10 @@ export function BackButton({ to = "/", label = "Back" }: { to?: string; label?: 
  */
 export function AppHeader({
   title,
-  subtitle,
   action,
   showNotifications = true,
 }: {
   title: string;
-  subtitle?: string;
   accent: string;
   action?: React.ReactNode;
   /** Profile is the one screen that drops the bell in favour of its own
@@ -72,10 +70,7 @@ export function AppHeader({
       }}
     >
       <div className="relative mx-auto grid max-w-md grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center px-5 py-3">
-        <div className="min-w-0 justify-self-start leading-tight">
-          <p className="label-mono truncate text-muted-foreground">{subtitle ?? "MEUTUALS"}</p>
-          <p className="truncate font-display text-sm font-semibold">{title}</p>
-        </div>
+        <p className="min-w-0 truncate font-display text-sm font-semibold">{title}</p>
         <span aria-hidden className="h-9 w-9" />
         <img
           src={logoMark}

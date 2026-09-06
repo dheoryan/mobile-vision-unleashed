@@ -110,7 +110,6 @@ export function ProfileScreen({
     <div className="bg-habitat min-h-screen pb-28">
       <AppHeader
         title="Profile"
-        subtitle="You"
         accent={tribe.colorVar}
         showNotifications={false}
         action={

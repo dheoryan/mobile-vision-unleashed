@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Simplify primary headers to one title | `DEVLOG.md`, shared header and primary tab screens | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Single-title primary headers
+
+- Removed the redundant eyebrow line from Timeline, Discover, Ventures, Chats,
+  Profile, and the main Tribe-room header.
+- Vertically centered each remaining page title while preserving the fixed
+  center axis for the MEUTUALS eye and the existing trailing actions.
+- Removed the subtitle prop from the shared header contract so new primary
+  screens follow the simpler hierarchy by default.
+- Validation: focused Prettier and ESLint checks, `npx tsc --noEmit`,
+  `git diff --check`, and the Cloudflare production build pass; existing build
+  warnings remain.
 
 ### 2026-09-06 — Codex (Astra) — Stable primary header brand axis
 
