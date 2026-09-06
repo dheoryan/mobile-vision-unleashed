@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Rename Venture History to Memories and sort cards by Venture date | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture Memories label and chronological cards
+
+- Renamed the user-facing `History` primary tab and related empty-state copy to
+  `Memories`; the internal lifecycle value remains unchanged.
+- Made card order follow the Venture's planned date. Active behaves as an
+  agenda with happening/nearest upcoming plans first and undated legacy rows
+  last. Memories behaves as a journal with the latest Venture date first.
+  Ordering is applied consistently across hosted, joined, invited, pending,
+  completed, and cancelled collections.
+- Validation: Prettier, `npx tsc --noEmit`, targeted ESLint, Venture lifecycle
+  tests, `git diff --check`, and `npm run build` pass. No database change.
 
 ### 2026-09-06 — Codex (Astra) — My Ventures empty-action gradient
 

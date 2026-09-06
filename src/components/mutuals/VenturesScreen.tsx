@@ -140,6 +140,31 @@ function isLiveApplicationStatus(status: string | undefined) {
   return status !== undefined && LIVE_APPLICATION_STATUSES.has(status);
 }
 
+function dateMs(value: string | null | undefined) {
+  if (!value) return null;
+  const valueMs = Date.parse(value);
+  return Number.isFinite(valueMs) ? valueMs : null;
+}
+
+/** Active plans read as an agenda: happening/next first, undated legacy rows last. */
+function compareUpcomingVentures(left: VentureParty, right: VentureParty) {
+  const leftStart = dateMs(left.starts_at);
+  const rightStart = dateMs(right.starts_at);
+  if (leftStart === null && rightStart === null) {
+    return (dateMs(right.created_at) ?? 0) - (dateMs(left.created_at) ?? 0);
+  }
+  if (leftStart === null) return 1;
+  if (rightStart === null) return -1;
+  return leftStart - rightStart;
+}
+
+/** Memories read as a journal: the latest Venture date is always first. */
+function compareRecentVentures(left: VentureParty, right: VentureParty) {
+  const leftDate = dateMs(left.starts_at) ?? dateMs(left.created_at) ?? 0;
+  const rightDate = dateMs(right.starts_at) ?? dateMs(right.created_at) ?? 0;
+  return rightDate - leftDate;
+}
+
 function safeLocalStorage() {
   if (typeof window === "undefined") return null;
   try {
@@ -886,60 +911,78 @@ function MyVenturesView({
   const hostFormViewport = useVisualViewport(formOpen);
   const hostedActive = useMemo(
     () =>
-      hostedVentures.filter((venture) =>
-        ["scheduled", "happening"].includes(ventureLifecycle(venture)),
-      ),
+      hostedVentures
+        .filter((venture) => ["scheduled", "happening"].includes(ventureLifecycle(venture)))
+        .sort(compareUpcomingVentures),
     [hostedVentures],
   );
   const hostedMemories = useMemo(
-    () => hostedVentures.filter((venture) => ventureLifecycle(venture) === "completed"),
+    () =>
+      hostedVentures
+        .filter((venture) => ventureLifecycle(venture) === "completed")
+        .sort(compareRecentVentures),
     [hostedVentures],
   );
   const hostedCancelled = useMemo(
-    () => hostedVentures.filter((venture) => ventureLifecycle(venture) === "cancelled"),
+    () =>
+      hostedVentures
+        .filter((venture) => ventureLifecycle(venture) === "cancelled")
+        .sort(compareRecentVentures),
     [hostedVentures],
   );
   const invitations = useMemo(
     () =>
-      joinedVentures.filter(
-        (venture) =>
-          venture.my_application?.status === "invited" && ventureLifecycle(venture) === "scheduled",
-      ),
+      joinedVentures
+        .filter(
+          (venture) =>
+            venture.my_application?.status === "invited" &&
+            ventureLifecycle(venture) === "scheduled",
+        )
+        .sort(compareUpcomingVentures),
     [joinedVentures],
   );
   const joinedActive = useMemo(
     () =>
-      joinedVentures.filter(
-        (venture) =>
-          venture.my_application?.status === "accepted" &&
-          ["scheduled", "happening"].includes(ventureLifecycle(venture)),
-      ),
+      joinedVentures
+        .filter(
+          (venture) =>
+            venture.my_application?.status === "accepted" &&
+            ["scheduled", "happening"].includes(ventureLifecycle(venture)),
+        )
+        .sort(compareUpcomingVentures),
     [joinedVentures],
   );
   const pending = useMemo(
     () =>
-      joinedVentures.filter(
-        (venture) =>
-          venture.my_application?.status === "pending" && ventureLifecycle(venture) === "scheduled",
-      ),
+      joinedVentures
+        .filter(
+          (venture) =>
+            venture.my_application?.status === "pending" &&
+            ventureLifecycle(venture) === "scheduled",
+        )
+        .sort(compareUpcomingVentures),
     [joinedVentures],
   );
   const joinedMemories = useMemo(
     () =>
-      joinedVentures.filter(
-        (venture) =>
-          venture.my_application?.status === "accepted" &&
-          ventureLifecycle(venture) === "completed",
-      ),
+      joinedVentures
+        .filter(
+          (venture) =>
+            venture.my_application?.status === "accepted" &&
+            ventureLifecycle(venture) === "completed",
+        )
+        .sort(compareRecentVentures),
     [joinedVentures],
   );
   const joinedCancelled = useMemo(
     () =>
-      joinedVentures.filter(
-        (venture) =>
-          venture.my_application?.status === "accepted" &&
-          ventureLifecycle(venture) === "cancelled",
-      ),
+      joinedVentures
+        .filter(
+          (venture) =>
+            venture.my_application?.status === "accepted" &&
+            ventureLifecycle(venture) === "cancelled",
+        )
+        .sort(compareRecentVentures),
     [joinedVentures],
   );
   const activeCount =
@@ -1080,7 +1123,7 @@ function MyVenturesView({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {tab === "active" ? "Active" : "History"}
+              {tab === "active" ? "Active" : "Memories"}
               {count > 0 && (
                 <span
                   className={cn(
@@ -1098,7 +1141,7 @@ function MyVenturesView({
 
       <div
         role="tablist"
-        aria-label={`${ventureTab === "active" ? "Active" : "History"} Venture ownership`}
+        aria-label={`${ventureTab === "active" ? "Active" : "Memories"} Venture ownership`}
         className="mb-5 grid grid-cols-2 border-b border-border"
       >
         {(["hosted", "joined"] as const).map((tab) => {
@@ -1220,8 +1263,8 @@ function MyVenturesView({
                   ? "No hosted Ventures."
                   : "No joined Ventures."
                 : ownershipTab === "hosted"
-                  ? "No hosted history yet."
-                  : "No joined history yet."
+                  ? "No hosted memories yet."
+                  : "No joined memories yet."
             }
             body={
               ventureTab === "active"
@@ -1236,9 +1279,9 @@ function MyVenturesView({
                   ? "Create Venture"
                   : "Browse Venture board"
                 : ownershipTab === "hosted" && joinedHistoryCount > 0
-                  ? "View joined history"
+                  ? "View joined memories"
                   : ownershipTab === "joined" && hostedHistoryCount > 0
-                    ? "View hosted history"
+                    ? "View hosted memories"
                     : "Back to active"
             }
             onAction={
