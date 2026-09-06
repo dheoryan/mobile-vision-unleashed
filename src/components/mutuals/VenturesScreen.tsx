@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
+import { ArrowsLeftRightIcon } from "@phosphor-icons/react/dist/csr/ArrowsLeftRight";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
@@ -17,7 +18,6 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
 import { SlidersHorizontalIcon } from "@phosphor-icons/react/dist/csr/SlidersHorizontal";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
-import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
 import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
 import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
@@ -98,7 +98,7 @@ import type { TribeVentureDraft } from "@/lib/tribe-room";
 const VENTURES_INTRO_KEY = "mutuals:ventures:intro-seen";
 const VENTURE_DRAFT_KEY = "mutuals:venture-draft";
 const VENTURE_VIEW_SWITCH_CLASS =
-  "inline-flex h-11 w-36 shrink-0 items-center justify-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+  "inline-flex h-11 w-36 shrink-0 items-center justify-end gap-1.5 rounded-lg px-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const VENTURE_SEGMENTED_CONTROL_CLASS =
   "grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1";
 
@@ -780,7 +780,7 @@ function LookView({
         hint={isLoading ? "Loading parties" : `${joinableVentures.length} joinable`}
         action={
           <button type="button" onClick={onOpenMine} className={VENTURE_VIEW_SWITCH_CLASS}>
-            <TicketIcon className="h-3.5 w-3.5 text-primary" />
+            <ArrowsLeftRightIcon className="h-3.5 w-3.5 text-primary" />
             My Ventures
             {liveJoinedCount > 0 && (
               <span
@@ -1113,7 +1113,7 @@ function MyVenturesView({
         }
         action={
           <button type="button" onClick={onBrowse} className={VENTURE_VIEW_SWITCH_CLASS}>
-            <MagnifyingGlassIcon className="h-3.5 w-3.5 text-primary" />
+            <ArrowsLeftRightIcon className="h-3.5 w-3.5 text-primary" />
             Venture board
           </button>
         }

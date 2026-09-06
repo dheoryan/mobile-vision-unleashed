@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Replace the Venture view pill with a text action and update the login headline | `src/components/mutuals/VenturesScreen.tsx`, `src/routes/login.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,19 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture text switch and login voice
+
+- Replaced the bordered Venture board/My Ventures capsule with a borderless
+  text action. Both directions use the same swap icon, right alignment, fixed
+  header footprint, and 44 px tap target.
+- Changed the login headline from `Log in to MEUTUALS` to the approved
+  `Your people are here.` while retaining the existing MEUTUALS eyebrow and
+  explicit Sign in action.
+- Validation: local Chrome visual checks of the Venture Board and login page,
+  Prettier, `npx tsc --noEmit`, targeted ESLint, `git diff --check`, and
+  `npm run build` pass. Pushed to `main`; Lovable Publish remains a manual
+  user-confirmed action. No database change.
 
 ### 2026-09-06 — Codex (Astra) — Exact Venture segment height correction
 
