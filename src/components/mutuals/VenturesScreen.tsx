@@ -256,11 +256,7 @@ export function VenturesScreen({
   const joinedVentures = useMemo(() => joinedQuery.data ?? [], [joinedQuery.data]);
   const hasVentureActivity = hostedVentures.length > 0 || joinedVentures.length > 0;
   const entryDataIsLoading =
-    mode === "look"
-      ? openQuery.isLoading
-      : mode === "yours"
-        ? joinedQuery.isLoading
-        : hostedQuery.isLoading;
+    mode === "look" ? openQuery.isLoading : joinedQuery.isLoading || hostedQuery.isLoading;
 
   useEffect(() => {
     if (stage !== "loading" || entryDataIsLoading) return;
@@ -339,18 +335,10 @@ export function VenturesScreen({
   return (
     <div className={cn("bg-habitat min-h-screen", stage === "loading" ? "pb-0" : "pb-32")}>
       <AppHeader
-        title={
-          stage !== "feature"
-            ? "Ventures"
-            : mode === "look"
-              ? "Venture board"
-              : mode === "yours"
-                ? "My Ventures"
-                : "Hosting"
-        }
+        title={stage !== "feature" ? "Ventures" : mode === "look" ? "Venture board" : "My Ventures"}
         accent="var(--color-primary)"
         action={
-          stage === "feature" && mode !== "host" ? (
+          stage === "feature" ? (
             <button
               type="button"
               onClick={startHosting}
@@ -382,10 +370,9 @@ export function VenturesScreen({
           />
         ) : (
           <>
-            {/* Ventures is a focused surface, not a three-column dashboard.
-                Discovery owns the main screen. Tickets are one contextual
-                destination and Hosting is reached through the creation action.
-                On either secondary screen the only navigation choice is Back. */}
+            {/* Discovery owns the main screen. The secondary My Ventures
+                surface keeps hosted plans, joined plans and memories together;
+                creation remains a single action in the persistent header. */}
             {mode !== "look" && (
               <div className="flex min-h-14 items-center pt-2">
                 <button
@@ -399,24 +386,7 @@ export function VenturesScreen({
               </div>
             )}
 
-            {mode === "yours" ? (
-              <YoursView
-                joinedVentures={joinedVentures}
-                isLoading={joinedQuery.isLoading}
-                onOpenChat={onOpenVentureChat}
-                onBrowse={() => switchMode("look")}
-                onChanged={() => {
-                  openQuery.refetch();
-                  joinedQuery.refetch();
-                }}
-                focusVentureId={
-                  notificationDestination?.mode === "yours"
-                    ? notificationDestination.ventureId
-                    : null
-                }
-                onFocused={onNotificationDestinationConsumed}
-              />
-            ) : mode === "look" ? (
+            {mode === "look" ? (
               <LookView
                 profile={profile}
                 scope={scope}
@@ -435,25 +405,26 @@ export function VenturesScreen({
                 }}
               />
             ) : (
-              <HostView
+              <MyVenturesView
                 profile={profile}
                 formOpen={hostFormOpen}
                 setFormOpen={setHostFormOpen}
                 hostedVentures={hostedVentures}
-                isLoading={hostedQuery.isLoading}
+                joinedVentures={joinedVentures}
+                isLoading={hostedQuery.isLoading || joinedQuery.isLoading}
                 onCreated={handleCreated}
                 onOpenChat={onOpenVentureChat}
-                onChanged={() => hostedQuery.refetch()}
+                onChanged={() => {
+                  openQuery.refetch();
+                  hostedQuery.refetch();
+                  joinedQuery.refetch();
+                }}
                 tribeDraft={activeTribeDraft}
                 onDraftCancelled={() => {
                   setActiveTribeDraft(null);
                   onTribeDraftCancelled?.();
                 }}
-                focusVentureId={
-                  notificationDestination?.mode === "host"
-                    ? notificationDestination.ventureId
-                    : null
-                }
+                focusVentureId={notificationDestination?.ventureId ?? null}
                 onFocused={onNotificationDestinationConsumed}
               />
             )}
@@ -462,168 +433,6 @@ export function VenturesScreen({
       </main>
 
       <UpsellModal open={paywall} onClose={() => setPaywall(false)} used={profile.ventureCount} />
-    </div>
-  );
-}
-
-/**
- * Yours — the Ventures you are holding.
- *
- * Invites first, because they are the only ones that need an answer. Then the
- * ones you are in, then the ones you are waiting on. That order is by urgency,
- * not by status alphabetically.
- *
- * These used to live in two places that both hid them: accepted Ventures were
- * only reachable through Chats, where they read as conversations rather than
- * as plans with a time; invites and pending requests sat behind a small pill in
- * the board header. An invite that needs answering should not be a pill.
- */
-function YoursView({
-  joinedVentures,
-  isLoading,
-  onOpenChat,
-  onBrowse,
-  onChanged,
-  focusVentureId,
-  onFocused,
-}: {
-  joinedVentures: VentureParty[];
-  isLoading: boolean;
-  onOpenChat: (venture: VentureParty) => void;
-  onBrowse: () => void;
-  onChanged: () => void;
-  focusVentureId?: string | null;
-  onFocused?: () => void;
-}) {
-  // The store hook already invalidates the venture queries on success, so this
-  // only adds the toast and the caller's refetch.
-  const withdraw = useWithdrawVentureApplication();
-  const withdrawRequest = (applicationId: string) =>
-    withdraw.mutate(applicationId, {
-      onSuccess: () => {
-        toast.success("Request withdrawn.");
-        onChanged();
-      },
-      onError: (err) => toast.error((err as Error).message),
-    });
-
-  const respondFn = useServerFn(respondToVentureInvite);
-  const respond = useMutation({
-    mutationFn: ({
-      applicationId,
-      status,
-    }: {
-      applicationId: string;
-      status: "accepted" | "declined";
-    }) => respondFn({ data: { application_id: applicationId, status } }),
-    onSuccess: (application) => {
-      toast.success(
-        application.status === "accepted"
-          ? "Invite accepted. Welcome to the party."
-          : "Invite passed.",
-      );
-      onChanged();
-      requestPushPrompt("venture");
-    },
-    onError: (err) => toast.error((err as Error).message),
-  });
-
-  // Which ticket is turned over. Held here rather than per-ticket so only one
-  // back is ever showing.
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const detail = joinedVentures.find((v) => v.id === detailId) ?? null;
-
-  useEffect(() => {
-    if (!focusVentureId || isLoading) return;
-    const focused = joinedVentures.find((venture) => venture.id === focusVentureId);
-    if (focused) setDetailId(focused.id);
-    else toast.error("That Venture is no longer available.");
-    onFocused?.();
-  }, [focusVentureId, isLoading, joinedVentures, onFocused]);
-
-  const byStatus = (status: string, lifecycle?: ReturnType<typeof ventureLifecycle>) =>
-    joinedVentures.filter(
-      (v) =>
-        (v.my_application?.status as string) === status &&
-        (!lifecycle || ventureLifecycle(v) === lifecycle),
-    );
-
-  const groups = [
-    { key: "invited", label: "Needs an answer", ventures: byStatus("invited", "scheduled") },
-    {
-      key: "accepted",
-      label: "You're going",
-      ventures: joinedVentures.filter(
-        (v) =>
-          v.my_application?.status === "accepted" &&
-          ["scheduled", "happening"].includes(ventureLifecycle(v)),
-      ),
-    },
-    { key: "pending", label: "Waiting on a host", ventures: byStatus("pending", "scheduled") },
-    { key: "memories", label: "Venture memories", ventures: byStatus("accepted", "completed") },
-    { key: "cancelled", label: "Cancelled plans", ventures: byStatus("accepted", "cancelled") },
-  ].filter((g) => g.ventures.length > 0);
-
-  if (isLoading) return <VentureListSkeleton />;
-
-  if (!groups.length) {
-    return (
-      <div className="mt-5">
-        <EmptyPanel
-          icon={<TicketIcon className="h-6 w-6" />}
-          title="No Ventures yet."
-          body="Your invitations, requests, and joined plans will appear here."
-          actionLabel="Browse the board"
-          onAction={onBrowse}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 flex flex-col gap-6 pb-4">
-      {groups.map((group) => (
-        <section key={group.key} className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="label-mono text-primary">{group.label}</span>
-            <span className="h-px flex-1 bg-border" aria-hidden />
-          </div>
-          {group.ventures.map((venture) => (
-            <VentureTicket
-              key={venture.id}
-              venture={venture}
-              onOpenChat={() => onOpenChat(venture)}
-              onOpenDetail={() => setDetailId(venture.id)}
-              onLeave={withdrawRequest}
-              busy={
-                (withdraw.isPending && withdraw.variables === venture.my_application?.id) ||
-                (respond.isPending &&
-                  respond.variables?.applicationId === venture.my_application?.id)
-              }
-              onAcceptInvite={() =>
-                venture.my_application?.id &&
-                respond.mutate({ applicationId: venture.my_application.id, status: "accepted" })
-              }
-              onDeclineInvite={() =>
-                venture.my_application?.id &&
-                respond.mutate({ applicationId: venture.my_application.id, status: "declined" })
-              }
-            />
-          ))}
-        </section>
-      ))}
-
-      <VentureTicketDetail
-        venture={detail}
-        open={Boolean(detail)}
-        onClose={() => setDetailId(null)}
-        onOpenChat={() => detail && onOpenChat(detail)}
-        onLeave={(id) => {
-          setDetailId(null);
-          withdrawRequest(id);
-        }}
-        leaving={withdraw.isPending}
-      />
     </div>
   );
 }
@@ -1054,11 +863,12 @@ function LookView({
   );
 }
 
-function HostView({
+function MyVenturesView({
   profile,
   formOpen,
   setFormOpen,
   hostedVentures,
+  joinedVentures,
   isLoading,
   onCreated,
   onOpenChat,
@@ -1072,6 +882,7 @@ function HostView({
   formOpen: boolean;
   setFormOpen: (open: boolean) => void;
   hostedVentures: VentureParty[];
+  joinedVentures: VentureParty[];
   isLoading: boolean;
   onCreated: (venture: VentureParty) => void;
   onOpenChat: (venture: VentureParty) => void;
@@ -1081,49 +892,142 @@ function HostView({
   focusVentureId?: string | null;
   onFocused?: () => void;
 }) {
-  const [hostTab, setHostTab] = useState<"active" | "history">("active");
+  const [ventureTab, setVentureTab] = useState<"active" | "history">("active");
+  const [detailId, setDetailId] = useState<string | null>(null);
   const hostFormViewport = useVisualViewport(formOpen);
-  const activeVentures = useMemo(
+  const hostedActive = useMemo(
     () =>
       hostedVentures.filter((venture) =>
         ["scheduled", "happening"].includes(ventureLifecycle(venture)),
       ),
     [hostedVentures],
   );
-  const historicalVentures = useMemo(
-    () =>
-      hostedVentures.filter((venture) =>
-        ["completed", "cancelled"].includes(ventureLifecycle(venture)),
-      ),
+  const hostedMemories = useMemo(
+    () => hostedVentures.filter((venture) => ventureLifecycle(venture) === "completed"),
     [hostedVentures],
   );
-  const visibleVentures = hostTab === "active" ? activeVentures : historicalVentures;
+  const hostedCancelled = useMemo(
+    () => hostedVentures.filter((venture) => ventureLifecycle(venture) === "cancelled"),
+    [hostedVentures],
+  );
+  const invitations = useMemo(
+    () =>
+      joinedVentures.filter(
+        (venture) =>
+          venture.my_application?.status === "invited" && ventureLifecycle(venture) === "scheduled",
+      ),
+    [joinedVentures],
+  );
+  const joinedActive = useMemo(
+    () =>
+      joinedVentures.filter(
+        (venture) =>
+          venture.my_application?.status === "accepted" &&
+          ["scheduled", "happening"].includes(ventureLifecycle(venture)),
+      ),
+    [joinedVentures],
+  );
+  const pending = useMemo(
+    () =>
+      joinedVentures.filter(
+        (venture) =>
+          venture.my_application?.status === "pending" && ventureLifecycle(venture) === "scheduled",
+      ),
+    [joinedVentures],
+  );
+  const joinedMemories = useMemo(
+    () =>
+      joinedVentures.filter(
+        (venture) =>
+          venture.my_application?.status === "accepted" &&
+          ventureLifecycle(venture) === "completed",
+      ),
+    [joinedVentures],
+  );
+  const joinedCancelled = useMemo(
+    () =>
+      joinedVentures.filter(
+        (venture) =>
+          venture.my_application?.status === "accepted" &&
+          ventureLifecycle(venture) === "cancelled",
+      ),
+    [joinedVentures],
+  );
+  const activeCount =
+    hostedActive.length + invitations.length + joinedActive.length + pending.length;
+  const historyCount =
+    hostedMemories.length + joinedMemories.length + hostedCancelled.length + joinedCancelled.length;
+  const detail = joinedVentures.find((venture) => venture.id === detailId) ?? null;
+
+  const withdraw = useWithdrawVentureApplication();
+  const withdrawRequest = (applicationId: string) =>
+    withdraw.mutate(applicationId, {
+      onSuccess: () => {
+        toast.success("Request withdrawn.");
+        onChanged();
+      },
+      onError: (err) => toast.error((err as Error).message),
+    });
+
+  const respondFn = useServerFn(respondToVentureInvite);
+  const respond = useMutation({
+    mutationFn: ({
+      applicationId,
+      status,
+    }: {
+      applicationId: string;
+      status: "accepted" | "declined";
+    }) => respondFn({ data: { application_id: applicationId, status } }),
+    onSuccess: (application) => {
+      toast.success(
+        application.status === "accepted"
+          ? "Invite accepted. Welcome to the party."
+          : "Invite passed.",
+      );
+      onChanged();
+      requestPushPrompt("venture");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+  const withdrawingApplicationId = withdraw.isPending ? (withdraw.variables ?? null) : null;
+  const respondingApplicationId = respond.isPending
+    ? (respond.variables?.applicationId ?? null)
+    : null;
+  const respondToInvite = (applicationId: string, status: "accepted" | "declined") =>
+    respond.mutate({ applicationId, status });
 
   useEffect(() => {
     if (!focusVentureId || isLoading) return;
-    const focused = hostedVentures.find((venture) => venture.id === focusVentureId);
+    const focusedHosted = hostedVentures.find((venture) => venture.id === focusVentureId);
+    const focusedJoined = joinedVentures.find((venture) => venture.id === focusVentureId);
+    const focused = focusedHosted ?? focusedJoined;
     if (!focused) {
       toast.error("That Venture is no longer available.");
       onFocused?.();
       return;
     }
-    setHostTab(
+    setVentureTab(
       ["completed", "cancelled"].includes(ventureLifecycle(focused)) ? "history" : "active",
     );
     setFormOpen(false);
+    if (focusedJoined) setDetailId(focused.id);
     const frame = window.requestAnimationFrame(() => {
       document
-        .getElementById(`hosted-venture-${focused.id}`)
+        .getElementById(`venture-${focused.id}`)
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
       onFocused?.();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [focusVentureId, hostedVentures, isLoading, onFocused, setFormOpen]);
+  }, [focusVentureId, hostedVentures, isLoading, joinedVentures, onFocused, setFormOpen]);
 
   const openCreator = () => {
-    setHostTab("active");
+    setVentureTab("active");
     setFormOpen(true);
   };
+
+  useEffect(() => {
+    if (formOpen) setVentureTab("active");
+  }, [formOpen]);
 
   return (
     <>
@@ -1132,48 +1036,26 @@ function HostView({
         hint={
           isLoading
             ? "Loading"
-            : hostTab === "active"
-              ? `${activeVentures.length} active`
-              : `${historicalVentures.length} closed`
-        }
-        action={
-          <button
-            type="button"
-            onClick={() => {
-              if (formOpen) {
-                setFormOpen(false);
-                if (tribeDraft) onDraftCancelled();
-              } else {
-                openCreator();
-              }
-            }}
-            className={cn(
-              "inline-flex min-h-11 items-center gap-1 rounded-full px-3.5 text-xs font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              formOpen
-                ? "border border-border text-muted-foreground transition-colors hover:text-foreground"
-                : "bg-meutuals-gradient text-white transition-[transform,filter] hover:brightness-110",
-            )}
-          >
-            {formOpen ? <XIcon className="h-3.5 w-3.5" /> : <PlusIcon className="h-3.5 w-3.5" />}
-            {formOpen ? "Close" : "New"}
-          </button>
+            : ventureTab === "active"
+              ? `${activeCount} active`
+              : `${historyCount} memories & records`
         }
       />
 
       <div
-        aria-label="Hosted Ventures"
+        aria-label="My Ventures"
         className="mb-4 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-1"
       >
         {(["active", "history"] as const).map((tab) => {
-          const selected = hostTab === tab;
-          const count = tab === "active" ? activeVentures.length : historicalVentures.length;
+          const selected = ventureTab === tab;
+          const count = tab === "active" ? activeCount : historyCount;
           return (
             <button
               key={tab}
               type="button"
               aria-pressed={selected}
               onClick={() => {
-                setHostTab(tab);
+                setVentureTab(tab);
                 setFormOpen(false);
                 if (tribeDraft) onDraftCancelled();
               }}
@@ -1185,14 +1067,13 @@ function HostView({
               )}
             >
               {tab === "active" ? "Active" : "History"}
-              {/* Active's count says how many need attention right now - a
-                  live number worth carrying. History is a closed log with
-                  nothing left to act on, so the same badge there was just
-                  noise next to the tab it sits on. Zero active is itself
-                  nothing to flag, so the badge only appears once there's an
-                  actual count to carry. */}
-              {tab === "active" && count > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-meutuals-gradient px-1.5 font-mono text-xs font-bold text-white">
+              {count > 0 && (
+                <span
+                  className={cn(
+                    "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
+                    selected ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground",
+                  )}
+                >
                   {count}
                 </span>
               )}
@@ -1258,42 +1139,269 @@ function HostView({
         </div>
       </AnimatedModal>
 
-      <div>
+      <div className="pb-4">
         {isLoading ? (
           <VentureListSkeleton />
-        ) : visibleVentures.length ? (
-          <div className="space-y-3">
-            {visibleVentures.map((venture) => (
-              <div key={venture.id} id={`hosted-venture-${venture.id}`} className="scroll-mt-24">
-                <HostedVentureCard
-                  venture={venture}
-                  profile={profile}
-                  onOpenChat={() => onOpenChat(venture)}
-                  onChanged={onChanged}
-                />
-              </div>
-            ))}
-          </div>
-        ) : hostTab === "active" ? (
+        ) : ventureTab === "active" && activeCount === 0 ? (
           <EmptyPanel
             icon={<UsersIcon className="h-6 w-6" />}
             title="No active Ventures."
-            body="Create a new plan and review requests here as they arrive."
+            body="Create a plan or join one from the board. Everything active will stay together here."
             actionLabel="Create Venture"
             onAction={openCreator}
             gradient
           />
-        ) : (
+        ) : ventureTab === "history" && historyCount === 0 ? (
           <EmptyPanel
             icon={<ArrowCounterClockwiseIcon className="h-6 w-6" />}
-            title="No closed Ventures yet."
-            body="Ventures you close will stay here, ready to review or reopen."
+            title="No Venture history yet."
+            body="Completed Ventures become memories here. Cancelled plans stay as quiet records."
             actionLabel="Back to active"
-            onAction={() => setHostTab("active")}
+            onAction={() => setVentureTab("active")}
           />
+        ) : ventureTab === "active" ? (
+          <div className="flex flex-col gap-7">
+            {invitations.length > 0 && (
+              <MyVenturesGroup
+                title="Invitations"
+                description="Reply so the host can finish planning."
+                count={invitations.length}
+                urgent
+              >
+                {invitations.map((venture) => (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ))}
+              </MyVenturesGroup>
+            )}
+
+            {hostedActive.length > 0 && (
+              <MyVenturesGroup
+                title="Hosting"
+                description="Your plans, requests and guest lists."
+                count={hostedActive.length}
+              >
+                {hostedActive.map((venture) => (
+                  <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
+                    <HostedVentureCard
+                      venture={venture}
+                      profile={profile}
+                      onOpenChat={() => onOpenChat(venture)}
+                      onChanged={onChanged}
+                    />
+                  </div>
+                ))}
+              </MyVenturesGroup>
+            )}
+
+            {joinedActive.length > 0 && (
+              <MyVenturesGroup
+                title="Going"
+                description="Upcoming plans you joined."
+                count={joinedActive.length}
+              >
+                {joinedActive.map((venture) => (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ))}
+              </MyVenturesGroup>
+            )}
+
+            {pending.length > 0 && (
+              <MyVenturesGroup
+                title="Requested"
+                description="Waiting for a host response."
+                count={pending.length}
+              >
+                {pending.map((venture) => (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ))}
+              </MyVenturesGroup>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-7">
+            {hostedMemories.length + joinedMemories.length > 0 && (
+              <MyVenturesGroup
+                title="Venture memories"
+                description="Completed plans and the people who were there."
+                count={hostedMemories.length + joinedMemories.length}
+              >
+                {hostedMemories.map((venture) => (
+                  <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
+                    <HostedVentureCard
+                      venture={venture}
+                      profile={profile}
+                      onOpenChat={() => onOpenChat(venture)}
+                      onChanged={onChanged}
+                    />
+                  </div>
+                ))}
+                {joinedMemories.map((venture) => (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ))}
+              </MyVenturesGroup>
+            )}
+
+            {hostedCancelled.length + joinedCancelled.length > 0 && (
+              <MyVenturesGroup
+                title="Cancelled"
+                description="Kept here for reference."
+                count={hostedCancelled.length + joinedCancelled.length}
+                muted
+              >
+                {hostedCancelled.map((venture) => (
+                  <div key={venture.id} id={`venture-${venture.id}`} className="scroll-mt-24">
+                    <HostedVentureCard
+                      venture={venture}
+                      profile={profile}
+                      onOpenChat={() => onOpenChat(venture)}
+                      onChanged={onChanged}
+                    />
+                  </div>
+                ))}
+                {joinedCancelled.map((venture) => (
+                  <JoinedVentureTicket
+                    key={venture.id}
+                    venture={venture}
+                    onOpenChat={onOpenChat}
+                    onOpenDetail={setDetailId}
+                    onLeave={withdrawRequest}
+                    withdrawingApplicationId={withdrawingApplicationId}
+                    respondingApplicationId={respondingApplicationId}
+                    onRespond={respondToInvite}
+                  />
+                ))}
+              </MyVenturesGroup>
+            )}
+          </div>
         )}
       </div>
+
+      <VentureTicketDetail
+        venture={detail}
+        open={Boolean(detail)}
+        onClose={() => setDetailId(null)}
+        onOpenChat={() => detail && onOpenChat(detail)}
+        onLeave={(id) => {
+          setDetailId(null);
+          withdrawRequest(id);
+        }}
+        leaving={withdraw.isPending}
+      />
     </>
+  );
+}
+
+function MyVenturesGroup({
+  title,
+  description,
+  count,
+  urgent = false,
+  muted = false,
+  children,
+}: {
+  title: string;
+  description: string;
+  count: number;
+  urgent?: boolean;
+  muted?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-end justify-between gap-4 px-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "label-mono",
+                urgent ? "text-primary" : muted ? "text-muted-foreground" : "text-foreground",
+              )}
+            >
+              {title}
+            </span>
+            {urgent && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />}
+          </div>
+          <p className="mt-1 text-xs leading-snug text-muted-foreground">{description}</p>
+        </div>
+        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{count}</span>
+      </div>
+      <div className="flex flex-col gap-3">{children}</div>
+    </section>
+  );
+}
+
+function JoinedVentureTicket({
+  venture,
+  onOpenChat,
+  onOpenDetail,
+  onLeave,
+  withdrawingApplicationId,
+  respondingApplicationId,
+  onRespond,
+}: {
+  venture: VentureParty;
+  onOpenChat: (venture: VentureParty) => void;
+  onOpenDetail: (id: string) => void;
+  onLeave: (applicationId: string) => void;
+  withdrawingApplicationId: string | null;
+  respondingApplicationId: string | null;
+  onRespond: (applicationId: string, status: "accepted" | "declined") => void;
+}) {
+  return (
+    <div id={`venture-${venture.id}`} className="scroll-mt-24">
+      <VentureTicket
+        venture={venture}
+        onOpenChat={() => onOpenChat(venture)}
+        onOpenDetail={() => onOpenDetail(venture.id)}
+        onLeave={onLeave}
+        busy={
+          withdrawingApplicationId === venture.my_application?.id ||
+          respondingApplicationId === venture.my_application?.id
+        }
+        onAcceptInvite={() =>
+          venture.my_application?.id && onRespond(venture.my_application.id, "accepted")
+        }
+        onDeclineInvite={() =>
+          venture.my_application?.id && onRespond(venture.my_application.id, "declined")
+        }
+      />
+    </div>
   );
 }
 

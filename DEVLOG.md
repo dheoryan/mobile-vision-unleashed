@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Consolidate My Ventures active/history composition | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Unified My Ventures composition
+
+- Consolidated the formerly separate participant-ticket and Hosting views into
+  one My Ventures surface. Active now orders invitations, hosted plans, joined
+  plans, and pending requests by urgency; History contains completed Venture
+  memories from both roles, followed by quieter cancelled records.
+- Removed the local gradient `New` control. The persistent header plus is now
+  the single global creation access from both the board and My Ventures; the
+  empty-state `Create Venture` CTA remains for first-time guidance.
+- Preserved participant ticket details, invitation decisions, withdrawal,
+  host management, notification deep links, and the existing draft-safe
+  creation modal while eliminating the separate memories destination.
+- Validation: Prettier, `npx tsc --noEmit`, targeted ESLint, the Venture
+  lifecycle tests, `git diff --check`, and `npm run build` all pass. No database
+  change is required.
 
 ### 2026-09-06 — Codex (Astra) — Venture journey consistency pass
 
