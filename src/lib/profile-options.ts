@@ -104,6 +104,52 @@ export const INTEREST_OPTIONS = [
 ] as const satisfies ReadonlyArray<{ id: string; label: string; tribeId?: TribeId }>;
 
 /**
+ * The same Interest catalogue grouped for Venture creation. A Venture opened
+ * to every Tribe gets the full pool; a Tribe-scoped Venture gets the general
+ * group plus the host's Tribe groups. Keep the option objects intact so every
+ * picker and display chip can use the shared Phosphor icon map by id.
+ */
+export const INTEREST_OPTION_GROUPS = [
+  {
+    label: "Food & drink",
+    items: INTEREST_OPTIONS.filter((option) => !("tribeId" in option)),
+  },
+  {
+    label: "Move",
+    tribeId: "wolf",
+    items: INTEREST_OPTIONS.filter((option) => "tribeId" in option && option.tribeId === "wolf"),
+  },
+  {
+    label: "Make",
+    tribeId: "cat",
+    items: INTEREST_OPTIONS.filter((option) => "tribeId" in option && option.tribeId === "cat"),
+  },
+  {
+    label: "Learn & play",
+    tribeId: "koi",
+    items: INTEREST_OPTIONS.filter((option) => "tribeId" in option && option.tribeId === "koi"),
+  },
+  {
+    label: "Go out",
+    tribeId: "owl",
+    items: INTEREST_OPTIONS.filter((option) => "tribeId" in option && option.tribeId === "owl"),
+  },
+  {
+    label: "Work",
+    tribeId: "bee",
+    items: INTEREST_OPTIONS.filter((option) => "tribeId" in option && option.tribeId === "bee"),
+  },
+] as const;
+
+/** Resolve both current Interest labels/ids and legacy free-text Venture tags. */
+export function interestOptionForVibe(value: string) {
+  const normalized = value.trim().toLocaleLowerCase();
+  return INTEREST_OPTIONS.find(
+    (option) => option.id === value || option.label.toLocaleLowerCase() === normalized,
+  );
+}
+
+/**
  * Deliberately flat / not Tribe-curated - unlike Interests, "Here for"
  * describes what someone wants out of the app, not a taste that clusters by
  * Tribe identity. Tying it to Tribe would presume everyone in a Tribe wants

@@ -25,7 +25,8 @@ import { UserPlusIcon } from "@phosphor-icons/react/dist/csr/UserPlus";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { toast } from "sonner";
-import { INTENT_GROUPS, TRIBES, tribeById, type Person, type TribeId } from "@/lib/mutuals-data";
+import { TRIBES, tribeById, type Person, type TribeId } from "@/lib/mutuals-data";
+import { INTEREST_OPTION_GROUPS } from "@/lib/profile-options";
 import { AppHeader, SectionTitle, TribeBadge } from "./Shared";
 import { PlusBadge } from "./PlusBadge";
 import { SafetyMenu } from "./SafetyMenu";
@@ -86,6 +87,7 @@ import { VentureBoard } from "./VentureBoard";
 import { VentureSearching } from "./VentureSearching";
 import { VentureTicket, VentureTicketDetail } from "./VentureTicket";
 import { VenuePicker, type PickedVenue } from "./VenuePicker";
+import { VentureVibeLabel } from "./VentureVibeLabel";
 import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
 import { requestBrowserLocation } from "@/lib/location";
 import type { TribeVentureDraft } from "@/lib/tribe-room";
@@ -1342,8 +1344,10 @@ function HostForm({
   // would discourage exactly the cross-Tribe mixing Ventures exist for.
   const visibleIntentGroups =
     scope === "mine"
-      ? INTENT_GROUPS.filter((group) => !group.tribeId || profile.tribeIds.includes(group.tribeId))
-      : INTENT_GROUPS;
+      ? INTEREST_OPTION_GROUPS.filter(
+          (group) => !("tribeId" in group) || profile.tribeIds.includes(group.tribeId),
+        )
+      : INTEREST_OPTION_GROUPS;
   const canSubmit =
     title.trim().length >= 3 &&
     intents.length > 0 &&
@@ -1796,10 +1800,10 @@ function HostForm({
                   // Drop any picked Vibe tag that belongs to a group the
                   // narrower picker is about to hide, so a stale selection
                   // never rides along invisibly.
-                  const stillVisible = new Set(
-                    INTENT_GROUPS.filter(
-                      (group) => !group.tribeId || profile.tribeIds.includes(group.tribeId),
-                    ).flatMap((group) => group.items),
+                  const stillVisible = new Set<string>(
+                    INTEREST_OPTION_GROUPS.filter(
+                      (group) => !("tribeId" in group) || profile.tribeIds.includes(group.tribeId),
+                    ).flatMap((group) => group.items.map((option) => option.label)),
                   );
                   setIntents((cur) => cur.filter((intent) => stillVisible.has(intent)));
                 }}
@@ -1827,7 +1831,7 @@ function HostForm({
       >
         <div className="grid gap-3">
           <FieldLabel
-            label={`Intents · ${intents.length}/5`}
+            label={`Vibes · ${intents.length}/5`}
             hint={
               scope === "mine"
                 ? `Curated for ${myTribes.map((tribe) => tribe.name).join(", ") || "your Tribe"}`
@@ -1853,7 +1857,7 @@ function HostForm({
                       scope === "mine" ? { backgroundColor: primaryTribe.colorVar } : undefined
                     }
                   >
-                    {intent}
+                    <VentureVibeLabel value={intent} />
                     <XIcon className="h-3 w-3" />
                   </button>
                 ))}
@@ -1867,17 +1871,18 @@ function HostForm({
                 <div key={group.label}>
                   <p className="label-mono mb-1.5 text-muted-foreground">{group.label}</p>
                   <div className="flex flex-wrap gap-2">
-                    {group.items.map((intent) => {
+                    {group.items.map((option) => {
+                      const intent = option.label;
                       const active = intents.includes(intent);
                       const atLimit = !active && intents.length >= 5;
                       return (
                         <button
-                          key={intent}
+                          key={option.id}
                           type="button"
                           disabled={atLimit}
                           onClick={() => toggleIntent(intent)}
                           className={cn(
-                            "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                             active
                               ? cn(
                                   "text-white",
@@ -1894,7 +1899,7 @@ function HostForm({
                               : undefined
                           }
                         >
-                          {intent}
+                          <VentureVibeLabel value={intent} />
                         </button>
                       );
                     })}
@@ -2447,9 +2452,9 @@ function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hid
         {venture.intents.slice(0, 5).map((intent) => (
           <span
             key={intent}
-            className="label-mono rounded-full bg-accent/15 px-2 py-1 text-accent-readable"
+            className="label-mono inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2 py-1 text-accent-readable"
           >
-            {intent}
+            <VentureVibeLabel value={intent} iconClassName="h-3 w-3" />
           </span>
         ))}
       </div>

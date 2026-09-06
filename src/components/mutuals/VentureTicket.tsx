@@ -16,6 +16,7 @@ import { GOOGLE_PLACES_ENABLED } from "@/lib/feature-flags";
 import type { VentureParty } from "@/lib/ventures.functions";
 import { clock, durationMinutes, timingLabel, ventureTz } from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
+import { VentureVibeLabel } from "./VentureVibeLabel";
 
 /**
  * A Venture you hold.
@@ -285,9 +286,7 @@ export function VentureTicketDetail({
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{host.display_name}</span>
                 {host.city && (
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {host.city}
-                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">{host.city}</span>
                 )}
               </span>
             </div>
@@ -421,9 +420,9 @@ export function VentureTicketDetail({
             {venture.intents.map((intent) => (
               <span
                 key={intent}
-                className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
               >
-                {intent}
+                <VentureVibeLabel value={intent} />
               </span>
             ))}
           </div>

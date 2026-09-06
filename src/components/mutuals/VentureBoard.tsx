@@ -14,6 +14,7 @@ import type { VentureParty } from "@/lib/ventures.functions";
 import { dayKey, dayLabel, timingLabel, ventureTz } from "@/lib/venture-time";
 import { cn } from "@/lib/utils";
 import { VentureImage } from "./VentureImage";
+import { VentureVibeLabel } from "./VentureVibeLabel";
 
 /**
  * The public Venture list.
@@ -216,9 +217,7 @@ function BoardListItem({
             {venture.title}
           </span>
 
-          {timing && (
-            <span className="mt-1 truncate text-xs text-muted-foreground">{timing}</span>
-          )}
+          {timing && <span className="mt-1 truncate text-xs text-muted-foreground">{timing}</span>}
 
           {venture.venue && (
             <span className="mt-1 flex min-w-0 items-center gap-1 text-xs leading-tight text-foreground/80">
@@ -243,7 +242,11 @@ function BoardListItem({
                 {venture.distance_band}
               </span>
             )}
-            {venture.intents[0] && <span>{venture.intents[0]}</span>}
+            {venture.intents[0] && (
+              <span className="inline-flex items-center gap-1">
+                <VentureVibeLabel value={venture.intents[0]} iconClassName="h-2.5 w-2.5" />
+              </span>
+            )}
           </span>
         </div>
       </button>
@@ -277,9 +280,9 @@ function BoardListItem({
                 {venture.intents.map((intent) => (
                   <span
                     key={intent}
-                    className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
                   >
-                    {intent}
+                    <VentureVibeLabel value={intent} />
                   </span>
                 ))}
               </div>

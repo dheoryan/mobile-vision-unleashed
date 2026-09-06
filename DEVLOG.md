@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Unify Venture Vibes with Interest pool and icons | `DEVLOG.md`, Venture UI, profile option data, shared Vibe chip | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture Vibes unified with profile Interests
+
+- Replaced the separate legacy Venture activity list with grouped views of the
+  same 85-option, Tribe-aware Interest catalogue used by onboarding and Edit
+  Profile. All-Tribes Ventures see the full pool; Tribe-scoped Ventures see the
+  general pool plus their host Tribe groups.
+- Added the shared Phosphor icon mapping to selected and available creation
+  chips, public board summaries and details, hosted Venture cards, and joined
+  Venture tickets.
+- Kept existing Ventures compatible: saved labels resolve to the matching
+  Interest icon where possible, and older free-text Vibes use a Sparkle fallback
+  instead of rendering without an icon.
+- Validation: focused Prettier and ESLint checks, `npx tsc --noEmit`,
+  `git diff --check`, and the Cloudflare production build pass; existing build
+  warnings remain.
 
 ### 2026-09-06 — Codex (Astra) — Fluid Discover stack swipes
 
