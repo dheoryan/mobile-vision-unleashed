@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Branded Venture entry loading transition | `DEVLOG.md`, `src/components/mutuals/VenturesScreen.tsx`, `src/components/mutuals/VentureSearching.tsx`, `src/styles.css` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,26 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Branded Venture entry transition
+
+- Recreated the user-selected Lottie reference's 3.17-second rhythm with three
+  orbiting nodes, breathing trails, and staggered rings, placing the existing
+  MEUTUALS eye at its center.
+- Kept the implementation CSS-only and local, so Ventures gains no animation
+  runtime or remote asset dependency. Reduced-motion users receive a static
+  branded state.
+- Returning members now see the transition whenever they enter the Ventures
+  tab. First-time members see it after choosing Looking or Hosting at the end
+  of the Venture introduction. Direct notification and Tribe-plan destinations
+  still open immediately in their requested context.
+- The transition waits for the relevant board, joined, or hosted query and has
+  a 1.1-second minimum when data is already cached. Query errors still resolve
+  to the existing retry UI instead of trapping the member in loading.
+- Validation: focused ESLint, `npx tsc --noEmit`, `git diff --check`, readability
+  checks, Cloudflare production build, and a Playwright mobile visual pass at
+  390 × 844 all pass. Existing chunk-size and third-party bundler warnings
+  remain.
 
 ### 2026-09-06 — Codex (Astra) — Profile redesign deployed
 

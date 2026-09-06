@@ -83,6 +83,7 @@ import {
   todayKey,
 } from "@/lib/venture-time";
 import { VentureBoard } from "./VentureBoard";
+import { VentureSearching } from "./VentureSearching";
 import { VentureTicket, VentureTicketDetail } from "./VentureTicket";
 import { VenuePicker, type PickedVenue } from "./VenuePicker";
 import { useMyLocationSettings, useSaveMyLocation } from "@/lib/location-store";
@@ -121,7 +122,12 @@ function markVentureIntroSeen(userId: string) {
 }
 
 type Mode = "look" | "yours" | "host";
-type VentureStage = "intro" | "role" | "feature";
+type VentureStage = "intro" | "role" | "loading" | "feature";
+
+// Long enough for the transition to read as intentional when query data is
+// already cached, while still yielding immediately after that when the board
+// needs real network time.
+const VENTURE_ENTRY_MIN_MS = 1100;
 
 // Kept "This week evenings" and "This weekend" verbatim so Ventures created
 // before this list grew still match a chip when their host opens the editor.
@@ -156,6 +162,7 @@ export function VenturesScreen({
   const { user } = useAuth();
   const userId = user?.id;
   const [stage, setStage] = useState<VentureStage>("intro");
+  const [loadingStartedAt, setLoadingStartedAt] = useState(0);
   const [mode, setModeState] = useState<Mode>("look");
   const [scope, setScope] = useState<VentureScope>("all");
   const [hostFormOpen, setHostFormOpen] = useState(false);
@@ -174,7 +181,8 @@ export function VenturesScreen({
     setHostFormOpen(false);
     setPaywall(false);
     if (hasSeenVentureIntro(userId)) {
-      setStage("feature");
+      setLoadingStartedAt(Date.now());
+      setStage("loading");
     } else {
       setStage("intro");
     }
@@ -206,11 +214,25 @@ export function VenturesScreen({
   const hostedVentures = useMemo(() => hostedQuery.data ?? [], [hostedQuery.data]);
   const joinedVentures = useMemo(() => joinedQuery.data ?? [], [joinedQuery.data]);
   const hasVentureActivity = hostedVentures.length > 0 || joinedVentures.length > 0;
+  const entryDataIsLoading =
+    mode === "look"
+      ? openQuery.isLoading
+      : mode === "yours"
+        ? joinedQuery.isLoading
+        : hostedQuery.isLoading;
+
+  useEffect(() => {
+    if (stage !== "loading" || entryDataIsLoading) return;
+    const remaining = Math.max(0, VENTURE_ENTRY_MIN_MS - (Date.now() - loadingStartedAt));
+    const timer = window.setTimeout(() => setStage("feature"), remaining);
+    return () => window.clearTimeout(timer);
+  }, [entryDataIsLoading, loadingStartedAt, stage]);
 
   useEffect(() => {
     if (userId && stage === "intro" && hasVentureActivity && !hasSeenVentureIntro(userId)) {
       markVentureIntroSeen(userId);
-      setStage("feature");
+      setLoadingStartedAt(Date.now());
+      setStage("loading");
     }
   }, [hasVentureActivity, stage, userId]);
 
@@ -248,7 +270,8 @@ export function VenturesScreen({
     if (userId) markVentureIntroSeen(userId);
     persistMode(nextMode);
     setHostFormOpen(Boolean(options?.openHostForm));
-    setStage("feature");
+    setLoadingStartedAt(Date.now());
+    setStage("loading");
   };
 
   const startHosting = () => {
@@ -293,11 +316,13 @@ export function VenturesScreen({
             ? "Optional"
             : stage === "role"
               ? "Choose mode"
-              : mode === "look"
-                ? "Find one plan"
-                : mode === "yours"
-                  ? "Plans in motion"
-                  : "Plans you run"
+              : stage === "loading"
+                ? "Getting things ready"
+                : mode === "look"
+                  ? "Find one plan"
+                  : mode === "yours"
+                    ? "Plans in motion"
+                    : "Plans you run"
         }
         accent="var(--color-primary)"
         action={
@@ -321,6 +346,15 @@ export function VenturesScreen({
           <VentureRoleChooser
             onBack={() => setStage("intro")}
             onChoose={(nextMode) => enterFeature(nextMode, { openHostForm: nextMode === "host" })}
+          />
+        ) : stage === "loading" ? (
+          <VentureSearching
+            label={mode === "look" ? "Opening the Venture board…" : "Opening your Ventures…"}
+            detail={
+              mode === "look"
+                ? "Finding fresh plans that match how you want to meet."
+                : "Gathering your plans, people and latest updates."
+            }
           />
         ) : (
           <>
@@ -2424,7 +2458,10 @@ function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hid
     <div className="mt-3 space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {venture.intents.slice(0, 5).map((intent) => (
-          <span key={intent} className="label-mono rounded-full bg-accent/15 px-2 py-1 text-accent-readable">
+          <span
+            key={intent}
+            className="label-mono rounded-full bg-accent/15 px-2 py-1 text-accent-readable"
+          >
             {intent}
           </span>
         ))}
