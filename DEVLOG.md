@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Make Venture board/My Ventures a direct switch and separate history ownership | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Venture peer-view switch and ownership groups
+
+- Replaced the secondary My Ventures back row with a matching `Venture board`
+  pill in the section header. Venture board and My Ventures now switch directly
+  through the same compact control position in either view.
+- Separated `Hosted Ventures` and `Joined Ventures` in both Active and History.
+  Joined Active retains smaller `Needs your reply`, `Going`, and `Requested`
+  dividers; each role's History independently separates memories from cancelled
+  records, so host-management cards never blend into participant tickets.
+- Validation: Prettier, `npx tsc --noEmit`, targeted ESLint, Venture lifecycle
+  tests, `git diff --check`, and `npm run build` pass. No database change.
 
 ### 2026-09-06 — Codex (Astra) — Unified My Ventures composition
 
