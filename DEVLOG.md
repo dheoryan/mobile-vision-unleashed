@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Venture journey consistency, lifecycle, unread state, and creation UX | `src/components/mutuals/{VenturesScreen,VentureBoard,ChatsScreen,MessagesPanel,ProfileVentureHistory}.tsx`, `src/lib/{ventures.functions,ventures-store,venture-time,notification-presenter}.ts`, `src/routes/notifications.tsx`, `supabase/migrations/*`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
