@@ -476,7 +476,7 @@ function RoleButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        "flex h-9 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? accentColor
             ? "text-white shadow-sm"

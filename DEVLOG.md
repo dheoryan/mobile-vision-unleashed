@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Lock both Venture segmented controls to the same content-independent height | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Exact Venture segment height correction
+
+- Fixed the remaining size mismatch between Active/Memories and All Tribes/My
+  Tribe. The shared segment used vertical padding, so the 20 px Memories count
+  badge made that control taller than the icon-only scope control; segments now
+  use a content-independent fixed height.
+- Browser measurements confirm both variants are identical: each segment is
+  `195 × 36 px` and each outer control is `408 × 46 px` at the checked viewport.
+- Validation: signed-in local Chrome measurement and visual comparison,
+  Prettier, `npx tsc --noEmit`, targeted ESLint, `git diff --check`, and
+  `npm run build` pass. Released by pushing `main`; no database change.
 
 ### 2026-09-06 — Codex (Astra) — Venture segmented-control consistency
 
