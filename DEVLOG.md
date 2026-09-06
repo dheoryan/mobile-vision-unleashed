@@ -64,6 +64,7 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
+| Codex | Replace Venture ownership subtabs with All/Hosted/Joined filters and card badges | `src/components/mutuals/VenturesScreen.tsx`, `src/components/mutuals/VentureTicket.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
