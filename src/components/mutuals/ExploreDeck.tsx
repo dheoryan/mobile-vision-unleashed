@@ -10,7 +10,6 @@ import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimpl
 import { CalendarPlusIcon } from "@phosphor-icons/react/dist/csr/CalendarPlus";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
-import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
@@ -725,31 +724,6 @@ export function ExploreDeck({
             </div>
           </article>
         </div>
-
-        {index > 0 && (
-          <button
-            type="button"
-            onClick={back}
-            aria-label={`Previous introduction before ${person.name}`}
-            className="absolute left-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-white/80 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-white active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:left-3 sm:top-[22.5%] sm:h-14"
-          >
-            <CaretLeftIcon className="h-7 w-7 sm:h-8 sm:w-8" weight="bold" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={advance}
-          aria-label={
-            index + 1 >= currentPeople.length
-              ? phase === "primary"
-                ? "Choose what comes after today’s five"
-                : "Finish today’s introductions"
-              : `Next introduction after ${person.name}`
-          }
-          className="absolute right-0 top-[15%] z-10 flex h-12 w-11 -translate-y-1/2 items-center justify-center text-primary drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] transition-colors hover:text-primary/75 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:right-3 sm:top-[22.5%] sm:h-14"
-        >
-          <CaretRightIcon className="h-7 w-7 sm:h-8 sm:w-8" weight="bold" />
-        </button>
       </div>
 
       {helloFor && (
