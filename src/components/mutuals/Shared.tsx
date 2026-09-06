@@ -71,12 +71,17 @@ export function AppHeader({
         WebkitBackdropFilter: "blur(24px) saturate(160%)",
       }}
     >
-      <div className="mx-auto grid max-w-md grid-cols-[1fr_auto_1fr] items-center px-5 py-3">
+      <div className="relative mx-auto grid max-w-md grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center px-5 py-3">
         <div className="min-w-0 justify-self-start leading-tight">
           <p className="label-mono truncate text-muted-foreground">{subtitle ?? "MEUTUALS"}</p>
           <p className="truncate font-display text-sm font-semibold">{title}</p>
         </div>
-        <img src={logoMark} alt="MEUTUALS" className="h-9 w-9 object-contain" />
+        <span aria-hidden className="h-9 w-9" />
+        <img
+          src={logoMark}
+          alt="MEUTUALS"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 object-contain"
+        />
         <div className="flex items-center gap-1 justify-self-end">
           {action}
           {showNotifications && <NotificationBell />}

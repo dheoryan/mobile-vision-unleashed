@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Stabilize primary tab header alignment | `DEVLOG.md`, `src/components/mutuals/Shared.tsx` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,19 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Stable primary header brand axis
+
+- Audited the shared headers used by Timeline, Discover, Ventures, Chats,
+  Profile, and the main Tribe room.
+- Pinned the MEUTUALS eye to the exact center of the header independently of
+  eyebrow length, page-title length, and the number of trailing actions.
+- Changed the side tracks to explicit zero-minimum equal rails and retained a
+  fixed logo-sized center track, preventing long labels from influencing the
+  brand position or colliding with it.
+- Validation: focused Prettier and ESLint checks, `npx tsc --noEmit`,
+  `git diff --check`, and the Cloudflare production build pass; existing build
+  warnings remain.
 
 ### 2026-09-06 — Codex (Astra) — Discover card chevrons removed
 
