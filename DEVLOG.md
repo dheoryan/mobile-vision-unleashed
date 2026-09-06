@@ -19,12 +19,15 @@ Venue changes and push-secret rotation are applied and verified. Google Venue
 precision is intentionally feature-flagged off pending a team decision. Never
 force-push.
 
-**Latest public UI release (2026-09-06):** the Venture, Discover, profile,
-Chats, and login interface release through app commit `23c5679` is published on
-`moots.lovable.app`. The user confirmed the Lovable publish completed, and a
-read-only browser check verified the updated My Ventures experience and the
-`Your people are here.` sign-in heading. Later commits only reconcile this
-release documentation.
+**Latest public UI release (2026-09-06):** through app commit `adbb8d8`,
+published on `moots.lovable.app` per the user. Adds the Venture card redesign
+(capacity ring, "Who's here" avatar stack, hosted-card style parity) on top of
+the earlier `23c5679` release (Venture board/My Ventures consolidation, Discover,
+profile, Chats, login copy). This build's schema now actually matches production:
+both the venture journey consistency migration and the Explore radius-tier
+migration are confirmed applied (see Work log), on top of the already-confirmed
+S5 Venture-scope RLS fix. Commits after `adbb8d8` only reconcile devlog/verify
+records, not app code.
 
 **Local dev talks to PRODUCTION.** `localhost:8082` uses the production Supabase
 project. Creating a Venture there makes a real row on a real board that 34 real
@@ -208,6 +211,23 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — User + Claude — Venture card redesign published
+
+- The user confirmed the Lovable Publish action completed for the Venture
+  card redesign release through app commit `adbb8d8`: the board card's
+  capacity ring and "Who's here" avatar stack, the hosted management card's
+  lifecycle-aware ring and boxed request/member sections, and the ticket
+  detail modal's wider tap target and avatar-stack "Who's here" section.
+- Unlike the `23c5679` release, this one shipped with its backing schema
+  already confirmed live rather than pending: the S5 Venture-scope RLS fix,
+  the Venture journey consistency migration, and the Explore radius-tier
+  migration were each pasted into Lovable's SQL editor and verified `true`
+  before this publish, not after.
+- Not independently re-verified via a read-only browser check this time
+  (unauthenticated - the app requires a real production sign-in). Taken on
+  the user's confirmation, consistent with how every other publish in this
+  log is recorded.
 
 ### 2026-09-06 — User + Claude — Explore radius-tier migration applied to production
 
