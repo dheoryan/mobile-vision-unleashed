@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Unified chronological All Chats inbox | `DEVLOG.md`, `src/components/mutuals/ChatsScreen.tsx` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,22 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Unified chronological All Chats inbox
+
+- Replaced the permanent Tribe, Venture, and Direct sections in All with one
+  compact conversation list. Audience-specific grouping remains available in
+  the Tribe, Ventures, and Direct filters.
+- Reliable unread Tribe and direct conversations now rise to the top, followed
+  by all remaining conversations in descending activity order. Venture rooms
+  remain chronological because they do not yet have a per-member read pointer.
+- Added compact context chips so each mixed row still identifies itself as a
+  Direct, Tribe, Venture, or Memory conversation without section headings.
+- Strengthened unread rows with a slim accent rail, clearer text contrast,
+  bolder timestamps, and unread totals on the All, Tribe, and Direct filters.
+- Validation: focused ESLint, `npx tsc --noEmit`, `git diff --check`, readability
+  checks, and the Cloudflare production build pass; existing build warnings
+  remain.
 
 ### 2026-09-06 — Codex (Astra) — Discover profile card stack
 

@@ -13,6 +13,7 @@ import type { Profile } from "./Onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useThreads } from "@/lib/messages-store";
+import type { DMThreadSummary } from "@/lib/messages.functions";
 import { useIncomingHellos, useMyMoots } from "@/lib/social-store";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useMyJoinedVentures, useMyHostedVentures } from "@/lib/ventures-store";
@@ -24,6 +25,29 @@ import { timingLabel } from "@/lib/venture-time";
 import { ConversationListSkeleton } from "./Skeleton";
 
 type Filter = "all" | "tribe" | "ventures" | "direct";
+
+type UnifiedChatItem =
+  | {
+      kind: "tribe";
+      key: string;
+      lastAt: string;
+      unreadCount: number;
+    }
+  | {
+      kind: "venture";
+      key: string;
+      lastAt: string;
+      unreadCount: 0;
+      venture: VentureParty;
+      memory: boolean;
+    }
+  | {
+      kind: "direct";
+      key: string;
+      lastAt: string;
+      unreadCount: number;
+      thread: DMThreadSummary;
+    };
 
 /**
  * Unread state, and the one thing this screen deliberately cannot do yet.
@@ -186,6 +210,7 @@ function Row({
   subtitle,
   meta,
   hint,
+  context,
   accented,
   unread,
   onClick,
@@ -195,6 +220,7 @@ function Row({
   subtitle: string;
   meta?: string | null;
   hint?: string | null;
+  context?: string;
   accented?: boolean;
   unread?: number | null;
   onClick: () => void;
@@ -204,19 +230,52 @@ function Row({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        accented ? "border-primary/30 bg-card" : "border-transparent hover:border-border",
+        "relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border p-3 text-left transition-colors active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        unread
+          ? "border-primary/40 bg-card shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
+          : accented
+            ? "border-primary/30 bg-card"
+            : "border-transparent hover:border-border",
       )}
     >
+      {!!unread && (
+        <span
+          aria-hidden
+          className="bg-meutuals-gradient absolute inset-y-2 left-0 w-0.5 rounded-r-full"
+        />
+      )}
       <span className="shrink-0">{leading}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
-          <span className={cn("truncate text-sm", unread ? "font-bold" : "font-semibold")}>
-            {title}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className={cn("truncate text-sm", unread ? "font-bold" : "font-semibold")}>
+              {title}
+            </span>
+            {context && (
+              <span className="label-mono shrink-0 rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+                {context}
+              </span>
+            )}
           </span>
-          {meta && <span className="label-mono shrink-0 text-muted-foreground">{meta}</span>}
+          {meta && (
+            <span
+              className={cn(
+                "label-mono shrink-0",
+                unread ? "font-bold text-primary" : "text-muted-foreground",
+              )}
+            >
+              {meta}
+            </span>
+          )}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{subtitle}</span>
+        <span
+          className={cn(
+            "mt-0.5 block truncate text-xs",
+            unread ? "font-medium text-foreground/85" : "text-muted-foreground",
+          )}
+        >
+          {subtitle}
+        </span>
         {hint && <span className="label-mono mt-1 block text-accent-readable">{hint}</span>}
       </span>
       {!!unread && (
@@ -315,9 +374,54 @@ export function ChatsScreen({
     (venture) => venture.status === "closed" || !!venture.closed_at || !!venture.ended_at,
   );
 
-  const showTribe = filter === "all" || filter === "tribe";
-  const showVentures = filter === "all" || filter === "ventures";
-  const showDirect = filter === "all" || filter === "direct";
+  const allChats = useMemo<UnifiedChatItem[]>(() => {
+    const items: UnifiedChatItem[] = [];
+
+    if (tribe) {
+      items.push({
+        kind: "tribe",
+        key: `tribe-${tribe.id}`,
+        lastAt: tribeQuery.data?.lastAt ?? "",
+        unreadCount: tribeQuery.data?.unreadCount ?? 0,
+      });
+    }
+
+    for (const venture of sortedVentures) {
+      const preview = previewsQuery.data?.get(venture.id);
+      items.push({
+        kind: "venture",
+        key: `venture-${venture.id}`,
+        lastAt: preview?.created_at ?? venture.created_at,
+        unreadCount: 0,
+        venture,
+        memory: venture.status === "closed" || !!venture.closed_at || !!venture.ended_at,
+      });
+    }
+
+    for (const thread of threads) {
+      items.push({
+        kind: "direct",
+        key: `direct-${thread.other_id}`,
+        lastAt: thread.last_message.created_at,
+        unreadCount: thread.unread_count,
+        thread,
+      });
+    }
+
+    return items.sort((left, right) => {
+      const unreadOrder = Number(right.unreadCount > 0) - Number(left.unreadCount > 0);
+      if (unreadOrder !== 0) return unreadOrder;
+      return right.lastAt.localeCompare(left.lastAt);
+    });
+  }, [previewsQuery.data, sortedVentures, threads, tribe, tribeQuery.data]);
+
+  const directUnreadCount = threads.reduce((total, thread) => total + thread.unread_count, 0);
+  const tribeUnreadCount = tribeQuery.data?.unreadCount ?? 0;
+  const reliableUnreadCount = directUnreadCount + tribeUnreadCount;
+
+  const showTribe = filter === "tribe";
+  const showVentures = filter === "ventures";
+  const showDirect = filter === "direct";
   const isLoading = joinedQuery.isLoading || hostedQuery.isLoading || threadsQuery.isLoading;
 
   const nothingAtAll =
@@ -349,37 +453,157 @@ export function ChatsScreen({
       />
 
       <main className="mx-auto max-w-md px-5">
-        {/* Ordered by permanence, not recency: the Tribe room is singular and
-            always there, Ventures are temporary groups that end, Direct is one
-            to one. That ordering is the audience model made visible — how many
-            people can read what you type, largest group first. */}
+        {/* All is a true inbox: reliable unread conversations rise first and
+            everything else follows latest activity. These filters preserve the
+            audience-specific views when someone wants Tribe, Venture, or DM
+            structure instead of the mixed chronological list. */}
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(
             [
-              ["all", "All"],
-              ["tribe", "Tribe"],
-              ["ventures", "Ventures"],
-              ["direct", "Direct"],
-            ] as Array<[Filter, string]>
-          ).map(([key, label]) => (
+              ["all", "All", reliableUnreadCount],
+              ["tribe", "Tribe", tribeUnreadCount],
+              ["ventures", "Ventures", 0],
+              ["direct", "Direct", directUnreadCount],
+            ] as Array<[Filter, string, number]>
+          ).map(([key, label, unreadCount]) => (
             <button
               key={key}
               type="button"
               onClick={() => setFilter(key)}
               aria-pressed={filter === key}
               className={cn(
-                "min-h-9 shrink-0 rounded-full px-3.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 filter === key
                   ? "bg-primary/15 text-primary"
                   : "border border-border text-muted-foreground",
               )}
             >
               {label}
+              {unreadCount > 0 && (
+                <span className="bg-meutuals-gradient flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-xs font-bold leading-none text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {isLoading && <ConversationListSkeleton />}
+
+        {!isLoading && filter === "all" && allChats.length > 0 && (
+          <div className="mt-3 flex flex-col gap-1">
+            {allChats.map((item) => {
+              if (item.kind === "tribe" && tribe) {
+                return (
+                  <Row
+                    key={item.key}
+                    accented
+                    context="Tribe"
+                    leading={
+                      <span
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                        style={{
+                          backgroundColor: `color-mix(in oklab, ${tribe.colorVar} 20%, transparent)`,
+                          boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${tribe.colorVar} 50%, transparent)`,
+                        }}
+                      >
+                        <TribeMark tribe={tribe} size="sm" />
+                      </span>
+                    }
+                    title={tribe.name}
+                    subtitle={
+                      tribeQuery.data?.lastContent
+                        ? `${tribeQuery.data.lastSenderName ?? "Someone"}: ${tribeQuery.data.lastContent}`
+                        : tribeQuery.data?.lastDeleted
+                          ? "Message removed"
+                          : "No messages yet — say something."
+                    }
+                    meta={tribeQuery.data?.lastAt ? timeAgoLabel(tribeQuery.data.lastAt) : null}
+                    hint={
+                      tribeQuery.data?.memberCount
+                        ? `${tribeQuery.data.memberCount} ${tribeQuery.data.memberCount === 1 ? "member" : "members"} · everyone in your Tribe`
+                        : "Everyone in your Tribe"
+                    }
+                    unread={item.unreadCount || null}
+                    onClick={onOpenTribeChat}
+                  />
+                );
+              }
+
+              if (item.kind === "venture") {
+                const preview = previewsQuery.data?.get(item.venture.id);
+                return (
+                  <Row
+                    key={item.key}
+                    context={item.memory ? "Memory" : "Venture"}
+                    leading={
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
+                        {item.memory ? (
+                          <UsersIcon className="h-4.5 w-4.5" weight="fill" />
+                        ) : (
+                          <LightningIcon className="h-4.5 w-4.5" weight="fill" />
+                        )}
+                      </span>
+                    }
+                    title={item.venture.title}
+                    subtitle={
+                      preview?.content ??
+                      (item.memory
+                        ? "Venture complete — reconnect with your party."
+                        : "No messages yet.")
+                    }
+                    meta={preview ? timeAgoLabel(preview.created_at) : null}
+                    hint={
+                      item.memory
+                        ? "Completed · find your Moots"
+                        : [timingLabel(item.venture), `${item.venture.filled_slots} going`]
+                            .filter(Boolean)
+                            .join(" · ")
+                    }
+                    unread={null}
+                    onClick={() => onOpenVentureChat(item.venture)}
+                  />
+                );
+              }
+
+              if (item.kind === "direct") {
+                const thread = item.thread;
+                return (
+                  <Row
+                    key={item.key}
+                    context="Direct"
+                    accented={thread.unread_count > 0}
+                    leading={
+                      <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-secondary text-lg">
+                        {thread.other?.avatar_url ? (
+                          <img
+                            src={thread.other.avatar_url}
+                            alt=""
+                            className="h-12 w-12 object-cover"
+                          />
+                        ) : (
+                          (thread.other?.avatar_emoji ?? "🙂")
+                        )}
+                      </span>
+                    }
+                    title={thread.other?.display_name?.trim() || "Someone"}
+                    subtitle={
+                      thread.last_message.deleted_at
+                        ? "Message removed"
+                        : thread.last_message.content ||
+                          (thread.last_message.attachment_type === "image" ? "Photo" : "Message")
+                    }
+                    meta={timeAgoLabel(thread.last_message.created_at)}
+                    unread={thread.unread_count || null}
+                    onClick={() => onOpenThread(thread.other_id)}
+                  />
+                );
+              }
+
+              return null;
+            })}
+          </div>
+        )}
 
         {!isLoading && showTribe && tribe && (
           <>
@@ -667,9 +891,7 @@ function MootsPickerSheet({
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold">{name}</p>
                             {m.handle && (
-                              <p className="truncate text-xs text-muted-foreground">
-                                @{m.handle}
-                              </p>
+                              <p className="truncate text-xs text-muted-foreground">@{m.handle}</p>
                             )}
                           </div>
                         </button>
