@@ -22,7 +22,7 @@ export function VentureSearching({
 }) {
   return (
     <div
-      className="flex min-h-[58svh] flex-col items-center justify-center pb-16 pt-8 text-center"
+      className="flex min-h-[calc(100svh_-_8rem_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col items-center justify-center py-8 text-center"
       role="status"
       aria-live="polite"
     >

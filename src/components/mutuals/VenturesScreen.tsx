@@ -300,7 +300,7 @@ export function VenturesScreen({
   };
 
   return (
-    <div className="bg-habitat min-h-screen pb-32">
+    <div className={cn("bg-habitat min-h-screen", stage === "loading" ? "pb-0" : "pb-32")}>
       <AppHeader
         title={
           stage !== "feature"

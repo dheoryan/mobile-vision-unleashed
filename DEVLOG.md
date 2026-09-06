@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex (Astra) | Center Venture loading group in usable viewport | `DEVLOG.md`, `src/components/mutuals/VentureSearching.tsx`, `src/components/mutuals/VenturesScreen.tsx` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Centered Venture loading composition
+
+- Centered the logo animation and its two lines of loading copy as one group in
+  the usable viewport between the sticky app header and fixed bottom navigation.
+- Removed the regular screen's large bottom content padding only while the
+  loader is active, preventing that reserved feed space from pulling the group
+  upward or creating an unnecessary loading-screen scroll.
+- Included top and bottom safe-area insets in the height calculation so the
+  visual center holds on notched iPhones and Home Screen mode.
+- Validation: focused ESLint, `npx tsc --noEmit`, `git diff --check`, and the
+  Cloudflare production build pass; existing build warnings remain.
 
 ### 2026-09-06 — Codex (Astra) — Branded Venture entry transition
 
