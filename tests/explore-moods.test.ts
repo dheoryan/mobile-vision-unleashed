@@ -80,3 +80,34 @@ test("shared availability strengthens the free-soon lens", () => {
       moodAffinity(candidate("no-overlap"), "tonight"),
   );
 });
+
+test("a picked vibe promotes whoever actually has that interest, over the five moods", () => {
+  const climber = candidate("climber", { interests: ["rock_climbing"], matchScore: 40 });
+  const nonClimber = candidate("non-climber", { interests: ["books"], matchScore: 90 });
+  const lens = { vibeId: "rock_climbing" };
+
+  assert.ok(moodAffinity(climber, lens) > moodAffinity(nonClimber, lens));
+  assert.deepEqual(
+    curateForMood([nonClimber, climber], lens, 2).map((item) => item.id),
+    ["climber", "non-climber"],
+  );
+});
+
+test("distinct picked vibes rotate independently of each other and of the five moods", () => {
+  const ranked = Array.from({ length: 12 }, (_, index) =>
+    candidate(String(index + 1), { matchScore: 100 - index }),
+  );
+  const coffeeVibe = curateForMood(ranked, { vibeId: "coffee" }, 5, "2026-08-26");
+  const potteryVibe = curateForMood(ranked, { vibeId: "pottery" }, 5, "2026-08-26");
+  const surpriseMood = curateForMood(ranked, "surprise", 5, "2026-08-26");
+
+  assert.equal(coffeeVibe.length, 5);
+  assert.notDeepEqual(
+    coffeeVibe.map((item) => item.id),
+    potteryVibe.map((item) => item.id),
+  );
+  assert.notDeepEqual(
+    coffeeVibe.map((item) => item.id),
+    surpriseMood.map((item) => item.id),
+  );
+});

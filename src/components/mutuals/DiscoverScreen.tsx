@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CoffeeIcon } from "@phosphor-icons/react/dist/csr/Coffee";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
@@ -55,10 +56,13 @@ import { MagicWandIcon } from "@phosphor-icons/react/dist/csr/MagicWand";
 import { useExploreMatches } from "@/lib/explore-store";
 import type { ExploreMatch } from "@/lib/explore.functions";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
-import { curateForMood, type ExploreMood } from "@/lib/explore-moods";
+import { curateForMood, lensKey, type ExploreLens, type ExploreMood } from "@/lib/explore-moods";
 import { useMyProfile } from "@/lib/profile-store";
 import { intentStore } from "@/lib/intent-store";
 import { PeopleSkeleton } from "./Skeleton";
+import { INTEREST_OPTION_GROUPS, INTEREST_OPTIONS } from "@/lib/profile-options";
+import { PROFILE_OPTION_ICONS } from "@/lib/profile-option-icons";
+import { readableAccentColor } from "@/lib/mutuals-data";
 
 type DiscoverPerson = Person & {
   allTribeIds: TribeId[];
@@ -147,7 +151,12 @@ export function DiscoverScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [nearbySettingsOpen, setNearbySettingsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [mood, setMood] = useState<ExploreMood>("surprise");
+  const [lens, setLens] = useState<ExploreLens>("surprise");
+  // The lens actually ranking the deck right now, once a continuation round
+  // picks a different one - so the header's own filter pill can switch to
+  // show it, instead of the deck showing a second pill for the same fact.
+  const [continuationLens, setContinuationLens] = useState<ExploreLens | null>(null);
+  const displayLens = continuationLens ?? lens;
   const [deckPhase, setDeckPhase] = useState<ExploreDeckPhase>("primary");
   const [deckDay] = useState(localDayKey);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -233,8 +242,8 @@ export function DiscoverScreen() {
   }, [query, debounced, people]);
 
   const todaysPeople = useMemo(
-    () => curateForMood(filtered, mood, 5, deckDay),
-    [deckDay, filtered, mood],
+    () => curateForMood(filtered, lens, 5, deckDay),
+    [deckDay, filtered, lens],
   );
 
   const toggle = (id: string) => toggleFollow.mutate(id);
@@ -246,9 +255,22 @@ export function DiscoverScreen() {
     myProfile.interests.length === 0 &&
     myProfile.socialIntents.length === 0 &&
     myProfile.availability.length === 0;
+  const pickedVibeOption =
+    typeof displayLens === "object"
+      ? INTEREST_OPTIONS.find((option) => option.id === displayLens.vibeId)
+      : null;
   const selectedMoodLabel =
-    MOOD_OPTIONS.find((option) => option.id === mood)?.label ?? "Surprise me";
-  const SelectedMoodIcon = MOOD_OPTIONS.find((option) => option.id === mood)?.Icon ?? ShuffleIcon;
+    pickedVibeOption?.label ??
+    (typeof displayLens === "string"
+      ? MOOD_OPTIONS.find((option) => option.id === displayLens)?.label
+      : null) ??
+    "Surprise me";
+  const SelectedMoodIcon =
+    (pickedVibeOption && PROFILE_OPTION_ICONS[pickedVibeOption.id]) ??
+    (typeof displayLens === "string"
+      ? MOOD_OPTIONS.find((option) => option.id === displayLens)?.Icon
+      : null) ??
+    ShuffleIcon;
   const searchMode = searchOpen || query.length > 0;
   const deckSectionTitle =
     deckPhase === "doors"
@@ -476,9 +498,9 @@ export function DiscoverScreen() {
           ) : (
             <ExploreDeck
               people={filtered}
-              mood={mood}
+              lens={lens}
               dayKey={deckDay}
-              sessionKey={`${deckDay}:${mood}`}
+              sessionKey={`${deckDay}:${lensKey(lens)}`}
               following={social.following}
               onToggleFollow={toggle}
               followPending={toggleFollow.isPending ? (toggleFollow.variables as string) : null}
@@ -488,6 +510,7 @@ export function DiscoverScreen() {
               }}
               onExploreTribes={() => setTribeBrowserOpen(true)}
               onPhaseChange={setDeckPhase}
+              onContinuationLensChange={setContinuationLens}
             />
           )}
         </div>
@@ -495,10 +518,10 @@ export function DiscoverScreen() {
 
       <MoodPickerSheet
         open={moodPickerOpen}
-        value={mood}
+        value={displayLens}
         onClose={() => setMoodPickerOpen(false)}
-        onChange={(nextMood) => {
-          setMood(nextMood);
+        onChange={(nextLens) => {
+          setLens(nextLens);
           setMoodPickerOpen(false);
         }}
       />
@@ -575,6 +598,12 @@ export function DiscoverScreen() {
   );
 }
 
+/** How many vibe chips each group shows before "Show all 85" - a preview,
+ *  not the whole 85-option catalogue at once (same reasoning as the
+ *  onboarding picker: a pool this size needs a collapsed default to stay
+ *  browsable, not a wall of chips). */
+const VIBE_GROUP_PREVIEW_COUNT = 2;
+
 function MoodPickerSheet({
   open,
   value,
@@ -582,10 +611,12 @@ function MoodPickerSheet({
   onChange,
 }: {
   open: boolean;
-  value: ExploreMood;
+  value: ExploreLens;
   onClose: () => void;
-  onChange: (mood: ExploreMood) => void;
+  onChange: (lens: ExploreLens) => void;
 }) {
+  const [vibesExpanded, setVibesExpanded] = useState(false);
+
   return (
     <AnimatedModal
       open={open}
@@ -593,9 +624,9 @@ function MoodPickerSheet({
         if (!nextOpen) onClose();
       }}
       title="Choose today’s mood"
-      contentClassName="overflow-hidden"
+      contentClassName="flex max-h-[86dvh] flex-col overflow-hidden"
     >
-      <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 p-6 pb-0">
         <div className="pr-10">
           <p className="label-mono text-primary">Discovery lens</p>
           <h3 className="mt-2 font-display text-2xl font-bold">What are you up for?</h3>
@@ -611,26 +642,102 @@ function MoodPickerSheet({
         >
           <XIcon className="h-4 w-4" />
         </button>
-        <div className="mt-6 grid gap-2">
-          {MOOD_OPTIONS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onChange(id)}
-              aria-pressed={value === id}
-              className={cn(
-                "flex min-h-12 items-center gap-3 rounded-2xl border px-4 text-left text-sm font-semibold transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                value === id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background/45 text-foreground hover:border-primary/40",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-              {value === id && <CheckIcon className="ml-auto h-4 w-4" />}
-            </button>
-          ))}
+
+        <p className="label-mono mt-5 text-muted-foreground">Quick moods</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {MOOD_OPTIONS.map(({ id, label, Icon }) => {
+            const active = value === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onChange(id)}
+                aria-pressed={active}
+                className={cn(
+                  "flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-colors active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background/45 text-foreground hover:border-primary/40",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
         </div>
+      </div>
+
+      <div className="scroll-panel min-h-0 flex-1 overflow-y-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-border" aria-hidden />
+          <span className="label-mono shrink-0 text-muted-foreground">or pick a specific vibe</span>
+          <span className="h-px flex-1 bg-border" aria-hidden />
+        </div>
+
+        <div className="mt-4 space-y-4">
+          {INTEREST_OPTION_GROUPS.map((group) => {
+            const accentColor = "tribeId" in group ? tribeById(group.tribeId).colorVar : undefined;
+            const items = vibesExpanded
+              ? group.items
+              : group.items.slice(0, VIBE_GROUP_PREVIEW_COUNT);
+            return (
+              <div key={group.label}>
+                <p
+                  className={cn(
+                    "label-mono flex items-center gap-1.5",
+                    !accentColor && "text-muted-foreground",
+                  )}
+                  style={accentColor ? { color: readableAccentColor(accentColor) } : undefined}
+                >
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: accentColor ?? "var(--muted-foreground)" }}
+                    aria-hidden
+                  />
+                  {group.label}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  {items.map((option) => {
+                    const active = typeof value === "object" && value.vibeId === option.id;
+                    const Icon = PROFILE_OPTION_ICONS[option.id] ?? CheckIcon;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => onChange({ vibeId: option.id })}
+                        aria-pressed={active}
+                        className={cn(
+                          "flex min-h-11 items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left text-xs font-semibold transition-[transform,border-color,background-color,color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                          active
+                            ? accentColor
+                              ? "border-transparent text-white shadow-sm"
+                              : "border-transparent bg-meutuals-gradient text-white shadow-sm"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                        style={active && accentColor ? { backgroundColor: accentColor } : undefined}
+                      >
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setVibesExpanded((current) => !current)}
+          className="mt-4 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {vibesExpanded ? "Show fewer" : "Show all 85"}
+          <CaretDownIcon
+            className={cn("h-4 w-4 transition-transform", vibesExpanded && "rotate-180")}
+          />
+        </button>
       </div>
     </AnimatedModal>
   );

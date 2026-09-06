@@ -6,16 +6,22 @@ import {
   type PointerEvent as ReactPointerEvent,
   type TransitionEvent as ReactTransitionEvent,
 } from "react";
-import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
+import type { Icon } from "@phosphor-icons/react";
 import { BookmarkSimpleIcon } from "@phosphor-icons/react/dist/csr/BookmarkSimple";
 import { CalendarPlusIcon } from "@phosphor-icons/react/dist/csr/CalendarPlus";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { CoffeeIcon } from "@phosphor-icons/react/dist/csr/Coffee";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
+import { MoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
+import { PaletteIcon } from "@phosphor-icons/react/dist/csr/Palette";
+import { ShuffleIcon } from "@phosphor-icons/react/dist/csr/Shuffle";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { MapPinIcon } from "@phosphor-icons/react/dist/csr/MapPin";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
-import { ShuffleIcon } from "@phosphor-icons/react/dist/csr/Shuffle";
+import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import { Link } from "@tanstack/react-router";
 import { readableAccentColor, tribeById, type TribeId } from "@/lib/mutuals-data";
 import { TribeMark } from "./TribeMark";
@@ -26,7 +32,15 @@ import { LazyImage } from "./LazyImage";
 import discoverArt from "@/assets/app-illustrations/discover.webp";
 import { useContactStatus } from "@/lib/social-store";
 import { matchReasons, type MatchSignals } from "@/lib/explore-reasons";
-import { curateForMood, curateUnseenForMood, type ExploreMood } from "@/lib/explore-moods";
+import {
+  curateForMood,
+  curateUnseenForMood,
+  lensKey,
+  type ExploreLens,
+  type ExploreMood,
+} from "@/lib/explore-moods";
+import { INTEREST_OPTION_GROUPS } from "@/lib/profile-options";
+import { PROFILE_OPTION_ICONS } from "@/lib/profile-option-icons";
 import { useRecordExploreImpressions } from "@/lib/explore-store";
 import { intentStore } from "@/lib/intent-store";
 import { cn } from "@/lib/utils";
@@ -64,12 +78,14 @@ interface GestureState {
   horizontal: boolean;
 }
 
-const CONTINUATION_MOODS: Array<{ id: ExploreMood; label: string }> = [
-  { id: "coffee", label: "Coffee nearby" },
-  { id: "friends", label: "Make friends" },
-  { id: "create", label: "Create something" },
-  { id: "tonight", label: "Free soon" },
-  { id: "surprise", label: "Surprise me" },
+// Same icons as the Discovery Lens sheet's quick moods (DiscoverScreen.tsx's
+// MOOD_OPTIONS) - one mood, one icon, wherever it's picked from.
+const CONTINUATION_MOODS: Array<{ id: ExploreMood; label: string; Icon: Icon }> = [
+  { id: "coffee", label: "Coffee nearby", Icon: CoffeeIcon },
+  { id: "friends", label: "Make friends", Icon: UsersIcon },
+  { id: "create", label: "Create something", Icon: PaletteIcon },
+  { id: "tonight", label: "Free soon", Icon: MoonIcon },
+  { id: "surprise", label: "Surprise me", Icon: ShuffleIcon },
 ];
 
 function helloLabel(person: DeckPerson): string {
@@ -85,10 +101,6 @@ function isImageAvatar(avatar: string): boolean {
   return /^(https?:|data:image|blob:)/i.test(avatar);
 }
 
-function moodLabel(mood: ExploreMood): string {
-  return CONTINUATION_MOODS.find((option) => option.id === mood)?.label ?? "A new direction";
-}
-
 /**
  * A bounded consideration deck, never a reject stack. Horizontal gestures only
  * change position. Nobody is removed, downranked or hidden by browsing past
@@ -96,7 +108,7 @@ function moodLabel(mood: ExploreMood): string {
  */
 export function ExploreDeck({
   people,
-  mood,
+  lens,
   dayKey,
   sessionKey,
   following,
@@ -105,9 +117,10 @@ export function ExploreDeck({
   onOpenNearby,
   onExploreTribes,
   onPhaseChange,
+  onContinuationLensChange,
 }: {
   people: DeckPerson[];
-  mood: ExploreMood;
+  lens: ExploreLens;
   dayKey: string;
   sessionKey: string;
   following: Set<string>;
@@ -116,10 +129,14 @@ export function ExploreDeck({
   onOpenNearby: () => void;
   onExploreTribes: () => void;
   onPhaseChange?: (phase: ExploreDeckPhase) => void;
+  /** So the header's own lens filter can switch to show whichever lens is
+   *  actually driving the deck right now, instead of a second pill inside
+   *  the deck repeating what a continuation round is ranked by. */
+  onContinuationLensChange?: (lens: ExploreLens | null) => void;
 }) {
   const primaryPeople = useMemo(
-    () => curateForMood(people, mood, 5, dayKey),
-    [dayKey, mood, people],
+    () => curateForMood(people, lens, 5, dayKey),
+    [dayKey, lens, people],
   );
   const excludedPrimaryIds = useMemo(
     () => new Set(primaryPeople.map((person) => person.id)),
@@ -128,24 +145,27 @@ export function ExploreDeck({
 
   const [phase, setPhase] = useState<ExploreDeckPhase>("primary");
   const [index, setIndex] = useState(0);
-  const [continuationMood, setContinuationMood] = useState<ExploreMood | null>(null);
+  const [continuationLens, setContinuationLens] = useState<ExploreLens | null>(null);
   const [doorMessage, setDoorMessage] = useState<string | null>(null);
   const [helloFor, setHelloFor] = useState<DeckPerson | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [swipeMotion, setSwipeMotion] = useState<SwipeMotion>("idle");
+  // "Pick a new lens" mirrors the Discovery Lens sheet: quick moods plus a
+  // specific-vibe browser, collapsed to a preview until asked to show all 85.
+  const [doorVibesExpanded, setDoorVibesExpanded] = useState(false);
   const gestureRef = useRef<GestureState | null>(null);
 
   const continuationPeople = useMemo(() => {
-    if (!continuationMood) return [];
+    if (!continuationLens) return [];
     return curateUnseenForMood(
       people,
-      continuationMood,
+      continuationLens,
       excludedPrimaryIds,
       5,
-      `${dayKey}:continuation:${continuationMood}`,
+      `${dayKey}:continuation:${lensKey(continuationLens)}`,
     );
-  }, [continuationMood, dayKey, excludedPrimaryIds, people]);
+  }, [continuationLens, dayKey, excludedPrimaryIds, people]);
 
   // So tomorrow's ranking can push today's five down instead of showing the
   // same top scorers forever (list_explore_matches applies the penalty).
@@ -179,10 +199,11 @@ export function ExploreDeck({
     setDragX(0);
     setSwipeMotion("idle");
     setIndex(0);
-    setContinuationMood(null);
+    setContinuationLens(null);
+    onContinuationLensChange?.(null);
     setDoorMessage(null);
     changePhase("primary");
-    // The callback is intentionally excluded: sessionKey is the reset contract.
+    // The callbacks are intentionally excluded: sessionKey is the reset contract.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey]);
 
@@ -216,20 +237,21 @@ export function ExploreDeck({
     if (index > 0) setIndex((current) => current - 1);
   };
 
-  const startContinuation = (nextMood: ExploreMood) => {
+  const startContinuation = (nextLens: ExploreLens) => {
     const nextPeople = curateUnseenForMood(
       people,
-      nextMood,
+      nextLens,
       excludedPrimaryIds,
       5,
-      `${dayKey}:continuation:${nextMood}`,
+      `${dayKey}:continuation:${lensKey(nextLens)}`,
     );
     if (!nextPeople.length) {
       setDoorMessage("There aren’t enough different introductions for that direction yet.");
       return;
     }
     setDoorMessage(null);
-    setContinuationMood(nextMood);
+    setContinuationLens(nextLens);
+    onContinuationLensChange?.(nextLens);
     setIndex(0);
     changePhase("continuation");
   };
@@ -336,154 +358,266 @@ export function ExploreDeck({
   if (!primaryPeople.length) return null;
 
   if (phase === "doors") {
-    const choices = CONTINUATION_MOODS.filter((option) => option.id !== mood);
+    // A picked vibe isn't one of the five continuation moods, so none of
+    // them need excluding on its account - only a starting mood excludes its
+    // own continuation option, same as before.
+    const choices = CONTINUATION_MOODS.filter(
+      (option) => option.id !== (typeof lens === "string" ? lens : null),
+    );
     const primarySetLabel =
       primaryPeople.length === 5 ? "Today’s five" : `Today’s ${primaryPeople.length}`;
     return (
-      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
-        <div className="shrink-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            <CheckIcon className="h-3 w-3 text-accent-readable" weight="bold" /> {primarySetLabel}{" "}
-            complete
-          </span>
-          <h3 className="mt-2 font-display text-[28px] font-bold leading-[1.05]">
-            Where do you want to go next?
+      // The stack keeps its own silhouette here too - two faint peeking
+      // edges behind the card, same treatment the live cards use below, so
+      // finishing the deck never reads as leaving it for a menu screen.
+      <div className="relative h-full min-h-0">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-3 -bottom-2 top-2 rounded-[28px] border"
+          style={{
+            backgroundColor: "color-mix(in oklab, var(--brand-solid) 5%, var(--card))",
+            borderColor: "color-mix(in oklab, var(--brand-solid) 12%, var(--border))",
+          }}
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-1.5 -bottom-1 top-1 rounded-[28px] border"
+          style={{
+            backgroundColor: "color-mix(in oklab, var(--brand-solid) 9%, var(--card))",
+            borderColor: "color-mix(in oklab, var(--brand-solid) 22%, var(--border))",
+          }}
+        />
+        <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-5 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+          {/* One statement of "you're done", not three - the checkmark
+              badge and the old subtext both said this again in their own
+              words. */}
+          <div className="shrink-0 border-l-2 border-primary pl-3">
+            <p className="label-mono text-primary">{primarySetLabel} complete</p>
+            <p className="text-xs text-muted-foreground">
+              Everyone stays in play — nobody was rejected.
+            </p>
+          </div>
+          <h3 className="mt-3 shrink-0 font-display text-[26px] font-bold leading-[1.05]">
+            Where to next?
           </h3>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Everyone stays in play. Choose a new lens, a plan, or a room.
-          </p>
-        </div>
 
-        <div className="mt-4 rounded-3xl border border-primary/35 bg-primary/8 p-4">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-meutuals-gradient text-white">
-              <ShuffleIcon className="h-5 w-5" weight="fill" />
-            </span>
-            <div className="min-w-0">
-              <h4 className="font-display text-lg font-bold">Meet another five</h4>
-              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                Change the mix without repeating today’s people.
-              </p>
-            </div>
-          </div>
-          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {choices.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => startContinuation(option.id)}
-                className="min-h-10 shrink-0 rounded-full bg-secondary px-3 text-xs font-semibold text-foreground transition-colors hover:bg-primary/15 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={onOpenNearby}
-            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <MapPinIcon className="h-3.5 w-3.5" /> Adjust discovery area
-          </button>
-        </div>
-
-        {/* Which Tribe you belong to is a considered, 21-day-cooldown
-            decision — not a casual browsing option to re-surface as a peer
-            of "meet more people" every time a five finishes. Explore Tribes
-            already has a permanent home in Discover's Browse menu; it
-            doesn't also need a seat here.
-
-            Styled as a peer of "Meet another five" rather than a smaller
-            afterthought below it - same icon-badge treatment, same card
-            weight, its own accent color (not the gradient, which stays
-            reserved for the one featured action above) so the two read as
-            genuinely parallel choices, not primary-plus-leftover. */}
-        <div className="mt-3">
+          {/* Ventures leads, not a lens - it's the one decisive action on
+              this screen, and the best-built thing in the product, so it
+              gets first position rather than being found after scrolling
+              past a picker. */}
           <button
             type="button"
             onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-            className="flex w-full items-start gap-3 rounded-3xl border border-accent/35 bg-accent/8 p-4 text-left transition-colors hover:border-accent/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="group mt-3 flex w-full shrink-0 items-center gap-3 rounded-2xl bg-meutuals-gradient px-4 py-3.5 text-left text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent-readable">
-              <CalendarPlusIcon className="h-5 w-5" />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20">
+              <CalendarPlusIcon className="h-4 w-4" />
             </span>
-            <div className="min-w-0">
-              <h4 className="font-display text-lg font-bold">Find a Venture</h4>
-              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                Start with a real plan instead of another lens.
-              </p>
-            </div>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-sm font-bold">Find a Venture</span>
+              <span className="block text-xs text-white/85">
+                Start with a real plan instead of a lens.
+              </span>
+            </span>
+            <CaretRightIcon className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
           </button>
-        </div>
 
-        <div className="mt-auto border-t border-border/70 pt-2">
-          {doorMessage && (
-            <p role="status" className="px-2 pb-1 text-xs leading-snug text-muted-foreground">
-              {doorMessage}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setIndex(Math.max(primaryPeople.length - 1, 0));
-              changePhase("primary");
-            }}
-            className="group flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left transition-colors hover:bg-background/45 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <CaretLeftIcon className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-x-0.5" />
-            <span className="min-w-0">
-              <span className="block text-xs font-semibold text-foreground">
-                Back to today’s five
+          <div className="mt-3 flex shrink-0 items-center gap-3 text-[0.6875rem] font-bold uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" aria-hidden />
+            or pick a new lens
+            <span className="h-px flex-1 bg-border" aria-hidden />
+          </div>
+
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* A mood is one of several equal picks, so it's a labeled row of
+                real buttons - never a card wearing an icon and a subtitle
+                that implies the whole thing is one tap target when the
+                actual action lives in three small chips inside it. */}
+            <p className="label-mono text-muted-foreground">Quick moods</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {choices.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => startContinuation(option.id)}
+                  className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-border bg-background/45 px-3.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <option.Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onOpenNearby}
+              className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <MapPinIcon className="h-3.5 w-3.5" /> Adjust discovery area
+            </button>
+
+            {/* Same specific-vibe browser as the Discovery Lens sheet - a
+                continuation is choosing a new lens exactly like the first
+                one was, so it gets the same two-tier choice: quick moods,
+                or any of the ~85 real interests, not just the five words. */}
+            <div className="mt-4 flex items-center gap-3 text-[0.6875rem] font-bold uppercase tracking-wide text-muted-foreground">
+              <span className="h-px flex-1 bg-border" aria-hidden />
+              or pick a specific vibe
+              <span className="h-px flex-1 bg-border" aria-hidden />
+            </div>
+            <div className="mt-3 space-y-3">
+              {INTEREST_OPTION_GROUPS.map((group) => {
+                const accentColor =
+                  "tribeId" in group ? tribeById(group.tribeId).colorVar : undefined;
+                const items = doorVibesExpanded ? group.items : group.items.slice(0, 2);
+                return (
+                  <div key={group.label}>
+                    <p
+                      className={cn(
+                        "label-mono flex items-center gap-1.5",
+                        !accentColor && "text-muted-foreground",
+                      )}
+                      style={accentColor ? { color: readableAccentColor(accentColor) } : undefined}
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: accentColor ?? "var(--muted-foreground)" }}
+                        aria-hidden
+                      />
+                      {group.label}
+                    </p>
+                    <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                      {items.map((option) => {
+                        const VibeIcon = PROFILE_OPTION_ICONS[option.id] ?? CheckIcon;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => startContinuation({ vibeId: option.id })}
+                            className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5 text-left text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <VibeIcon className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{option.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDoorVibesExpanded((current) => !current)}
+              className="mt-3 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {doorVibesExpanded ? "Show fewer" : "Show all 85"}
+              <CaretDownIcon
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  doorVibesExpanded && "rotate-180",
+                )}
+              />
+            </button>
+          </div>
+
+          <div className="mt-2 shrink-0 border-t border-border/70 pt-2">
+            {doorMessage && (
+              <p role="status" className="px-2 pb-1 text-xs leading-snug text-muted-foreground">
+                {doorMessage}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setIndex(Math.max(primaryPeople.length - 1, 0));
+                changePhase("primary");
+              }}
+              className="group flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left transition-colors hover:bg-background/45 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <CaretLeftIcon className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-x-0.5" />
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-foreground">
+                  Back to today’s five
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Review anyone again
+                </span>
               </span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                Review anyone again
-              </span>
-            </span>
-          </button>
-        </div>
-      </section>
+            </button>
+          </div>
+        </section>
+      </div>
     );
   }
 
   if (phase === "done") {
     const consideredCount = primaryPeople.length + continuationPeople.length;
     return (
-      <section className="flex h-full min-h-0 flex-col rounded-[28px] border border-border bg-card p-6 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
-        <p className="label-mono text-primary">{consideredCount} considered, nobody rejected</p>
-        <h3 className="mt-2 font-display text-3xl font-bold leading-tight">That’s enough cards.</h3>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Continue with a real room or plan, or revisit anyone you met today.
-        </p>
-        <div className="flex min-h-0 flex-1 items-center justify-center py-3">
-          <FeatureIllustration src={discoverArt} size="lg" className="w-[190px] opacity-85" />
-        </div>
-        <div className="grid shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
-            className="flex min-h-12 items-center justify-between rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Browse Ventures <ArrowRightIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onExploreTribes}
-            className="flex min-h-12 items-center justify-between rounded-2xl border border-border bg-background/45 px-4 text-sm font-semibold transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Explore Tribes <ArrowRightIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIndex(0);
-              changePhase("primary");
-            }}
-            className="min-h-11 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Revisit today’s five
-          </button>
-        </div>
-      </section>
+      // Same peeking-stack silhouette and status/CTA treatment as the
+      // "doors" phase - this is the deck's other end state, not a
+      // differently-designed screen.
+      <div className="relative h-full min-h-0">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-3 -bottom-2 top-2 rounded-[28px] border"
+          style={{
+            backgroundColor: "color-mix(in oklab, var(--brand-solid) 5%, var(--card))",
+            borderColor: "color-mix(in oklab, var(--brand-solid) 12%, var(--border))",
+          }}
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-1.5 -bottom-1 top-1 rounded-[28px] border"
+          style={{
+            backgroundColor: "color-mix(in oklab, var(--brand-solid) 9%, var(--card))",
+            borderColor: "color-mix(in oklab, var(--brand-solid) 22%, var(--border))",
+          }}
+        />
+        <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border bg-card p-6 text-left motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+          <div className="shrink-0 border-l-2 border-primary pl-3">
+            <p className="label-mono text-primary">{consideredCount} considered</p>
+            <p className="text-xs text-muted-foreground">Nobody was rejected.</p>
+          </div>
+          <h3 className="mt-3 shrink-0 font-display text-3xl font-bold leading-tight">
+            That’s enough cards.
+          </h3>
+          <p className="mt-3 shrink-0 text-sm leading-relaxed text-muted-foreground">
+            Continue with a real room or plan, or revisit anyone you met today.
+          </p>
+          <div className="flex min-h-0 flex-1 items-center justify-center py-3">
+            <FeatureIllustration src={discoverArt} size="lg" className="w-[190px] opacity-85" />
+          </div>
+          <div className="grid shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => intentStore.push({ kind: "openTab", tab: "ventures" })}
+              className="group flex min-h-12 items-center gap-3 rounded-2xl bg-meutuals-gradient px-4 text-left text-white transition-[transform,filter] hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <CalendarPlusIcon className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-sm font-bold">Browse Ventures</span>
+              <CaretRightIcon className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onExploreTribes}
+              className="group flex min-h-12 items-center justify-between rounded-2xl border border-border bg-background/45 px-4 text-sm font-semibold transition-colors hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Explore Tribes
+              <CaretRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIndex(0);
+                changePhase("primary");
+              }}
+              className="min-h-11 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Revisit today’s five
+            </button>
+          </div>
+        </section>
+      </div>
     );
   }
 
@@ -519,12 +653,10 @@ export function ExploreDeck({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col" aria-live="polite">
-      {phase === "continuation" && continuationMood && (
-        <div className="mb-3 border-l-2 border-primary pl-3">
-          <p className="label-mono text-primary">A different five</p>
-          <p className="mt-1 text-xs text-muted-foreground">{moodLabel(continuationMood)}</p>
-        </div>
-      )}
+      {/* No in-deck pill announcing the continuation lens - DiscoverScreen's
+          own filter pill switches to show it instead (via
+          onContinuationLensChange), so there's one place this fact lives,
+          not a second display repeating what the header already says. */}
       <p className="sr-only">Showing {person.name}</p>
       <div className="relative min-h-0 flex-1">
         {queuedPeople.map((queuedPerson, queueIndex) => {
