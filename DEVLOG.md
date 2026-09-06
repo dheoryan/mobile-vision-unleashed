@@ -209,6 +209,27 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-06 — User + Claude — Venture journey consistency migration applied to production
+
+- The user pasted `supabase/migrations/20260906010000_venture_journey_consistency.sql`
+  into Lovable's SQL editor. Query succeeded, and all 13 checks in
+  `LOVABLE_VENTURE_JOURNEY_VERIFY.sql` returned `true`: `ventures.cancelled_at`
+  exists; `venture_room_reads` exists with RLS enabled and exactly 3 policies,
+  and every existing row in it belongs to an actual venture member; every
+  existing host and every existing accepted applicant already has a baseline
+  read pointer; both read-pointer triggers and the future-completion guard
+  trigger are attached; `is_venture_joinable` closes on `starts_at`;
+  `notify_on_venture_application` covers the new transition-specific
+  notification kinds; `get_profile_stats` excludes cancelled Ventures; and
+  `notifications_kind_check` allows the new `venture_*` kinds.
+- This was the backing migration for the Venture lifecycle/My Ventures UI
+  release already published (Active/Memories, Complete vs Cancel, per-member
+  room unread pointers) — the schema now actually matches the shipped
+  interface, rather than the UI silently degrading against a database that
+  hadn't caught up.
+- `20260901000000_explore_radius_tier.sql` remains the other confirmed-pending
+  Red migration; no verify script exists for it yet.
+
 ### 2026-09-06 — User + Claude — S5 Venture-scope RLS confirmed live on production
 
 - `supabase/migrations/20260820000600_enforce_venture_scope.sql` had only ever
