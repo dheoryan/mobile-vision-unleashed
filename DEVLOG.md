@@ -19,6 +19,12 @@ Venue changes and push-secret rotation are applied and verified. Google Venue
 precision is intentionally feature-flagged off pending a team decision. Never
 force-push.
 
+**Pending public UI publish (2026-09-06):** local `main` and `origin/main` are
+both at `23c5679`. Lovable has imported that revision and its preview shows the
+latest login copy, but the project still reports **unpublished changes
+available**. `moots.lovable.app` remains on the earlier published bundle until
+the explicit Lovable **Publish changes** action is confirmed and completed.
+
 **Local dev talks to PRODUCTION.** `localhost:8082` uses the production Supabase
 project. Creating a Venture there makes a real row on a real board that 34 real
 users can see. There is no local database in play any more.
@@ -64,7 +70,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Reconcile the full pending UI release and Lovable publish state | `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +210,36 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Pending UI release state reconciled
+
+- This is the authoritative release-state entry for the 24 commits from
+  `f3045a7` through `23c5679`. Earlier entries that say “released by pushing
+  main” mean GitHub synchronization only; they do not mean the public Lovable
+  Publish action completed.
+- The pending Venture release includes the lifecycle consistency pass; the
+  consolidated My Ventures Active/Memories experience; invitation-first Active
+  ordering; latest-first Memories ordering; All/Hosted/Joined role filters and
+  card badges; role-aware empty states and deep links; gradient empty actions;
+  the two-way Venture Board/My Ventures navigation; and the branded loading
+  transition already logged below.
+- Final interface refinements are also included: Active/Memories now reuses the
+  All Tribes/My Tribe segment component with identical measured geometry
+  (`195 × 36 px` segments inside `408 × 46 px` containers); ownership and
+  Discover distance selections use dark-centered gradient outlines; and the
+  Venture Board/My Ventures header switch is a borderless text action with a
+  shared swap icon and stable 44 px tap target.
+- The same pending release changes the login heading to `Your people are here.`
+  Lovable's latest preview displays that exact copy. Local Chrome also verifies
+  the Venture text action, gradient states, and equal segment dimensions.
+- Git state: local `main` and `origin/main` both point to `23c5679`; only the
+  user's pre-existing `.env` and `package-lock.json` modifications remain
+  tracked and unstaged. Validation across the release includes Prettier,
+  TypeScript, targeted ESLint, Venture lifecycle tests, diff checks, and the
+  Cloudflare production build. No database change belongs to this release.
+- Deployment state: Lovable shows **unpublished changes available** and the
+  public site is still on the previous bundle. The next external action is the
+  user-confirmed **Publish changes** click in Lovable.
 
 ### 2026-09-06 — Codex (Astra) — Venture text switch and login voice
 
