@@ -7,6 +7,7 @@ import { NavigationArrowIcon } from "@phosphor-icons/react/dist/csr/NavigationAr
 import { SealCheckIcon } from "@phosphor-icons/react/dist/csr/SealCheck";
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
 import { TicketIcon } from "@phosphor-icons/react/dist/csr/Ticket";
+import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
 import { UserCheckIcon } from "@phosphor-icons/react/dist/csr/UserCheck";
 import { UsersIcon } from "@phosphor-icons/react/dist/csr/Users";
 import type { VentureParty } from "@/lib/ventures.functions";
@@ -154,21 +155,20 @@ function BoardListItem({
   const detailsId = `venture-list-item-${venture.id}`;
   const timing = timingLabel(venture);
 
-  const statusLabel = accepted
-    ? "You're in"
-    : pending
-      ? "Request sent"
-      : declined
-        ? "Request again"
-        : !requestsOpen
-          ? "Requests closed"
-          : timingState
-            ? timingState
-            : full
-              ? "Sold out"
-              : remaining === 1
-                ? "Last spot"
-                : `${remaining} spots`;
+  // filled_slots always counts the host, so anyone beyond that is an
+  // accepted applicant. The board never learns who they are — listOpenVentures
+  // fetches applications: [] for every row on purpose, the same privacy
+  // boundary that keeps party-chat membership private until acceptance — so
+  // they render as an anonymous count, never invented identities.
+  const anonymousFilled = Math.max(venture.filled_slots - 1, 0);
+  const fillPct = Math.round((venture.filled_slots / Math.max(venture.max_slots, 1)) * 100);
+  const hostName = venture.host?.display_name || "A MEUTUALS member";
+  const areaText = venture.venue
+    ? venture.venue.area || null
+    : venture.host?.city || "Shared after acceptance";
+  const ringLabel = `${venture.filled_slots} of ${venture.max_slots} spots taken — ${
+    remaining === 0 ? "none open" : remaining === 1 ? "1 open" : `${remaining} open`
+  }`;
 
   return (
     <article
@@ -184,9 +184,9 @@ function BoardListItem({
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={detailsId}
-        className="grid min-h-32 w-full grid-cols-[5.5rem_1fr] gap-3 p-3 text-left transition-colors hover:bg-secondary/20 active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        className="grid min-h-32 w-full grid-cols-[5rem_1fr_3.6rem] gap-2.5 p-3 text-left transition-colors hover:bg-secondary/20 active:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
       >
-        <div className="relative h-[6.5rem] w-[5.5rem] overflow-hidden rounded-xl bg-secondary/50">
+        <div className="relative h-[6.5rem] w-[5rem] overflow-hidden rounded-xl bg-secondary/50">
           <span className="absolute inset-0 flex items-center justify-center text-muted-foreground/45">
             <TicketIcon className="h-5 w-5" aria-hidden />
           </span>
@@ -195,71 +195,76 @@ function BoardListItem({
             rounded="rounded-xl"
             className="absolute inset-0 h-full w-full"
           />
-          {timing && (
-            <span className="absolute inset-x-1 bottom-1 truncate rounded-md bg-background/90 px-1.5 py-1 text-center font-mono text-xs font-bold uppercase tracking-wide backdrop-blur-sm">
-              {timing}
-            </span>
-          )}
         </div>
 
         <div className="flex min-w-0 flex-col py-0.5">
-          <span className="mb-2 flex w-full items-center justify-between gap-2">
-            <span
-              className={cn(
-                "rounded border px-1.5 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.12em]",
-                accepted
-                  ? "border-accent text-accent-readable"
-                  : pending
-                    ? "border-primary/50 text-primary"
-                    : "border-border text-muted-foreground",
-              )}
-            >
-              {statusLabel}
-            </span>
-            <CaretDownIcon
-              className={cn(
-                "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
-                open && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </span>
-
           <span className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight">
             {venture.title}
           </span>
 
-          {timing && <span className="mt-1 truncate text-xs text-muted-foreground">{timing}</span>}
-
-          {venture.venue && (
-            <span className="mt-1 flex min-w-0 items-center gap-1 text-xs leading-tight text-foreground/80">
-              <span className="truncate">{venture.venue.host_label}</span>
-              {venture.venue.google_place_id && (
-                <SealCheckIcon
-                  className="h-3 w-3 shrink-0 text-accent-readable"
-                  aria-label="Verified place"
-                />
-              )}
+          {timing && (
+            <span className="mt-1.5 flex items-start gap-1 text-xs leading-snug text-muted-foreground">
+              <CalendarDotIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+              <span>
+                {timingState && (
+                  <span className="font-semibold text-foreground">{timingState} · </span>
+                )}
+                {timing}
+              </span>
             </span>
           )}
 
-          <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <UsersIcon className="h-2.5 w-2.5" />
-              {venture.filled_slots}/{venture.max_slots} going
+          {venture.venue && (
+            <span className="mt-1 flex items-start gap-1 text-xs leading-snug text-foreground/80">
+              <MapPinIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+              <span className="min-w-0">
+                {venture.venue.host_label}
+                {venture.venue.google_place_id && (
+                  <SealCheckIcon
+                    className="ml-1 inline h-3 w-3 text-accent-readable"
+                    aria-label="Verified place"
+                  />
+                )}
+              </span>
             </span>
-            {venture.distance_band && (
-              <span className="inline-flex items-center gap-1 text-primary">
-                <NavigationArrowIcon className="h-2.5 w-2.5" aria-hidden />
-                {venture.distance_band}
+          )}
+
+          {venture.distance_band && (
+            <span className="mt-1 flex items-center gap-1 text-xs text-primary">
+              <NavigationArrowIcon className="h-3 w-3 shrink-0" aria-hidden />
+              {venture.distance_band}
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col items-center gap-1.5 pt-0.5">
+          <span className="label-mono text-muted-foreground">Spots</span>
+          <span
+            className="relative h-[3.1rem] w-[3.1rem] shrink-0 rounded-full"
+            style={{
+              background: `conic-gradient(var(--brand-solid) 0% ${fillPct}%, var(--border) ${fillPct}% 100%)`,
+            }}
+            role="img"
+            aria-label={ringLabel}
+            title={ringLabel}
+          >
+            <span className="absolute inset-1 rounded-full bg-card" aria-hidden />
+            <span className="absolute inset-0 flex flex-col items-center justify-center">
+              <b className="font-mono text-base font-bold leading-none text-foreground">
+                {remaining}
+              </b>
+              <span className="text-[0.5rem] uppercase tracking-wide text-muted-foreground">
+                open
               </span>
-            )}
-            {venture.intents[0] && (
-              <span className="inline-flex items-center gap-1">
-                <VentureVibeLabel value={venture.intents[0]} iconClassName="h-2.5 w-2.5" />
-              </span>
-            )}
+            </span>
           </span>
+          <CaretDownIcon
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
+              open && "rotate-180",
+            )}
+            aria-hidden
+          />
         </div>
       </button>
 
@@ -268,22 +273,70 @@ function BoardListItem({
           id={detailsId}
           className="animate-rise space-y-4 border-t border-border px-4 pb-4 pt-4"
         >
-          <div className="grid grid-cols-2 gap-3">
-            <DetailItem icon={<CalendarDotIcon className="h-3.5 w-3.5" />} label="When">
-              {timing || "Time arranged with host"}
-            </DetailItem>
-            <DetailItem icon={<UsersIcon className="h-3.5 w-3.5" />} label="Group">
-              {venture.filled_slots} going · {remaining} open
-            </DetailItem>
-            <DetailItem icon={<UserCheckIcon className="h-3.5 w-3.5" />} label="Hosted by">
-              {venture.host?.display_name || "A MEUTUALS member"}
-            </DetailItem>
-            <DetailItem icon={<MapPinIcon className="h-3.5 w-3.5" />} label="Area">
-              {venture.venue
-                ? [venture.venue.host_label, venture.venue.area].filter(Boolean).join(" · ")
-                : venture.host?.city || "Shared after acceptance"}
-            </DetailItem>
+          <div className="min-w-0 rounded-xl bg-secondary/35 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <UsersIcon className="h-3.5 w-3.5" />
+              Who&rsquo;s here
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <span className="flex -space-x-2">
+                <span
+                  className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-card bg-secondary text-sm ring-1 ring-brand"
+                  title={`${hostName} — hosting`}
+                >
+                  {venture.host?.avatar_url ? (
+                    <img
+                      src={venture.host.avatar_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    venture.host?.avatar_emoji || "🎟️"
+                  )}
+                </span>
+                {anonymousFilled > 0 && (
+                  <span
+                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-secondary text-[10px] font-bold text-muted-foreground"
+                    title={
+                      anonymousFilled === 1
+                        ? "1 more person going"
+                        : `${anonymousFilled} more people going`
+                    }
+                  >
+                    {anonymousFilled > 1 ? (
+                      `+${anonymousFilled}`
+                    ) : (
+                      <UserIcon className="h-3.5 w-3.5" />
+                    )}
+                  </span>
+                )}
+                {Array.from({ length: Math.min(remaining, 3) }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="h-7 w-7 rounded-full border-2 border-dashed border-border"
+                    aria-hidden
+                  />
+                ))}
+              </span>
+              <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground">{hostName}</span> is hosting ·{" "}
+                {venture.filled_slots} going ·{" "}
+                {full
+                  ? "sold out"
+                  : !requestsOpen
+                    ? "requests closed"
+                    : remaining === 1
+                      ? "last spot open"
+                      : `${remaining} open`}
+              </p>
+            </div>
           </div>
+
+          {areaText && (
+            <DetailItem icon={<MapPinIcon className="h-3.5 w-3.5" />} label="Area">
+              {areaText}
+            </DetailItem>
+          )}
 
           {venture.intents.length > 0 && (
             <div>

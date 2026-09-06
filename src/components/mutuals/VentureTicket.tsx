@@ -119,45 +119,50 @@ export function VentureTicket({
         )}
 
         <div className="flex min-w-0 flex-col gap-1.5 p-3.5">
-          <span className="label-mono inline-flex self-start items-center gap-1 rounded-full bg-accent/15 px-2 py-1 text-accent-readable">
-            <UsersIcon className="h-3 w-3" weight="fill" />
-            Joined
-          </span>
-          {/* The title opens the back of the ticket. Everything a member needs
-              to actually turn up lives there — until now an accepted member
-              could see that they were in and nothing else about what they had
-              joined. */}
+          {/* The whole block opens the back of the ticket, not just the
+              title text — the title used to be the only tappable spot on an
+              otherwise inert card, which read as broken rather than as "tap
+              elsewhere." Everything a member needs to actually turn up lives
+              back there — until now an accepted member could see that they
+              were in and nothing else about what they had joined. */}
           <button
             type="button"
             onClick={onOpenDetail}
             disabled={!onOpenDetail}
-            className="rounded text-left text-[15px] font-bold leading-tight tracking-tight transition-opacity active:opacity-70 disabled:cursor-default disabled:active:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex flex-col items-start gap-1.5 rounded text-left transition-opacity active:opacity-70 disabled:cursor-default disabled:active:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            {venture.title}
+            <span className="label-mono inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-1 text-accent-readable">
+              <UsersIcon className="h-3 w-3" weight="fill" />
+              Joined
+            </span>
+
+            <span className="text-[15px] font-bold leading-tight tracking-tight">
+              {venture.title}
+            </span>
+
+            {!stub && venture.time_window && (
+              <span className="text-xs text-muted-foreground">{venture.time_window}</span>
+            )}
+
+            {venture.venue && (
+              <span className="flex min-w-0 items-center gap-1 text-xs text-foreground/85">
+                <span className="truncate">{venture.venue.host_label}</span>
+                {venture.venue.google_place_id && (
+                  <SealCheckIcon
+                    className="h-3 w-3 shrink-0 text-accent-readable"
+                    aria-label="Verified place"
+                  />
+                )}
+              </span>
+            )}
+
+            <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-muted-foreground">
+              <UsersIcon className="h-2.5 w-2.5" />
+              {venture.filled_slots} of {venture.max_slots} going
+            </span>
+
+            <Stamp status={status} lifecycle={lifecycle} />
           </button>
-
-          {!stub && venture.time_window && (
-            <p className="text-xs text-muted-foreground">{venture.time_window}</p>
-          )}
-
-          {venture.venue && (
-            <p className="flex min-w-0 items-center gap-1 text-xs text-foreground/85">
-              <span className="truncate">{venture.venue.host_label}</span>
-              {venture.venue.google_place_id && (
-                <SealCheckIcon
-                  className="h-3 w-3 shrink-0 text-accent-readable"
-                  aria-label="Verified place"
-                />
-              )}
-            </p>
-          )}
-
-          <p className="flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-muted-foreground">
-            <UsersIcon className="h-2.5 w-2.5" />
-            {venture.filled_slots} of {venture.max_slots} going
-          </p>
-
-          <Stamp status={status} lifecycle={lifecycle} />
 
           {invited ? (
             <div className="mt-1.5 flex gap-2">
@@ -267,6 +272,8 @@ export function VentureTicketDetail({
   // is legitimately empty for a member, so it renders a line saying so rather
   // than an empty box implying nobody is coming.
   const going = venture.applications.filter((a) => a.status === "accepted");
+  const remainingSlots = Math.max(venture.max_slots - venture.filled_slots, 0);
+  const anonymousFilled = Math.max(venture.filled_slots - 1 - going.length, 0);
 
   return (
     <AnimatedModal
@@ -406,28 +413,74 @@ export function VentureTicketDetail({
         )}
 
         <section className="space-y-2">
-          <p className="label-mono text-muted-foreground">
-            Who's going · {venture.filled_slots} of {venture.max_slots}
-          </p>
-          {going.length ? (
-            <div className="flex flex-wrap gap-2">
+          <p className="label-mono text-muted-foreground">Who&rsquo;s here</p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="flex -space-x-2">
+              <span
+                className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-card bg-secondary text-sm ring-1 ring-brand"
+                title={`${host?.display_name ?? "The host"} — hosting`}
+              >
+                {host?.avatar_url ? (
+                  <img src={host.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  host?.avatar_emoji || "🎟️"
+                )}
+              </span>
+              {/* Real, named members once the party-members policy has made
+                  them visible to this viewer (typically: once accepted). */}
               {going.map((a) => (
                 <span
                   key={a.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs"
+                  className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-card bg-secondary text-sm"
+                  title={a.applicant?.display_name ?? "Someone"}
                 >
-                  <span className="text-xs">{a.applicant?.avatar_emoji ?? "•"}</span>
-                  {a.applicant?.display_name ?? "Someone"}
+                  {a.applicant?.avatar_url ? (
+                    <img
+                      src={a.applicant.avatar_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    a.applicant?.avatar_emoji || "•"
+                  )}
                 </span>
               ))}
-            </div>
-          ) : (
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {venture.filled_slots > 1
-                ? `${venture.filled_slots - 1} other${venture.filled_slots > 2 ? "s" : ""} joined. Names show up in the party chat.`
-                : "You're the first one in."}
-            </p>
-          )}
+              {/* Before that policy applies to this viewer, other accepted
+                  members are still real people — just not ones we can name
+                  here — so they render as an anonymous count, never as
+                  invented identities. */}
+              {going.length === 0 && anonymousFilled > 0 && (
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-secondary text-[10px] font-bold text-muted-foreground"
+                  title={
+                    anonymousFilled === 1
+                      ? "1 more person going"
+                      : `${anonymousFilled} more people going`
+                  }
+                >
+                  {anonymousFilled > 1 ? (
+                    `+${anonymousFilled}`
+                  ) : (
+                    <UsersIcon className="h-3.5 w-3.5" />
+                  )}
+                </span>
+              )}
+              {Array.from({ length: Math.min(remainingSlots, 3) }).map((_, i) => (
+                <span
+                  key={i}
+                  className="h-8 w-8 rounded-full border-2 border-dashed border-border"
+                  aria-hidden
+                />
+              ))}
+            </span>
+            {going.length === 0 && (
+              <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
+                {venture.filled_slots > 1
+                  ? `${venture.filled_slots - 1} other${venture.filled_slots > 2 ? "s" : ""} joined. Names show up in the party chat.`
+                  : "You're the first one in."}
+              </p>
+            )}
+          </div>
         </section>
 
         <section className="space-y-2">

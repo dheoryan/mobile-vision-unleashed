@@ -55,7 +55,7 @@ are already assessed there.
 | Week 1 — critical security, store blockers, scale | ✅ done (commit `7a25853`)                                                                                                            |
 | Week 2 — safety & correctness                     | ✅ done (2026-08-20)                                                                                                                  |
 | Week 3 — compliance & launch prep                 | 🟡 engineering pass complete; external launch work remains                                                                            |
-| Product: audience-primitive decision              | 🟡 recommended, **awaiting user decision**                                                                                            |
+| Product: audience-primitive decision              | ✅ decided (2026-09-06) — space-first; see Decided table                                                                              |
 | Ventures: times + board + tickets                 | ✅ done (2026-08-24)                                                                                                                  |
 | Ventures: venue picker + distance bands           | ✅ manual Venue code + DB verified; Google precision intentionally disabled pending team decision                                     |
 | Ventures: accepted-member venue + map             | ✅ code + approved Red migration verified                                                                                             |
@@ -91,7 +91,8 @@ and logged below.
 | **Pushing to remote**                   | User-authorised only. Both agents.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **One Tribe per user**                  | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**.                                                                                                                                                                                                                                                                                                               |
 | **Global vs Tribe timeline**            | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`.                                                                                                                                                                                                                                                                                                                                                                                            |
-| **Moots after Ventures**                | A Moot is reciprocal and opt-in, never inferred from DM access or created automatically. Completed Venture rooms become read-only **Venture Memories** with a participant recap; an accepted Hello is the current relationship record behind Add as Moot / Accept / Moots states. This does not settle the feed audience/follows decision below.                                                                                                                                                                                                                                              |
+| **Audience primitive: space-first**     | **Decided 2026-09-06.** Tribes are the audience primitive, not Follows — closing the audit's Part 1 recommendation. The Tribe tab is strictly `audience: 'tribe'` scoped to that one tribe with no broadcast leak (`listFeed`, `src/lib/posts.functions.ts:319-332`); the separate "For You" tab (posts there say "Post to The Wild") is the explicitly-labelled cross-tribe surface (`TimelineScreen.tsx`). Follow/`Save` is demoted permanently to a private bookmark plus the Venture-invite-eligibility signal — it must never again drive a feed, and the button/copy must stay "Save," never "Follow." Venture visibility also enforces tribe overlap in RLS, not just app code (`supabase/migrations/20260820000600_enforce_venture_scope.sql`). Don't reintroduce a follow-graph feed or restore Follow terminology.                                                                                                                                                                                                                                                                                                            |
+| **Moots after Ventures**                | A Moot is reciprocal and opt-in, never inferred from DM access or created automatically. Completed Venture rooms become read-only **Venture Memories** with a participant recap; an accepted Hello is the current relationship record behind Add as Moot / Accept / Moots states. This is separate from the audience-primitive decision above — a Moot is a relationship, not a feed rule.                                                                                                                                                                                                                                              |
 | **Swipe lives on Ventures, not people** | Judging a plan, not a face. Explore uses focused one-at-a-time cards with Next/Back where Next means _later_, not _never_. Reject-forever on people needs a pool of thousands and imports dating semantics; user agreed.                                                                                                                                                                                                                                                                                                                                                                      |
 | **Illustration masks**                  | Tribe animals appear as masks **worn up / half-masks with faces visible** — never full face-covering. A masquerade signals anonymity, and this product is built on accountable identity (real handles, adult verification, Hello gating). Full masks would also pull toward the romantic register the Explore deck was designed away from.                                                                                                                                                                                                                                                    |
 | **Which art is transparent**            | Everything is transparent RGBA now (app illustrations 600x800, Tribe portraits 600x800, crests 256x256) and that is correct — an earlier note here said the Tribe portraits had to stay opaque; testing against the real card colour disproved it. What background-use _does_ require is an opaque surface behind the art, which is the container's job: `bg-card` on the Tribe banner and the Discover flip cards.                                                                                                                                                                           |
@@ -106,19 +107,15 @@ and logged below.
 
 ## Open questions for the user — agents should not decide these
 
-1. **Audience primitive.** The app ships two competing models: Tribes
-   (space-first, real, enforced in Postgres) and Follows (graph-first, real in
-   the DB but invisible to users — `listFeed` has no join on `follows`, so
-   following someone changes nothing they can see). The audit recommends
-   committing to **space-first**: feed derives from joined tribes, follows
-   demote to a bookmark. **This is the single highest-leverage product
-   decision and it is unmade.** Do not implement either direction unilaterally.
-2. **Host program.** Currently a facade (`/host` writes nothing,
+1. **Host program.** Currently a facade (`/host` writes nothing,
    `/host-dashboard` is fabricated). The audit argues it should become real —
    it's simultaneously the moderation jurisdiction, the seeding engine, and a
    better business than consumer subscriptions. Needs a user call.
-3. **Launch geography.** Cold start needs concentration in one city / one or
+2. **Launch geography.** Cold start needs concentration in one city / one or
    two tribes. Nobody has picked one.
+
+The audience-primitive decision that used to head this list is **decided** —
+see "Audience primitive: space-first" in the Decided table above.
 
 ---
 
@@ -211,6 +208,55 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — User + Claude — S5 Venture-scope RLS confirmed live on production
+
+- `supabase/migrations/20260820000600_enforce_venture_scope.sql` had only ever
+  been rehearsed in Claude's sandbox, per `CHANGE_PROTOCOL.md` — Claude cannot
+  reach production, and RLS changes are Red (user-applied only). No
+  `LOVABLE_*_VERIFY.sql` existed for it and no devlog entry confirmed a
+  production paste, unlike every other Red migration in this repo. The
+  audience-primitive entry directly above cited it as already closing S5; that
+  was correct about the code, but premature about production until today.
+- The user pasted the migration into Lovable's SQL editor themselves. Added
+  `LOVABLE_VENTURE_SCOPE_VERIFY.sql` (6 checks) to confirm it; the first pass
+  returned one `false` — `single_select_policy_on_ventures` — reading as if an
+  old permissive policy had survived the migration's `drop policy if exists`
+  and was silently widening access back open via RLS's default OR-combination
+  of permissive policies.
+- Investigated with two throwaway diagnostic queries
+  (`tmp/list_ventures_select_policies.sql`,
+  `tmp/check_ventures_policy_type.sql`, not migrations). The second SELECT
+  policy is `Only verified adults read Ventures`, created **RESTRICTIVE** in
+  `20260820000900_enforce_adult_verification.sql` — restrictive policies AND
+  with permissive ones rather than OR, so this was never a gap: a verified
+  adult still has to separately satisfy the scope check to see a row. The
+  verify script's check was wrong, not production — it counted every SELECT
+  policy instead of only permissive ones. Fixed the check to filter on
+  `permissive = 'PERMISSIVE'` and added a companion check that the restrictive
+  adult-gate policy is still present, so the script asserts the real intended
+  shape (1 permissive + 1 restrictive) instead of a plain count.
+- Rerun after the fix: all 6 checks `true`. S5 is confirmed closed on
+  production, not just in the repo.
+
+### 2026-09-06 — User + Claude — Audience-primitive decision closed
+
+- The user reviewed Part 1 of `MEUTUALS_PRODUCTION_AUDIT.md` (the space-first
+  vs. graph-first structural decision) and confirmed the audit's
+  recommendation: **Tribes are the audience primitive, not Follows.**
+- This was a documentation update only — the implementation already matched
+  the recommendation and needed no code change: the Tribe feed has no
+  broadcast leak (`src/lib/posts.functions.ts:319-332`), the "For You"/"The
+  Wild" tab is already the explicit cross-tribe surface
+  (`TimelineScreen.tsx`), Follow is already presented as "Save" everywhere
+  user-facing, and Venture visibility already enforces tribe overlap in RLS
+  (`supabase/migrations/20260820000600_enforce_venture_scope.sql`, closing
+  **S5**).
+- Moved the decision from "Open questions" into "Decided — do not
+  re-litigate" as **Audience primitive: space-first**, updated the roadmap
+  row, and corrected the stale cross-reference in "Moots after Ventures"
+  (it previously pointed at this decision as unmade).
+- Host program and launch geography remain open; renumbered accordingly.
 
 ### 2026-09-06 — User + Codex — UI release published and verified
 

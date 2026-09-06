@@ -2694,12 +2694,15 @@ function HostedVentureCard({
       )}
 
       <div className="mt-4 space-y-3">
-        <div>
-          <p className="label-mono text-muted-foreground">Pending requests</p>
+        <div className="rounded-xl bg-secondary/35 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <UsersIcon className="h-3.5 w-3.5" />
+            Pending requests
+          </p>
           {pending.length ? (
             <div className="mt-2 space-y-2">
               {!acceptsRequests && (
-                <p className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">
+                <p className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
                   Requests closed when this Venture started. You can still decline outstanding
                   requests.
                 </p>
@@ -2716,7 +2719,7 @@ function HostedVentureCard({
               ))}
             </div>
           ) : (
-            <p className="mt-2 rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               No pending requests.
             </p>
           )}
@@ -2725,8 +2728,11 @@ function HostedVentureCard({
         {venture.applications.some(
           (application) => (application.status as string) === "invited",
         ) && (
-          <div>
-            <p className="label-mono text-muted-foreground">Invites sent</p>
+          <div className="rounded-xl bg-secondary/35 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <UserPlusIcon className="h-3.5 w-3.5" />
+              Invites sent
+            </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {venture.applications
                 .filter((application) => (application.status as string) === "invited")
@@ -2738,8 +2744,11 @@ function HostedVentureCard({
         )}
 
         {accepted.length > 0 && (
-          <div>
-            <p className="label-mono text-muted-foreground">Party members</p>
+          <div className="rounded-xl bg-secondary/35 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <UsersIcon className="h-3.5 w-3.5" />
+              Party members
+            </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {accepted.map((application) => (
                 <MemberPill key={application.id} profile={application.applicant} />
@@ -2983,6 +2992,24 @@ function VentureCardHeader({
 }) {
   const host = venture.host;
   const hostTribe = TRIBES.find((t) => host?.tribe_ids?.includes(t.id));
+  // Same capacity ring as the Venture board card, so "how full is this"
+  // reads the same way whether you're browsing or managing — but "3 spots
+  // open" is meaningless once the plan is over, and a vivid brand-pink ring
+  // reads as "act now" even on a Venture nobody can join any more. The ring
+  // only means "spots open, act now" while the Venture is still scheduled;
+  // once it's cancelled or completed it switches to a neutral tone and a
+  // different fact (attendance, or nothing to count at all).
+  const remaining = Math.max(venture.max_slots - venture.filled_slots, 0);
+  const fillPct = Math.round((venture.filled_slots / Math.max(venture.max_slots, 1)) * 100);
+  const isCancelled = Boolean(venture.cancelled_at);
+  const isCompleted = venture.status === "closed" && !isCancelled;
+  const ringLabel = isCancelled
+    ? "Cancelled"
+    : isCompleted
+      ? `${venture.filled_slots} of ${venture.max_slots} went`
+      : `${venture.filled_slots} of ${venture.max_slots} spots taken — ${
+          remaining === 0 ? "none open" : remaining === 1 ? "1 open" : `${remaining} open`
+        }`;
   return (
     <div className="flex items-start justify-between gap-3">
       {/* The host's face leads, not the Venture's photo.
@@ -3018,13 +3045,34 @@ function VentureCardHeader({
           </div>
         )}
       </div>
-      <div className="flex items-start gap-1">
-        <div className="text-right">
-          <p className="text-sm font-bold">
-            {venture.filled_slots}/{venture.max_slots}
-          </p>
-          <p className="text-xs text-muted-foreground">slots</p>
-        </div>
+      <div className="flex items-start gap-1.5">
+        <span
+          className="relative h-11 w-11 shrink-0 rounded-full"
+          style={{
+            background: isCancelled
+              ? "var(--border)"
+              : `conic-gradient(var(${isCompleted ? "--foreground" : "--brand-solid"}) 0% ${fillPct}%, var(--border) ${fillPct}% 100%)`,
+          }}
+          role="img"
+          aria-label={ringLabel}
+          title={ringLabel}
+        >
+          <span className="absolute inset-1 rounded-full bg-card" aria-hidden />
+          <span className="absolute inset-0 flex flex-col items-center justify-center">
+            {isCancelled ? (
+              <XIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            ) : (
+              <>
+                <b className="font-mono text-sm font-bold leading-none text-foreground">
+                  {isCompleted ? venture.filled_slots : remaining}
+                </b>
+                <span className="text-[0.4375rem] uppercase tracking-wide text-muted-foreground">
+                  {isCompleted ? "went" : "open"}
+                </span>
+              </>
+            )}
+          </span>
+        </span>
         {!hideHost && (
           <SafetyMenu
             targetName={displayName(host)}
@@ -3045,7 +3093,7 @@ function VentureMeta({ venture, hideHost = false }: { venture: VentureParty; hid
         {venture.intents.slice(0, 5).map((intent) => (
           <span
             key={intent}
-            className="label-mono inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2 py-1 text-accent-readable"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground"
           >
             <VentureVibeLabel value={intent} iconClassName="h-3 w-3" />
           </span>
