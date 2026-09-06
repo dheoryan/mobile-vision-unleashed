@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Match Discover distance filter to the gradient-outline state and deploy pending UI updates | `src/components/mutuals/DiscoverScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,18 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — Discover distance outline and UI release
+
+- Matched the enabled Discover distance control to the My Ventures ownership
+  filters: a one-pixel MEUTUALS gradient outline around the existing dark
+  surface, with the compact icon and radius label preserved.
+- Released this client-only refinement with the accumulated Venture journey and
+  interface updates by pushing `main` to `origin`; Lovable rebuilds and
+  publishes from that branch. No database change.
+- Validation: signed-in local Chrome visual check, Prettier,
+  `npx tsc --noEmit`, targeted ESLint, `git diff --check`, and `npm run build`
+  pass.
 
 ### 2026-09-06 — Codex (Astra) — Venture control visual alignment
 
