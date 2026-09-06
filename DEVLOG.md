@@ -209,6 +209,32 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-09-06 — User + Claude — Explore radius-tier migration applied to production
+
+- The user pasted `supabase/migrations/20260901000000_explore_radius_tier.sql`
+  into Lovable's SQL editor. This was the last confirmed-pending Red migration
+  from the audit of migrations since the 2026-08-24 checkpoint; no verify
+  script existed for it yet, so one was written
+  (`LOVABLE_EXPLORE_RADIUS_TIER_VERIFY.sql`, 7 checks). All 7 returned `true`:
+  a single two-arg `list_explore_matches` overload exists (the old signature
+  was cleanly dropped, not left as an orphan); the new `outside_radius` output
+  column is present; the in-radius sort tier
+  (`(distance_band is not null) desc`, ahead of score) is in the function
+  body; `outside_radius` is only set when distance is positively confirmed to
+  exceed the mutual radius, never merely unknown; and `anon` is denied
+  execute while `authenticated`/`service_role` are granted it.
+- Fixes the mismatch between the radius control Today's Five shows (which
+  reads as a hard scope) and what ranking actually did (distance was a small
+  +10 addend inside one flat score, so a strong-overlap match hundreds or
+  thousands of km away could out-rank a weaker-overlap match genuinely
+  nearby) — reported directly by two out-of-area accounts surfacing in a
+  Jakarta-area account's deck with a 50 km radius set. The fix is a sort
+  tier, not a WHERE filter, so nobody is newly excluded.
+- Between this and the venture journey migration confirmed above, every Red
+  migration this session found pending is now confirmed live. ~20 migrations
+  from 2026-08-30 through 2026-09-05 remain individually unaudited — likely
+  mostly Green (auto-applied by Lovable) but not yet checked one by one.
+
 ### 2026-09-06 — User + Claude — Venture journey consistency migration applied to production
 
 - The user pasted `supabase/migrations/20260906010000_venture_journey_consistency.sql`
