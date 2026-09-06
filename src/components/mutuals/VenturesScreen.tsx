@@ -1252,7 +1252,7 @@ function MyVenturesView({
                     ? () => setOwnershipTab("hosted")
                     : () => setVentureTab("active")
             }
-            gradient={ventureTab === "active" && ownershipTab === "hosted"}
+            gradient={ventureTab === "active"}
           />
         ) : ventureTab === "active" ? (
           <div className={cn("flex flex-col", ownershipTab === "hosted" ? "gap-3" : "gap-6")}>

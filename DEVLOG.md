@@ -64,7 +64,6 @@ Claim before you start. Remove your row when done and log it below.
 
 | Agent | Area | Files | Started |
 | ----- | ---- | ----- | ------- |
-| Codex | Apply MEUTUALS gradient to My Ventures active empty-state actions | `src/components/mutuals/VenturesScreen.tsx`, `DEVLOG.md` | 2026-09-06 |
 
 Claude's Tribe-first phase and the Explore relevance pass are both **complete**
 and logged below.
@@ -205,6 +204,15 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-06 — Codex (Astra) — My Ventures empty-action gradient
+
+- Applied the MEUTUALS gradient to both Active empty-state actions, including
+  `Browse Venture board` in Joined. History navigation actions remain neutral
+  so the gradient continues to signal creation/discovery rather than back or
+  filter navigation.
+- Validation: Prettier, `npx tsc --noEmit`, targeted ESLint, and
+  `git diff --check` pass. No database change.
 
 ### 2026-09-06 — Codex (Astra) — Hosted/Joined My Ventures subtabs
 
