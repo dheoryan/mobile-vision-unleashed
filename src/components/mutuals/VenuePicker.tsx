@@ -16,8 +16,9 @@ import { cn } from "@/lib/utils";
  * ---------- the session token ----------
  *
  * One token spans the whole interaction: every keystroke, and the single
- * details call that ends it. With it, autocomplete requests bill at "Autocomplete
- * Session Usage" — unlimited and free. Without it they bill individually. It is
+ * details call that ends it. With Essentials details, the first 12 autocomplete
+ * requests use the Autocomplete Requests SKU; later requests in that session
+ * have no charge. Monthly free caps apply separately. The token is
  * generated once when the picker opens and thrown away after a place is chosen,
  * because a token reused across two searches is two sessions charged as one and
  * Google will eventually notice.
@@ -77,7 +78,19 @@ export function VenuePicker({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const selectionVersion = useRef(0);
+  const selectionPending = useRef(false);
+  const searchVersion = useRef(0);
+
+  useEffect(
+    () => () => {
+      selectionVersion.current += 1;
+    },
+    [],
+  );
 
   // The place the host tapped, waiting on a label.
   const [chosen, setChosen] = useState<{
@@ -96,15 +109,25 @@ export function VenuePicker({
   // Debounced, because a request per keystroke is both slower and — without the
   // session token doing its job — the expensive way to spell a café's name.
   useEffect(() => {
+    if (!GOOGLE_PLACES_ENABLED || stage !== "search" || value || selectionPending.current) {
+      setSearching(false);
+      return;
+    }
     const q = query.trim();
+    setResults([]);
+    setSearched(false);
+    setError(null);
     if (q.length < 2) {
+      setSearching(false);
       setResults([]);
       setError(null);
       return;
     }
     let cancelled = false;
+    const version = ++searchVersion.current;
     setSearching(true);
     const timer = setTimeout(() => {
+      if (version !== searchVersion.current) return;
       void search({
         data: {
           query: q,
@@ -115,31 +138,38 @@ export function VenuePicker({
         },
       })
         .then((rows) => {
-          if (cancelled) return;
+          if (cancelled || version !== searchVersion.current) return;
           setResults(rows);
+          setSearched(true);
           setError(null);
         })
         .catch((err: unknown) => {
-          if (cancelled) return;
+          if (cancelled || version !== searchVersion.current) return;
           setResults([]);
           setError((err as Error).message);
         })
-        .finally(() => !cancelled && setSearching(false));
-    }, 280);
+        .finally(() => !cancelled && version === searchVersion.current && setSearching(false));
+    }, 350);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, search, viewerLat, viewerLng]);
+  }, [query, search, viewerLat, viewerLng, stage, value]);
 
   const pick = async (suggestion: PlaceSuggestion) => {
-    setSearching(true);
+    if (selectionPending.current) return;
+    selectionPending.current = true;
+    searchVersion.current += 1;
+    const version = ++selectionVersion.current;
+    setResolvingId(suggestion.place_id);
+    setSearching(false);
     setError(null);
     try {
       const detail = await resolve({
         data: { place_id: suggestion.place_id, session_token: tokenRef.current },
       });
+      if (version !== selectionVersion.current) return;
       setChosen({
         place_id: detail.place_id,
         suggestion: suggestion.primary,
@@ -147,15 +177,20 @@ export function VenuePicker({
         latitude: detail.latitude,
         longitude: detail.longitude,
       });
-      setLabel("");
-      setArea("");
+      // Preserve the host's own draft; provider labels stay display-only.
       setStage("label");
-      // Session spent. The next search starts a fresh one.
-      tokenRef.current = crypto.randomUUID();
     } catch (err) {
-      setError((err as Error).message);
+      if (version === selectionVersion.current) {
+        setError(
+          err instanceof Error ? err.message : "Could not select this place. Please try again.",
+        );
+      }
     } finally {
-      setSearching(false);
+      if (version === selectionVersion.current) {
+        tokenRef.current = crypto.randomUUID();
+        selectionPending.current = false;
+        setResolvingId(null);
+      }
     }
   };
 
@@ -166,8 +201,13 @@ export function VenuePicker({
    * someone has typed "Bloo" and given up, that is still what they call it.
    */
   const useFreeText = () => {
+    selectionVersion.current += 1;
+    selectionPending.current = false;
+    setResolvingId(null);
+    setError(null);
+    tokenRef.current = crypto.randomUUID();
     setChosen(null);
-    if (query.trim()) setLabel(query.trim());
+    if (!label.trim() && query.trim()) setLabel(query.trim());
     setStage("manual");
   };
 
@@ -206,21 +246,21 @@ export function VenuePicker({
             {value.google_place_id && (
               <SealCheckIcon
                 className="h-3.5 w-3.5 shrink-0 text-accent-readable"
-                aria-label="Verified place"
+                aria-label="Place found on Google Maps"
               />
             )}
           </p>
           <p className="truncate text-xs text-muted-foreground">{value.area}</p>
           {!value.google_place_id && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Host-named place · map optional
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Host-named place · map optional</p>
           )}
         </div>
         <button
           type="button"
           onClick={() => {
             onChange(null);
+            setLabel(value.host_label);
+            setArea(value.area);
             setStage("manual");
             setQuery("");
             setResults([]);
@@ -238,6 +278,25 @@ export function VenuePicker({
   if (stage === "manual") {
     return (
       <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setQuery(label.trim());
+            setResults([]);
+            setError(null);
+            setStage("search");
+          }}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-3 text-sm font-semibold transition-colors hover:border-primary/50 hover:text-primary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <MapPinIcon className="h-4 w-4" />
+          Choose a location
+        </button>
+        <p className="text-center text-xs text-muted-foreground">
+          {GOOGLE_PLACES_ENABLED
+            ? "Search places with Google Maps"
+            : "Google Maps search coming soon"}
+        </p>
+
         <div className="flex items-start gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] p-3">
           <PencilLineIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <div>
@@ -287,33 +346,6 @@ export function VenuePicker({
         >
           Use this place
         </button>
-
-        {GOOGLE_PLACES_ENABLED && (
-          <>
-            <div className="flex items-center gap-3 py-1" aria-hidden="true">
-              <span className="h-px flex-1 bg-border" />
-              <span className="label-mono text-muted-foreground">Optional precision</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setQuery(label.trim());
-                setResults([]);
-                setError(null);
-                setStage("search");
-              }}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <MapPinIcon className="h-3.5 w-3.5" />
-              Find a verified pin with Google Maps
-            </button>
-            <p className="text-center text-xs leading-relaxed text-muted-foreground">
-              Adds distance guidance and an optional map for accepted participants.
-            </p>
-          </>
-        )}
       </div>
     );
   }
@@ -334,8 +366,8 @@ export function VenuePicker({
               {chosen.area && (
                 <p className="truncate text-xs text-muted-foreground">{chosen.area}</p>
               )}
-              <p className="mt-1 font-mono text-xs uppercase tracking-widest text-accent-readable">
-                Matched on Google
+              <p className="mt-2 text-xs font-normal text-white" translate="no">
+                Google Maps
               </p>
             </div>
           </div>
@@ -371,8 +403,7 @@ export function VenuePicker({
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Your words, not Google's. This is the line people read on the board when they are
-            deciding whether it is near enough to bother.
+            Add the neighborhood and city you want people to see on the Venture board.
           </p>
         </div>
 
@@ -411,9 +442,9 @@ export function VenuePicker({
     <div className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-3 pb-1">
         <div>
-          <p className="text-xs font-semibold">Find a verified pin</p>
+          <p className="text-xs font-semibold">Choose a location</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Optional—use this when distance and map guidance will help the group.
+            Find a café, park, or another place to meet.
           </p>
         </div>
         <button
@@ -427,19 +458,52 @@ export function VenuePicker({
       <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:border-primary">
         <MagnifyingGlassIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
-          autoFocus
+          autoFocus={GOOGLE_PLACES_ENABLED}
+          disabled={!GOOGLE_PLACES_ENABLED || resolvingId !== null}
+          aria-label="Search Google Maps places"
           value={query}
           onChange={(event) => setQuery(event.target.value.slice(0, 120))}
           placeholder="Café, bar, park…"
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
-        {searching && (
+        {(searching || resolvingId) && (
           <SpinnerGapIcon className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
         )}
       </div>
 
+      {GOOGLE_PLACES_ENABLED && !error && (
+        <p
+          className="px-1 text-xs leading-relaxed text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          {resolvingId
+            ? "Getting this place’s map pin…"
+            : searching
+              ? "Searching places…"
+              : query.trim().length < 2
+                ? "Type at least 2 characters. Add a city to narrow your search."
+                : searched && results.length === 0
+                  ? "No places found. Try adding the city, or enter the place manually."
+                  : null}
+        </p>
+      )}
+
+      {!GOOGLE_PLACES_ENABLED && (
+        <div className="rounded-xl border border-border bg-secondary/30 p-4" role="status">
+          <p className="text-sm font-semibold">Google Maps search is coming soon</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            For now, choose Enter manually to add the place name and area. Your Venture can still be
+            created without a map pin.
+          </p>
+        </div>
+      )}
+
       {error && (
-        <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs leading-relaxed text-destructive">
+        <p
+          role="alert"
+          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs leading-relaxed text-destructive"
+        >
           {error}
         </p>
       )}
@@ -450,22 +514,29 @@ export function VenuePicker({
             <button
               key={row.place_id}
               type="button"
+              disabled={resolvingId !== null}
               onClick={() => void pick(row)}
               className={cn(
-                "flex w-full flex-col gap-0.5 bg-card px-3 py-2.5 text-left transition-colors hover:bg-secondary/30 active:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                "flex min-h-12 w-full flex-col gap-1 bg-card px-3 py-3 text-left transition-colors hover:bg-secondary/30 active:bg-secondary/50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                 index > 0 && "border-t border-border",
               )}
             >
-              <span className="truncate text-xs font-semibold">{row.primary}</span>
+              <span className="text-sm font-semibold">{row.primary}</span>
               {row.secondary && (
-                <span className="truncate text-xs text-muted-foreground">{row.secondary}</span>
+                <span className="text-xs leading-relaxed text-muted-foreground">
+                  {row.secondary}
+                </span>
               )}
             </button>
           ))}
         </div>
       )}
 
-      <p className="text-right text-xs text-muted-foreground">Places by Google</p>
+      {GOOGLE_PLACES_ENABLED && (
+        <p className="text-right text-xs font-normal text-white" translate="no">
+          Google Maps
+        </p>
+      )}
     </div>
   );
 }

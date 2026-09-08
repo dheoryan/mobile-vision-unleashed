@@ -8,13 +8,13 @@
  *   re-enable monetization by flipping this single flag back to `true`.
  *
  * GOOGLE_PLACES_ENABLED:
- *   When `false`, Venture venues remain fully manual. The Google search UI,
- *   server requests, verified-place badge, and map links are all unavailable.
- *   Re-enable only after the team approves the API terms, key restrictions,
- *   and quota budget.
+ *   Enabled by user request on 2026-09-08. Requires GOOGLE_MAPS_SERVER_KEY
+ *   in the server environment (.env.local locally, Lovable Secrets on deploy).
+ *   When false, the picker keeps its manual fallback but Google requests,
+ *   badges and maps are disabled.
  */
 export const MONETIZATION_ENABLED = false;
-export const GOOGLE_PLACES_ENABLED = false;
+export const GOOGLE_PLACES_ENABLED = true;
 
 /** Effective Plus status for the current user. */
 export function isPlusEffective(plan: "free" | "plus" | undefined | null): boolean {

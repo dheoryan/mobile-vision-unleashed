@@ -31,7 +31,7 @@ function PrivacyPage() {
         <header className="mt-6">
           <p className="label-mono text-muted-foreground">Legal</p>
           <h1 className="mt-2 font-display text-4xl font-bold leading-tight">Privacy Policy</h1>
-          <p className="mt-2 text-xs text-muted-foreground">Last updated: August 30, 2026</p>
+          <p className="mt-2 text-xs text-muted-foreground">Last updated: September 8, 2026</p>
         </header>
 
         <article className="mt-8 space-y-6 text-sm leading-relaxed text-muted-foreground">
@@ -90,6 +90,17 @@ function PrivacyPage() {
               <li>
                 <strong className="text-foreground">Google and Apple</strong> — only when you choose
                 the corresponding sign-in provider.
+              </li>
+              <li>
+                <strong className="text-foreground">Google Maps</strong> — when you search for a
+                Venture location, Google receives your search text and a temporary search session
+                token. We store the selected place ID and temporarily retain its coordinates for
+                distance guidance; place names and areas saved on Ventures are written by the host.
+                Google Maps features are also governed by the{" "}
+                <a href="https://policies.google.com/privacy" className="underline">
+                  Google Privacy Policy
+                </a>
+                .
               </li>
               <li>
                 <strong className="text-foreground">Your browser's push service</strong> — only

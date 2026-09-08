@@ -16,7 +16,7 @@ launch** (no real payments).
 **Branch:** `main`. **Production release pushed through Git on 2026-08-24 after
 reconciling seven newer Lovable commits with a normal merge.** The approved Red
 Venue changes and push-secret rotation are applied and verified. Google Venue
-precision is intentionally feature-flagged off pending a team decision. Never
+precision is enabled locally by user request on 2026-09-08; Google Cloud access verification is pending (403). Never
 force-push.
 
 **Latest public UI release (2026-09-06):** through app commit `adbb8d8`,
@@ -90,7 +90,7 @@ and logged below.
 | **Animation**                           | Minimal CSS fades only. `motion` was added then removed at user request. Don't reintroduce a JS animation library.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **Modals**                              | All go through `src/components/ui/animated-modal.tsx` (Radix Dialog + CSS). It provides focus trap, ESC, click-outside. Don't hand-roll `fixed inset-0` modals.                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Nearby discovery**                    | Optional and mutual. Browser location is requested only after an explicit action, rounded to roughly 1 km before storage in an owner-private table, and never returned to other users. For Indonesia, the same rounded coordinate (without account identity) is resolved through BIG's official village/kelurahan → district → regency/city boundary ladder, then the offline world-city catalog. Village is used only to establish the hierarchy; public labels stop at district plus regency/city. Discovery exposes distance bands plus a similarity score; no map or background tracking. |
-| **Google Venue precision**              | Manual host-authored place + area is the production Venue flow. Google search, badges, external maps, embeds, and server calls are gated by `GOOGLE_PLACES_ENABLED = false` pending a team decision on API terms, restrictions, and quota. Re-enable through that single flag only after credentials are approved.                                                                                                                                                                                                                                                                            |
+| **Google Venue precision** | User selected Google Places and requested activation on 2026-09-08. `GOOGLE_PLACES_ENABLED = true` locally; manual entry remains available. Server key belongs only in `.env.local` or Lovable Secrets. Direct Google test currently returns 403 PERMISSION_DENIED; production activation/deployment has not been verified. |
 | **Pushing to remote**                   | User-authorised only. Both agents.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **One Tribe per user**                  | Exclusive membership. 21-day switch cooldown with a 7-day onboarding grace window. `profiles.tribe_ids` is capped at 1 by trigger, and `tribe_members` is reconciled on every change. Multi-Tribe is gone — don't reintroduce "Add Tribe" anywhere; the affordance is **Move**.                                                                                                                                                                                                                                                                                                               |
 | **Global vs Tribe timeline**            | Global is look-but-don't-touch: read, like, comment, repost — but no direct Follow or DM across Tribes. Crossing Tribes goes through Explore → Hello → accept. Enforced in `can_direct_message()`.                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -211,6 +211,64 @@ artifact only and is not imported into the application.
 ## Work log
 
 Newest first. Append; don't edit past entries.
+
+### 2026-09-08 — Codex — Google Places enabled locally with picker improvements
+
+- User supplied a server key and explicitly requested enabling/enhancing the
+  existing Google Places flow. `GOOGLE_PLACES_ENABLED` is now true. This has
+  not been pushed or published; deployed hosting still needs its own secret.
+- Moved the server key out of tracked `.env` into ignored `.env.local` without
+  printing it. `.env` matches HEAD again. Because the user pasted the key into
+  chat, advised rotation before production use. No cloud credentials or billing
+  settings were changed by the agent.
+- Added `places-api.server.ts` behind the existing JWT-authenticated and
+  Zod-validated server functions. Requests have an 8-second timeout, sanitized
+  provider failures, Essentials-only details fields, and coordinate validation.
+  Corrected the historical claim that a token makes all autocomplete free.
+- Picker now shows explicit loading/empty states, preserves host-authored
+  drafts, blocks duplicate selections, ignores superseded search/detail
+  responses, and retains manual entry. Google Maps attribution is shown with
+  provider content; Privacy/Terms now disclose and link the Maps service.
+- Six focused transport tests pass; targeted ESLint and TypeScript pass with
+  the user's current dependency installation. Production build passes; public
+  bundle scan finds zero copies of the server key. No database writes or
+  signed-in end-to-end Venture creation were performed.
+- Live Google autocomplete returned HTTP 403 PERMISSION_DENIED. The key loads,
+  but Google has not authorized this request. Enable Places API (New), verify
+  billing and API/application restrictions on the key. Live search/details
+  success remains unverified until that external configuration is corrected.
+- Existing user changes in `package-lock.json` and generated route tree were
+  preserved. Work remains local and uncommitted; no push or production rollout.
+
+### 2026-09-08 — Codex — Venture location entry revealed; Google Places selected
+
+- User requested the hidden location-pin entry and chose Google Places for
+  the future live search. `VenuePicker.tsx` now shows a MapPin + "Choose a
+  location" button above the manual fields. It opens the existing search
+  stage; while the provider flag is off, a clear unavailable state and
+  Enter manually action preserve the working manual flow.
+- Search requests now require the Google flag, the search stage, and no
+  confirmed venue. Leaving search cancels pending debounced work. No Google
+  calls, database changes, billing configuration, or deployment were made.
+  No server key was found in this session's environment or local env files.
+- Google was selected, but credentials/quota setup remain pending before
+  enabling `GOOGLE_PLACES_ENABLED`. Official session pricing contradicts the
+  old "all autocomplete is free with a token" comments: Essentials sessions
+  charge the first 12 requests against Autocomplete Requests, then use free
+  Session Usage; terminating Details uses its own SKU. Corrected the picker
+  comment; `places.functions.ts` still needs its historical billing comments
+  reconciled before activation. Source:
+  https://developers.google.com/maps/documentation/places/web-service/session-pricing
+- Workspace is `C:\Code\mobile-vision-unleashed`, branch `feature/melvy`.
+  Dependencies were absent; npm ci exposed a stale lockfile. Installed locally
+  with `npm install --package-lock=false` without editing either manifest or
+  lockfile. Build used bundled Node 24 because machine Node 20.18 is too old.
+- Validation: production build, targeted ESLint, and git diff --check pass.
+  TypeScript before and after the picker change reports the same existing
+  `src/routes/__root.tsx:139` ErrorRouteComponent error (unknown vs Error) with
+  freshly resolved dependencies. No signed-in browser or Google API test.
+  Claim was recorded locally but not committed because baseline TypeScript
+  failed the repository's pre-commit gate. Changes remain uncommitted; no push.
 
 ### 2026-09-06 — User + Claude — Explore: specific-vibe lens, deck end-of-round redesign
 

@@ -28,7 +28,7 @@ function TermsPage() {
         <header className="mt-6">
           <p className="label-mono text-muted-foreground">Legal</p>
           <h1 className="mt-2 font-display text-4xl font-bold leading-tight">Terms of Service</h1>
-          <p className="mt-2 text-xs text-muted-foreground">Last updated: August 30, 2026</p>
+          <p className="mt-2 text-xs text-muted-foreground">Last updated: September 8, 2026</p>
         </header>
 
         <article className="prose prose-invert mt-8 max-w-none space-y-6 text-sm leading-relaxed text-muted-foreground">
@@ -56,7 +56,16 @@ function TermsPage() {
           </Section>
           <Section title="5. Intellectual property">
             MEUTUALS and its logos, design, and original content are owned by MEUTUALS. You may not
-            reproduce or redistribute any part of MEUTUALS without written permission.
+            reproduce or redistribute any part of MEUTUALS without written permission. Use of Google
+            Maps features is also subject to the{" "}
+            <a href="https://maps.google.com/help/terms_maps/" className="underline">
+              Google Maps/Google Earth Additional Terms of Service
+            </a>{" "}
+            and the{" "}
+            <a href="https://policies.google.com/privacy" className="underline">
+              Google Privacy Policy
+            </a>
+            .
           </Section>
           <Section title="6. Limitation of liability">
             To the maximum extent permitted by law, MEUTUALS shall not be liable for any indirect,
