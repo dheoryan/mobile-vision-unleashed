@@ -597,8 +597,7 @@ export function CommentsThread({
         contentClassName="overflow-hidden"
         zIndex={60}
       >
-        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
-          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
+        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between px-5 pb-3 pt-3">
             <div>
               <p className="label-mono text-primary">PASS IT ON</p>
@@ -1072,8 +1071,7 @@ function CommentOwnMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: ()
         contentClassName="overflow-hidden"
         zIndex={60}
       >
-        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
-          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/35" />
+        <div className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between px-5 pb-3 pt-3">
             <div>
               <p className="label-mono text-primary">YOUR COMMENT</p>

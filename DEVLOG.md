@@ -212,6 +212,49 @@ artifact only and is not imported into the application.
 
 Newest first. Append; don't edit past entries.
 
+### 2026-11-03 — User + Claude — iOS layout fixes, swipe-to-close sheets, Host a Venture form
+
+Pure client code, no schema/RLS - Green per `CHANGE_PROTOCOL.md`. `npx tsc
+--noEmit`, targeted ESLint, and `npm run build` pass (the one lint warning on
+`Onboarding.tsx:74` predates this work).
+
+- **iOS: illustration overlapped the text above it** (reported from the
+  "That's enough cards" screen). `FeatureIllustration`'s box takes its height
+  purely from `aspect-[3/4]` x a fixed width, so on a short viewport a `flex-1`
+  parent could shrink while the illustration could not, and it spilled upward
+  into the copy. Added `min-h-0 max-h-full` to the shared component so it
+  shrinks to whatever room its parent actually has, everywhere it is used.
+- **iOS: onboarding step 1 (Choose your first Tribe) could hide the Confirm
+  button entirely.** Steps 0-2 deliberately use `h-dvh overflow-hidden` with no
+  scroll fallback (see the 2026-09-04 entry), so every element has to shrink to
+  fit. Steps 0 and 2 did; step 1's Tribe card carried a hard 26rem floor via
+  `clamp(26rem,52dvh,27.5rem)`, which on a short viewport pushed the button off
+  screen with no way to reach it. The card wrapper is now `min-h-0 flex-1` and
+  the card is `h-full max-h-[27.5rem]`, same pattern as the other two steps.
+  Not verified on a physical iPhone from here - needs a check on the device that
+  reproduced it.
+- **Every bottom sheet can now be swiped down to close.** `AnimatedModal` now
+  renders the grab handle itself and wires it to a new hook,
+  `src/hooks/use-sheet-swipe-to-close.ts` (drag past 120px, or 40px with enough
+  velocity, closes; otherwise it snaps back). Scoped to the handle only so it
+  never fights a sheet's own scrolling content, and skipped for the `center` and
+  `side="right"` variants. Removed the eight hand-drawn handle bars that were
+  duplicating this (ChatMessageOwnMenu, CommentsModal x2, PostCard,
+  PostOwnMenu, SafetyMenu, SharePostSheet, VenturesScreen's `VentureSheet`,
+  VentureTicket) - they were decorative only and would now show two handles.
+  Closing via the close button, backdrop, Escape and the back-gesture is
+  unchanged.
+- **Host a Venture form:** the "Room" row is now **"Who"** and sits first,
+  ahead of Where / When / Vibe / Details (it is capacity plus audience, i.e.
+  who is invited). The sheet it opens is retitled to match; the internal sheet
+  key stays `"room"`.
+- **Ventures header create button** is now a **"Host" pill** with
+  `CalendarPlusIcon` instead of a bare `+`. Tried a solid gradient circle, then
+  a gradient ring; both read as a second badge next to the notification bell's
+  circular badge, so it is a different shape entirely. `CalendarPlusIcon` is
+  what every other "leads to a Venture" spot already uses (ExploreDeck,
+  TribeRoomLayer, TribeScreen).
+
 ### 2026-09-06 — User + Claude — Explore: specific-vibe lens, deck end-of-round redesign
 
 - Added `ExploreLens = ExploreMood | { vibeId: string }` to `explore-moods.ts`,

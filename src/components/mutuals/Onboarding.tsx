@@ -353,7 +353,18 @@ export function Onboarding({
               </div>
             </div>
 
-            <div className="relative mt-2 flex shrink-0 items-center justify-center [perspective:1200px]">
+            {/* min-h-0 flex-1 (not shrink-0) is what actually honors the
+                "no scroll, ever" contract this step signed up for. The card
+                used to carry a hard 26rem floor via clamp() - on a short
+                iOS viewport (Safari's chrome eating real height, an SE-class
+                phone) that floor could exceed what was actually left after
+                the heading/counter/dots/button above and below, and with
+                overflow-hidden and no scroll fallback the Confirm button
+                simply became unreachable. Letting this wrapper shrink and
+                giving the card itself h-full instead of a floor means it
+                gives up space first, the same way step 0's illustration and
+                step 2's avatar picker already do. */}
+            <div className="relative mt-2 flex min-h-0 flex-1 items-center justify-center [perspective:1200px]">
               <button
                 type="button"
                 aria-label="Previous Tribe"
@@ -391,7 +402,7 @@ export function Onboarding({
                   tribeSwipeStartRef.current = null;
                   tribeSwipeHandledRef.current = false;
                 }}
-                className="relative block h-[clamp(26rem,52dvh,27.5rem)] w-full max-w-[23rem] touch-pan-y rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+                className="relative block h-full max-h-[27.5rem] w-full max-w-[23rem] touch-pan-y rounded-[1.75rem] text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
               >
                 <span
                   className={cn(

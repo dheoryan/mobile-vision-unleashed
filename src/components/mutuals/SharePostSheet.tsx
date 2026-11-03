@@ -136,8 +136,7 @@ export function SharePostSheet({
       title="Share post"
       contentClassName="overflow-hidden"
     >
-      <div className="flex max-h-[80vh] flex-col pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-muted-foreground/35" />
+      <div className="flex max-h-[80vh] flex-col pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-3">
           <div>
             <p className="label-mono text-primary">SEND TO</p>

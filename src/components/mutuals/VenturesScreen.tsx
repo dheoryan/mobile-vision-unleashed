@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowsLeftRightIcon } from "@phosphor-icons/react/dist/csr/ArrowsLeftRight";
+import { CalendarPlusIcon } from "@phosphor-icons/react/dist/csr/CalendarPlus";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { ChatCircleIcon } from "@phosphor-icons/react/dist/csr/ChatCircle";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
@@ -371,9 +372,18 @@ export function VenturesScreen({
               type="button"
               onClick={startHosting}
               aria-label="Host a Venture"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              // Not a circle - the notification bell right next to this is
+              // already a circular icon with its own circular badge, and
+              // every circular treatment tried here (solid fill, gradient
+              // ring) ended up reading as a second badge competing with the
+              // real one. A pill is a different shape entirely, and the
+              // label removes the "generic +" ambiguity - CalendarPlusIcon
+              // is also what every other "leads to a Venture" spot in the
+              // app already uses (ExploreDeck, TribeRoomLayer, TribeScreen).
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand/15 px-3 text-xs font-bold text-brand transition-colors hover:bg-brand/25 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <PlusIcon className="h-5 w-5" />
+              <CalendarPlusIcon className="h-4 w-4" />
+              Host
             </button>
           ) : undefined
         }
@@ -1983,6 +1993,12 @@ function HostForm({
             Amber keys are the two that must be filled. */}
         <div className="mt-1 flex flex-col">
           <FormRow
+            label="Who"
+            value={`${maxSlots} people`}
+            hint={scope === "mine" ? "Your Tribes only" : "All Tribes"}
+            onClick={() => setSheet("room")}
+          />
+          <FormRow
             label="Where"
             required
             value={venue?.host_label ?? "Pick a place"}
@@ -2006,12 +2022,6 @@ function HostForm({
                 : "Choose an end after the start"
             }
             onClick={() => setSheet("when")}
-          />
-          <FormRow
-            label="Room"
-            value={`${maxSlots} people`}
-            hint={scope === "mine" ? "Your Tribes only" : "All Tribes"}
-            onClick={() => setSheet("room")}
           />
           <FormRow
             label="Vibe"
@@ -2249,7 +2259,7 @@ function HostForm({
       <VentureSheet
         open={sheet === "room"}
         onClose={closeSheet}
-        title="Room"
+        title="Who"
         gradient={scope === "all"}
         accentColor={scope === "mine" ? primaryTribe.colorVar : undefined}
       >
@@ -3365,8 +3375,7 @@ function VentureSheet({
       contentClassName="flex max-h-[86dvh] flex-col"
       viewportStyle={visualViewportStyle(visualViewport)}
     >
-      <div className="flex shrink-0 flex-col gap-3 px-5 pt-3">
-        <span className="mx-auto h-1 w-9 rounded-full bg-secondary" aria-hidden />
+      <div className="flex shrink-0 flex-col gap-3 px-5 pt-1">
         <h2 className="text-base font-extrabold tracking-tight">{title}</h2>
       </div>
 

@@ -282,8 +282,7 @@ export function VentureTicketDetail({
       title={venture.title}
       contentClassName="flex max-h-[86dvh] flex-col"
     >
-      <div className="flex shrink-0 flex-col gap-3 px-5 pt-3">
-        <span className="mx-auto h-1 w-9 rounded-full bg-secondary" aria-hidden />
+      <div className="flex shrink-0 flex-col gap-3 px-5 pt-1">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-extrabold leading-tight tracking-tight">{venture.title}</h2>
           {timing && (

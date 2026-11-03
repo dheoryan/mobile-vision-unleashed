@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { useModalBackGesture } from "@/hooks/use-modal-back-gesture";
+import { useSheetSwipeToClose } from "@/hooks/use-sheet-swipe-to-close";
 
 /**
  * Shared bottom-sheet-on-mobile / centered-dialog-on-desktop primitive used by
@@ -65,6 +66,12 @@ export function AnimatedModal({
 
   useModalBackGesture(open, onOpenChange, preventClose);
 
+  // Only the bottom-sheet-on-mobile shape gets a drag handle - "swipe down
+  // to close" doesn't read the same way on a centered confirm dialog or a
+  // side="right" panel that slides in from the edge.
+  const swipeEnabled = !center && side !== "right";
+  const { dragY, dragging, handleProps } = useSheetSwipeToClose(onOpenChange);
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -98,7 +105,10 @@ export function AnimatedModal({
             // fixes every current and future AnimatedModal instance.
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            style={contentStyle}
+            style={{
+              ...contentStyle,
+              ...(swipeEnabled && dragY > 0 ? { transform: `translateY(${dragY}px)` } : {}),
+            }}
             className={cn(
               "pointer-events-auto relative mx-auto w-full max-w-md border border-border bg-card duration-150",
               "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
@@ -109,6 +119,13 @@ export function AnimatedModal({
                   : "rounded-t-3xl sm:rounded-3xl",
               side === "right" &&
                 "mx-0 h-full max-w-xs rounded-none border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+              // The live drag itself tracks the pointer with no transition
+              // (any lag would read as unresponsive); releasing without
+              // committing to a close snaps back over a short, reduced-
+              // motion-respecting animation instead of jumping instantly.
+              swipeEnabled &&
+                !dragging &&
+                "transition-transform duration-200 motion-reduce:transition-none",
               contentClassName,
             )}
           >
@@ -116,6 +133,19 @@ export function AnimatedModal({
             <DialogPrimitive.Description className="sr-only">
               {title} dialog
             </DialogPrimitive.Description>
+            {swipeEnabled && (
+              // Decorative + a drag surface only - closing the sheet is
+              // always still reachable via the close button, backdrop tap,
+              // Escape, or the back-gesture handled above, so this being
+              // unreachable by keyboard/screen reader loses nothing.
+              <div
+                {...handleProps}
+                aria-hidden="true"
+                className="flex w-full cursor-grab justify-center py-2.5 active:cursor-grabbing"
+              >
+                <span className="h-1 w-10 rounded-full bg-muted-foreground/35" />
+              </div>
+            )}
             {children}
           </DialogPrimitive.Content>
         </div>

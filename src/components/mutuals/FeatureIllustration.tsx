@@ -41,6 +41,13 @@ export function FeatureIllustration({
         // Reserve the box before the image decodes so nothing shifts.
         "aspect-[3/4]",
         width,
+        // The aspect ratio derives height purely from width, so on a short
+        // viewport (iOS Safari's chrome eating real estate, a small phone)
+        // a flex-1 parent can shrink below that height while this box
+        // doesn't - it just overflows upward into whatever sits above it.
+        // min-h-0 lets it actually shrink as a flex item; max-h-full caps
+        // it there instead of spilling past the parent's real height.
+        "min-h-0 max-h-full",
         "animate-in fade-in-0 duration-300 motion-reduce:animate-none",
         className,
       )}
